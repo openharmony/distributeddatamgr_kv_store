@@ -84,7 +84,7 @@ void DistributeddbNbEnableSyncByClosedDbTest::TearDown(void)
 HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck001, TestSize.Level0)
 {
     string schema = SpliceToSchema(VALID_VERSION_1, VALID_MODE_1, VALID_DEFINE_1, VALID_INDEX_1);
-    AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, true, NB_DIRECTOR, nullptr};
+    AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, true, NB_DIRECTOR};
     KvStoreDelegateManager *manager = new (std::nothrow) KvStoreDelegateManager(APP_ID_1, USER_ID_1);
     ASSERT_NE(manager, nullptr);
     EXPECT_EQ(manager->SetKvStoreConfig({ .dataDir = NB_DIRECTOR }), OK);
@@ -166,7 +166,7 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck002, TestSize.Level0
      *    dataDir = NB_DIRECTOR, observer = TheAppoitObserver;
      * @tc.expected: step1. enable failed, and return DB_ERROR.
      */
-    KvStoreObserverImpl *observer = nullptr;
+    std::weak_ptr<KvStoreObserverImpl> observer;
     AutoLaunchOption option;
     option.createIfNecessary = false;
     option.dataDir = NB_DIRECTOR;
@@ -228,7 +228,7 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck003, TestSize.Level0
      *    isEncryptedDb = true, but the passwd is "";
      * @tc.expected: step1. enable failed, and return INVALID_ARGS.
      */
-    AutoLaunchOption option = {true, true, CipherType::DEFAULT, NULL_PASSWD, "", true, NB_DIRECTOR, nullptr};
+    AutoLaunchOption option = {true, true, CipherType::DEFAULT, NULL_PASSWD, "", true, NB_DIRECTOR};
     EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr), INVALID_ARGS);
     /**
      * @tc.steps: step2. call EnableKvStoreAutoLaunch use the option with which createIfNecessary = true,
@@ -308,7 +308,7 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck004, TestSize.Level0
      */
     CipherPassword passwd1, passwd2;
     passwd1.SetValue(PASSWD_VECTOR_1.data(), PASSWD_VECTOR_1.size());
-    AutoLaunchOption option = {false, false, CipherType::DEFAULT, passwd1, schema, false, NB_DIRECTOR, nullptr};
+    AutoLaunchOption option = {false, false, CipherType::DEFAULT, passwd1, schema, false, NB_DIRECTOR};
     EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr),
         INVALID_PASSWD_OR_CORRUPTED_DB);
 
@@ -318,8 +318,8 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck004, TestSize.Level0
      * @tc.expected: step3. enable failed, and return INVALID_PASSWD_OR_CORRUPTED_DB.
      */
     passwd2.SetValue(PASSWD_VECTOR_2.data(), PASSWD_VECTOR_2.size());
-    option = {false, true, CipherType::DEFAULT, passwd2, schema, false, NB_DIRECTOR, nullptr};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr),
+    AutoLaunchOption option2 = {false, true, CipherType::DEFAULT, passwd2, schema, false, NB_DIRECTOR};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option2, nullptr),
         INVALID_PASSWD_OR_CORRUPTED_DB);
 
     /**
@@ -327,8 +327,8 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck004, TestSize.Level0
      *    isEncryptedDb = true, and the passwd is passwd1;
      * @tc.expected: step4. enable success, and return OK.
      */
-    option = {false, true, CipherType::DEFAULT, passwd1, schema, false, NB_DIRECTOR, nullptr};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr), OK);
+    AutoLaunchOption option3 = {false, true, CipherType::DEFAULT, passwd1, schema, false, NB_DIRECTOR};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option3, nullptr), OK);
     EXPECT_EQ(manager->DisableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1), OK);
 
     EXPECT_TRUE(EndCaseDeleteDB(manager, delegate, STORE_ID_1, dbOption.isMemoryDb));
@@ -347,8 +347,8 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck004, TestSize.Level0
      * @tc.expected: step6. enable failed, and return INVALID_PASSWD_OR_CORRUPTED_DB.
      */
     passwd1.SetValue(PASSWD_VECTOR_1.data(), PASSWD_VECTOR_1.size());
-    option = {false, true, CipherType::DEFAULT, passwd1, schema, false, NB_DIRECTOR, nullptr};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_2, APP_ID_2, STORE_ID_2, option, nullptr),
+    AutoLaunchOption option4 = {false, true, CipherType::DEFAULT, passwd1, schema, false, NB_DIRECTOR};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_2, APP_ID_2, STORE_ID_2, option4, nullptr),
         INVALID_PASSWD_OR_CORRUPTED_DB);
 
     /**
@@ -357,8 +357,8 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck004, TestSize.Level0
      * @tc.expected: step7. enable success, and return OK.
      */
     passwd2.SetValue(PASSWD_VECTOR_2.data(), PASSWD_VECTOR_2.size());
-    option = {false, false, CipherType::DEFAULT, passwd2, schema, false, NB_DIRECTOR, nullptr};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_2, APP_ID_2, STORE_ID_2, option, nullptr), OK);
+    AutoLaunchOption option5 = {false, false, CipherType::DEFAULT, passwd2, schema, false, NB_DIRECTOR};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_2, APP_ID_2, STORE_ID_2, option5, nullptr), OK);
     EXPECT_EQ(manager->DisableKvStoreAutoLaunch(USER_ID_2, APP_ID_2, STORE_ID_2), OK);
 
     EXPECT_TRUE(EndCaseDeleteDB(manager, delegate, STORE_ID_2, dbOption.isMemoryDb));
@@ -382,7 +382,7 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck005, TestSize.Level0
      * @tc.expected: step1. enable success, and return OK.
      */
     string schema = SpliceToSchema(VALID_VERSION_1, VALID_MODE_1, VALID_DEFINE_1, VALID_INDEX_1);
-    AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, false, NB_DIRECTOR, nullptr};
+    AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, false, NB_DIRECTOR};
     EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr), OK);
     EXPECT_EQ(manager->DisableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1), OK);
     EXPECT_EQ(manager->DeleteKvStore(STORE_ID_1), OK);
@@ -392,8 +392,8 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck005, TestSize.Level0
      * @tc.expected: step2. enable failed, and return INVALID_SCHEMA.
      */
     string inValidSchema = SpliceToSchema(VALID_VERSION_1, VALID_MODE_1, INVALID_DEFINE_2, VALID_INDEX_1);
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, inValidSchema, false, NB_DIRECTOR, nullptr};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr),
+    AutoLaunchOption option2 = {true, false, CipherType::DEFAULT, NULL_PASSWD, inValidSchema, false, NB_DIRECTOR};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option2, nullptr),
         INVALID_SCHEMA);
 
     delete manager;
@@ -434,14 +434,13 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck006, TestSize.Level0
     vector<DBStatus> results = {INVALID_ARGS, OK, OK, INVALID_ARGS, OK, OK, OK, OK, OK, OK, INVALID_ARGS};
     string schema = SpliceToSchema(VALID_VERSION_1, VALID_MODE_1, VALID_DEFINE_1, VALID_INDEX_1);
 
-    AutoLaunchOption option;
     DBStatus status;
     RemoveDir("/data/test/getstub");
     for (unsigned long index = 0; index < dirs.size(); index++) {
         if (results[index] == OK) {
             SetDir(dirs[index]);
         }
-        option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, false, dirs[index], nullptr};
+        AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, false, dirs[index]};
         status = manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, nullptr);
         if (index == 3) { // the 3th element
             EXPECT_NE(status, OK);
@@ -481,16 +480,16 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck007, TestSize.Level0
      *    isEncryptedDb = false;
      * @tc.expected: step1. enable success, and return OK.
      */
-    KvStoreObserverImpl observer;
-    AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, &observer};
+    std::shared_ptr<KvStoreObserverImpl> observer = std::make_shared<KvStoreObserverImpl>();
+    AutoLaunchOption option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, observer};
     EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), OK);
 
     /**
      * @tc.steps: step2. call EnableKvStoreAutoLaunch use the option with which createIfNecessary = false.
      * @tc.expected: step2. enable failed, and return ALREADY_SET.
      */
-    option = {false, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option2 = {false, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option2, notifier), ALREADY_SET);
 
     /**
      * @tc.steps: step3. call EnableKvStoreAutoLaunch use the option with which isEncrypt = true, passwd = p1.
@@ -498,60 +497,60 @@ HWTEST_F(DistributeddbNbEnableSyncByClosedDbTest, ParamCheck007, TestSize.Level0
      */
     CipherPassword passwd1;
     passwd1.SetValue(PASSWD_VECTOR_1.data(), PASSWD_VECTOR_1.size());
-    option = {true, true, CipherType::DEFAULT, passwd1, "", false, NB_DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option3 = {true, true, CipherType::DEFAULT, passwd1, "", false, NB_DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option3, notifier), ALREADY_SET);
 
     /**
      * @tc.steps: step4. call EnableKvStoreAutoLaunch use the option with which schema is a valid schema.
      * @tc.expected: step4. enable failed, and return ALREADY_SET.
      */
     string schema = SpliceToSchema(VALID_VERSION_1, VALID_MODE_1, VALID_DEFINE_1, VALID_INDEX_1);
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, false, NB_DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option4 = {true, false, CipherType::DEFAULT, NULL_PASSWD, schema, false, NB_DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option4, notifier), ALREADY_SET);
 
     /**
      * @tc.steps: step5. call EnableKvStoreAutoLaunch use the option with which createDirByStoreIdOnly = true.
      * @tc.expected: step5. enable failed, and return ALREADY_SET.
      */
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", true, NB_DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option5 = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", true, NB_DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option5, notifier), ALREADY_SET);
 
     /**
      * @tc.steps: step6. call EnableKvStoreAutoLaunch use the option with which dataDir = DIRECTOR.
      * @tc.expected: step6. enable failed, and return ALREADY_SET.
      */
     SetDir(DIRECTOR);
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option6 = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option6, notifier), ALREADY_SET);
 
     /**
      * @tc.steps: step7. call EnableKvStoreAutoLaunch use the option with which observer = observer2.
      * @tc.expected: step7. enable failed, and return ALREADY_SET.
      */
-    KvStoreObserverImpl observer2;
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, &observer2};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    AutoLaunchOption option7 = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, observer2};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option7, notifier), ALREADY_SET);
 
     /**
      * @tc.steps: step8. call EnableKvStoreAutoLaunch use the option with which notifier is not null.
      * @tc.expected: step8. enable failed, and return ALREADY_SET.
      */
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option8 = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option8, notifier), ALREADY_SET);
     /**
      * @tc.steps: step9. call EnableKvStoreAutoLaunch use the option with the params is the same with the first time .
      * @tc.expected: step9. enable failed, and return ALREADY_SET.
      */
-    option = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, &observer};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), ALREADY_SET);
+    AutoLaunchOption option9 = {true, false, CipherType::DEFAULT, NULL_PASSWD, "", false, NB_DIRECTOR, observer};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option9, notifier), ALREADY_SET);
     /**
      * @tc.steps: step10. call DisableKvStoreAutoLaunch interface to disable the function,
      *     and use the option which is different from the first time EnableKvStoreAutoLaunch used.
      * @tc.expected: step10. enable success, and return OK.
      */
     EXPECT_EQ(manager->DisableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1), OK);
-    option = {true, true, CipherType::DEFAULT, passwd1, schema, true, DIRECTOR, &observer2};
-    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option, notifier), OK);
+    AutoLaunchOption option10 = {true, true, CipherType::DEFAULT, passwd1, schema, true, DIRECTOR, observer2};
+    EXPECT_EQ(manager->EnableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1, option10, notifier), OK);
     EXPECT_EQ(manager->DisableKvStoreAutoLaunch(USER_ID_1, APP_ID_1, STORE_ID_1), OK);
 
     EXPECT_EQ(manager->DeleteKvStore(STORE_ID_1), OK);

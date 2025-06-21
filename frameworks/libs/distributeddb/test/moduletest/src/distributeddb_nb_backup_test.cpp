@@ -771,8 +771,8 @@ HWTEST_F(DistributeddbNbBackupTest, ImportTest006, TestSize.Level1)
      * @tc.steps: step3. delegate1 register observer.
      * @tc.expected: step3. register success
      */
-    KvStoreObserverImpl observerSync;
-    EXPECT_EQ(g_nbBackupDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observerSync), OK);
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
+    EXPECT_EQ(g_nbBackupDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observerSync), OK);
     /**
      * @tc.steps: step4. delegate1 import the backup file with the password f1.
      * @tc.expected: step4. register success

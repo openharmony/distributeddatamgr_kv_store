@@ -216,8 +216,8 @@ void CheckSyncTest(DBStatus status1, DBStatus status2, std::vector<std::string> 
     }
 }
 
-bool AutoLaunchCallBack(const std::string &identifier, AutoLaunchParam &param, KvStoreObserverUnitTest *observer,
-    bool ret)
+bool AutoLaunchCallBack(const std::string &identifier, AutoLaunchParam &param,
+    const std::weak_ptr<KvStoreObserverUnitTest> &observer, bool ret)
 {
     LOGD("int AutoLaunchCallBack");
     EXPECT_TRUE(identifier == g_identifier);
@@ -455,7 +455,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
      */
     g_mgr1.SetSyncActivationCheckCallback(g_syncActivationCheckCallback1);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step2. SetAutoLaunchRequestCallback
@@ -502,7 +502,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_KV);
     CloseStore();
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -524,7 +524,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
      * @tc.expected: step2. success.
      */
     AutoLaunchNotifier notifier = nullptr;
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_TRUE(observer != nullptr);
     AutoLaunchOption option;
     CipherPassword passwd;
@@ -578,7 +578,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     EXPECT_TRUE(g_mgr1.DisableKvStoreAutoLaunch(USER_ID_1, APP_ID, STORE_ID) == OK);
     CloseStore();
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -935,7 +935,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser015, TestSize.Level1)
      * @tc.expected: step2. success.
      */
     AutoLaunchNotifier notifier = nullptr;
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_TRUE(observer != nullptr);
     AutoLaunchOption autoLaunchOption;
     CipherPassword passwd;
@@ -976,5 +976,5 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser015, TestSize.Level1)
     g_kvDelegatePtr1 = nullptr;
     DBStatus status = subUserMgr.DeleteKvStore(STORE_ID);
     ASSERT_TRUE(status == OK);
-    delete observer;
+    observer = nullptr;
 }

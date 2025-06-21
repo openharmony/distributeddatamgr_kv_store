@@ -49,7 +49,7 @@ enum class DBTypeInner {
 struct AutoLaunchItem {
     std::shared_ptr<DBProperties> propertiesPtr;
     AutoLaunchNotifier notifier;
-    KvStoreObserver *observer = nullptr;
+    std::weak_ptr<KvStoreObserver> observer;
     int conflictType = 0;
     KvStoreNbConflictNotifier conflictNotifier;
     void *conn = nullptr;

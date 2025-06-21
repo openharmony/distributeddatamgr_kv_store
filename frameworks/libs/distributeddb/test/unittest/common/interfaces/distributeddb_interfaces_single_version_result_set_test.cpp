@@ -563,9 +563,10 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVerNaturalStor
     std::map<std::string, std::string> versionMap;
     EXPECT_EQ(storeObj.GetCloudVersion("", versionMap), -E_INTERNAL_ERROR);
 #endif
-    EXPECT_EQ(storeObj.UnRegisterObserverAction(nullptr), -E_INTERNAL_ERROR);
+    std::weak_ptr<KvStoreObserver> observer;
+    EXPECT_EQ(storeObj.UnRegisterObserverAction(observer), -E_INTERNAL_ERROR);
     ObserverAction action;
-    EXPECT_EQ(storeObj.RegisterObserverAction(nullptr, action), -E_INTERNAL_ERROR);
+    EXPECT_EQ(storeObj.RegisterObserverAction(observer, action), -E_INTERNAL_ERROR);
     Key keyPrefix;
     EXPECT_EQ(storeObj.DeleteMetaDataByPrefixKey(keyPrefix), -E_INVALID_ARGS);
     keyPrefix.push_back(0);

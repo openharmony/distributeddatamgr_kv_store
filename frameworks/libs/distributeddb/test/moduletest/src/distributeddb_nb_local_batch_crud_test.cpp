@@ -647,14 +647,16 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Exception001, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer001, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     /**
      * @tc.steps: step1. register observer of k1, k2, k3 of OBSERVER_CHANGES_LOCAL_ONLY mode.
      * @tc.expected: step1. register success.
      */
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observer1), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, &observer2), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, &observer3), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observer1), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, observer2), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, observer3), OK);
 
     /**
      * @tc.steps: step2. PutLocalBatch (k1, v1), (k2, v2) to DB and check the 3 observers.
@@ -666,30 +668,30 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer001, TestSize.Level1)
     EXPECT_EQ(DistributedDBNbTestTools::PutLocalBatch(*g_nbLocalBatchDelegate, entries1), OK);
     list<DistributedDB::Entry> changeList;
     changeList.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, INSERT_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, INSERT_LIST, changeList));
     changeList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ZERO_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ZERO_TIME, INSERT_LIST, changeList));
     /**
      * @tc.steps: step3. PutLocalBatch (k2, v3) (k3, v3) to insert (k3, v3) and update (k2, v3) and check the observers
      * @tc.expected: step3. PutLocalBatch success and observer1 was not triggered, observer2 was triggered update mode,
      *    and observer3 was triggered by insert mode.
      */
-    observer1.Clear();
-    observer2.Clear();
+    observer1->Clear();
+    observer2->Clear();
     entries2.push_back(ENTRY_2_3);
     entries2.push_back(ENTRY_3);
     EXPECT_EQ(DistributedDBNbTestTools::PutLocalBatch(*g_nbLocalBatchDelegate, entries2), OK);
     changeList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME, INSERT_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_2_3);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, UPDATE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, UPDATE_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_3);
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ONE_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ONE_TIME, INSERT_LIST, changeList));
 }
 
 /**
@@ -701,7 +703,9 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer001, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer002, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries, gotEntries;
     entries.push_back(ENTRY_1);
     entries.push_back(ENTRY_2);
@@ -711,9 +715,9 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer002, TestSize.Level1)
      * @tc.steps: step1. register observer of k1, k2, k3 of OBSERVER_CHANGES_LOCAL_ONLY mode.
      * @tc.expected: step1. register success.
      */
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observer1), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, &observer2), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, &observer3), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observer1), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, observer2), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, observer3), OK);
 
     /**
      * @tc.steps: step2. DeleteLocalBatch (k1, v1), (k2, v2) from DB and check the 3 observers.
@@ -726,12 +730,12 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer002, TestSize.Level1)
     EXPECT_EQ(DistributedDBNbTestTools::DeleteLocalBatch(*g_nbLocalBatchDelegate, keys), OK);
     list<DistributedDB::Entry> changeList;
     changeList.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, DELETE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, DELETE_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, DELETE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, DELETE_LIST, changeList));
     changeList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ZERO_TIME, DELETE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ZERO_TIME, DELETE_LIST, changeList));
 
     /**
      * @tc.steps: step3. use GetLocalEntries to check the data in DB.
@@ -752,14 +756,16 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer002, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer003, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     /**
      * @tc.steps: step1. register observer of k1, k2, k3 of OBSERVER_CHANGES_LOCAL_ONLY mode.
      * @tc.expected: step1. register success.
      */
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observer1), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, &observer2), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, &observer3), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observer1), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, observer2), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, observer3), OK);
 
     /**
      * @tc.steps: step2. PutLocalBatch (k1, v1), (k1, v2), (k2, v2) to DB and check the 3 observers.
@@ -774,33 +780,33 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer003, TestSize.Level1)
 
     list<DistributedDB::Entry> changeList;
     changeList.push_back(ENTRY_1_2);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, INSERT_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, INSERT_LIST, changeList));
     changeList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ZERO_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ZERO_TIME, INSERT_LIST, changeList));
 
     /**
      * @tc.steps: step3. PutLocalBatch (k2, v3), (k2, v4), (k3, v3) to DB and check the 3 observers.
      * @tc.expected: step3. PutLocalBatch success and observer1 was not triggered, and observer2 was triggered by
      *    update mode, and observer3 was triggered once by insert mode.
      */
-    observer1.Clear();
-    observer2.Clear();
+    observer1->Clear();
+    observer2->Clear();
     entries2.push_back(ENTRY_2_3);
     entries2.push_back(ENTRY_2_4);
     entries2.push_back(ENTRY_3);
     EXPECT_EQ(DistributedDBNbTestTools::PutLocalBatch(*g_nbLocalBatchDelegate, entries2), OK);
 
     changeList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, UPDATE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME, UPDATE_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_2_4);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, UPDATE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, UPDATE_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_3);
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ONE_TIME, INSERT_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ONE_TIME, INSERT_LIST, changeList));
 }
 
 /**
@@ -813,7 +819,9 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer003, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer004, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries1, entries2;
     entries1.push_back(ENTRY_1);
     entries1.push_back(ENTRY_2);
@@ -823,9 +831,9 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer004, TestSize.Level1)
      * @tc.steps: step1. register observer of k1, k2, k3 of OBSERVER_CHANGES_LOCAL_ONLY mode.
      * @tc.expected: step1. register success.
      */
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observer1), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, &observer2), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, &observer3), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observer1), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_LOCAL_ONLY, observer2), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_LOCAL_ONLY, observer3), OK);
 
     /**
      * @tc.steps: step2. DeleteLocalBatch (k1, k2, k1) from DB and check the 3 observers.
@@ -839,12 +847,12 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer004, TestSize.Level1)
     EXPECT_EQ(DistributedDBNbTestTools::DeleteLocalBatch(*g_nbLocalBatchDelegate, keys), OK);
     list<DistributedDB::Entry> changeList;
     changeList.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, DELETE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, DELETE_LIST, changeList));
     changeList.clear();
     changeList.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, DELETE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, DELETE_LIST, changeList));
     changeList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ZERO_TIME, DELETE_LIST, changeList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ZERO_TIME, DELETE_LIST, changeList));
 }
 
 /**
@@ -856,14 +864,15 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer004, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer005, TestSize.Level1)
 {
-    vector<KvStoreObserverImpl> observer(OBSERVER_CNT_END);
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> observer;
     /**
      * @tc.steps: step1. register observer all the 8 observers of OBSERVER_CHANGES_LOCAL_ONLY mode.
      * @tc.expected: step1. register success.
      */
     for (unsigned long index = 0; index < OBSERVER_CNT_END; index++) {
+        observer[index] = std::make_shared<KvStoreObserverImpl>();
         EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY,
-            &observer[index]), OK);
+            observer[index]), OK);
     }
 
     /**
@@ -880,8 +889,8 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer005, TestSize.Level1)
         changeList.push_back(*it);
     }
     for (auto it = observer.begin(); it != observer.end(); it++) {
-        EXPECT_TRUE(VerifyObserverResult(*it, CHANGED_ONE_TIME, INSERT_LIST, changeList));
-        it->Clear();
+        EXPECT_TRUE(VerifyObserverResult(*(*it), CHANGED_ONE_TIME, INSERT_LIST, changeList));
+        it->get()->Clear();
     }
     /**
      * @tc.steps: step3. use PutLocalBatch to update the 10 data to DB and check the 8 observers.
@@ -898,8 +907,8 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer005, TestSize.Level1)
         changeList.push_back(*it);
     }
     for (auto it = observer.begin(); it != observer.end(); it++) {
-        EXPECT_TRUE(VerifyObserverResult(*it, CHANGED_ONE_TIME, UPDATE_LIST, changeList));
-        it->Clear();
+        EXPECT_TRUE(VerifyObserverResult(*(*it), CHANGED_ONE_TIME, UPDATE_LIST, changeList));
+        it->get()->Clear();
     }
     /**
      * @tc.steps: step4. use DeleteLocalBatch to delete the 10 data from DB and check the 8 observers.
@@ -908,7 +917,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer005, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::DeleteLocalBatch(*g_nbLocalBatchDelegate, keys), OK);
     for (auto it = observer.begin(); it != observer.end(); it++) {
-        EXPECT_TRUE(VerifyObserverResult(*it, CHANGED_ONE_TIME, DELETE_LIST, changeList));
+        EXPECT_TRUE(VerifyObserverResult(*(*it), CHANGED_ONE_TIME, DELETE_LIST, changeList));
     }
 }
 
@@ -932,10 +941,10 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer006, TestSize.Level1)
      * @tc.steps: step1. register a local and a native observer separately, then start a transaction.
      * @tc.expected: step1. operate successfully.
      */
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerNative;
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, &observerNative), OK);
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerNative = std::make_shared<KvStoreObserverImpl>();
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, observerNative), OK);
     EXPECT_EQ(g_nbLocalBatchDelegate->StartTransaction(), OK);
     /**
      * @tc.steps: step2. PutBatch 10 records, Put (k1,v1), Delete (k2).
@@ -971,19 +980,19 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer006, TestSize.Level1)
      *    callback list contains 10 data.
      */
     EXPECT_EQ(g_nbLocalBatchDelegate->Commit(), OK);
-    EXPECT_TRUE(VerifyObserverResult(observerNative, CHANGED_ONE_TIME, INSERT_LIST, insertEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerNative, CHANGED_ONE_TIME, INSERT_LIST, insertEntries));
     vector<Entry> updateEntries = { ENTRY_1_2 };
-    EXPECT_TRUE(VerifyObserverResult(observerNative, CHANGED_ONE_TIME, UPDATE_LIST, updateEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerNative, CHANGED_ONE_TIME, UPDATE_LIST, updateEntries));
     vector<Entry> deleteEntries = { ENTRY_2 };
-    EXPECT_TRUE(VerifyObserverResult(observerNative, CHANGED_ONE_TIME, DELETE_LIST, deleteEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerNative, CHANGED_ONE_TIME, DELETE_LIST, deleteEntries));
 
     vector<Entry> localInsertEntries = { ENTRY_2 };
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, INSERT_LIST, localInsertEntries));
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, UPDATE_LIST, localUpdateEntries));
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, DELETE_LIST, localDeleteEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, INSERT_LIST, localInsertEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, UPDATE_LIST, localUpdateEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, DELETE_LIST, localDeleteEntries));
 
-    EXPECT_EQ(g_nbLocalBatchDelegate->UnRegisterObserver(&observerLocal), OK);
-    EXPECT_EQ(g_nbLocalBatchDelegate->UnRegisterObserver(&observerNative), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->UnRegisterObserver(observerLocal), OK);
+    EXPECT_EQ(g_nbLocalBatchDelegate->UnRegisterObserver(observerNative), OK);
 }
 
 /**
@@ -1000,8 +1009,8 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer007, TestSize.Level1)
      * @tc.steps: step1. register a local observer.
      * @tc.expected: step1. operate successfully.
      */
-    KvStoreObserverImpl observerLocal;
-    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal), OK);
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    EXPECT_EQ(g_nbLocalBatchDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal), OK);
     /**
      * @tc.steps: step2. start a transaction, then PutBatch 10 records, PutLocal (k10,v10),
      *  and PutLocalBatch from k1 to k5.
@@ -1019,18 +1028,18 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer007, TestSize.Level1)
      *  and there are 6 records in insert list of the local observer after committing.
      */
     insertEntries.push_back(ENTRY_10);
-    thread subThread([&insertEntries, &observerLocal]() {
+    thread subThread([&insertEntries, observerLocal]() {
         vector<Entry> emptyInsertEntries;
-        EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, emptyInsertEntries));
+        EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, emptyInsertEntries));
         EXPECT_EQ(g_nbLocalBatchDelegate->Commit(), OK);
-        EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, INSERT_LIST, insertEntries));
+        EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, INSERT_LIST, insertEntries));
     });
     subThread.join();
     /**
      * @tc.steps: step4. verify the data in main thread after the transaction committed in sub thread.
      * @tc.expected: step4. there are 6 records in insert list of the local observer.
      */
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, INSERT_LIST, insertEntries));
-    EXPECT_EQ(g_nbLocalBatchDelegate->UnRegisterObserver(&observerLocal), OK);
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, INSERT_LIST, insertEntries));
+    EXPECT_EQ(g_nbLocalBatchDelegate->UnRegisterObserver(observerLocal), OK);
 }
 } // end of namespace DistributeddbNbLocalBatchCrud

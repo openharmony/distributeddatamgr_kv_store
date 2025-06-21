@@ -144,10 +144,8 @@ void TestDistributedSchema(FuzzedDataProvider *fdp)
 
 void CombineTest(FuzzedDataProvider &fdp)
 {
-    auto observer = new (std::nothrow) DistributedDB::StoreObserver;
+    std::shared_ptr<DistributedDB::StoreObserver> observer = std::make_shared<DistributedDB::StoreObserver>();
     if (observer == nullptr) {
-        delete observer;
-        observer = nullptr;
         return;
     }
     if (g_delegate == nullptr) {
@@ -186,7 +184,6 @@ void CombineTest(FuzzedDataProvider &fdp)
     g_delegate->UnRegisterObserver(observer);
     g_delegate->RegisterObserver(observer);
     g_delegate->UnRegisterObserver();
-    delete observer;
     observer = nullptr;
 
     TestDistributedSchema(&fdp);

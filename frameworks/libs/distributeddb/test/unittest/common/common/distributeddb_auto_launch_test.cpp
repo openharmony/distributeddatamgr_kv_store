@@ -278,7 +278,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch002, TestSize.Level3)
                 cv.notify_one();
             }
         };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step1. right param A B enable
@@ -312,7 +312,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch002, TestSize.Level3)
         finished = false;
     }
     EXPECT_TRUE(observer->GetCallCount() == 2); // A and B
-    delete observer;
+    observer = nullptr;
     /**
      * @tc.steps: step4. param A B disable
      * @tc.expected: step4. notifier WRITE_CLOSED
@@ -353,7 +353,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch003, TestSize.Level3)
             finished = true;
             cv.notify_one();
         };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
 
     /**
@@ -389,7 +389,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch003, TestSize.Level3)
         finished = false;
     }
     EXPECT_TRUE(observer->GetCallCount() == 1); // only A
-    delete observer;
+    observer = nullptr;
     /**
      * @tc.steps: step4. param A B disable
      * @tc.expected: step4. notifier WRITE_CLOSED
@@ -497,7 +497,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch005, TestSize.Level3)
             finished = true;
             cv.notify_one();
         };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step1. RunOnConnectCallback
@@ -541,7 +541,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch005, TestSize.Level3)
     std::unique_lock<std::mutex> lock(cvMutex);
     cv.wait(lock, [&finished] {return finished;});
     EXPECT_TRUE(statusMap[g_identifierA] == WRITE_CLOSED);
-    delete observer;
+    observer = nullptr;
     g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
 }
 
@@ -558,7 +558,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
         const std::string &storeId, AutoLaunchStatus status) {
             LOGD("int AutoLaunch006 notifier status:%d", status);
         };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     std::mutex cvLock;
     std::condition_variable cv;
@@ -597,7 +597,6 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
     std::unique_lock<std::mutex> lock(cvLock);
     cv.wait(lock, [&threadIsWorking] { return !threadIsWorking; });
 
-    delete observer;
     observer = nullptr;
     g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
 }
@@ -634,8 +633,8 @@ void TestAutoLaunchNotifier(const std::string &userId, const std::string &appId,
     g_cv.notify_one();
 };
 
-bool AutoLaunchCallBack(const std::string &identifier, AutoLaunchParam &param, KvStoreObserverUnitTest *observer,
-    bool ret)
+bool AutoLaunchCallBack(const std::string &identifier, AutoLaunchParam &param,
+    const std::weak_ptr<KvStoreObserverUnitTest> &observer, bool ret)
 {
     LOGD("int AutoLaunchCallBack");
     EXPECT_TRUE(identifier == g_identifierA);
@@ -667,7 +666,7 @@ bool AutoLaunchCallBackBadParam(const std::string &identifier, AutoLaunchParam &
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step1. SetAutoLaunchRequestCallback
@@ -719,7 +718,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
         g_finished = false;
     }
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -731,7 +730,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step1. SetAutoLaunchRequestCallback
@@ -758,7 +757,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
     EXPECT_TRUE(observer->GetCallCount() == 0);
     EXPECT_TRUE(g_finished == false);
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -769,7 +768,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step1. SetAutoLaunchRequestCallback
@@ -799,7 +798,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
         g_finished = false;
     }
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -811,7 +810,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
  */
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps: step1. SetAutoLaunchRequestCallback, then set nullptr
@@ -839,7 +838,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
     EXPECT_TRUE(observer->GetCallCount() == 0);
     EXPECT_TRUE(g_finished == false);
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -955,7 +954,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
     EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, notifier, option) == E_OK);
     EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propC, notifier, option) == E_OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
@@ -1007,7 +1006,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
         g_finished = false;
     }
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
     /**
      * @tc.steps: step4. param A B disable
      * @tc.expected: step4. notifier WRITE_CLOSED
@@ -1031,7 +1030,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
      * @tc.steps: step1. SetAutoLaunchRequestCallback
      * @tc.expected: step1. success.
      */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     RuntimeConfig::SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
@@ -1068,7 +1067,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
     RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
     EXPECT_EQ(g_statusMap[DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0)],
         AutoLaunchStatus::WRITE_CLOSED);
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -1083,7 +1082,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
      * @tc.steps: step1. SetAutoLaunchRequestCallback
      * @tc.expected: step1. success.
      */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     RuntimeConfig::SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
@@ -1107,7 +1106,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
     RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
 
     th.join();
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -1195,7 +1194,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties002, TestSize.L
      * @tc.steps: step1. SetAutoLaunchRequestCallback
      * @tc.expected: step1. success.
      */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
@@ -1216,7 +1215,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties002, TestSize.L
     dbProperties.SetStringProp(DBProperties::USER_ID, USER_ID);
     ASSERT_NO_FATAL_FAILURE(RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties));
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
 }
 
 /**
@@ -1232,7 +1231,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties003, TestSize.L
      * @tc.steps: step1. SetAutoLaunchRequestCallback
      * @tc.expected: step1. success.
      */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
@@ -1257,5 +1256,5 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties003, TestSize.L
     RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_RELATION, dbProperties);
     ASSERT_NO_FATAL_FAILURE(RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties));
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    observer = nullptr;
 }

@@ -385,9 +385,9 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserve
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *syncObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> syncObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(syncObserver != nullptr);
-    KvStoreObserverUnitTest *localObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> localObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(localObserver != nullptr);
 
     /**
@@ -439,10 +439,8 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserve
      * @tc.expected: step7. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(syncObserver), OK);
-    delete syncObserver;
     syncObserver = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(localObserver), OK);
-    delete localObserver;
     localObserver = nullptr;
 
     /**
@@ -489,9 +487,9 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, OnlyDeleteInTransac
     EXPECT_TRUE(localEntries.size() == DIVIDE_BATCH_PRESET_SIZE);
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocalBatch(localEntries), OK);
 
-    KvStoreObserverUnitTest *syncObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> syncObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(syncObserver != nullptr);
-    KvStoreObserverUnitTest *localObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> localObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(localObserver != nullptr);
 
     /**
@@ -534,10 +532,8 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, OnlyDeleteInTransac
      * @tc.expected: step8. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(syncObserver), OK);
-    delete syncObserver;
     syncObserver = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(localObserver), OK);
-    delete localObserver;
     localObserver = nullptr;
 
     /**
@@ -568,9 +564,9 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserve
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *syncObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> syncObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(syncObserver != nullptr);
-    KvStoreObserverUnitTest *localObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> localObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(localObserver != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -619,10 +615,8 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, SyncAndLocalObserve
      * @tc.expected: step7. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(syncObserver), OK);
-    delete syncObserver;
     syncObserver = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(localObserver), OK);
-    delete localObserver;
     localObserver = nullptr;
 
     /**
@@ -653,9 +647,9 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutRollback001, Tes
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *syncObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> syncObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(syncObserver != nullptr);
-    KvStoreObserverUnitTest *localObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> localObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(localObserver != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -702,10 +696,8 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutRollback001, Tes
      * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(syncObserver), OK);
-    delete syncObserver;
     syncObserver = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(localObserver), OK);
-    delete localObserver;
     localObserver = nullptr;
 
     /**
@@ -736,9 +728,9 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutBatchRollback001
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *syncObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> syncObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(syncObserver != nullptr);
-    KvStoreObserverUnitTest *localObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> localObserver = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(localObserver != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -794,10 +786,8 @@ HWTEST_F(DistributedDBInterfacesTransactionOptimizationTest, PutBatchRollback001
      * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(syncObserver), OK);
-    delete syncObserver;
     syncObserver = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(localObserver), OK);
-    delete localObserver;
     localObserver = nullptr;
 
     /**

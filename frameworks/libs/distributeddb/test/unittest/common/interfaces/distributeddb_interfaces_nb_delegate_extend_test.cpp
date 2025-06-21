@@ -928,7 +928,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, OptionModeValidCheck001, T
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
     KvStoreNbDelegate::Option option = {true, false, false};
-    KvStoreObserverUnitTest *observer = new KvStoreObserverUnitTest();
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     option.observer = observer;
     std::vector<int> invalidModeVec = {0, 5, 6, 7, 9, 16};
@@ -951,7 +951,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, OptionModeValidCheck001, T
         g_kvNbDelegatePtr = nullptr;
     }
 
-    delete observer;
+    observer = nullptr;
 }
 
 /**

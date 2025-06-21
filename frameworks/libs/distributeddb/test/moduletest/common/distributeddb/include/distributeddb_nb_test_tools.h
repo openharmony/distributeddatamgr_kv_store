@@ -231,10 +231,11 @@ public:
         const std::vector<DistributedDB::Key> &keys);
 
     static DistributedDB::DBStatus RegisterObserver(DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate,
-        const DistributedDB::Key &key, unsigned int mode, DistributedDB::KvStoreObserver *observer);
+        const DistributedDB::Key &key, unsigned int mode,
+        const std::weak_ptr<DistributedDB::KvStoreObserver> &observer);
 
     static DistributedDB::DBStatus UnRegisterObserver(DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate,
-        const DistributedDB::KvStoreObserver *observer);
+        const std::weak_ptr<DistributedDB::KvStoreObserver> &observer);
     static bool CloseNbAndRelease(DistributedDB::KvStoreDelegateManager *&manager,
         DistributedDB::KvStoreNbDelegate *&delegate);
     static bool ModifyDatabaseFile(const std::string &fileDir);

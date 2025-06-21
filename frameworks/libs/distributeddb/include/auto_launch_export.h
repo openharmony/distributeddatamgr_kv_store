@@ -30,7 +30,7 @@ struct AutoLaunchOption {
     std::string schema;
     bool createDirByStoreIdOnly = false;
     std::string dataDir;
-    KvStoreObserver *observer = nullptr;
+    std::weak_ptr<KvStoreObserver> observer;
     int conflictType = 0;
     KvStoreNbConflictNotifier notifier;
     SecurityOption secOption;

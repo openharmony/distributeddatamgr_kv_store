@@ -29,8 +29,8 @@ namespace {
     KvStoreDelegateManager g_mgr("app0", "user0");
     string g_testDir;
     KvStoreConfig g_config;
-    KvStoreObserverUnitTest *g_syncObserver = nullptr;
-    KvStoreObserverUnitTest *g_localObserver = nullptr;
+    std::shared_ptr<KvStoreObserverUnitTest> g_syncObserver;
+    std::shared_ptr<KvStoreObserverUnitTest> g_localObserver;
     Entry g_entry1;
     Entry g_entry2;
 
@@ -64,9 +64,9 @@ namespace {
 
     static void RegisterObservers()
     {
-        g_localObserver = new (std::nothrow) KvStoreObserverUnitTest;
+        g_localObserver = std::make_shared<KvStoreObserverUnitTest>();
         ASSERT_TRUE(g_localObserver != nullptr);
-        g_syncObserver = new (std::nothrow) KvStoreObserverUnitTest;
+        g_syncObserver = std::make_shared<KvStoreObserverUnitTest>();
         ASSERT_TRUE(g_syncObserver != nullptr);
         Key key;
         EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, 3, g_syncObserver), OK); // sync data observer.
@@ -115,7 +115,6 @@ void DistributedDBInterfacesNBUnpublishTest::TearDown(void)
         if (g_kvNbDelegatePtr != nullptr) {
             g_kvNbDelegatePtr->UnRegisterObserver(g_localObserver);
         }
-        delete g_localObserver;
         g_localObserver = nullptr;
     }
 
@@ -123,7 +122,6 @@ void DistributedDBInterfacesNBUnpublishTest::TearDown(void)
         if (g_kvNbDelegatePtr != nullptr) {
             g_kvNbDelegatePtr->UnRegisterObserver(g_syncObserver);
         }
-        delete g_syncObserver;
         g_syncObserver = nullptr;
     }
     if (g_kvNbDelegatePtr != nullptr) {

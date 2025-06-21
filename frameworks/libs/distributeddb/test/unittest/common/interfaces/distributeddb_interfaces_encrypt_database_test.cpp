@@ -444,7 +444,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck002, Tes
     g_mgr.GetKvStore(STORE_ID2, option, delegateCallback);
     ASSERT_TRUE(kvStore != nullptr);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the empty key.
@@ -465,7 +465,6 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck002, Tes
      * @tc.steps:step4. Unregister the observer.
      */
     EXPECT_EQ(kvStore->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     /**
      * @tc.steps:step5. Execute the rekey operation.

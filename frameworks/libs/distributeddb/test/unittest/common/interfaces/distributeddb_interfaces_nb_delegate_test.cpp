@@ -278,7 +278,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest001, TestSize.Level1)
     Value value;
     value = {'G', 'D', 'O'};
     Value valueRead;
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -312,7 +312,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest001, TestSize.Level1)
      * @tc.expected: step7. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     Key key1;
     key1 = {'D', 'B', 'N'};
@@ -1807,7 +1806,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, Te
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -1846,7 +1845,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, Te
      * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     /**
      * @tc.steps:step6. Close the kv store.
@@ -1875,7 +1873,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver002, Te
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -1921,7 +1919,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver002, Te
      * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     /**
      * @tc.steps:step6. Close the kv store.
@@ -1950,7 +1947,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver003, Te
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -1988,7 +1985,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver003, Te
      * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     /**
      * @tc.steps:step6. Close the kv store.
@@ -2017,7 +2013,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver004, Te
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -2063,7 +2059,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver004, Te
      * @tc.expected: step4. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     /**
      * @tc.steps:step5. Close the kv store.
@@ -2092,7 +2087,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatchObserver001,
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     /**
      * @tc.steps:step2. Register the non-null observer for the special key.
@@ -2124,7 +2119,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerDeleteBatchObserver001,
      * @tc.expected: step5. Returns OK.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
     /**
      * @tc.steps:step6. Close the kv store.

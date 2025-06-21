@@ -89,9 +89,8 @@ void MultiCombineFuzzer(FuzzedDataProvider &fdp, KvStoreDelegate::Option &option
 {
     KvStoreConfig config;
     KvStoreDelegate *kvDelegatePtr = PrepareKvStore(config, option);
-    KvStoreObserverTest *observer = new (std::nothrow) KvStoreObserverTest;
+    std::shared_ptr<KvStoreObserverTest> observer = std::make_shared<KvStoreObserverTest>();
     if ((kvDelegatePtr == nullptr) || (observer == nullptr)) {
-        delete observer;
         observer = nullptr;
         return;
     }
@@ -108,7 +107,6 @@ void MultiCombineFuzzer(FuzzedDataProvider &fdp, KvStoreDelegate::Option &option
         });
     if (kvStoreSnapshotPtr == nullptr) {
         kvDelegatePtr->UnRegisterObserver(observer);
-        delete observer;
         return;
     }
     auto valueCallback = [&value] (DBStatus status, const Value &getValue) {
@@ -131,7 +129,6 @@ void MultiCombineFuzzer(FuzzedDataProvider &fdp, KvStoreDelegate::Option &option
     kvDelegatePtr->Clear();
     CombineTest(fdp, kvDelegatePtr);
     kvDelegatePtr->UnRegisterObserver(observer);
-    delete observer;
     observer = nullptr;
     kvDelegatePtr->ReleaseKvStoreSnapshot(kvStoreSnapshotPtr);
     g_kvManger.CloseKvStore(kvDelegatePtr);

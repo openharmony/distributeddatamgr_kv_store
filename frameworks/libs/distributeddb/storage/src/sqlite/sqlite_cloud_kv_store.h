@@ -91,9 +91,9 @@ public:
 
     int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
 
-    void RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action);
+    void RegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer, const ObserverAction &action);
 
-    void UnRegisterObserverAction(const KvStoreObserver *observer);
+    void UnRegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer);
 
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
 
@@ -151,7 +151,8 @@ private:
     std::string user_;
 
     std::mutex observerMapMutex_;
-    std::map<const KvStoreObserver *, ObserverAction> cloudObserverMap_;
+    std::map<std::weak_ptr<KvStoreObserver>, ObserverAction,
+        std::owner_less<std::weak_ptr<KvStoreObserver>>> cloudObserverMap_;
 
     mutable std::mutex configMutex_;
     CloudSyncConfig config_;
