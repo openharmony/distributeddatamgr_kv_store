@@ -24,18 +24,49 @@ SQLITE_EXTENSION_INIT1
 
 using namespace CNTokenizer;
 
+typedef struct Fts5TokenizerParam {
+    uint32_t magicCode = 0;
+    GRD_CutScene cutScene = DEFAULT;
+} Fts5TokenizerParamT;
+
 static std::mutex g_mtx;
-static uint32_t g_magicCode = 0x12345678;
 static uint32_t g_refCount = 0;
 constexpr int FTS5_MAX_VERSION = 2;
+constexpr int CUSTOM_TOKENIZER_PARAM_NUM = 2;
+constexpr int MAGIC_CODE = 0x12345678;
+constexpr const char *CUT_SCENE_PARAM_NAME = "cut_mode";
+constexpr const char *CUT_SCENE_SHORT_WORDS = "short_words";
+constexpr const char *CUT_SCENE_DEFAULT = "default";
 
 int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Fts5Tokenizer **ppOut)
 {
     (void)sqlite3;
     std::lock_guard<std::mutex> lock(g_mtx);
+    auto *pFts5TokenizerParam = new Fts5TokenizerParamT;
+    pFts5TokenizerParam->magicCode = MAGIC_CODE;
+    if (nArg != 0 && nArg != CUSTOM_TOKENIZER_PARAM_NUM) {
+        sqlite3_log(SQLITE_ERROR, "invalid args num");
+        return SQLITE_ERROR;
+    }
+    if (nArg == CUSTOM_TOKENIZER_PARAM_NUM) {
+        std::string paramKey = std::string(azArg[0]);
+        std::string paramValue = std::string(azArg[1]);
+        if (paramKey != CUT_SCENE_PARAM_NAME) {
+            sqlite3_log(SQLITE_ERROR, "invalid arg name");
+            return SQLITE_ERROR;
+        }
+        if (paramValue == CUT_SCENE_SHORT_WORDS) {
+            pFts5TokenizerParam->cutScene = SEARCH;
+        } else if (paramValue == CUT_SCENE_DEFAULT) {
+            pFts5TokenizerParam->cutScene = DEFAULT;
+        } else {
+            sqlite3_log(SQLITE_ERROR, "invalid arg value of cut scene");
+            return SQLITE_ERROR;
+        }
+    }
     g_refCount++;
     if (g_refCount != 1) {  // 说明已经初始化过了，直接返回
-        *ppOut = (Fts5Tokenizer *)&g_magicCode;
+        *ppOut = (Fts5Tokenizer *)pFts5TokenizerParam;
         return SQLITE_OK;
     }
 
@@ -43,9 +74,10 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
     int ret = GRD_TokenizerInit(NULL, NULL, param);
     if (ret != GRD_OK) {
         sqlite3_log(ret, "GRD_TokenizerInit wrong");
+        delete pFts5TokenizerParam;
         return ret;
     }
-    *ppOut = (Fts5Tokenizer *)&g_magicCode;  // 需要保证*ppOut不为NULL，否则会使用默认分词器而不是自定的
+    *ppOut = (Fts5Tokenizer *)pFts5TokenizerParam;  // 需要保证*ppOut不为NULL，否则会使用默认分词器而不是自定的
     return SQLITE_OK;
 }
 
@@ -70,6 +102,11 @@ static char *CpyStr(const char *pText, int nText)
 int fts5_customtokenizer_xTokenize(
     Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText, int nText, XTokenFn xToken)
 {
+    Fts5TokenizerParamT *pFts5TokenizerParam = (Fts5TokenizerParamT *)tokenizer_ptr;
+    if (pFts5TokenizerParam == nullptr || pFts5TokenizerParam->magicCode != MAGIC_CODE) {
+        sqlite3_log(GRD_INVALID_ARGS, "The tokenizer is not initialized");
+        return GRD_INVALID_ARGS;
+    }
     if (nText == 0) {
         return SQLITE_OK;
     }
@@ -78,7 +115,7 @@ int fts5_customtokenizer_xTokenize(
         sqlite3_log(GRD_FAILED_MEMORY_ALLOCATE, "CpyStr wrong");
         return GRD_FAILED_MEMORY_ALLOCATE;
     }
-    GRD_CutOptionT option = {false};
+    GRD_CutOptionT option = {false, pFts5TokenizerParam->cutScene};
     GRD_WordEntryListT *entryList = nullptr;
     int ret = GRD_TokenizerCut(ptr, option, &entryList);
     if (ret != GRD_OK) {
@@ -109,6 +146,10 @@ int fts5_customtokenizer_xTokenize(
 void fts5_customtokenizer_xDelete(Fts5Tokenizer *tokenizer_ptr)
 {
     std::lock_guard<std::mutex> lock(g_mtx);
+    Fts5TokenizerParamT *pFts5TokenizerParam = (Fts5TokenizerParamT *)tokenizer_ptr;
+    if (pFts5TokenizerParam != nullptr) {
+        delete pFts5TokenizerParam;
+    }
     g_refCount--;
     if (g_refCount != 0) {  // 说明还有其他的地方在使用，不能释放资源
         return;

@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #define GRD_OK 0
+#define GRD_INVALID_ARGS (-3000)
 #define GRD_API_NOT_SUPPORT (-8888)
 #define GRD_NO_DATA (-11000)
 #define GRD_FAILED_MEMORY_ALLOCATE (-13000)
@@ -42,6 +43,12 @@ typedef enum GRD_CutMode {
     CUT_BUTT  // INVALID TokenizeMode
 } GRD_CutModeE;
 
+typedef enum GRD_CutScene {
+    DEFAULT = 0,
+    SEARCH = 1,
+    SCENE_BUTT // INVALID mode
+} GRD_CutSceneE;
+
 typedef enum GRD_ExtractMode {
     EXTRACT_TF_IDF = 0,
     EXTRACT_BUTT  // INVALID ExtractMode
@@ -54,6 +61,7 @@ typedef struct GRD_TokenizerParam {
 
 typedef struct GRD_CutOption {
     bool needPreProcess;
+    GRD_CutSceneE cutScene;
 } GRD_CutOptionT;
 
 typedef struct GRD_ExtractOption {
