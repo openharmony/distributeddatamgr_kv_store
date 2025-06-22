@@ -210,7 +210,7 @@ bool StoreFactoryTest::Decrypt(const SecurityManager::SecurityContent &content, 
 std::chrono::system_clock::time_point StoreFactoryTest::GetDate(const std::string &name, const std::string &path)
 {
     std::chrono::system_clock::time_point timePoint;
-    auto keyPath = path + "/key/" + name + ".key";
+    auto keyPath = path + "/key/" + name + ".key_v1";
     if (!OHOS::FileExists(keyPath)) {
         return timePoint;
     }
@@ -241,7 +241,7 @@ std::chrono::system_clock::time_point StoreFactoryTest::GetDate(const std::strin
 bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string &path, int duration,
     const std::vector<uint8_t> &key)
 {
-    auto keyPath = path + "/key/" + name + ".key";
+    auto keyPath = path + "/key/" + name + ".key_v1";
     if (!OHOS::FileExists(keyPath)) {
         return false;
     }
@@ -268,8 +268,8 @@ bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string 
 
 bool StoreFactoryTest::MoveToRekeyPath(Options options, StoreId storeId)
 {
-    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
-    std::string rekeyFileName = options.baseDir + "/rekey/key/" + storeId.storeId + ".new.key";
+    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key_v1";
+    std::string rekeyFileName = options.baseDir + "/rekey/key/" + storeId.storeId + ".new.key_v1";
     bool result = StoreUtil::Rename(keyFileName, rekeyFileName);
     if (!result) {
         return false;
@@ -415,7 +415,7 @@ HWTEST_F(StoreFactoryTest, RekeyInterruptedWhileChangeKeyFile, TestSize.Level1)
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
-    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
+    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key_v1";
     auto isKeyExist = StoreUtil::IsFileExist(keyFileName);
     ASSERT_TRUE(isKeyExist);
 
@@ -445,8 +445,8 @@ HWTEST_F(StoreFactoryTest, RekeyInterruptedBeforeChangeKeyFile, TestSize.Level1)
     StoreId newStoreId = { "newStore" };
     StoreManager::GetInstance().GetKVStore(appId, newStoreId, options, status);
 
-    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
-    std::string mockKeyFileName = options.baseDir + "/key/" + newStoreId.storeId + ".key";
+    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key_v1";
+    std::string mockKeyFileName = options.baseDir + "/key/" + newStoreId.storeId + ".key_v1";
     StoreUtil::Rename(mockKeyFileName, keyFileName);
     StoreUtil::Remove(mockKeyFileName);
     auto isKeyExist = StoreUtil::IsFileExist(mockKeyFileName);
@@ -481,7 +481,7 @@ HWTEST_F(StoreFactoryTest, RekeyNoPwdFile, TestSize.Level1)
 
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
-    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
+    std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key_v1";
     StoreUtil::Remove(keyFileName);
 
     auto isKeyExist = StoreUtil::IsFileExist(keyFileName);

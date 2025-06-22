@@ -145,7 +145,7 @@ HWTEST_F(DistributedKvDataManagerEncryptTest, GetEncryptStoreWithKeyFromService,
     ASSERT_NE(kvStore, nullptr);
 
     manager.CloseAllKvStore(appId);
-    std::string keyPath = createEnc.baseDir + "/key/" + storeId.storeId + ".key";
+    std::string keyPath = createEnc.baseDir + "/key/" + storeId.storeId + ".key_v1";
     auto ret = remove(keyPath.c_str());
     ASSERT_EQ(ret, 0);
 

@@ -496,7 +496,7 @@ HWTEST_F(BackupManagerTest, RestoreEncryptWithKeyFromService, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
 
     // delete backup key
-    auto ret = remove((baseDir + "/key/Prefix_backup_SingleKVStoreEncrypt_testbackup.key").c_str());
+    auto ret = remove((baseDir + "/key/Prefix_backup_SingleKVStoreEncrypt_testbackup.key_v1").c_str());
     ASSERT_EQ(ret, 0);
     status = kvStoreEncrypt->Delete("Put Test");
     ASSERT_EQ(status, SUCCESS);
