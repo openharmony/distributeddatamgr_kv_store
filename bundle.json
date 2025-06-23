@@ -76,6 +76,7 @@
         "huks",
         "ipc",
         "napi",
+        "runtime_core",
         "safwk",
         "samgr",
         "file_api",
@@ -93,7 +94,8 @@
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
         "//foundation/distributeddatamgr/kv_store/interfaces/cj:cj_distributed_kv_store_ffi",
-        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils"
+        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils",
+        "//foundation/distributeddatamgr/kv_store/frameworks/ets:kvstore_taihe"
       ],
       "inner_kits": [
         {
@@ -277,6 +279,9 @@
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/databaseutils/include"
           }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/ets:kvstore_taihe"
         }
       ],
       "test": [

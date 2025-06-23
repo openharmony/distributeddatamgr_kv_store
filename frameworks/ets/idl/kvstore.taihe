@@ -1,0 +1,116 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@!namespace("@ohos.data.distributedKVStore", "distributedKVStore")
+@!sts_inject("""
+static { loadLibrary("kvstore_framework_taihe_native.z") }
+""")
+@class
+interface FieldNode {
+  AppendChild(child: FieldNode): bool;
+  @get GetDefaultValue(): String;
+  @set SetDefaultValue(a :String): void;
+  @get GetNullable(): bool;
+  @set SetNullable(a :bool): void;
+  @get GetType(): f64;
+  @set SetType(a : f64): void;
+}
+
+@ctor("FieldNode")
+function CreateFieldNode(name: String): FieldNode;
+
+@class
+interface Schema {
+  @get GetRoot(): FieldNode;
+  @set SetRoot(a :FieldNode): void;
+  @get GetIndexes(): Array<String>;
+  @set SetIndexes(a :Array<String>): void;
+  @get GetMode(): i32;
+  @set SetMode(a :i32): void;
+  @get GetSkip(): i32;
+  @set SetSkip(a :i32): void;
+}
+@ctor("Schema")
+function CreateSchema(): Schema;
+
+enum KVStoreType: i32 {
+  DEVICE_COLLABORATION,
+  SINGLE_VERSION,
+}
+
+enum SecurityLevel: i32 {
+  S1,
+  S2,
+  S3,
+  S4
+}
+
+struct Options {
+  createIfMissing: Optional<bool>;
+  encrypt: Optional<bool>;
+  backup: Optional<bool>;
+  autoSync: Optional<bool>;
+  kvStoreType: Optional<KVStoreType>;
+  securityLevel: SecurityLevel;
+  schema: Optional<Schema>;
+}
+
+union KvStoreTypes{
+  singleKVStore: SingleKVStore;
+  deviceKVStore: DeviceKVStore;
+}
+
+interface KVManager {
+  @gen_async("getKVStore")
+  @gen_promise("getKVStore")
+  GetKVStoreSync(storeId: String, options: Options): KvStoreTypes;
+}
+
+union DataTypes {
+  arrayType: @typedarray Array<u8>;
+  stringType: String;
+  doubleType: f64;
+  booleanType: bool;
+}
+
+interface SingleKVStore {
+  @gen_async("get")
+  @gen_promise("get")
+  GetSync(key: String): DataTypes;
+
+  @gen_async("backup")
+  @gen_promise("backup")
+  BackupSync(file: String);
+
+  @gen_async("put")
+  @gen_promise("put")
+  PutSync(key: String, value: DataTypes);
+  GetInner(): i64;
+}
+
+interface DeviceKVStore : SingleKVStore {
+  @gen_async("get")
+  @gen_promise("get")
+  @overload("getSync")
+  GetByDevIdSync(deviceId: String, key: String): DataTypes;
+  GetDevInner(): i64;
+}
+
+struct KVManagerConfig {
+  bundleName: String;
+  context: @sts_type("BaseContext") Opaque;
+}
+
+function CreateKVManager(config: KVManagerConfig): KVManager;
