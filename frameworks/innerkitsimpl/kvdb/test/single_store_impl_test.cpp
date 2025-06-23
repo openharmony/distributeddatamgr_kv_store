@@ -169,8 +169,6 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosyn
  * @tc.name: GetStoreId
  * @tc.desc: get the store id of the kv store
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetStoreId, TestSize.Level0)
 {
@@ -195,8 +193,6 @@ HWTEST_F(SingleStoreImplTest, GetSubUser, TestSize.Level0)
  * @tc.name: Put
  * @tc.desc: put key-value data to the kv store
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
 {
@@ -215,8 +211,6 @@ HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
  * @tc.name: Put_Invalid_Key
  * @tc.desc: put invalid key-value data to the device kv store and single kv store
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: wu fengshan
  */
 HWTEST_F(SingleStoreImplTest, Put_Invalid_Key, TestSize.Level0)
 {
@@ -260,8 +254,6 @@ HWTEST_F(SingleStoreImplTest, Put_Invalid_Key, TestSize.Level0)
  * @tc.name: PutBatch
  * @tc.desc: put some key-value data to the kv store
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, PutBatch, TestSize.Level0)
 {
@@ -320,8 +312,6 @@ HWTEST_F(SingleStoreImplTest, PutBatch001, TestSize.Level1)
  * @tc.name: Delete
  * @tc.desc: delete the value of the key
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, Delete, TestSize.Level0)
 {
@@ -344,8 +334,6 @@ HWTEST_F(SingleStoreImplTest, Delete, TestSize.Level0)
  * @tc.name: DeleteBatch
  * @tc.desc: delete the values of the keys
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, DeleteBatch, TestSize.Level0)
 {
@@ -378,8 +366,6 @@ HWTEST_F(SingleStoreImplTest, DeleteBatch, TestSize.Level0)
  * @tc.name: Transaction
  * @tc.desc: do transaction
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, Transaction, TestSize.Level0)
 {
@@ -399,8 +385,6 @@ HWTEST_F(SingleStoreImplTest, Transaction, TestSize.Level0)
  * @tc.name: SubscribeKvStore
  * @tc.desc: subscribe local
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
 {
@@ -448,8 +432,6 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
  * @tc.name: SubscribeKvStore002
  * @tc.desc: subscribe local
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Hollokin
  */
 HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
 {
@@ -525,8 +507,6 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore003, TestSize.Level0)
  * @tc.name: UnsubscribeKvStore
  * @tc.desc: unsubscribe
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, UnsubscribeKvStore, TestSize.Level0)
 {
@@ -556,8 +536,6 @@ HWTEST_F(SingleStoreImplTest, UnsubscribeKvStore, TestSize.Level0)
  * @tc.name: GetEntries
  * @tc.desc: get entries by prefix
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
 {
@@ -587,8 +565,6 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
  * @tc.name: GetEntries_Less_Prefix
  * @tc.desc: get entries by prefix and the key size less than sizeof(uint32_t)
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: wu fengshan
  */
 HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
 {
@@ -631,8 +607,6 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
  * @tc.name: GetEntries_Greater_Prefix
  * @tc.desc: get entries by prefix and the key size is greater than  sizeof(uint32_t)
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: wu fengshan
  */
 HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
 {
@@ -678,8 +652,6 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
  * @tc.name: GetEntries
  * @tc.desc: get entries by query
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
 {
@@ -712,8 +684,6 @@ HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
  * @tc.name: GetResultSet
  * @tc.desc: get result set by prefix
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetResultSet_Prefix, TestSize.Level0)
 {
@@ -751,8 +721,6 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Prefix, TestSize.Level0)
  * @tc.name: GetResultSet
  * @tc.desc: get result set by query
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
 {
@@ -792,8 +760,6 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
  * @tc.name: CloseResultSet
  * @tc.desc: close the result set
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
 {
@@ -857,8 +823,6 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet001, TestSize.Level0)
  * @tc.name: ResultSetMaxSizeTest
  * @tc.desc: test if kv supports 8 resultSets at the same time
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Query, TestSize.Level0)
 {
@@ -913,8 +877,6 @@ HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Query, TestSize.Level0)
  * @tc.name: ResultSetMaxSizeTest
  * @tc.desc: test if kv supports 8 resultSets at the same time
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
 {
@@ -967,8 +929,6 @@ HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
  * @tc.name: MaxLogSizeTest
  * @tc.desc: test if the default max limit of wal is 200MB
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
 {
@@ -1025,8 +985,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
  * @tc.name: MaxTest002
  * @tc.desc: test if the default max limit of wal is 200MB
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
 {
@@ -1105,8 +1063,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
  * @tc.name: Move_Offset
  * @tc.desc: Move the ResultSet Relative Distance
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: wu fengshan
  */
 HWTEST_F(SingleStoreImplTest, Move_Offset, TestSize.Level0)
 {
@@ -1162,8 +1118,6 @@ HWTEST_F(SingleStoreImplTest, Move_Offset, TestSize.Level0)
  * @tc.name: GetCount
  * @tc.desc: close the result set
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
 {
@@ -1218,8 +1172,6 @@ void ChangeOwnerToService(std::string baseDir, std::string hashId)
  * @tc.name: RemoveDeviceData
  * @tc.desc: remove local device data
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
 {
@@ -1259,8 +1211,6 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
  * @tc.name: GetSecurityLevel
  * @tc.desc: get security level
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0)
 {
@@ -1275,8 +1225,6 @@ HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0)
  * @tc.name: RegisterSyncCallback
  * @tc.desc: register the data sync callback
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
 {
@@ -1295,8 +1243,6 @@ HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
  * @tc.name: UnRegisterSyncCallback
  * @tc.desc: unregister the data sync callback
  * @tc.type: FUNC
- * @tc.require: I4XVQQ
- * @tc.author: Sven Wang
  */
 HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
 {
@@ -1317,8 +1263,6 @@ HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
  * @tc.name: disableBackup
  * @tc.desc: Disable backup
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
 {
@@ -1338,8 +1282,6 @@ HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
  * @tc.name: PutOverMaxValue
  * @tc.desc: put key-value data to the kv store and the value size  over the limits
  * @tc.type: FUNC
- * @tc.require: I605H3
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, PutOverMaxValue, TestSize.Level0)
 {
@@ -1357,8 +1299,6 @@ HWTEST_F(SingleStoreImplTest, PutOverMaxValue, TestSize.Level0)
  * @tc.name: DeleteOverMaxKey
  * @tc.desc: delete the values of the keys and the key size  over the limits
  * @tc.type: FUNC
- * @tc.require: I605H3
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, DeleteOverMaxKey, TestSize.Level0)
 {
@@ -1382,8 +1322,6 @@ HWTEST_F(SingleStoreImplTest, DeleteOverMaxKey, TestSize.Level0)
  * @tc.name: GetEntriesOverMaxKey
  * @tc.desc: get entries the by prefix and the prefix size  over the limits
  * @tc.type: FUNC
- * @tc.require: I605H3
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetEntriesOverMaxPrefix, TestSize.Level0)
 {
@@ -1403,8 +1341,6 @@ HWTEST_F(SingleStoreImplTest, GetEntriesOverMaxPrefix, TestSize.Level0)
  * @tc.name: GetResultSetOverMaxPrefix
  * @tc.desc: get result set the by prefix and the prefix size  over the limits
  * @tc.type: FUNC
- * @tc.require: I605H3
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetResultSetOverMaxPrefix, TestSize.Level0)
 {
@@ -1424,8 +1360,6 @@ HWTEST_F(SingleStoreImplTest, GetResultSetOverMaxPrefix, TestSize.Level0)
  * @tc.name: RemoveNullDeviceData
  * @tc.desc: remove local device data and the device is null
  * @tc.type: FUNC
- * @tc.require: I605H3
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
 {
@@ -1460,8 +1394,6 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
  * @tc.name: CloseKVStoreWithInvalidAppId
  * @tc.desc: close the kv store with invalid appid
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidAppId, TestSize.Level0)
 {
@@ -1475,8 +1407,6 @@ HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidAppId, TestSize.Level0)
  * @tc.name: CloseKVStoreWithInvalidStoreId
  * @tc.desc: close the kv store with invalid store id
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidStoreId, TestSize.Level0)
 {
@@ -1490,8 +1420,6 @@ HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidStoreId, TestSize.Level0)
  * @tc.name: CloseAllKVStore
  * @tc.desc: close all kv store
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, CloseAllKVStore, TestSize.Level0)
 {
@@ -1521,8 +1449,6 @@ HWTEST_F(SingleStoreImplTest, CloseAllKVStore, TestSize.Level0)
  * @tc.name: CloseAllKVStoreWithInvalidAppId
  * @tc.desc: close the kv store with invalid appid
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, CloseAllKVStoreWithInvalidAppId, TestSize.Level0)
 {
@@ -1535,8 +1461,6 @@ HWTEST_F(SingleStoreImplTest, CloseAllKVStoreWithInvalidAppId, TestSize.Level0)
  * @tc.name: DeleteWithInvalidAppId
  * @tc.desc: delete the kv store with invalid appid
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, DeleteWithInvalidAppId, TestSize.Level0)
 {
@@ -1551,8 +1475,6 @@ HWTEST_F(SingleStoreImplTest, DeleteWithInvalidAppId, TestSize.Level0)
  * @tc.name: DeleteWithInvalidStoreId
  * @tc.desc: delete the kv store with invalid storeid
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Yang Qing
  */
 HWTEST_F(SingleStoreImplTest, DeleteWithInvalidStoreId, TestSize.Level0)
 {
@@ -1567,8 +1489,6 @@ HWTEST_F(SingleStoreImplTest, DeleteWithInvalidStoreId, TestSize.Level0)
  * @tc.name: GetKVStoreWithPersistentFalse
  * @tc.desc: delete the kv store with the persistent is false
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
 {
@@ -1591,8 +1511,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
  * @tc.name: GetKVStoreWithInvalidType
  * @tc.desc: delete the kv store with the KvStoreType is InvalidType
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithInvalidType, TestSize.Level0)
 {
@@ -1614,8 +1532,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithInvalidType, TestSize.Level0)
  * @tc.name: GetKVStoreWithCreateIfMissingFalse
  * @tc.desc: delete the kv store with the createIfMissing is false
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level0)
 {
@@ -1638,8 +1554,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level
  * @tc.name: GetKVStoreWithAutoSync
  * @tc.desc: delete the kv store with the autoSync is false
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithAutoSync, TestSize.Level0)
 {
@@ -1664,8 +1578,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithAutoSync, TestSize.Level0)
  * @tc.name: GetKVStoreWithAreaEL2
  * @tc.desc: delete the kv store with the area is EL2
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithAreaEL2, TestSize.Level0)
 {
@@ -1691,8 +1603,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithAreaEL2, TestSize.Level0)
  * @tc.name: GetKVStoreWithRebuildTrue
  * @tc.desc: delete the kv store with the rebuild is true
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: Wang Kai
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
 {
@@ -1717,8 +1627,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
  * @tc.name: GetStaticStore
  * @tc.desc: get static store
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zuojiangijang
  */
 HWTEST_F(SingleStoreImplTest, GetStaticStore, TestSize.Level0)
 {
@@ -1744,8 +1652,6 @@ HWTEST_F(SingleStoreImplTest, GetStaticStore, TestSize.Level0)
  * @tc.name: StaticStoreAsyncGet
  * @tc.desc: static store async get
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zuojiangijang
  */
 HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGet, TestSize.Level0)
 {
@@ -1779,8 +1685,6 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGet, TestSize.Level0)
  * @tc.name: StaticStoreAsyncGetEntries
  * @tc.desc: static store async get entries
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zuojiangijang
  */
 HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
 {
@@ -1815,8 +1719,6 @@ HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
  * @tc.name: DynamicStoreAsyncGet
  * @tc.desc: dynamic store async get
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zuojiangijang
  */
 HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGet, TestSize.Level0)
 {
@@ -1852,8 +1754,6 @@ HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGet, TestSize.Level0)
  * @tc.name: DynamicStoreAsyncGetEntries
  * @tc.desc: dynamic store async get entries
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zuojiangijang
  */
 HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
 {
@@ -1898,8 +1798,6 @@ HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
  * @tc.name: SetConfig
  * @tc.desc: SetConfig
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: ht
  */
 HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
 {
