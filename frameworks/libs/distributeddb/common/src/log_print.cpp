@@ -80,10 +80,10 @@ Logger *Logger::GetInstance()
 
 void Logger::DeleteInstance()
 {
+    std::lock_guard<std::mutex> lock(g_logInstanceLock);
     if (g_logInstance == nullptr) {
         return;
     }
-    std::lock_guard<std::mutex> lock(g_logInstanceLock);
     delete g_logInstance;
     g_logInstance = nullptr;
     logHandler = nullptr;

@@ -154,7 +154,6 @@ void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuf
         int error = E_OK;
         // if error is not E_OK, null pointer will be returned
         Message *message = ProtocolProto::ToMessage(inBuf, error);
-        message->SetSenderUserId(sendUser);
         delete inBuf;
         inBuf = nullptr;
         // message is not nullptr if error is E_OK or error is E_NOT_REGISTER.
@@ -170,6 +169,7 @@ void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuf
             return;
         }
         LOGI("[Comm][Receive] label=%.3s, srcTarget=%s{private}.", VEC_TO_STR(commLabel_), srcTarget.c_str());
+        message->SetSenderUserId(sendUser);
         onMessageHandle_(srcTarget, message);
     } else {
         LOGE("[Comm][Receive] label=%.3s, src.size=%zu or buf or handle invalid.", VEC_TO_STR(commLabel_),
@@ -276,6 +276,9 @@ void Communicator::TriggerUnknownMessageFeedback(const std::string &dstTarget, M
 std::string Communicator::GetTargetUserId(const ExtendInfo &paramInfo) const
 {
     std::shared_ptr<ExtendHeaderHandle> extendHandle = commAggrHandle_->GetExtendHeaderHandle(paramInfo);
+    if (extendHandle == nullptr) {
+        return DBConstant::DEFAULT_USER;
+    }
     return extendHandle->GetTargetUserId();
 }
 
