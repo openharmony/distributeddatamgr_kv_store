@@ -205,6 +205,7 @@ StorageExecutor *StorageEngine::FindWriteExecutor(OperatePerm perm, int &errCode
 StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal)
 {
     auto &pendingCount = isExternal ? externalReadPendingCount_ : readPendingCount_;
+    bool isNeedCreate = false;
     {
         std::unique_lock<std::mutex> lock(readMutex_);
         errCode = -E_BUSY;
@@ -241,21 +242,16 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
             }
         }
         pendingCount++;
+        isNeedCreate = readIdleList.size() < static_cast<size_t>(pendingCount.load());
     }
-    auto executor = FetchReadStorageExecutor(errCode, isExternal);
+    auto executor = FetchReadStorageExecutor(errCode, isExternal, isNeedCreate);
     pendingCount--;
     readCondition_.notify_all();
     return executor;
 }
 
-StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isExternal)
+StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isExternal, bool isNeedCreate)
 {
-    bool isNeedCreate;
-    {
-        std::unique_lock<std::mutex> lock(readMutex_);
-        auto &idleList = isExternal ? externalReadIdleList_ : readIdleList_;
-        isNeedCreate = idleList.empty();
-    }
     StorageExecutor *handle = nullptr;
     if (isNeedCreate) {
         errCode = CreateNewExecutor(false, handle);

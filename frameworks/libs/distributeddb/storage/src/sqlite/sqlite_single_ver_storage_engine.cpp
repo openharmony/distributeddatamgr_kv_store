@@ -577,7 +577,7 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
         return -E_EKEYREVOKED;
     }
 
-    if (!option_.isMemDb) {
+    if (!option_.isMemDb && option_.uri.empty()) {
         option_.uri = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
             DBConstant::DB_EXTENSION;
     }

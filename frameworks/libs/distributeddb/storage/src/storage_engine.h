@@ -138,7 +138,7 @@ private:
     StorageExecutor *FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
     StorageExecutor *FindReadExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
 
-    StorageExecutor *FetchReadStorageExecutor(int &errCode, bool isExternal = false);
+    StorageExecutor *FetchReadStorageExecutor(int &errCode, bool isExternal, bool isNeedCreate);
 
     virtual void ClearCorruptedFlag();
 
