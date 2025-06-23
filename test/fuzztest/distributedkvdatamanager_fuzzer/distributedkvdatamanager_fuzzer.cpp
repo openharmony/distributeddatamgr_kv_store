@@ -248,6 +248,14 @@ void UnsubscribeSwitchDataFuzz(FuzzedDataProvider &provider)
     manager.SubscribeSwitchData({ appIds }, observer);
     manager.UnsubscribeSwitchData({ appIds }, observer);
 }
+
+void SetExecutorsFuzz(FuzzedDataProvider &provider)
+{
+    size_t max = provider.ConsumeIntegral<size_t>();
+    size_t min = provider.ConsumeIntegral<size_t>();
+    auto executors = std::make_shared<ExecutorPool>(max, min);
+    manager.SetExecutors(executors);
+}
 } // namespace OHOS
 
 /* Fuzzer entry point */
