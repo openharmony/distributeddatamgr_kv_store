@@ -97,7 +97,7 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, fieldNode != nullptr, "no memory for fieldNode");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
-        ZLOGD("FieldNode finalize.");
+        ZLOGD("fieldNode finalize.");
         auto* fieldNode = reinterpret_cast<JsFieldNode*>(data);
         CHECK_RETURN_VOID(fieldNode != nullptr, "fieldNode is null!");
         delete fieldNode;
