@@ -46,6 +46,7 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
     pFts5TokenizerParam->magicCode = MAGIC_CODE;
     if (nArg != 0 && nArg != CUSTOM_TOKENIZER_PARAM_NUM) {
         sqlite3_log(SQLITE_ERROR, "invalid args num");
+        delete pFts5TokenizerParam;
         return SQLITE_ERROR;
     }
     if (nArg == CUSTOM_TOKENIZER_PARAM_NUM) {
@@ -53,6 +54,7 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
         std::string paramValue = std::string(azArg[1]);
         if (paramKey != CUT_SCENE_PARAM_NAME) {
             sqlite3_log(SQLITE_ERROR, "invalid arg name");
+            delete pFts5TokenizerParam;
             return SQLITE_ERROR;
         }
         if (paramValue == CUT_SCENE_SHORT_WORDS) {
@@ -61,6 +63,7 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
             pFts5TokenizerParam->cutScene = DEFAULT;
         } else {
             sqlite3_log(SQLITE_ERROR, "invalid arg value of cut scene");
+            delete pFts5TokenizerParam;
             return SQLITE_ERROR;
         }
     }
@@ -149,12 +152,13 @@ void fts5_customtokenizer_xDelete(Fts5Tokenizer *tokenizer_ptr)
     Fts5TokenizerParamT *pFts5TokenizerParam = (Fts5TokenizerParamT *)tokenizer_ptr;
     if (pFts5TokenizerParam != nullptr) {
         delete pFts5TokenizerParam;
+        pFts5TokenizerParam = nullptr;
     }
     g_refCount--;
     if (g_refCount != 0) {  // 说明还有其他的地方在使用，不能释放资源
         return;
     }
-    (void)GRD_TokenizerDestroy(tokenizer_ptr);
+    (void)GRD_TokenizerDestroy(nullptr);
 }
 
 /*
