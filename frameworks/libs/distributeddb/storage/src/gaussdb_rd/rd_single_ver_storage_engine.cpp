@@ -132,12 +132,10 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
         return -E_EKEYREVOKED;
     }
 
-    if (option_.uri.empty()) {
-        option_.uri = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-            DBConstant::DB_EXTENSION;
-    }
+    SetUri(GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
+        DBConstant::DB_EXTENSION);
 
-    OpenDbProperties optionTemp = option_;
+    OpenDbProperties optionTemp = GetOption();
     if (!isWrite) {
         optionTemp.createIfNecessary = false;
     }

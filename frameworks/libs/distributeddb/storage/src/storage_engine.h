@@ -94,7 +94,7 @@ public:
 
     int InitAllReadWriteExecutor();
 
-    OpenDbProperties GetOption();
+    OpenDbProperties GetOption() const;
 
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
@@ -107,6 +107,11 @@ protected:
 
     int InitReadWriteExecutors();
 
+    void SetUri(const std::string &uri);
+    std::string GetUri() const;
+    void SetSQL(const std::vector<std::string> &sql);
+
+    mutable std::mutex optionMutex_;
     OpenDbProperties option_;
 
     StorageEngineAttr engineAttr_;

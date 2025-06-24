@@ -72,7 +72,7 @@ int SQLiteStorageEngine::Upgrade(sqlite3 *db)
 int SQLiteStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)
 {
     sqlite3 *dbHandle = nullptr;
-    int errCode = SQLiteUtils::OpenDatabase(option_, dbHandle);
+    int errCode = SQLiteUtils::OpenDatabase(GetOption(), dbHandle);
     if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
         return errCode;
     }

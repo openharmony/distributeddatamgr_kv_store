@@ -577,12 +577,12 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
         return -E_EKEYREVOKED;
     }
 
-    if (!option_.isMemDb && option_.uri.empty()) {
-        option_.uri = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-            DBConstant::DB_EXTENSION;
+    if (!option_.isMemDb) {
+        SetUri(GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
+            DBConstant::DB_EXTENSION);
     }
 
-    OpenDbProperties optionTemp = option_;
+    OpenDbProperties optionTemp = GetOption();
     if (!isWrite) {
         optionTemp.createIfNecessary = false;
     }
@@ -673,13 +673,10 @@ const std::string CREATE_CACHE_SYNC_TABLE_SQL =
 // And make migrate data failed! This cache db will not be open correctly.
 int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
 {
-    option_.uri = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-        DBConstant::DB_EXTENSION;
+    SetUri(GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
+        DBConstant::DB_EXTENSION);
     // creatTable
-    option_.sqls = {
-        CacheDbSqls::CREATE_CACHE_LOCAL_TABLE_SQL,
-        CacheDbSqls::CREATE_CACHE_SYNC_TABLE_SQL
-    };
+    SetSQL({CacheDbSqls::CREATE_CACHE_LOCAL_TABLE_SQL, CacheDbSqls::CREATE_CACHE_SYNC_TABLE_SQL});
 
     if (!option_.createIfNecessary) {
         std::string mainDbPtah = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
@@ -689,7 +686,7 @@ int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
         }
     }
 
-    OpenDbProperties option = option_; // copy for no change it
+    OpenDbProperties option = GetOption(); // copy for no change it
     option.createIfNecessary = true;
     int errCode = SQLiteUtils::OpenDatabase(option, db);
     if (errCode != E_OK) {
@@ -740,7 +737,7 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption
     }
 
     // check sqlite open ok
-    int errCode = CheckStoreStatus(option_);
+    int errCode = CheckStoreStatus(GetOption());
     if (errCode != E_OK) {
         return errCode;
     }

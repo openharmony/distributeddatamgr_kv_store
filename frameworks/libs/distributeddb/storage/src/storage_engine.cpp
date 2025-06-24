@@ -59,8 +59,9 @@ int StorageEngine::InitAllReadWriteExecutor()
     return InitReadWriteExecutors();
 }
 
-OpenDbProperties StorageEngine::GetOption()
+OpenDbProperties StorageEngine::GetOption() const
 {
+    std::lock_guard<std::mutex> autoLock(optionMutex_);
     return option_;
 }
 
@@ -621,5 +622,23 @@ void StorageEngine::PrintDbFileMsg(bool isOpen)
          dbWalFileStat.st_mtim.tv_sec, dbWalFileStat.st_ino, dbShmFileStat.st_size, dbShmFileStat.st_mtim.tv_sec,
          dbShmFileStat.st_ino, dbDwrFileStat.st_size, dbDwrFileStat.st_mtim.tv_sec, dbDwrFileStat.st_ino);
 #endif
+}
+
+void StorageEngine::SetUri(const std::string &uri)
+{
+    std::lock_guard<std::mutex> autoLock(optionMutex_);
+    option_.uri = uri;
+}
+
+std::string StorageEngine::GetUri() const
+{
+    std::lock_guard<std::mutex> autoLock(optionMutex_);
+    return option_.uri;
+}
+
+void StorageEngine::SetSQL(const std::vector<std::string> &sql)
+{
+    std::lock_guard<std::mutex> autoLock(optionMutex_);
+    option_.sqls = sql;
 }
 }
