@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include "communicator.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "distributeddb_communicator_common.h"
@@ -1435,6 +1436,13 @@ HWTEST_F(DistributedDBCommunicatorTest, AbnormalCommunicatorTest001, TestSize.Le
     EXPECT_NE(errCode, E_OK);
     errCode = commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(commAA->GetTargetUserId({}), std::string(""));
     g_envDeviceA.commAggrHandle->ClearOnlineLabel();
+    std::vector<uint8_t> label;
+    auto aggregator = std::make_shared<CommunicatorAggregator>();
+    ASSERT_NE(aggregator, nullptr);
+    auto communicator = std::make_shared<Communicator>(aggregator.get(), label);
+    ASSERT_NE(communicator, nullptr);
+    EXPECT_EQ(communicator->GetTargetUserId({}), DBConstant::DEFAULT_USER);
 }
 }
