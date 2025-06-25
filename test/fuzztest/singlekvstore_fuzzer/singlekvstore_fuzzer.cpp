@@ -54,9 +54,14 @@ DeviceObserverTestImpl::DeviceObserverTestImpl()
 class DeviceSyncCallbackTestImpl : public KvStoreSyncCallback {
 public:
     void SyncCompleted(const std::map<std::string, Status> &results);
+    void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId);
 };
 
 void DeviceSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)
+{
+}
+
+void DeviceSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId)
 {
 }
 
@@ -200,6 +205,29 @@ void SyncCallbackFuzz(FuzzedDataProvider &provider)
 
     std::map<std::string, Status> results;
     syncCallback->SyncCompleted(results);
+    for (size_t i = 0; i < sum; i++) {
+        singleKvStore_->Delete(prefix + keys + std::to_string(i));
+    }
+    singleKvStore_->UnRegisterSyncCallback();
+}
+
+void SyncCallbackFuzz1(FuzzedDataProvider &provider)
+{
+    auto syncCallback = std::make_shared<DeviceSyncCallbackTestImpl>();
+    singleKvStore_->RegisterSyncCallback(syncCallback);
+
+    std::string prefix = provider.ConsumeRandomLengthString();
+    DataQuery dataQuery;
+    dataQuery.KeyPrefix(prefix);
+    std::string keys = "test_";
+    size_t sum = provider.ConsumeIntegralInRange<size_t>(0, 10);
+    for (size_t i = 0; i < sum; i++) {
+        singleKvStore_->Put(prefix + keys + std::to_string(i), keys + std::to_string(i));
+    }
+
+    std::map<std::string, Status> results;
+    uint64_t sequenceId = provider.ConsumeIntegral<uint64_t>();
+    syncCallback->SyncCompleted(results, sequenceId);
 
     for (size_t i = 0; i < sum; i++) {
         singleKvStore_->Delete(prefix + keys + std::to_string(i));
@@ -536,6 +564,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     OHOS::RemoveDeviceDataFuzz(provider);
     OHOS::GetSecurityLevelFuzz(provider);
     OHOS::SyncCallbackFuzz(provider);
+    OHOS::SyncCallbackFuzz1(provider);
     OHOS::SyncParamFuzz(provider);
     OHOS::SetCapabilityEnabledFuzz(provider);
     OHOS::SetCapabilityRangeFuzz(provider);
