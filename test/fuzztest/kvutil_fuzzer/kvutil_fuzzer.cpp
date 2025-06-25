@@ -29,7 +29,7 @@ using namespace OHOS;
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS {
-using Var_t = std::variant<std::monostate, int64_t, double, std::string, bool, std::vector<uint8_t>>;
+using ValueType = std::variant<std::monostate, int64_t, double, std::string, bool, std::vector<uint8_t>>;
 static std::shared_ptr<SingleKvStore> singleKvStore_ = nullptr;
 static constexpr const char *KEY = "key";
 static constexpr const char *VALUE = "value";
@@ -108,9 +108,9 @@ void ToEntryFuzz(FuzzedDataProvider &provider)
     auto entry = KvUtils::ToEntry(bucket);
 }
 
-Var_t CreateData(int32_t type, FuzzedDataProvider &provider)
+ValueType CreateData(int32_t type, FuzzedDataProvider &provider)
 {
-    Var_t data;
+    ValueType data;
     switch (type) {
         case DataType::STRING:
             data = provider.ConsumeRandomLengthString();
@@ -139,8 +139,8 @@ void ToEntriesFuzz(FuzzedDataProvider &provider)
     std::vector<DataShareValuesBucket> buckets;
     const uint8_t bucketCount = provider.ConsumeIntegralInRange<uint8_t>(1, 10);
     DataShareValuesBucket bucket;
-    Var_t key;
-    Var_t value;
+    ValueType key;
+    ValueType value;
     for (int i = 1; i < bucketCount; ++i) {
         auto keyType = provider.ConsumeIntegralInRange(1, 5);
         auto valueType = provider.ConsumeIntegralInRange(1, 5);
