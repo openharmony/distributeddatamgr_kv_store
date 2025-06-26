@@ -227,8 +227,7 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
             bool result = readCondition_.wait_for(lock, std::chrono::seconds(waitTime),
                 [this, &perm, &readUsingList, &readIdleList, &maxReadHandleNum, &pendingCount]() {
                     return (perm_ == OperatePerm::NORMAL_PERM || perm_ == perm) &&
-                         (!readIdleList.empty() ||
-                         (readIdleList.size() + readUsingList.size() + pendingCount < maxReadHandleNum) ||
+                         ((readIdleList.size() + readUsingList.size() + pendingCount < maxReadHandleNum) ||
                          operateAbort_);
                 });
             if (operateAbort_) {
@@ -246,7 +245,6 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
         isNeedCreate = readIdleList.size() < static_cast<size_t>(pendingCount.load());
     }
     auto executor = FetchReadStorageExecutor(errCode, isExternal, isNeedCreate);
-    pendingCount--;
     readCondition_.notify_all();
     return executor;
 }
@@ -258,6 +256,8 @@ StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isEx
         errCode = CreateNewExecutor(false, handle);
     }
     std::unique_lock<std::mutex> lock(readMutex_);
+    auto &pendingCount = isExternal ? externalReadPendingCount_ : readPendingCount_;
+    pendingCount--;
     if (isNeedCreate) {
         auto &usingList = isExternal ? externalReadUsingList_ : readUsingList_;
         if ((errCode != E_OK) || (handle == nullptr)) {
@@ -630,15 +630,21 @@ void StorageEngine::SetUri(const std::string &uri)
     option_.uri = uri;
 }
 
-std::string StorageEngine::GetUri() const
-{
-    std::lock_guard<std::mutex> autoLock(optionMutex_);
-    return option_.uri;
-}
-
 void StorageEngine::SetSQL(const std::vector<std::string> &sql)
 {
     std::lock_guard<std::mutex> autoLock(optionMutex_);
     option_.sqls = sql;
+}
+
+void StorageEngine::SetSecurityOption(const SecurityOption &option)
+{
+    std::lock_guard<std::mutex> autoLock(optionMutex_);
+    option_.securityOpt = option;
+}
+
+void StorageEngine::SetCreateIfNecessary(bool isCreateIfNecessary)
+{
+    std::lock_guard<std::mutex> autoLock(optionMutex_);
+    option_.createIfNecessary = isCreateIfNecessary;
 }
 }

@@ -46,13 +46,14 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
         return ret;
     }
     GRD_DB *db = nullptr;
-    ret = TryToOpenMainDatabase(isWrite, db);
+    auto option = GetOption();
+    ret = TryToOpenMainDatabase(isWrite, db, option);
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageEngine] GRD_DBOPEN FAILED:%d", ret);
         return ret;
     }
-    if (!option_.readOnly) {
-        std::string tableMode = GetTableMode(option_.isHashTable);
+    if (!option.readOnly) {
+        std::string tableMode = GetTableMode(option.isHashTable);
         ret = RdCreateCollection(db, SYNC_COLLECTION_NAME, tableMode.c_str(), 0);
         if (ret != E_OK) {
             LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
@@ -71,8 +72,8 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
         (void)RdDBClose(db, GRD_DB_CLOSE_IGNORE_ERROR);
         return -E_OUT_OF_MEMORY;
     }
-    if (OS::CheckPathExistence(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) &&
-        OS::RemoveFile(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) != E_OK) {
+    if (OS::CheckPathExistence(option.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) &&
+        OS::RemoveFile(option.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) != E_OK) {
         LOGE("Finish to create the complete database, but delete token fail! errCode = [E_SYSTEM_API_FAIL]");
         delete handle;
         handle = nullptr;
@@ -124,7 +125,7 @@ int RdSingleVerStorageEngine::CreateNewDirsAndSetSecOpt() const
     return CreateNewDirsAndSetSecOption(option_);
 }
 
-int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
+int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db, OpenDbProperties &optionTemp)
 {
     // Only could get the main database handle in the uninitialized and the main status.
     if (GetEngineState() != EngineState::INVALID && GetEngineState() != EngineState::MAINDB) {
@@ -132,10 +133,10 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
         return -E_EKEYREVOKED;
     }
 
-    SetUri(GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION);
+    optionTemp.uri = GetDbDir(optionTemp.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
+        DBConstant::DB_EXTENSION;
+    SetUri(optionTemp.uri);
 
-    OpenDbProperties optionTemp = GetOption();
     if (!isWrite) {
         optionTemp.createIfNecessary = false;
     }
@@ -148,17 +149,6 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
     // Set the engine state to main status for that the main database is valid.
     SetEngineState(EngineState::MAINDB);
     return errCode;
-}
-
-int RdSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption &secOpt, GRD_DB *&dbHandle)
-{
-    int errCode = TryToOpenMainDatabase(isWrite, dbHandle);
-    LOGD("Finish to open the main database, write[%d], label[%d], flag[%d], id[%.6s], errCode[%d]",  isWrite,
-        secOpt.securityLabel, secOpt.securityFlag, hashIdentifier_.c_str(), errCode);
-    if (!(ParamCheckUtils::IsS3SECEOpt(secOpt) && errCode == -E_EKEYREVOKED)) {
-        return errCode;
-    }
-    return -E_NOT_SUPPORT;
 }
 
 int RdSingleVerStorageEngine::PreCreateExecutor(bool isWrite)

@@ -108,8 +108,9 @@ protected:
     int InitReadWriteExecutors();
 
     void SetUri(const std::string &uri);
-    std::string GetUri() const;
     void SetSQL(const std::vector<std::string> &sql);
+    void SetSecurityOption(const SecurityOption &option);
+    void SetCreateIfNecessary(bool isCreateIfNecessary);
 
     mutable std::mutex optionMutex_;
     OpenDbProperties option_;
