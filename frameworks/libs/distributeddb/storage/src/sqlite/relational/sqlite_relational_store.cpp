@@ -1361,6 +1361,10 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
         auto *handle = GetHandle(true, errCode);
         if (handle != nullptr) {
             handle->CheckAndCreateTrigger(tableInfo);
+            // Try clear historical mismatched log, which usually do not occur and apply to tracker table only.
+            if (isNoTableInSchema) {
+                handle->ClearLogOfMismatchedData(trackerSchema.tableName);
+            }
             ReleaseHandle(handle);
         }
         return E_OK;

@@ -2733,6 +2733,52 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest045,
 }
 
 /**
+  * @tc.name: TrackerTableTest046
+  * @tc.desc: Test clear log of mismatched data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest046, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable on table2
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    int num = 10;
+    BatchInsertTableName2Data(num);
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+
+    /**
+     * @tc.steps:step2. Recreate table2 by rename
+     * @tc.expected: step2. Return OK.
+     */
+    std::string sql = "ALTER TABLE " + TABLE_NAME2 + " RENAME TO xxx";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, sql), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, CREATE_LOCAL_PK_TABLE_SQL), E_OK);
+    sql = "INSERT INTO " + TABLE_NAME2 + " SELECT id,name,height,photo,asserts,age FROM xxx";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, sql), E_OK);
+    sql = "DROP TABLE xxx";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, sql), E_OK);
+    sql = "DELETE FROM " + TABLE_NAME2 + " WHERE id in ('7', '9')";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, sql), E_OK);
+
+    /**
+     * @tc.steps:step3. Set tracker and check log count
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2);
+    num = 8;
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
   * @tc.name: SchemaStrTest001
   * @tc.desc: Test open reOpen stroe when schemaStr is empty
   * @tc.type: FUNC

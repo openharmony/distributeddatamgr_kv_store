@@ -1985,5 +1985,54 @@ void SQLiteSingleVerRelationalStorageExecutor::CheckAndCreateTrigger(const Table
     auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
     tableManager->CheckAndCreateTrigger(dbHandle_, table, "");
 }
+
+void SQLiteSingleVerRelationalStorageExecutor::ClearLogOfMismatchedData(const std::string &tableName)
+{
+    bool isLogTableExist = false;
+    int errCode = SQLiteUtils::CheckTableExists(dbHandle_, DBCommon::GetLogTableName(tableName), isLogTableExist);
+    if (!isLogTableExist) {
+        return;
+    }
+    std::string sql = "SELECT data_key from " + DBCommon::GetLogTableName(tableName) + " WHERE data_key NOT IN " +
+        "(SELECT _rowid_ FROM " + tableName + ") AND data_key != -1";
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGW("[RDBExecutor][ClearMisLog] Get stmt failed, %d", errCode);
+        return;
+    }
+    std::vector<int64_t> dataKeys;
+    std::string misDataKeys = "(";
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    while (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int dataKey = sqlite3_column_int64(stmt, 0);
+        dataKeys.push_back(dataKey);
+        misDataKeys += std::to_string(dataKey) + ",";
+        errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    stmt = nullptr;
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGW("[RDBExecutor][ClearMisLog] Step failed. %d", errCode);
+        return;
+    }
+    if (dataKeys.empty()) {
+        return;
+    }
+    misDataKeys.pop_back();
+    misDataKeys += ")";
+    LOGW("[RDBExecutor][ClearMisLog] Mismatched:%s", misDataKeys.c_str());
+    std::string delSql = "DELETE FROM " + DBCommon::GetLogTableName(tableName) + " WHERE data_key IN " + misDataKeys;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, delSql, stmt);
+    if (errCode != E_OK) {
+        LOGW("[RDBExecutor][ClearMisLog] Get del stmt failed, %d", errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGW("[RDBExecutor][ClearMisLog] Step del failed, %d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
 } // namespace DistributedDB
 #endif
