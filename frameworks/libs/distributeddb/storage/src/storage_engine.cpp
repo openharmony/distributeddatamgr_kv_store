@@ -226,9 +226,16 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
             uint32_t maxReadHandleNum = isExternal ? 1 : engineAttr_.maxReadNum;
             bool result = readCondition_.wait_for(lock, std::chrono::seconds(waitTime),
                 [this, &perm, &readUsingList, &readIdleList, &maxReadHandleNum, &pendingCount]() {
-                    return (perm_ == OperatePerm::NORMAL_PERM || perm_ == perm) &&
-                         ((readIdleList.size() + readUsingList.size() + pendingCount < maxReadHandleNum) ||
-                         operateAbort_);
+                    auto pending = static_cast<size_t>(pendingCount.load());
+                    bool isHandleLessMax;
+                    if (readIdleList.size() > pending) {
+                        // readIdleList.size() + readUsingList.size() - 1 should not greater than maxReadHandleNum
+                        // -1 because handle will use from idle list
+                        isHandleLessMax = readIdleList.size() + readUsingList.size() < maxReadHandleNum + 1;
+                    } else {
+                        isHandleLessMax = pending + readUsingList.size() < maxReadHandleNum;
+                    }
+                    return (perm_ == OperatePerm::NORMAL_PERM || perm_ == perm) && (isHandleLessMax || operateAbort_);
                 });
             if (operateAbort_) {
                 LOGI("Abort find read executor and busy for operate!");
