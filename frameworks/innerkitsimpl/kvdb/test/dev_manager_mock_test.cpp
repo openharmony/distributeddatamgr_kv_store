@@ -47,8 +47,6 @@ void DevManagerMockTest::TearDown(void) { }
  * @tc.name: GetUnEncryptedUuid
  * @tc.desc: test GetUnEncryptedUuid get local device info fail
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: SQL
  */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
 {
@@ -61,8 +59,6 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid001, TestSize.Level1)
  * @tc.name: GetUnEncryptedUuid
  * @tc.desc: test GetUnEncryptedUuid networkid empty
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: SQL
  */
 HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
 {
@@ -75,8 +71,6 @@ HWTEST_F(DevManagerMockTest, GetUnEncryptedUuid002, TestSize.Level1)
  * @tc.name: GetLocalDevice
  * @tc.desc: test GetLocalDevice get local device info fail
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: SQL
  */
 HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
 {
@@ -89,8 +83,6 @@ HWTEST_F(DevManagerMockTest, GetLocalDevice, TestSize.Level1)
  * @tc.name: GetRemoteDevices001
  * @tc.desc: test GetRemoteDevices get trusted device fail
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: SQL
  */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices001, TestSize.Level1)
 {
@@ -103,8 +95,6 @@ HWTEST_F(DevManagerMockTest, GetRemoteDevices001, TestSize.Level1)
  * @tc.name: GetRemoteDevices002
  * @tc.desc: test GetRemoteDevices get trusted device no remote device
  * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suoqilong
  */
 HWTEST_F(DevManagerMockTest, GetRemoteDevices002, TestSize.Level1)
 {
