@@ -73,6 +73,10 @@ protected:
 
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
 
+    virtual int TryToOpenMainDatabase(bool isWrite, sqlite3 *&db, OpenDbProperties &option);
+
+    int GetCacheDbHandle(sqlite3 *&db, OpenDbProperties &option);
+
     ExecutorState executorState_;
 
 private:
@@ -101,8 +105,6 @@ private:
         std::set<std::string> &removeDevices, bool &isNeedHash) const;
 
     // For db.
-    int TryToOpenMainDatabase(bool isWrite, sqlite3 *&db, OpenDbProperties &option);
-    int GetCacheDbHandle(sqlite3 *&db, OpenDbProperties &option);
     int GetDbHandle(bool isWrite, sqlite3 *&dbHandle, OpenDbProperties &option);
     int AttachMetaDatabase(sqlite3 *dbHandle, const OpenDbProperties &option) const;
     int AttachMainDbAndCacheDb(SQLiteSingleVerStorageExecutor *handle, EngineState stateBeforeMigrate);
