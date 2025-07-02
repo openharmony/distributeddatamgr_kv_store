@@ -286,7 +286,7 @@ StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isEx
     usingList.push_back(item);
     idleList.remove(item);
     if (!isEnhance_) {
-        LOGD("Get executor[%d] from [%.3s]", false, hashIdentifier_.c_str());
+        LOGD("Get executor[0] from [%.3s]", hashIdentifier_.c_str());
     }
     errCode = E_OK;
     return item;
