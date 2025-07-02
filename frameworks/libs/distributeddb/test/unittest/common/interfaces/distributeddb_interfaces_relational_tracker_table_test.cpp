@@ -1819,6 +1819,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestS
     condition.readOnly = true;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
+
+    /**
+     * @tc.steps:step3. ExecuteSql again
+     * @tc.expected: step3. Return OK.
+     */
+    records.clear();
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    EXPECT_EQ(records.size(), num);
     CloseStore();
 }
 

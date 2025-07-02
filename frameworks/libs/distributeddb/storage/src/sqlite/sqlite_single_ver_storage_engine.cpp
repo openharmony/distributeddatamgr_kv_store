@@ -569,7 +569,7 @@ StorageExecutor *SQLiteSingleVerStorageEngine::NewSQLiteStorageExecutor(sqlite3 
     return executor;
 }
 
-int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&db)
+int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&db, OpenDbProperties &option)
 {
     // Only could get the main database handle in the uninitialized and the main status.
     if (GetEngineState() != EngineState::INVALID && GetEngineState() != EngineState::MAINDB) {
@@ -577,17 +577,18 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
         return -E_EKEYREVOKED;
     }
 
-    if (!option_.isMemDb) {
-        option_.uri = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
+    if (!option.isMemDb) {
+        option.uri = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
             DBConstant::DB_EXTENSION;
+        SetUri(option.uri);
     }
 
-    OpenDbProperties optionTemp = option_;
     if (!isWrite) {
-        optionTemp.createIfNecessary = false;
+        option.createIfNecessary = false;
+        SetCreateIfNecessary(option.createIfNecessary);
     }
 
-    int errCode = SQLiteUtils::OpenDatabase(optionTemp, db);
+    int errCode = SQLiteUtils::OpenDatabase(option, db);
     if (errCode != E_OK) {
         if (errno == EKEYREVOKED) {
             LOGI("Failed to open the main database for key revoked[%d]", errCode);
@@ -600,7 +601,7 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
     // Set the engine state to main status for that the main database is valid.
     SetEngineState(EngineState::MAINDB);
 
-    if (OS::CheckPathExistence(GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
+    if (OS::CheckPathExistence(GetDbDir(option.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
         DBConstant::DB_EXTENSION)) {
         // In status cacheDb crash
         errCode = AttachMainDbAndCacheDb(db, EngineState::MAINDB);
@@ -616,15 +617,16 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
     return errCode;
 }
 
-int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption &secOpt, sqlite3 *&dbHandle)
+int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, sqlite3 *&dbHandle, OpenDbProperties &option)
 {
-    int errCode = TryToOpenMainDatabase(isWrite, dbHandle);
-    LOGD("Finish to open the main database, write[%d], label[%d], flag[%d], id[%.6s], errCode[%d]",  isWrite,
+    int errCode = TryToOpenMainDatabase(isWrite, dbHandle, option);
+    const auto &secOpt = option.securityOpt;
+    LOGD("Finish to open the main database, write[%d], label[%d], flag[%d], id[%.6s], errCode[%d]", isWrite,
         secOpt.securityLabel, secOpt.securityFlag, hashIdentifier_.c_str(), errCode);
     if (!(ParamCheckUtils::IsS3SECEOpt(secOpt) && errCode == -E_EKEYREVOKED)) {
         return errCode;
     }
-    std::string cacheDbPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
+    std::string cacheDbPath = GetDbDir(option.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
         DBConstant::DB_EXTENSION;
     if (!isWrite || GetEngineState() != EngineState::INVALID ||
         OS::CheckPathExistence(cacheDbPath)) {
@@ -633,7 +635,7 @@ int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption
         return -E_EKEYREVOKED;
     }
 
-    errCode = GetCacheDbHandle(dbHandle);
+    errCode = GetCacheDbHandle(dbHandle, option);
     if (errCode != E_OK) {
         LOGE("singleVerStorageEngine::GetDbHandle get cache handle fail! errCode = [%d]", errCode);
         return errCode;
@@ -671,25 +673,23 @@ const std::string CREATE_CACHE_SYNC_TABLE_SQL =
 
 // Warning: Use error passwd create cache database can not check, it will create error passwd cache db,
 // And make migrate data failed! This cache db will not be open correctly.
-int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
+int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db, OpenDbProperties &option)
 {
-    option_.uri = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
+    option.uri = GetDbDir(option.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
         DBConstant::DB_EXTENSION;
+    SetUri(option.uri);
     // creatTable
-    option_.sqls = {
-        CacheDbSqls::CREATE_CACHE_LOCAL_TABLE_SQL,
-        CacheDbSqls::CREATE_CACHE_SYNC_TABLE_SQL
-    };
+    option.sqls = {CacheDbSqls::CREATE_CACHE_LOCAL_TABLE_SQL, CacheDbSqls::CREATE_CACHE_SYNC_TABLE_SQL};
+    SetSQL(option.sqls);
 
-    if (!option_.createIfNecessary) {
-        std::string mainDbPtah = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
+    if (!option.createIfNecessary) {
+        std::string mainDbPath = GetDbDir(option.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
             DBConstant::DB_EXTENSION;
-        if (!OS::CheckPathExistence(mainDbPtah)) { // Whether to create a cacheDb is based on whether the mainDb exists
+        if (!OS::CheckPathExistence(mainDbPath)) { // Whether to create a cacheDb is based on whether the mainDb exists
             return -E_INVALID_DB;
         }
     }
 
-    OpenDbProperties option = option_; // copy for no change it
     option.createIfNecessary = true;
     int errCode = SQLiteUtils::OpenDatabase(option, db);
     if (errCode != E_OK) {
@@ -727,7 +727,8 @@ void SQLiteSingleVerStorageEngine::ClearCorruptedFlag()
     isCorrupted_ = false;
 }
 
-int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt)
+int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt,
+    OpenDbProperties &option)
 {
     // Assume that create the write executor firstly and the write one we will not be released.
     // If the write one would be released in the future, should take care the pass through.
@@ -735,12 +736,12 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption
         return E_OK;
     }
 
-    if (option_.isMemDb) {
+    if (option.isMemDb) {
         return E_OK;
     }
 
     // check sqlite open ok
-    int errCode = CheckStoreStatus(option_);
+    int errCode = CheckStoreStatus(option);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -755,8 +756,9 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption
 
     // Judge whether need update the security option of the engine.
     // Should update the security in the import or rekey scene(inner) or exist is not set.
-    if (IsUseExistedSecOption(existedSecOpt, option_.securityOpt)) {
-        option_.securityOpt = existedSecOpt;
+    if (IsUseExistedSecOption(existedSecOpt, option.securityOpt)) {
+        option.securityOpt = existedSecOpt;
+        SetSecurityOption(existedSecOpt);
     } else {
         isNeedUpdateSecOpt_ = true;
     }
@@ -767,7 +769,7 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption
     }
 
     if (!isUpdated_) {
-        errCode = SQLiteSingleVerDatabaseUpgrader::TransferDatabasePath(option_.subdir, option_);
+        errCode = SQLiteSingleVerDatabaseUpgrader::TransferDatabasePath(option.subdir, option);
         if (errCode != E_OK) {
             LOGE("[PreCreateExecutor] Transfer Db file path failed[%d].", errCode);
             return errCode;
@@ -778,17 +780,18 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite, SecurityOption
 }
 
 int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption existedSecOpt, bool isWrite,
-    bool isDetachMeta)
+    bool isDetachMeta, OpenDbProperties &option)
 {
-    if (option_.isMemDb || !isWrite) {
+    if (option.isMemDb || !isWrite) {
         return E_OK;
     }
 
-    int errCode = SQLiteSingleVerDatabaseUpgrader::SetSecOption(option_.subdir, option_.securityOpt, existedSecOpt,
+    int errCode = SQLiteSingleVerDatabaseUpgrader::SetSecOption(option.subdir, option.securityOpt, existedSecOpt,
         isNeedUpdateSecOpt_);
     if (errCode != E_OK) {
         if (errCode == -E_NOT_SUPPORT) {
-            option_.securityOpt = SecurityOption();
+            option.securityOpt = SecurityOption();
+            SetSecurityOption(option.securityOpt);
             errCode = E_OK;
         }
         LOGE("SetSecOption failed:%d", errCode);
@@ -797,8 +800,8 @@ int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption 
 
     // after setting secOption, the database file operation ends
     // database create completed, delete the token
-    if (OS::CheckPathExistence(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) &&
-        OS::RemoveFile(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) != E_OK) {
+    if (OS::CheckPathExistence(option.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) &&
+        OS::RemoveFile(option.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) != E_OK) {
         LOGE("Finish to create the complete database, but delete token fail! errCode = [E_SYSTEM_API_FAIL]");
         return -E_SYSTEM_API_FAIL;
     }
@@ -821,13 +824,13 @@ int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption 
 }
 
 int SQLiteSingleVerStorageEngine::TryAttachMetaDb(const SecurityOption &existedSecOpt, sqlite3 *&dbHandle,
-    bool &isAttachMeta, bool &isNeedDetachMeta)
+    bool &isAttachMeta, bool &isNeedDetachMeta, OpenDbProperties &option)
 {
     bool isCurrentSESECE = ParamCheckUtils::IsS3SECEOpt(existedSecOpt);
-    bool isOpenSESECE = ParamCheckUtils::IsS3SECEOpt(option_.securityOpt);
+    bool isOpenSESECE = ParamCheckUtils::IsS3SECEOpt(option.securityOpt);
     // attach or not depend on its true secOpt, but it's not permit while option_.secOpt different from true secOpt
-    if ((!option_.isMemDb) && (isOpenSESECE || (isNeedUpdateSecOpt_ && isCurrentSESECE))) {
-        int errCode = AttachMetaDatabase(dbHandle, option_);
+    if ((!option.isMemDb) && (isOpenSESECE || (isNeedUpdateSecOpt_ && isCurrentSESECE))) {
+        int errCode = AttachMetaDatabase(dbHandle, option);
         if (errCode != E_OK) {
             (void)sqlite3_close_v2(dbHandle);
             dbHandle = nullptr;
@@ -842,33 +845,34 @@ int SQLiteSingleVerStorageEngine::TryAttachMetaDb(const SecurityOption &existedS
 int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)
 {
     SecurityOption existedSecOpt;
-    int errCode = PreCreateExecutor(isWrite, existedSecOpt);
+    auto option = GetOption();
+    int errCode = PreCreateExecutor(isWrite, existedSecOpt, option);
     if (errCode != E_OK) {
         return errCode;
     }
 
     sqlite3 *dbHandle = nullptr;
-    errCode = GetDbHandle(isWrite, option_.securityOpt, dbHandle);
+    errCode = GetDbHandle(isWrite, dbHandle, option);
     if (errCode != E_OK) {
         return errCode;
     }
 
     bool isAttachMeta = false;
     bool isDetachMeta = false;
-    errCode = TryAttachMetaDb(existedSecOpt, dbHandle, isAttachMeta, isDetachMeta);
+    errCode = TryAttachMetaDb(existedSecOpt, dbHandle, isAttachMeta, isDetachMeta, option);
     if (errCode != E_OK) {
         return errCode;
     }
 
-    RegisterFunctionIfNeed(dbHandle);
-    errCode = Upgrade(dbHandle);
+    RegisterFunctionIfNeed(dbHandle, option);
+    errCode = UpgradeInner(dbHandle, option);
     if (errCode != E_OK) {
         (void)sqlite3_close_v2(dbHandle);
         dbHandle = nullptr;
         return errCode;
     }
 
-    errCode = EndCreateExecutor(dbHandle, existedSecOpt, isWrite, isDetachMeta);
+    errCode = EndCreateExecutor(dbHandle, existedSecOpt, isWrite, isDetachMeta, option);
     if (errCode != E_OK) {
         LOGE("After create executor, set security option incomplete!");
         (void)sqlite3_close_v2(dbHandle);
@@ -876,7 +880,7 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
         return errCode;
     }
 
-    handle = NewSQLiteStorageExecutor(dbHandle, isWrite, option_.isMemDb);
+    handle = NewSQLiteStorageExecutor(dbHandle, isWrite, option.isMemDb);
     if (handle == nullptr) {
         LOGE("New SQLiteStorageExecutor[%d] for the pool failed.", isWrite);
         (void)sqlite3_close_v2(dbHandle);
@@ -890,30 +894,30 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
     return E_OK;
 }
 
-int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
+int SQLiteSingleVerStorageEngine::UpgradeInner(sqlite3 *db, const OpenDbProperties &option)
 {
     if (isUpdated_ || GetEngineState() == EngineState::CACHEDB) {
         return E_OK;
     }
 
     std::unique_ptr<SQLiteSingleVerDatabaseUpgrader> upgrader;
-    LOGD("[SqlSingleEngine][Upgrade] NewSchemaStrSize=%zu", option_.schema.size());
-    if (option_.schema.empty()) {
-        upgrader = std::make_unique<SQLiteSingleVerDatabaseUpgrader>(db, option_.securityOpt, option_.isMemDb);
+    LOGD("[SqlSingleEngine][Upgrade] NewSchemaStrSize=%zu", option.schema.size());
+    if (option.schema.empty()) {
+        upgrader = std::make_unique<SQLiteSingleVerDatabaseUpgrader>(db, option.securityOpt, option.isMemDb);
     } else {
         SchemaObject schema;
-        int errCode = schema.ParseFromSchemaString(option_.schema);
+        int errCode = schema.ParseFromSchemaString(option.schema);
         if (errCode != E_OK) {
             LOGE("Upgrader failed while parsing the origin schema:%d", errCode);
             return errCode;
         }
         upgrader = std::make_unique<SQLiteSingleVerSchemaDatabaseUpgrader>(db, schema,
-            option_.securityOpt, option_.isMemDb);
+            option.securityOpt, option.isMemDb);
     }
 
-    std::string mainDbDir = GetDbDir(option_.subdir, DbType::MAIN);
+    std::string mainDbDir = GetDbDir(option.subdir, DbType::MAIN);
     std::string mainDbFilePath = mainDbDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
-    SecurityOption secOpt = option_.securityOpt;
+    SecurityOption secOpt = option.securityOpt;
     int errCode = E_OK;
     if (isNeedUpdateSecOpt_) {
         errCode = GetPathSecurityOption(mainDbFilePath, secOpt);
@@ -926,8 +930,8 @@ int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
         }
     }
 
-    upgrader->SetMetaUpgrade(secOpt, option_.securityOpt, option_.subdir);
-    upgrader->SetSubdir(option_.subdir);
+    upgrader->SetMetaUpgrade(secOpt, option.securityOpt, option.subdir);
+    upgrader->SetSubdir(option.subdir);
     errCode = upgrader->Upgrade();
     if (errCode != E_OK) {
         LOGE("Single ver database upgrade failed:%d", errCode);
@@ -943,11 +947,11 @@ int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
 
 // Attention: This function should be called before "Upgrade".
 // Attention: This function should be called for each executor on the sqlite3 handle that the executor binds to.
-void SQLiteSingleVerStorageEngine::RegisterFunctionIfNeed(sqlite3 *dbHandle) const
+void SQLiteSingleVerStorageEngine::RegisterFunctionIfNeed(sqlite3 *dbHandle, const OpenDbProperties &option) const
 {
     // This function should accept a sqlite3 handle with no perception of database classification. That is, if it is
     // not a newly created database, the meta-Table should exist and can be accessed.
-    std::string schemaStr = option_.schema;
+    std::string schemaStr = option.schema;
     if (schemaStr.empty()) {
         // If schema from GetKvStore::Option is empty, we have to try to load it from database. ReadOnly mode if exist;
         int errCode = SQLiteUtils::GetSchema(dbHandle, schemaStr);

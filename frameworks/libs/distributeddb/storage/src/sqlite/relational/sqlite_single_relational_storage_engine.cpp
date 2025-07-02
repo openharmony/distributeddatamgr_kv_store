@@ -92,7 +92,7 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
 int SQLiteSingleRelationalStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)
 {
     sqlite3 *db = nullptr;
-    int errCode = SQLiteUtils::OpenDatabase(option_, db, false);
+    int errCode = SQLiteUtils::OpenDatabase(GetOption(), db, false);
     if (errCode != E_OK) {
         return errCode;
     }

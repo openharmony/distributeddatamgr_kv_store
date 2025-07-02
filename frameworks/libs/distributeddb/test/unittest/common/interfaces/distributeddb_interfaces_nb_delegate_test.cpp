@@ -381,7 +381,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CombineTest002, TestSize.Level1)
     g_mgr.GetKvStore("distributed_nb_delegate_test_rd", option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
-    std::string keyStr("acd");
+    std::string keyStr("key");
     Key key(keyStr.begin(), keyStr.end());
     std::string valueStr("acd");
     Value value(valueStr.begin(), valueStr.end());

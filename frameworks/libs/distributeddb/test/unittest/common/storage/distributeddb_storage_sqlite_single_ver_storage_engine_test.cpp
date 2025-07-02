@@ -17,7 +17,10 @@
 
 #include "db_common.h"
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
+#include "process_system_api_adapter_impl.h"
+#include "single_ver_utils.h"
 #include "storage_engine_manager.h"
+#include "virtual_sqlite_storage_engine.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -50,6 +53,51 @@ namespace {
         storageEngine =
             static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
         EXPECT_EQ(errCode, E_OK);
+    }
+
+    void PrepareEnv()
+    {
+        sqlite3 *db;
+        ASSERT_TRUE(sqlite3_open_v2((g_testDir + g_databaseName).c_str(),
+            &db, SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+        ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, ADD_SYNC) == E_OK);
+        ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, INSERT_SQL) == E_OK);
+        sqlite3_close_v2(db);
+    }
+
+    OpenDbProperties GetProperties(bool isMem, const SecurityOption &option, bool createIfNecessary)
+    {
+        OpenDbProperties properties;
+        properties.uri = DistributedDB::GetDatabasePath(g_property);
+        properties.createIfNecessary = createIfNecessary;
+        properties.subdir = DistributedDB::GetSubDirPath(g_property);
+        properties.isMemDb = isMem;
+        properties.securityOpt = option;
+        return properties;
+    }
+
+    int InitVirtualEngine(const std::shared_ptr<DistributedDB::VirtualSingleVerStorageEngine> &engine,
+        bool isMem, const SecurityOption &option, bool createIfNecessary, const StorageEngineAttr &poolSize)
+    {
+        auto properties = GetProperties(isMem, option, createIfNecessary);
+        return engine->InitSQLiteStorageEngine(poolSize, properties, "");
+    }
+
+    std::pair<int, std::shared_ptr<DistributedDB::VirtualSingleVerStorageEngine>> GetVirtualEngineWithSecurity(
+        uint32_t maxRead, bool isMem, const SecurityOption &option, bool createIfNecessary)
+    {
+        std::pair<int, std::shared_ptr<DistributedDB::VirtualSingleVerStorageEngine>> res;
+        auto &[errCode, engine] = res;
+        engine = std::make_shared<DistributedDB::VirtualSingleVerStorageEngine>();
+        StorageEngineAttr poolSize = {1, 1, 1, maxRead}; // at most 1 write.
+        errCode = InitVirtualEngine(engine, isMem, option, createIfNecessary, poolSize);
+        return res;
+    }
+
+    std::pair<int, std::shared_ptr<DistributedDB::VirtualSingleVerStorageEngine>> GetVirtualEngine(uint32_t maxRead = 1,
+        bool isMem = false, bool createIfNecessary = false)
+    {
+        return GetVirtualEngineWithSecurity(maxRead, isMem, {}, createIfNecessary);
     }
 }
 
@@ -106,6 +154,7 @@ void DistributedDBStorageSQLiteSingleVerStorageEngineTest::TearDown(void)
         g_connection = nullptr;
     }
     g_store = nullptr;
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
 /**
@@ -220,4 +269,328 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
     delete invalidConnection;
     invalidConnection = nullptr;
     ASSERT_EQ(invalidConnection, nullptr);
+}
+
+/**
+  * @tc.name: ExecutorTest001
+  * @tc.desc: Test find executor after disable engine
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest001, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    SQLiteSingleVerStorageEngine *storageEngine = nullptr;
+    GetStorageEngine(storageEngine);
+    ASSERT_NE(storageEngine, nullptr);
+    EXPECT_EQ(storageEngine->TryToDisable(false), E_OK);
+    int errCode = E_OK;
+    EXPECT_EQ(storageEngine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode), nullptr);
+    storageEngine->Release();
+    storageEngine = nullptr;
+}
+
+/**
+  * @tc.name: ExecutorTest002
+  * @tc.desc: Test find executor success
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest002, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    SQLiteSingleVerStorageEngine *storageEngine = nullptr;
+    GetStorageEngine(storageEngine);
+    int errCode = E_OK;
+    auto executor1 = storageEngine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_NE(executor1, nullptr);
+    auto executor2 = storageEngine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_NE(executor2, nullptr);
+    storageEngine->Recycle(executor1);
+    storageEngine->Recycle(executor2);
+    EXPECT_EQ(storageEngine->FindExecutor(false, OperatePerm::DISABLE_PERM, errCode), nullptr);
+    storageEngine->Release();
+    storageEngine = nullptr;
+}
+
+/**
+  * @tc.name: ExecutorTest003
+  * @tc.desc: Test find executor abnormal
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest003, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    auto [errCode, engine] = GetVirtualEngine();
+    ASSERT_EQ(errCode, E_OK);
+    auto executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_NE(executor1, nullptr);
+    auto executor2 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_EQ(executor2, nullptr);
+    engine->Recycle(executor1);
+    engine->Release();
+}
+
+/**
+  * @tc.name: ExecutorTest004
+  * @tc.desc: Test find executor abnormal
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest004, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    auto [errCode, engine] = GetVirtualEngine(3); // max read is 3
+    ASSERT_EQ(errCode, E_OK);
+    auto mockFunc = [](bool, StorageExecutor *&handle) {
+        handle = nullptr;
+        return -E_EKEYREVOKED;
+    };
+    auto executor0 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_NE(executor0, nullptr);
+    /**
+     * @tc.steps:step1. create new handle with mock func
+     * @tc.expected: step1. create failed.
+     */
+    engine->ForkNewExecutorMethod(mockFunc);
+    auto executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_EQ(executor1, nullptr);
+    EXPECT_EQ(errCode, -E_BUSY);
+    /**
+     * @tc.steps:step2. create new handle with normal func
+     * @tc.expected: step2. create ok.
+     */
+    engine->ForkNewExecutorMethod(nullptr);
+    executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_NE(executor1, nullptr);
+    /**
+     * @tc.steps:step3. create new handle with mock func
+     * @tc.expected: step3. create failed.
+     */
+    engine->ForkNewExecutorMethod([](bool, StorageExecutor *&handle) {
+        handle = nullptr;
+        return -E_BUSY;
+    });
+    auto executor2 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_EQ(executor2, nullptr);
+    engine->Recycle(executor1);
+    engine->Recycle(executor0);
+    engine->Release();
+}
+
+/**
+  * @tc.name: ExecutorTest005
+  * @tc.desc: Test find executor abnormal
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest005, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    auto [errCode, engine] = GetVirtualEngine(2); // max read is 2
+    ASSERT_EQ(errCode, E_OK);
+    engine->SetEnhance(true);
+    /**
+     * @tc.steps:step1. create new handle without mock func
+     * @tc.expected: step1. create ok.
+     */
+    auto executor0 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_NE(executor0, nullptr);
+    /**
+     * @tc.steps:step2. create new handle with mock func, mock func will release executor
+     * @tc.expected: step2. create fail.
+     */
+    engine->ForkNewExecutorMethod([executor = executor0, enginePtr = engine](bool, StorageExecutor *&handle) {
+        StorageExecutor *executorPtr = executor;
+        enginePtr->Recycle(executorPtr);
+        handle = nullptr;
+        return -E_EKEYREVOKED;
+    });
+    auto executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 0);
+    EXPECT_EQ(executor1, nullptr);
+    engine->Release();
+    engine->ForkNewExecutorMethod(nullptr);
+}
+
+/**
+  * @tc.name: ExecutorTest006
+  * @tc.desc: Test find executor abnormal when get executor timeout and operate abort
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest006, TestSize.Level4)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    auto [errCode, engine] = GetVirtualEngine(1); // max read is 1
+    ASSERT_EQ(errCode, E_OK);
+    /**
+     * @tc.steps:step1. create new handle
+     * @tc.expected: step1. create ok.
+     */
+    auto executor0 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_NE(executor0, nullptr);
+    /**
+     * @tc.steps:step2. create new handle again
+     * @tc.expected: step2. create failed by timeout.
+     */
+    auto executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 1); // max wait 1s
+    EXPECT_EQ(executor1, nullptr);
+    /**
+     * @tc.steps:step3. create new handle again and async mark operate abort
+     * @tc.expected: step3. create failed by operate abort.
+     */
+    std::thread t([enginePtr = engine]() {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        enginePtr->Abort();
+    });
+    executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode, false, 5); // max wait 5s
+    EXPECT_EQ(executor1, nullptr);
+    t.join();
+    engine->Recycle(executor0);
+    engine->Release();
+}
+
+/**
+  * @tc.name: ExecutorTest007
+  * @tc.desc: Test diff executor pool will not recycle others pool's executor
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest007, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    auto [errCode, engine1] = GetVirtualEngine(1); // max read is 1
+    ASSERT_EQ(errCode, E_OK);
+    auto [ret, engine2] = GetVirtualEngine(1); // max read is 1
+    ASSERT_EQ(ret, E_OK);
+    /**
+     * @tc.steps:step1. create new handle
+     * @tc.expected: step1. create ok.
+     */
+    auto executor1 = engine1->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_NE(executor1, nullptr);
+    /**
+     * @tc.steps:step2. create new handle
+     * @tc.expected: step2. create ok.
+     */
+    auto tmp = executor1;
+    engine2->Recycle(tmp);
+    engine1->Recycle(executor1);
+    EXPECT_EQ(executor1, nullptr);
+    engine1->Release();
+    engine2->Release();
+}
+
+/**
+  * @tc.name: ExecutorTest008
+  * @tc.desc: Test mem executor pool
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest008, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    auto [errCode, engine1] = GetVirtualEngine(1, true); // max read is 1
+    /**
+     * @tc.steps:step1. create new handle
+     * @tc.expected: step1. create ok.
+     */
+    auto executor1 = engine1->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_NE(executor1, nullptr);
+    engine1->Recycle(executor1);
+    engine1->CallSetSQL({});
+    engine1->Release();
+}
+
+/**
+  * @tc.name: ExecutorTest009
+  * @tc.desc: Test cache executor pool
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest009, TestSize.Level0)
+{
+    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(systemApi);
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    SecurityOption option = {S3, SECE};
+    auto [errCode, engine] = GetVirtualEngineWithSecurity(2, false, option, true); // max read is 2
+    /**
+     * @tc.steps:step1. create new handle
+     * @tc.expected: step1. create ok.
+     */
+    auto executor1 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_NE(executor1, nullptr);
+    /**
+     * @tc.steps:step2. create new handle with fork open main failed
+     * @tc.expected: step2. create failed because of read handle was not allowed.
+     */
+    engine->ForkOpenMainDatabaseMethod([executor1, enginePtr = engine](bool, sqlite3 *&db, OpenDbProperties &) {
+        StorageExecutor *executor = executor1;
+        enginePtr->Recycle(executor);
+        db = nullptr;
+        return -E_EKEYREVOKED;
+    });
+    auto executor2 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode);
+    EXPECT_EQ(executor2, nullptr);
+    engine->ForkOpenMainDatabaseMethod(nullptr);
+    engine->Recycle(executor2);
+    engine->Release();
+}
+
+/**
+  * @tc.name: ExecutorTest010
+  * @tc.desc: Test cache executor pool
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest010, TestSize.Level0)
+{
+    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(systemApi);
+    ASSERT_NO_FATAL_FAILURE(PrepareEnv());
+    CopyCacheDb();
+    SecurityOption option = {S3, SECE};
+    auto [errCode, engine] = GetVirtualEngineWithSecurity(2, false, option, true); // max read is 2
+    ASSERT_EQ(errCode, E_OK);
+    /**
+     * @tc.steps:step1. create new handle with create if necessary
+     * @tc.expected: step1. create ok.
+     */
+    auto properties = GetProperties(false, option, true);
+    auto [ret, handle] = engine->GetCacheHandle(properties);
+    EXPECT_EQ(ret, E_OK);
+    if (handle != nullptr) {
+        EXPECT_EQ(sqlite3_close_v2(handle), SQLITE_OK);
+    }
+    /**
+     * @tc.steps:step2. create new handle without create if necessary
+     * @tc.expected: step2. create ok.
+     */
+    properties = GetProperties(false, option, false);
+    std::tie(ret, handle) = engine->GetCacheHandle(properties);
+    EXPECT_EQ(ret, E_OK);
+    if (handle != nullptr) {
+        EXPECT_EQ(sqlite3_close_v2(handle), SQLITE_OK);
+    }
+    /**
+     * @tc.steps:step3. create new handle without create if necessary and dir was removed
+     * @tc.expected: step3. create failed.
+     */
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+    properties.createIfNecessary = false;
+    std::tie(ret, handle) = engine->GetCacheHandle(properties);
+    EXPECT_EQ(ret, -E_INVALID_DB);
+    engine->Release();
 }

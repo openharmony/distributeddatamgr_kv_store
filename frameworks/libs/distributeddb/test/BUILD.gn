@@ -139,6 +139,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/system_time.cpp",
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
+    "unittest/common/storage/virtual_sqlite_storage_engine.cpp",
     "unittest/common/syncer/cloud/cloud_db_data_utils.cpp",
     "unittest/common/syncer/cloud/cloud_db_sync_utils_client_test.cpp",
     "unittest/common/syncer/cloud/cloud_db_sync_utils_test.cpp",

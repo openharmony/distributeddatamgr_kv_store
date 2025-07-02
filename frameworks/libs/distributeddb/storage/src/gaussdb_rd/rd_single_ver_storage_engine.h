@@ -46,9 +46,7 @@ private:
 
     int CreateNewDirsAndSetSecOpt() const;
 
-    int TryToOpenMainDatabase(bool isWrite, GRD_DB *&db);
-
-    int GetDbHandle(bool isWrite, const SecurityOption &secOpt, GRD_DB *&dbHandle);
+    int TryToOpenMainDatabase(bool isWrite, GRD_DB *&db, OpenDbProperties &optionTemp);
 
     int OpenGrdDb(const OpenDbProperties &option, GRD_DB *&db);
 

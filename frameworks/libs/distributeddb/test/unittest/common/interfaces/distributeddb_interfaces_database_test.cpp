@@ -1526,3 +1526,57 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, KvObserver001, TestSize.Level0)
     observer.StoreObserver::OnChange(Origin::ORIGIN_ALL, "", std::move(simpleData1));
     EXPECT_EQ(observer.StoreObserver::GetCallbackDetailsType(), static_cast<uint32_t>(CallbackDetailsType::DEFAULT));
 }
+
+void AsyncGet001CheckRes(int count, const Key &key)
+{
+    for (int i = 0; i < count; ++i) {
+        std::vector<Entry> entries;
+        EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(key, entries), OK);
+        for (const auto &item : entries) {
+            EXPECT_EQ(VALUE_1, item.value);
+        }
+    }
+}
+
+/**
+ * @tc.name: AsyncGet001
+ * @tc.desc: Test get data by diff thread at the same time.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBInterfacesDatabaseTest, AsyncGet001, TestSize.Level4)
+{
+    /**
+     * @tc.steps: step1. Open the kv store with the option that comressionRate is invalid.
+     * @tc.expected: step1. Open kv store successfully. Returns OK.
+     */
+    KvStoreNbDelegate::Option option;
+    const std::string storeId("AsyncGet001");
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps: step2. Get key in diff thead.
+     * @tc.expected: step2. Returns OK.
+     */
+    const Key key = {'k', '1'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(key, VALUE_1), OK);
+    const int count = 1000;
+    std::thread t1([&key]() {
+        AsyncGet001CheckRes(count, key);
+    });
+    std::thread t2([&key]() {
+        AsyncGet001CheckRes(count, key);
+    });
+    std::thread t3([&key]() {
+        AsyncGet001CheckRes(count, key);
+    });
+    t1.join();
+    t2.join();
+    t3.join();
+
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+}

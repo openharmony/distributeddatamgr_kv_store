@@ -94,7 +94,7 @@ public:
 
     int InitAllReadWriteExecutor();
 
-    OpenDbProperties GetOption();
+    OpenDbProperties GetOption() const;
 
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
@@ -107,6 +107,12 @@ protected:
 
     int InitReadWriteExecutors();
 
+    void SetUri(const std::string &uri);
+    void SetSQL(const std::vector<std::string> &sql);
+    void SetSecurityOption(const SecurityOption &option);
+    void SetCreateIfNecessary(bool isCreateIfNecessary);
+
+    mutable std::mutex optionMutex_;
     OpenDbProperties option_;
 
     StorageEngineAttr engineAttr_;
@@ -138,6 +144,8 @@ private:
     StorageExecutor *FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
     StorageExecutor *FindReadExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal = false);
 
+    StorageExecutor *FetchReadStorageExecutor(int &errCode, bool isExternal, bool isNeedCreate);
+
     virtual void ClearCorruptedFlag();
 
     void PrintDbFileMsg(bool isOpen);
@@ -168,6 +176,9 @@ private:
 
     std::mutex idleMutex_;
     std::condition_variable idleCondition_;
+
+    std::atomic<int> readPendingCount_;
+    std::atomic<int> externalReadPendingCount_;
 
     EngineState engineState_;
 };

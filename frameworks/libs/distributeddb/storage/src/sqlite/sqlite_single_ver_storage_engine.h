@@ -69,16 +69,21 @@ public:
 protected:
     virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
 
-    int Upgrade(sqlite3 *db) override;
+    int UpgradeInner(sqlite3 *db, const OpenDbProperties &option);
 
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
+
+    virtual int TryToOpenMainDatabase(bool isWrite, sqlite3 *&db, OpenDbProperties &option);
+
+    int GetCacheDbHandle(sqlite3 *&db, OpenDbProperties &option);
 
     ExecutorState executorState_;
 
 private:
     // For executor.
-    int PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt);
-    int EndCreateExecutor(sqlite3 *db, SecurityOption existedSecOpt, bool isWrite, bool isDetachMeta);
+    int PreCreateExecutor(bool isWrite, SecurityOption &existedSecOpt, OpenDbProperties &option);
+    int EndCreateExecutor(sqlite3 *db, SecurityOption existedSecOpt, bool isWrite, bool isDetachMeta,
+        OpenDbProperties &option);
     int ReInit() override;
     int ReleaseExecutor(SQLiteSingleVerStorageExecutor *&handle);
     int ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime,
@@ -100,15 +105,13 @@ private:
         std::set<std::string> &removeDevices, bool &isNeedHash) const;
 
     // For db.
-    int TryToOpenMainDatabase(bool isWrite, sqlite3 *&db);
-    int GetCacheDbHandle(sqlite3 *&db);
-    int GetDbHandle(bool isWrite, const SecurityOption &secOpt, sqlite3 *&dbHandle);
+    int GetDbHandle(bool isWrite, sqlite3 *&dbHandle, OpenDbProperties &option);
     int AttachMetaDatabase(sqlite3 *dbHandle, const OpenDbProperties &option) const;
     int AttachMainDbAndCacheDb(SQLiteSingleVerStorageExecutor *handle, EngineState stateBeforeMigrate);
     int AttachMainDbAndCacheDb(sqlite3 *dbHandle, EngineState stateBeforeMigrate) const;
-    void RegisterFunctionIfNeed(sqlite3 *dbHandle) const;
+    void RegisterFunctionIfNeed(sqlite3 *dbHandle, const OpenDbProperties &option) const;
     int TryAttachMetaDb(const SecurityOption &existedSecOpt, sqlite3 *&dbHandle, bool &isAttachMeta,
-        bool &isNeedDetachMeta);
+        bool &isNeedDetachMeta, OpenDbProperties &option);
 
     // For secOpt.
     int CreateNewDirsAndSetSecOpt() const;
