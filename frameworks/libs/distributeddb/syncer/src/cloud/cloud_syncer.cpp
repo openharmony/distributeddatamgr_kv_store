@@ -443,7 +443,9 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
             taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
         }
         taskInfo.status = ProcessStatus::FINISHED;
-        currentContext_.notifier->NotifyProcess(taskInfo, {}, true);
+        if (currentContext_.notifier != nullptr) {
+            currentContext_.notifier->NotifyProcess(taskInfo, {}, true);
+        }
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             cloudTaskInfos_[currentContext_.currentTaskId].errCode = E_OK;
