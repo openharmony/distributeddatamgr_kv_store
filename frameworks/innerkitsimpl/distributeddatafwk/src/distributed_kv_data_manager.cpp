@@ -254,11 +254,13 @@ std::pair<Status, SwitchData> DistributedKvDataManager::GetSwitch(const AppId &a
 
 Status DistributedKvDataManager::SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer)
 {
+    KvStoreServiceDeathNotifier::SetAppId(appId);
     return StoreManager::GetInstance().SubscribeSwitchData(appId, observer);
 }
 
 Status DistributedKvDataManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer)
 {
+    KvStoreServiceDeathNotifier::SetAppId(appId);
     return StoreManager::GetInstance().UnsubscribeSwitchData(appId, observer);
 }
 }  // namespace DistributedKv
