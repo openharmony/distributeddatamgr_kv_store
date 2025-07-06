@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Copyright (c) 2022-2025 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,7 +14,7 @@ import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 group("build_module") {
-  deps = []
+  deps = [ ":distributeddata_inner_executor" ]
   if (!use_platform_win && !use_platforn_mac) {
     deps += [
       ":distributeddata_client_sync",
@@ -210,6 +210,23 @@ ohos_static_library("kvdb_inner_lite") {
 
   public_configs = [ ":kvdb_inner_lite_config" ]
   cflags = [ "-Wno-c99-designator" ]
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}
+
+ohos_shared_library("distributeddata_inner_executor") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+  configs = [ ":distributeddatafwk_config" ]
+  public_configs = [ ":distributeddatafwk_public_config" ]
+  cflags = [ "-Wno-c99-designator" ]
+  innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
