@@ -214,6 +214,21 @@ ohos_static_library("kvdb_inner_lite") {
   part_name = "kv_store"
 }
 
+config("distributeddata_common_public_config") {
+  visibility = [ ":*" ]
+
+  include_dirs = [
+    "include",
+    "../../../frameworks/common",
+  ]
+
+  if (use_platform_win || use_platforn_mac) {
+    include_dirs += [
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock",
+    ]
+  }
+}
+
 ohos_shared_library("distributeddata_inner_executor") {
   branch_protector_ret = "pac_ret"
   sanitize = {
@@ -223,10 +238,16 @@ ohos_shared_library("distributeddata_inner_executor") {
     cfi_cross_dso = true
     debug = false
   }
-  configs = [ ":distributeddatafwk_config" ]
-  public_configs = [ ":distributeddatafwk_public_config" ]
+  public_configs = [ ":distributeddata_common_public_config" ]
   cflags = [ "-Wno-c99-designator" ]
   innerapi_tags = [ "platformsdk" ]
+
+  if (use_platform_win) {
+    cflags += [ "-includewin_glibc.h" ]
+  } else if (use_platforn_mac) {
+    cflags += [ "-includemac_glibc.h" ]
+  }
+
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
