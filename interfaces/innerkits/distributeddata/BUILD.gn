@@ -222,14 +222,20 @@ config("distributeddata_common_public_config") {
     "../../../frameworks/common",
   ]
 
-  if (use_platform_win || use_platforn_mac) {
+  if (use_platform_win) {
+    cflags = [ "-includewin_glibc.h" ]
+  } else if (use_platforn_mac || is_ios || is_mac) {
+    cflags = [ "-includemac_glibc.h" ]
+  }
+
+  if (use_platform_win || use_platforn_mac || is_ios || is_mac) {
     include_dirs += [
       "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock",
     ]
   }
 }
 
-ohos_shared_library("distributeddata_inner_executor") {
+ohos_static_library("distributeddata_inner_executor") {
   branch_protector_ret = "pac_ret"
   sanitize = {
     ubsan = true
@@ -240,14 +246,16 @@ ohos_shared_library("distributeddata_inner_executor") {
   }
   public_configs = [ ":distributeddata_common_public_config" ]
   cflags = [ "-Wno-c99-designator" ]
-  innerapi_tags = [ "platformsdk" ]
 
   if (use_platform_win) {
-    cflags += [ "-includewin_glibc.h" ]
-  } else if (use_platforn_mac) {
-    cflags += [ "-includemac_glibc.h" ]
+    sources = [
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/win_glibc.cpp",
+    ]
+  } else if (use_platforn_mac || is_ios || is_mac) {
+    sources = [
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/mac_glibc.cpp",
+    ]
   }
-
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
