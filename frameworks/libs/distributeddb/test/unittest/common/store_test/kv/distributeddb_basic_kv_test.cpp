@@ -56,5 +56,19 @@ HWTEST_F(DistributedDBBasicKVTest, ExampleSync001, TestSize.Level0)
     Value actualValue;
     EXPECT_EQ(store2->Get({'k'}, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
+    /**
+     * @tc.steps: step2. dev2's schemaVersion and softwareVersion both equal to dev1's meta
+     * @tc.expected: step2. version both equal.
+     */
+    auto [errCode, version] = GetRemoteSoftwareVersion(storeInfo1, "dev2", DBConstant::DEFAULT_USER);
+    EXPECT_EQ(errCode, OK);
+    EXPECT_EQ(version, static_cast<uint64_t>(SOFTWARE_VERSION_CURRENT));
+    std::tie(errCode, version) = GetRemoteSchemaVersion(storeInfo1, "dev2", DBConstant::DEFAULT_USER);
+    EXPECT_EQ(errCode, OK);
+    EXPECT_NE(version, 0);
+    uint64_t store2SchemaVersion = 0;
+    std::tie(errCode, store2SchemaVersion) = GetLocalSchemaVersion(storeInfo2);
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(version, store2SchemaVersion);
 }
 } // namespace DistributedDB
