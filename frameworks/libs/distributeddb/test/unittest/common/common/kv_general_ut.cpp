@@ -14,6 +14,8 @@
  */
 
 #include "kv_general_ut.h"
+#include "kv_store_errno.h"
+#include "storage_engine_manager.h"
 #include "virtual_cloud_db.h"
 
 namespace DistributedDB {
@@ -187,5 +189,93 @@ void KVGeneralUt::BlockCloudSync(const StoreInfo &from, const std::string &devic
     syncOption.users.push_back(DistributedDBUnitTest::USER_ID);
     syncOption.devices.push_back("cloud");
     tool_.BlockSync(fromStore, DBStatus::OK, syncOption, expectRet);
+}
+
+std::pair<DBStatus, uint64_t> KVGeneralUt::GetRemoteSoftwareVersion(const StoreInfo &info, const std::string &dev,
+    const std::string &user)
+{
+    uint64_t version = 0;
+    int errCode = QueryMetaValue(info, dev, user,
+        [&version](const std::shared_ptr<Metadata> &metadata, const std::string &device,
+        const std::string &userId) {
+        version = metadata->GetRemoteSoftwareVersion(device, userId);
+        return E_OK;
+    });
+    return {TransferDBErrno(errCode), version};
+}
+
+std::pair<DBStatus, uint64_t> KVGeneralUt::GetRemoteSchemaVersion(const StoreInfo &info, const std::string &dev,
+    const std::string &user)
+{
+    uint64_t version = 0;
+    int errCode = QueryMetaValue(info, dev, user,
+        [&version](const std::shared_ptr<Metadata> &metadata, const std::string &device,
+        const std::string &userId) {
+        version = metadata->GetRemoteSchemaVersion(device, userId);
+        return E_OK;
+    });
+    return {TransferDBErrno(errCode), version};
+}
+
+std::pair<DBStatus, uint64_t> KVGeneralUt::GetLocalSchemaVersion(const DistributedDB::StoreInfo &info)
+{
+    uint64_t version = 0;
+    int errCode = QueryMetaValue(info, "", "",
+        [&version](const std::shared_ptr<Metadata> &metadata, const std::string &device,
+        const std::string &userId) {
+        auto [ret, schemaVersion] = metadata->GetLocalSchemaVersion();
+        version = schemaVersion;
+        return ret;
+    });
+    return {TransferDBErrno(errCode), version};
+}
+
+int KVGeneralUt::QueryMetaValue(const StoreInfo &info, const std::string &dev, const std::string &user,
+    const std::function<int(const std::shared_ptr<Metadata> &, const std::string &, const std::string &)> &queryFunc)
+{
+    int errCode = E_OK;
+    auto properties = GetDBProperties(info);
+    auto store = new(std::nothrow) SQLiteSingleVerNaturalStore;
+    if (store == nullptr) {
+        errCode = -E_INVALID_ARGS;
+        LOGI("[KVGeneralUt] create natural store failed with oom");
+        return errCode;
+    }
+    errCode = store->Open(properties);
+    if (errCode != E_OK) {
+        RefObject::KillAndDecObjRef(store);
+        return errCode;
+    }
+    auto meta = std::make_shared<Metadata>();
+    errCode = meta->Initialize(store);
+    if (errCode != E_OK) {
+        store->Close();
+        RefObject::KillAndDecObjRef(store);
+        return errCode;
+    }
+    if (queryFunc) {
+        errCode = queryFunc(meta, dev, user);
+    }
+    meta = nullptr;
+    store->Close();
+    RefObject::KillAndDecObjRef(store);
+    return errCode;
+}
+
+KvDBProperties KVGeneralUt::GetDBProperties(const StoreInfo &info)
+{
+    KvDBProperties properties;
+    properties.SetStringProp(KvDBProperties::DATA_DIR, GetTestDir());
+    properties.SetStringProp(KvDBProperties::STORE_ID, info.storeId);
+    KvStoreNbDelegate::Option option;
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
+    if (option_.has_value()) {
+        option = option_.value();
+    }
+    auto idDir = DBCommon::TransferStringToHex(DBCommon::GetStoreIdentifier(info, "", option.syncDualTupleMode, false));
+    properties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, idDir);
+    properties.SetStringProp(KvDBProperties::IDENTIFIER_DATA, idDir + "KVGeneralUt");
+    properties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    return properties;
 }
 }

@@ -423,7 +423,7 @@ int AbilitySync::AckRecv(const Message *message, ISyncTaskContext *context)
     }
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
     context->SetRemoteSoftwareVersion(remoteSoftwareVersion);
-    metadata_->SetRemoteSchemaVersion(context->GetDeviceId(), context->GetTargetUserId(), remoteSoftwareVersion);
+    metadata_->SetRemoteSoftwareVersion(context->GetDeviceId(), context->GetTargetUserId(), remoteSoftwareVersion);
     if (remoteSoftwareVersion > SOFTWARE_VERSION_RELEASE_2_0) {
         errCode = AckRecvWithHighVersion(message, context, packet);
     } else {
@@ -1412,6 +1412,6 @@ void AbilitySync::RecordAbilitySyncFinish(uint64_t remoteSchemaVersion, ISyncTas
     if (context.GetRemoteSoftwareVersion() >= SOFTWARE_VERSION_RELEASE_9_0) { // LCOV_EXCL_BR_LINE
         (void)metadata_->SetRemoteSchemaVersion(deviceId_, context.GetTargetUserId(), remoteSchemaVersion);
     }
-    (void)metadata_->SetRemoteSoftwareVersion(deviceId_, context.GetTargetUserId(), remoteSchemaVersion);
+    (void)metadata_->SetRemoteSoftwareVersion(deviceId_, context.GetTargetUserId(), context.GetRemoteSoftwareVersion());
 }
 } // namespace DistributedDB
