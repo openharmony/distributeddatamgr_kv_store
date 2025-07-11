@@ -22,6 +22,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "relational_store_delegate_impl.h"
 #include "relational_store_manager.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -36,6 +37,7 @@ namespace {
     std::string g_storePath;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
+    VirtualCommunicatorAggregator *g_communicatorAggregator = nullptr;
 
     class DistributedDBCloudInterfacesReferenceTest : public testing::Test {
     public:
@@ -60,6 +62,9 @@ namespace {
 
     void DistributedDBCloudInterfacesReferenceTest::SetUp(void)
     {
+        g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
+        ASSERT_TRUE(g_communicatorAggregator != nullptr);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
         sqlite3 *db = RelationalTestUtils::CreateDataBase(g_storePath);
         ASSERT_NE(db, nullptr);
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
@@ -75,6 +80,7 @@ namespace {
         EXPECT_EQ(g_mgr.CloseStore(g_delegate), OK);
         g_delegate = nullptr;
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     }
 
     /**

@@ -240,6 +240,7 @@ public:
 
     int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,
         const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
+
     int GetDownloadingAssetsCount(const TableSchema &tableSchema, int32_t &totalCount);
 
     int GetDownloadingCount(const std::string &tableName, int32_t &count);
@@ -265,6 +266,8 @@ public:
     int UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
 
     void SetTableMode(DistributedTableMode mode);
+
+    int GetFlagIsLocalCount(const std::string &logTableName, int32_t &count);
 
     void ClearLogOfMismatchedData(const std::string &tableName);
 private:
@@ -525,8 +528,6 @@ private:
 
     bool AbortGetDownloadAssetGidIfNeed(const TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
         uint32_t &count);
-
-    int GetFlagIsLocalCount(const std::string &logTableName, int32_t &count);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";

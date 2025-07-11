@@ -84,7 +84,7 @@ void Logger::DeleteInstance()
     if (g_logInstance == nullptr) {
         return;
     }
-    delete g_logInstance;
+    delete g_logInstance.load();
     g_logInstance = nullptr;
     logHandler = nullptr;
 }

@@ -457,12 +457,12 @@ bool GenericKvDBConnection::IsRebuild() const
     return isRebuild_;
 }
 
-int GenericKvDBConnection::OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
+int GenericKvDBConnection::ClearCloudWatermark()
 {
     return -E_NOT_SUPPORT;
 }
 
-int GenericKvDBConnection::ClearCloudWatermark()
+int GenericKvDBConnection::OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
 {
     return -E_NOT_SUPPORT;
 }

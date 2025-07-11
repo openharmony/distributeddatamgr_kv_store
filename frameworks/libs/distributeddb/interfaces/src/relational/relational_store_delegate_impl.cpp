@@ -564,6 +564,7 @@ DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &
     }
     return OK;
 }
+
 #endif
 
 DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)

@@ -248,7 +248,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSing
     table.SetOriginTableName(tableName);
     table.SetSharedTableMark(true);
     table.SetTableSyncType(tableSyncType);
-    table.SetTrackerTable(trackerSchema_.GetTrackerTable(sharedTableName));
+    table.SetTrackerTable(GetTrackerSchema().GetTrackerTable(sharedTableName));
     if (!table.GetTrackerTable().IsEmpty() && tableSyncType == TableSyncType::DEVICE_COOPERATION) { // LCOV_EXCL_BR_LINE
         LOGE("current is trackerTable, not support creating device distributed table.");
         return -E_NOT_SUPPORT;
@@ -450,18 +450,17 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     if (handle == nullptr) {
         return errCode;
     }
+    ResFinalizer finalizer([&handle, this] { this->ReleaseExecutor(handle); });
 
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
-        ReleaseExecutor(handle);
         return errCode;
     }
-    RelationalSchemaObject tracker = trackerSchema_;
+    RelationalSchemaObject tracker = GetTrackerSchema();
     tracker.InsertTrackerSchema(schema);
     int ret = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), tableInfo, isFirstCreate);
     if (ret != E_OK && ret != -E_WITH_INVENTORY_DATA) {
         (void)handle->Rollback();
-        ReleaseExecutor(handle);
         return ret;
     }
     Key key;
@@ -472,7 +471,6 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     if (errCode != E_OK) {
         LOGE("[SetTrackerTable] Save sync type to meta table failed: %d", errCode);
         (void)handle->Rollback();
-        ReleaseExecutor(handle);
         return errCode;
     }
 
@@ -482,23 +480,21 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
     if (errCode != E_OK) {
         (void)handle->Rollback();
-        ReleaseExecutor(handle);
         return errCode;
     }
 
     errCode = handle->Commit();
     if (errCode != E_OK) {
-        ReleaseExecutor(handle);
         return errCode;
     }
 
-    trackerSchema_ = tracker;
-    ReleaseExecutor(handle);
+    SetTrackerSchema(tracker);
     return ret;
 }
 
 void SQLiteSingleRelationalStorageEngine::CacheTrackerSchema(const TrackerSchema &schema)
 {
+    std::lock_guard lock(trackerSchemaMutex_);
     trackerSchema_.InsertTrackerSchema(schema);
     if (!schema.isTrackAction && schema.trackerColNames.empty()) {
         // if isTrackAction be false and trackerColNames is empty, will remove the tracker schema.
@@ -538,7 +534,7 @@ int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
             return errCode;
         }
     }
-    trackerSchema_ = trackerSchema;
+    SetTrackerSchema(trackerSchema);
     ReleaseExecutor(handle);
     return E_OK;
 }
@@ -551,7 +547,7 @@ int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema(const std::string &ta
     if (handle == nullptr) {
         return errCode;
     }
-    RelationalSchemaObject tracker = trackerSchema_;
+    RelationalSchemaObject tracker = GetTrackerSchema();
     errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
     if (errCode != E_OK || !isFirstCreate) {
         ReleaseExecutor(handle);
@@ -648,7 +644,14 @@ int SQLiteSingleRelationalStorageEngine::SetReference(const std::vector<TableRef
 
 RelationalSchemaObject SQLiteSingleRelationalStorageEngine::GetTrackerSchema() const
 {
+    std::lock_guard lock(trackerSchemaMutex_);
     return trackerSchema_;
+}
+
+void SQLiteSingleRelationalStorageEngine::SetTrackerSchema(const RelationalSchemaObject &trackerSchema)
+{
+    std::lock_guard lock(trackerSchemaMutex_);
+    trackerSchema_ = trackerSchema;
 }
 
 int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tableName, int64_t cursor)
@@ -1066,7 +1069,7 @@ int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::
         return errCode;
     }
 
-    RelationalSchemaObject tracker = trackerSchema_;
+    RelationalSchemaObject tracker = GetTrackerSchema();
     TrackerTable oldTrackerTable = tracker.GetTrackerTable(schema.tableName);
     const std::set<std::string>& oldExtendColNames = oldTrackerTable.GetExtendNames();
     const std::string lowVersionExtendColName = oldTrackerTable.GetExtendName();

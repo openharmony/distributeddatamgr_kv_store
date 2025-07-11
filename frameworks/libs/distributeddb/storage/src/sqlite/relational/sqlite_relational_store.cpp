@@ -256,7 +256,7 @@ int SQLiteRelationalStore::CleanDistributedDeviceTable()
         std::string deviceHash;
         std::string tableName;
         DBCommon::GetDeviceFromName(deviceTableName, deviceHash, tableName);
-        syncAbleEngine_->EraseDeviceWaterMark(deviceHash, false, tableName);
+        errCode = syncAbleEngine_->EraseDeviceWaterMark(deviceHash, false, tableName);
         if (errCode != E_OK) {
             LOGE("Erase water mark failed:%d", errCode);
             return errCode;
@@ -1762,6 +1762,8 @@ int SQLiteRelationalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
         return -E_INVALID_DB;
     }
     storageEngine_->SetCloudSyncConfig(config);
+    LOGI("[RelationalStore][SetCloudSyncConfig] value:[%" PRId32 ", %" PRId32 ", %" PRId32 ", %d]",
+        config.maxUploadCount, config.maxUploadSize, config.maxRetryConflictTimes, config.isSupportEncrypt);
     return E_OK;
 }
 

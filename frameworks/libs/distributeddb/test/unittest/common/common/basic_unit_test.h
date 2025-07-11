@@ -35,10 +35,10 @@ protected:
     virtual int CloseDelegate(const StoreInfo &info) = 0;
     virtual void CloseAllDelegate() = 0;
     std::string GetDevice(const StoreInfo &info) const;
-    void SetDevice(const StoreInfo &info, const std::string &device);
-    static std::string GetTestDir();
     static StoreInfo GetStoreInfo1();
     static StoreInfo GetStoreInfo2();
+    void SetDevice(const StoreInfo &info, const std::string &device);
+    static std::string GetTestDir();
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     mutable std::mutex deviceMutex_;
     std::map<StoreInfo, std::string> deviceMap_;

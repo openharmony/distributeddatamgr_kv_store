@@ -50,6 +50,7 @@ public:
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
     RelationalSchemaObject GetTrackerSchema() const;
+    void SetTrackerSchema(const RelationalSchemaObject &trackerSchema);
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty,
@@ -129,6 +130,7 @@ private:
     RelationalSchemaObject schema_;
     RelationalSchemaObject trackerSchema_;
     mutable std::mutex schemaMutex_;
+    mutable std::mutex trackerSchemaMutex_;
 
     RelationalDBProperties properties_;
     std::mutex createDistributedTableMutex_;

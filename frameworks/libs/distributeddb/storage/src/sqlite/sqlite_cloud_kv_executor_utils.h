@@ -61,6 +61,7 @@ public:
 
     static int QueryCloudGid(sqlite3 *db, bool isMemory, const std::string &user,
         const QuerySyncObject &querySyncObject, std::vector<std::string> &cloudGid);
+
 private:
     using UploadDetail = std::pair<uint32_t, uint32_t>;
     static int GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,
@@ -160,6 +161,8 @@ private:
 
     static int BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
         const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type);
+
+    static int64_t GetModifyTime(int64_t timestamp);
 private:
     static void MarkUploadSuccess(const FillGidParam &param, const CloudSyncBatch &data,
         const std::string &user, size_t dataIndex);
