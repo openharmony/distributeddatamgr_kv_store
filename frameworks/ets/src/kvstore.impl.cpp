@@ -389,16 +389,7 @@ CONTEXT_MODE GetContextMode(ani_env* env, ani_object context)
             param.hapName = hapInfo->moduleName;
         }
     } else {
-        auto ability = OHOS::AbilityRuntime::GetCurrentAbility(env);
-        if (ability != nullptr) {
-            auto context = ability->GetAbilityContext();
-            param.area = context->GetArea();
-            param.baseDir = context->GetDatabaseDir();
-            auto hapInfo = context->GetHapModuleInfo();
-            if (hapInfo != nullptr) {
-                param.hapName = hapInfo->moduleName;
-            }
-        }
+        ZLOGE("ContextMode is not STAGE!");
     }
     return make_holder<KVManagerImpl, ::kvstore::KVManager>(config.bundleName,
         std::make_shared<ContextParam>(std::move(param)));
