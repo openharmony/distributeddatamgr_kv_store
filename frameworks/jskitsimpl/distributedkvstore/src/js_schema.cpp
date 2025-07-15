@@ -13,24 +13,25 @@
  * limitations under the License.
  */
 #define LOG_TAG "JsSchema"
-#include "cJSON.h"
 #include "js_schema.h"
+#include <nlohmann/json.hpp>
+
 #include "js_util.h"
 #include "log_print.h"
 #include "napi_queue.h"
 #include "uv_queue.h"
 
 using namespace OHOS::DistributedKv;
+using json = nlohmann::json;
 
 namespace OHOS::DistributedKVStore {
-static constexpr const char* SCHEMA_VERSION = "SCHEMA_VERSION";
-static constexpr const char* SCHEMA_MODE = "SCHEMA_MODE";
-static constexpr const char* SCHEMA_DEFINE = "SCHEMA_DEFINE";
-static constexpr const char* SCHEMA_INDEXES = "SCHEMA_INDEXES";
-static constexpr const char* SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
-static constexpr const char* DEFAULT_SCHEMA_VERSION = "1.0";
-static constexpr const char* SCHEMA_STRICT = "STRICT";
-static constexpr const char* SCHEMA_COMPATIBLE = "COMPATIBLE";
+static std::string LABEL = "Schema";
+static std::string SCHEMA_VERSION = "SCHEMA_VERSION";
+static std::string SCHEMA_MODE = "SCHEMA_MODE";
+static std::string SCHEMA_DEFINE = "SCHEMA_DEFINE";
+static std::string SCHEMA_INDEXES = "SCHEMA_INDEXES";
+static std::string SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
+static std::string DEFAULT_SCHEMA_VERSION = "1.0";
 
 JsSchema::JsSchema(napi_env env)
     : env_(env)
@@ -227,47 +228,17 @@ napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
 
 std::string JsSchema::Dump()
 {
-    cJSON* jsNode = cJSON_CreateObject();
-    if (jsNode == nullptr) {
-        return "";
+    json jsIndexes = nlohmann::json::array();
+    for (auto idx : indexes_) {
+        jsIndexes.push_back(idx);
     }
-    cJSON_AddStringToObject(jsNode, SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION);
-    cJSON_AddStringToObject(jsNode, SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE);
-
-    cJSON* childJson = rootNode_ ? rootNode_->GetValueForJson() : nullptr;
-    if (childJson == nullptr || !cJSON_AddItemToObject(jsNode, SCHEMA_DEFINE, childJson)) {
-        cJSON_AddNullToObject(jsNode, SCHEMA_DEFINE);
-        if (childJson != nullptr) {
-            cJSON_Delete(childJson);
-        }
-    }
-
-    cJSON* jsIndexes = cJSON_CreateArray();
-    if (jsIndexes != nullptr) {
-        for (auto& idx : indexes_) {
-            cJSON* item = cJSON_CreateString(idx.c_str());
-            if (item == nullptr) {
-                continue;
-            }
-            auto addResult = cJSON_AddItemToArray(jsIndexes, item);
-            if (!addResult) {
-                cJSON_Delete(item);
-            }
-        }
-    }
-    cJSON* indexesNode = jsIndexes ? jsIndexes : cJSON_CreateNull();
-    auto addResult = cJSON_AddItemToObject(jsNode, SCHEMA_INDEXES, indexesNode);
-    if (!addResult) {
-        cJSON_Delete(indexesNode);
-    }
-    cJSON_AddNumberToObject(jsNode, SCHEMA_SKIPSIZE, skip_);
-    char* jsonPtr = cJSON_Print(jsNode);
-    std::string jsonStr;
-    if (jsonPtr != nullptr) {
-        jsonStr = jsonPtr;
-        cJSON_free(jsonPtr);
-    }
-    cJSON_Delete(jsNode);
-    return jsonStr;
+    json js = {
+        { SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION },
+        { SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? "STRICT" : "COMPATIBLE" },
+        { SCHEMA_DEFINE, rootNode_->GetValueForJson() },
+        { SCHEMA_INDEXES, jsIndexes },
+        { SCHEMA_SKIPSIZE, skip_ },
+    };
+    return js.dump();
 }
 } // namespace OHOS::DistributedKVStore
