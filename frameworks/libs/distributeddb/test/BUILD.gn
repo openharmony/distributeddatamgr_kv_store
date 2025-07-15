@@ -123,6 +123,7 @@ config("module_private_config") {
 ###############################################################################
 ohos_source_set("src_file") {
   testonly = true
+  use_exceptions = true
 
   sources = distributeddb_src
   sources += distributeddb_cloud_src
@@ -165,7 +166,6 @@ ohos_source_set("src_file") {
   public_configs = [ ":gaussdb_rd_public_config" ]
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
     "googletest:gmock_main",
@@ -173,6 +173,7 @@ ohos_source_set("src_file") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+    "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:libz",
@@ -200,7 +201,6 @@ template("distributeddb_unittest") {
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
 
     external_deps = [
-      "cJSON:cjson",
       "c_utils:utils",
       "ffrt:libffrt",
       "googletest:gmock_main",
@@ -208,6 +208,7 @@ template("distributeddb_unittest") {
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
+      "jsoncpp:jsoncpp",
       "openssl:libcrypto_shared",
       "sqlite:sqlite",
       "zlib:libz",

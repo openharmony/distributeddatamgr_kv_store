@@ -59,6 +59,7 @@ ohos_fuzztest("KvDelegateManagerFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include/relational",
   ]
 
+  use_exceptions = true
   cflags = [
     "-g",
     "-O0",
@@ -104,9 +105,9 @@ ohos_fuzztest("KvDelegateManagerFuzzTest") {
   deps = [ "../../../../distributeddb:distributeddb" ]
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "hilog:libhilog",
+    "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:shared_libz",

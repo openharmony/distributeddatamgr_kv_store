@@ -122,11 +122,12 @@ ohos_shared_library("distributeddb_mock") {
   ldflags = [ "-v" ]
   deps = [
     "//third_party/bounds_checking_function:libsec_static",
-    "//third_party/cJSON:cjson",
+    "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/openssl:libcrypto_static",
     "//third_party/sqlite:sqlite_sdk",
     "//third_party/zlib:shared_libz",
   ]
+  use_exceptions = true
   if (use_platform_win) {
     libs = [ "//prebuilts/mingw-w64/ohos/linux-x86_64/clang-mingw/x86_64-w64-mingw32/lib/libws2_32.a" ]
     deps += [

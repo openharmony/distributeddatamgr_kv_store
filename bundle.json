@@ -74,6 +74,7 @@
         "huks",
         "ipc",
         "json",
+        "jsoncpp",
         "napi",
         "safwk",
         "samgr",
