@@ -17,11 +17,12 @@
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_POOL_H
 #include <functional>
 #include <mutex>
+#include <string>
 namespace OHOS {
 template<typename T>
 class Pool {
 public:
-    Pool(uint32_t capability, uint32_t min) : capability_(capability), min_(min) {}
+    Pool(uint32_t capability, uint32_t min, const std::string &threadName) : capability_(capability), min_(min), threadName_(threadName) {}
 
     std::shared_ptr<T> Get(bool isForce = false)
     {
@@ -30,7 +31,7 @@ public:
             if (!isForce && current_ >= capability_) {
                 return nullptr;
             }
-            auto cur = new Node();
+            auto cur = new Node(threadName_);
             idle_ = cur;
             current_++;
         }
@@ -122,7 +123,8 @@ private:
     struct Node {
         Node *prev = nullptr;
         Node *next = nullptr;
-        std::shared_ptr<T> data = std::make_shared<T>();
+        std::shared_ptr<T> data;
+        Node(const std::string &threadName) : data(std::make_share<T>(threadName)) {};
     };
 
     uint32_t capability_;
@@ -131,6 +133,7 @@ private:
     Node *idle_ = nullptr;
     Node *busy_ = nullptr;
     std::mutex mutex_;
+    std::string threadName_;
 };
 } // namespace OHOS
 

@@ -52,9 +52,9 @@ public:
         }
     };
 
-    Executor()
-        : thread_([this] {
-              pthread_setname_np(pthread_self(), "OS_TaskExecutor");
+    Executor(const std::string &threadName)
+        : thread_([this, threadName] {
+              pthread_setname_np(pthread_self(), threadName.c_str());
               Run();
               self_ = nullptr;
           })
