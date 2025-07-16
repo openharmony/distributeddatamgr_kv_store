@@ -231,6 +231,8 @@ private:
     void RecordTimeIntoDataItem(Timestamp existCreateTime, DataItem &dataItem,
         SQLiteSingleVerNaturalStore &naturalStore);
 
+    bool IsInWhitelist() const;
+
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStoreConnection);
 
     // ResultSet Related Info

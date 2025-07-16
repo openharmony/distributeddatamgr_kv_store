@@ -204,6 +204,8 @@ public:
     static constexpr const char *ROWID = "rowid";
 
     static constexpr const char *DEFAULT_USER = "default_user";
+
+    static constexpr const char *DISTRIBUTED_DEFAULT_APP_ID = "distributeddata";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H
