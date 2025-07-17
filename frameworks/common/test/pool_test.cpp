@@ -33,6 +33,7 @@ public:
         {
             return value == other.value;
         }
+        explicit Node(const std::string &threadName = "pool_test") {};
     };
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -41,7 +42,7 @@ public:
 protected:
     static Pool<PoolTest::Node> pool_;
 };
-Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_TEST, MIN_TEST);
+Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_TEST, MIN_TEST, "pool_test");
 
 void PoolTest::SetUpTestCase(void) { }
 
