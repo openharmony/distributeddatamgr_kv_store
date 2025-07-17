@@ -22,7 +22,8 @@ namespace OHOS {
 template<typename T>
 class Pool {
 public:
-    Pool(uint32_t capability, uint32_t min, const std::string &threadName) : capability_(capability), min_(min), threadName_(threadName) {}
+    Pool(uint32_t capability, uint32_t min, const std::string &threadName) : capability_(capability), min_(min),
+        threadName_(threadName) {}
 
     std::shared_ptr<T> Get(bool isForce = false)
     {

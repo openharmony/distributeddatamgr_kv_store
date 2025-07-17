@@ -33,7 +33,7 @@ public:
         {
             return value == other.value;
         }
-        Node(const std::string &threadName = "pool_test") {};
+        explicit Node(const std::string &threadName = "pool_test") {};
     };
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
