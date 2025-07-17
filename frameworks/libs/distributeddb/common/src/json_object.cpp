@@ -167,14 +167,14 @@ int JsonObject::Parse(const std::string &inString)
     auto end = reinterpret_cast<const std::string::value_type *>(inString.c_str() + inString.length());
     errCode = JsonReaderParseInner(jsonReader, begin, end, errs);
     if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse string to JsonValue fail, reason=%s.", errs.c_str());
+        LOGE("[Json][Parse] Parse string to JsonValue fail");
         return errCode;
     }
 #else
     Json::Reader reader(Json::Features::strictMode());
     errCode = ReaderParseInner(reader, inString, false);
     if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse string to JsonValue fail, reason=%s.", reader.getFormattedErrorMessages().c_str());
+        LOGE("[Json][Parse] Parse string to JsonValue fail");
         return errCode;
     }
 #endif
@@ -245,7 +245,7 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
     // The endDoc parameter of reader::parse refer to the byte after the string itself
     errCode = JsonReaderParseInner(jsonReader, begin, end, errs);
     if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse dataRange to JsonValue fail, reason=%s.", errs.c_str());
+        LOGE("[Json][Parse] Parse dataRange to JsonValue fail");
         return errCode;
     }
 #else
