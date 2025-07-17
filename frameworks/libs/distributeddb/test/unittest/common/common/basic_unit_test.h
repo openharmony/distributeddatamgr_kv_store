@@ -37,6 +37,7 @@ protected:
     std::string GetDevice(const StoreInfo &info) const;
     static StoreInfo GetStoreInfo1();
     static StoreInfo GetStoreInfo2();
+    static StoreInfo GetStoreInfo3();
     void SetDevice(const StoreInfo &info, const std::string &device);
     static std::string GetTestDir();
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;

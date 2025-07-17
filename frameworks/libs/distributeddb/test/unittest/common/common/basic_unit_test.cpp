@@ -109,4 +109,13 @@ StoreInfo BasicUnitTest::GetStoreInfo2()
     info.appId = DistributedDBUnitTest::APP_ID;
     return info;
 }
+
+StoreInfo BasicUnitTest::GetStoreInfo3()
+{
+    StoreInfo info;
+    info.userId = DistributedDBUnitTest::USER_ID;
+    info.storeId = DistributedDBUnitTest::STORE_ID_3;
+    info.appId = DistributedDBUnitTest::DISTRIBUTED_APP_ID;
+    return info;
+}
 }

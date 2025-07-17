@@ -99,8 +99,9 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     }
 
     DBDfxAdapter::StartTracing();
+    bool isInWhitelist = IsInWhitelist();
     // need to check if the transaction started
-    if (transactionExeFlag_.load()) {
+    if (!isInWhitelist || (isInWhitelist && transactionExeFlag_.load())) {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("Transaction started already.");
@@ -2071,6 +2072,16 @@ int SQLiteSingleVerNaturalStoreConnection::OperateDataStatus(uint32_t dataOperat
         return -E_INVALID_DB;
     }
     return naturalStore->OperateDataStatus(dataOperator);
+}
+
+bool SQLiteSingleVerNaturalStoreConnection::IsInWhitelist() const
+{
+    if (kvDB_ == nullptr) {
+        return false;
+    }
+
+    std::string appId = kvDB_->GetMyProperties().GetStringProp(DBProperties::APP_ID, "");
+    return appId == DBConstant::DISTRIBUTED_DEFAULT_APP_ID;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }
