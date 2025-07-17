@@ -34,7 +34,7 @@ SQLiteSingleRelationalStorageEngine::~SQLiteSingleRelationalStorageEngine()
 StorageExecutor *SQLiteSingleRelationalStorageEngine::NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite,
     bool isMemDb)
 {
-    auto mode = properties_.GetDistributedTableMode();
+    auto mode = GetRelationalProperties().GetDistributedTableMode();
     return new (std::nothrow) SQLiteSingleVerRelationalStorageExecutor(dbHandle, isWrite, mode);
 }
 
@@ -305,7 +305,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
     bool isUpgraded, const std::string &identity, TableInfo &table, RelationalSchemaObject &schema)
 {
-    auto mode = properties_.GetDistributedTableMode();
+    auto mode = GetRelationalProperties().GetDistributedTableMode();
     TableSyncType tableSyncType = table.GetTableSyncType();
     std::string tableName = table.GetTableName();
     int errCode = handle->InitCursorToMeta(tableName);
@@ -354,7 +354,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
         return errCode;
     }
 
-    auto mode = properties_.GetDistributedTableMode();
+    auto mode = GetRelationalProperties().GetDistributedTableMode();
     errCode = handle->UpgradeDistributedTable(tableName, mode, schemaChanged, schema, syncType);
     if (errCode != E_OK) {
         LOGE("Upgrade distributed table failed. %d", errCode);
@@ -436,8 +436,15 @@ const RelationalDBProperties &SQLiteSingleRelationalStorageEngine::GetProperties
     return properties_;
 }
 
+const RelationalDBProperties SQLiteSingleRelationalStorageEngine::GetRelationalProperties() const
+{
+    std::lock_guard lock(propertiesMutex_);
+    return properties_;
+}
+
 void SQLiteSingleRelationalStorageEngine::SetProperties(const RelationalDBProperties &properties)
 {
+    std::lock_guard lock(propertiesMutex_);
     properties_ = properties;
 }
 
@@ -627,7 +634,7 @@ int SQLiteSingleRelationalStorageEngine::SetReference(const std::vector<TableRef
         LOGE("Save schema to meta table for reference failed. %d", errCode);
         return errCode;
     }
-    auto mode = properties_.GetDistributedTableMode();
+    auto mode = GetRelationalProperties().GetDistributedTableMode();
     for (auto &table : schema.GetTables()) {
         if (table.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
             continue;
@@ -1098,7 +1105,7 @@ std::pair<int, bool> SQLiteSingleRelationalStorageEngine::SetDistributedSchema(c
     auto schemaObj = GetSchema();
     std::pair<int, bool> res = {E_OK, schemaObj.CheckDistributedSchemaChange(schema)};
     auto &[errCode, isSchemaChange] = res;
-    if (properties_.GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE) {
+    if (GetRelationalProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE) {
         LOGE("tableMode SPLIT_BY_DEVICE not support set distributed schema");
         errCode = -E_NOT_SUPPORT;
         return res;

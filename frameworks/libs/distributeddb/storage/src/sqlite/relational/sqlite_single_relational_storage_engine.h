@@ -41,6 +41,7 @@ public:
     int CleanDistributedDeviceTable(std::vector<std::string> &missingTables);
 
     const RelationalDBProperties &GetProperties() const;
+    const RelationalDBProperties GetRelationalProperties() const;
     void SetProperties(const RelationalDBProperties &properties);
 
     int SetTrackerTable(const TrackerSchema &schema, const TableInfo &tableInfo, bool isFirstCreate);
@@ -134,6 +135,7 @@ private:
 
     RelationalDBProperties properties_;
     std::mutex createDistributedTableMutex_;
+    mutable std::mutex propertiesMutex_;
 };
 } // namespace DistributedDB
 #endif
