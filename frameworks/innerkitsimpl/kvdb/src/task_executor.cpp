@@ -77,7 +77,7 @@ void TaskExecutor::GenerateExecutors()
 {
     std::lock_guard<decltype(mtx_)> lock(mtx_);
     if (pool_ == nullptr) {
-        pool_ = std::make_shared<ExecutorPool>(MAX_THREADS, MIN_THREADS, "OS_TaskExecutor_KV");
+        pool_ = std::make_shared<ExecutorPool>(MAX_THREADS, MIN_THREADS, "TaskExecutor_KV");
     }
 }
 } // namespace OHOS
