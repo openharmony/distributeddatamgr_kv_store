@@ -2959,9 +2959,15 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId026, TestSize.Le
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 
+    /**
+     * @tc.steps:step2. remove device data then check record.
+     * @tc.expected: step2. return OK.
+     */
     g_delegate->RemoveDeviceData("", FLAG_AND_DATA);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+    g_delegate->RemoveDeviceData("", CLEAR_SHARED_TABLE);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
 } // namespace

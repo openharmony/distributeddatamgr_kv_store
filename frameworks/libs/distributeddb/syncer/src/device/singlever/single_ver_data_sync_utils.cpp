@@ -590,8 +590,8 @@ int SingleVerDataSyncUtils::GetUnsyncTotal(const SingleVerSyncTaskContext *conte
 int SingleVerDataSyncUtils::GetUnsyncTotal(const SingleVerSyncTaskContext *context, const SyncGenericInterface *storage,
     SyncTimeRange &waterMarkInfo, uint32_t &total)
 {
-    int errCode;
-    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
+    int errCode = E_OK;
+    SyncType curType = (context->IsQuerySync() ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE);
     if (curType != SyncType::QUERY_SYNC_TYPE) {
         errCode = storage->GetUnSyncTotal(waterMarkInfo.beginTime, waterMarkInfo.endTime, total);
     } else {
@@ -599,7 +599,7 @@ int SingleVerDataSyncUtils::GetUnsyncTotal(const SingleVerSyncTaskContext *conte
         errCode = storage->GetUnSyncTotal(queryObj, waterMarkInfo, total);
     }
     if (errCode != E_OK) {
-        LOGE("[DataSync][GetUnsyncTotal] Get unsync data num failed,errCode=%d", errCode);
+        LOGE("[DataSync][GetUnsyncTotal] Get unsync data num failed, errCode=%d", errCode);
     }
     return errCode;
 }
@@ -632,7 +632,7 @@ void SingleVerDataSyncUtils::UpdateSyncProcess(SingleVerSyncTaskContext *context
 
 void SingleVerDataSyncUtils::CacheInitWaterMark(SingleVerSyncTaskContext *context, SingleVerDataSync *dataSync)
 {
-    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
+    SyncType curType = (context->IsQuerySync() ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE);
     WaterMark startMark = 0;
     dataSync->GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
     context->SetInitWaterMark(startMark);

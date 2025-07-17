@@ -2842,4 +2842,54 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSiz
     FreeVirtualDevice(g_deviceC);
     FreeVirtualDevice(g_deviceD);
 }
+
+/**
+  * @tc.name: RekeyTest001
+  * @tc.desc: Test rekey with multi db handles.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonnghuang
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RekeyTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    CipherPassword passwd;
+    const std::vector<uint8_t> PASSWD_VECTOR_1 = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '1', '2', '3'};
+    const std::vector<uint8_t> PASSWD_VECTOR_2 = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '0', '0', '0'};
+    const std::vector<uint8_t> PASSWD_VECTOR_3 = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '0', '0', '1'};
+    KvStoreNbDelegate::Option option = {true, false, true};
+    (void)passwd.SetValue(PASSWD_VECTOR_1.data(), PASSWD_VECTOR_1.size());
+    option.passwd = passwd;
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("rekeyTest001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    KvStoreNbDelegate *kvNbDelegatePtr001 = g_kvNbDelegatePtr;
+
+    /**
+     * @tc.steps:step2. Rekey.
+     * @tc.expected: step2. Returns OK.
+     */
+    (void)passwd.SetValue(PASSWD_VECTOR_2.data(), PASSWD_VECTOR_2.size());
+    kvNbDelegatePtr001->Rekey(passwd);
+
+    /**
+     * @tc.steps:step3. Open DB and rekey.
+     * @tc.expected: step3. Returns not OK.
+     */
+    sqlite3 *db = nullptr;
+    int flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    const auto &dbPath = g_testDir +
+        "/cf479925e0691d2df83f095db294ee671a7a8f38e7527fef0dd1b40f8e3cb476/single_ver/main/gen_natural_store.db";
+    int rc = sqlite3_open_v2(dbPath.c_str(), &db, flag, nullptr);
+    EXPECT_TRUE(rc == SQLITE_OK);
+    (void)passwd.SetValue(PASSWD_VECTOR_3.data(), PASSWD_VECTOR_3.size());
+    EXPECT_FALSE(kvNbDelegatePtr001->Rekey(passwd) == OK);
+    g_mgr.CloseKvStore(kvNbDelegatePtr001);
+    sqlite3_close(db);
+    g_kvNbDelegatePtr = nullptr;
+}
 }

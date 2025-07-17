@@ -1309,7 +1309,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
             }
             missingTables.emplace_back(tableName);
         } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            LOGE("Check distributed table failed. %d", errCode);
+            LOGE("[CheckAndCleanDisTable]Check distributed table failed. %d", errCode);
             break;
         }
         errCode = E_OK; // Check result ok for distributed table is still exists
@@ -1734,7 +1734,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(
     // here just clear updateCursor func, fail will not influence other function
     (void)CreateFuncUpdateCursor(context, nullptr);
     if (errCode != E_OK) {
-        LOGE("Failed to change cloud data flag on usertable, %d.", errCode);
+        LOGE("Failed to change cloud data flag on userTable, %d.", errCode);
         return errCode;
     }
     // clear some column when data is logicDelete or physical delete
@@ -1742,7 +1742,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SetDataOnUserTableWithLogicDelete(
           " = '', " + SHARING_RESOURCE + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR (" + DATA_IS_DELETE + ");";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
-        LOGE("Failed to deal logic delete data flag on usertable, %d.", errCode);
+        LOGE("Failed to deal logic delete data flag on userTable, %d.", errCode);
         return errCode;
     }
     LOGI("removeData on userTable:%s length:%zu finish and cursor is %llu.",

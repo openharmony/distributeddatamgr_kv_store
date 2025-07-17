@@ -2516,6 +2516,11 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync054, TestSize.Level1)
     Value actualValue1;
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
     EXPECT_EQ(actualValue1, expectValue1);
+
+    EXPECT_EQ(kvDelegatePtrS2_->StartTransaction(), OK);
+    EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue1), OK);
+    EXPECT_EQ(actualValue1, expectValue1);
+    EXPECT_TRUE(kvDelegatePtrS2_->Commit() == OK);
 }
 
 /**

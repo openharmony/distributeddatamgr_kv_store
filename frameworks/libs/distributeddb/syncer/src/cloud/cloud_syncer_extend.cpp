@@ -1856,7 +1856,6 @@ int CloudSyncer::TagDownloadAssetsForAssetOnly(
         LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
         return -E_INTERNAL_ERROR;
     }
-
     std::map<std::string, Assets> downloadAssetsMap{};
     ret = CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(idx, param, downloadAssetsMap);
     if (ret != E_OK) {
@@ -1940,7 +1939,6 @@ int CloudSyncer::SetAssetsMapAndEraseDataForAssetsOnly(
             return -E_ASSET_NOT_FOUND_FOR_DOWN_ONLY;
         }
     }
-
     for (auto iter = downloadData.begin(); iter != downloadData.end();) {
         std::string gidStr;
         int ret = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, *iter, gidStr);

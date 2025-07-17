@@ -593,6 +593,8 @@ void RdSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &i
 
 CloudSyncConfig RdSingleVerNaturalStore::GetCloudSyncConfig() const
 {
+    // Implement the pure virtual function in the base class SyncAbleKvDB.
+    // Currently, rd does not have this function, so return the default value of CloudSyncConfig.
     CloudSyncConfig config;
     return config;
 }

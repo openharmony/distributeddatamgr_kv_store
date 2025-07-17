@@ -100,7 +100,7 @@ StoreInfo BasicUnitTest::GetStoreInfo1()
     info.appId = DistributedDBUnitTest::APP_ID;
     return info;
 }
- 
+
 StoreInfo BasicUnitTest::GetStoreInfo2()
 {
     StoreInfo info;

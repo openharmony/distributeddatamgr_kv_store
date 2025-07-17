@@ -46,6 +46,7 @@ namespace {
     const string TABLE_NAME3 = "worKer3";
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
+    VirtualCommunicatorAggregator *g_communicatorAggregator = nullptr;
     sqlite3 *g_db = nullptr;
     const int HALF = 2;
 
@@ -268,6 +269,9 @@ namespace {
 
     void DistributedDBInterfacesRelationalTrackerTableTest::SetUp(void)
     {
+        g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
+        ASSERT_TRUE(g_communicatorAggregator != nullptr);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
         }
@@ -277,6 +281,7 @@ namespace {
     void DistributedDBInterfacesRelationalTrackerTableTest::TearDown(void)
     {
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+        RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     }
 
 void SetTrackerTableTest(const TrackerSchema &schema, DBStatus expect)

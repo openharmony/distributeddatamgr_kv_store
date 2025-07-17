@@ -219,5 +219,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest002, TestS
     auto executor =
         std::make_shared<SQLiteSingleVerRelationalStorageExecutor>(db, true, DistributedTableMode::COLLABORATION);
     EXPECT_EQ(SQLiteRelationalUtils::CheckDistributedSchemaValid({}, {}, false, executor.get()), -E_NOT_FOUND);
+    int32_t localCount = 0;
+    EXPECT_EQ(executor->GetFlagIsLocalCount("tableName", localCount), -E_INVALID_DB);
 }
 #endif // RELATIONAL_STORE
