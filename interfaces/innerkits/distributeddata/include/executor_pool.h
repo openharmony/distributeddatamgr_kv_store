@@ -40,7 +40,7 @@ public:
     static constexpr Duration INVALID_DELAY = std::chrono::seconds(0);
     static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
 
-    ExecutorPool(size_t max, size_t min, const std::string &threadName = "OS_TaskExecutor")
+    ExecutorPool(size_t max, size_t min, const std::string &threadName = "DB_TaskExecutor")
         : pool_(max, min, threadName), delayTasks_(InnerTask(), NextTimer), taskId_(INVALID_TASK_ID)
     {
         // When max equals 1, timer thread schedules and executes tasks.
