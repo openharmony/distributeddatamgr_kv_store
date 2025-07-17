@@ -124,7 +124,7 @@ private:
         Node *prev = nullptr;
         Node *next = nullptr;
         std::shared_ptr<T> data;
-        Node(const std::string &threadName) : data(std::make_share<T>(threadName)) {};
+        Node(const std::string &threadName) : data(std::make_shared<T>(threadName)) {};
     };
 
     uint32_t capability_;
