@@ -560,9 +560,10 @@ int SingleVerDatabaseOper::RunRekeyLogicInner(CipherType type, sqlite3 *db, cons
     int rekeyRet = SQLiteUtils::Rekey(db, passwd);
     if (rekeyRet != E_OK) {
         LOGE("[RunRekeyLogic] Rekey fail!, errCode = [%d]", rekeyRet);
+    } else {
+        singleVerNaturalStore_->GetDbPropertyForUpdate().SetPassword(type, passwd);
     }
 
-    singleVerNaturalStore_->GetDbPropertyForUpdate().SetPassword(type, passwd);
     int errCode = InitStorageEngine();
     if (errCode != E_OK) {
         LOGE("Init storage engine while rekey open failed:%d", errCode);

@@ -2892,4 +2892,44 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RekeyTest001, TestSize.Level1)
     sqlite3_close(db);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: RekeyTest002
+  * @tc.desc: Test normal rekey.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RekeyTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    CipherPassword passwd;
+    const std::vector<uint8_t> PASSWD_VECTOR = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '1', '2', '3'};
+    KvStoreNbDelegate::Option option = {true, false, true};
+    (void)passwd.SetValue(PASSWD_VECTOR.data(), PASSWD_VECTOR.size());
+    option.passwd = passwd;
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("rekeyTest002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps:step2. Rekey.
+     * @tc.expected: step2. Returns OK.
+     */
+    const std::vector<uint8_t> NEW_PASSWD_VECTOR = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '1', '1', '1'};
+    (void)passwd.SetValue(NEW_PASSWD_VECTOR.data(), NEW_PASSWD_VECTOR.size());
+    EXPECT_TRUE(g_kvNbDelegatePtr->Rekey(passwd) == OK);
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_kvNbDelegatePtr = nullptr;
+    option.passwd = passwd;
+    g_mgr.GetKvStore("rekeyTest002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_kvNbDelegatePtr = nullptr;
+}
 }
