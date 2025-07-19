@@ -78,8 +78,12 @@ KvStoreNbDelegateImpl::~KvStoreNbDelegateImpl()
         LOGF("[KvStoreNbDelegate] Can't release directly");
         return;
     }
-
     conn_ = nullptr;
+#ifndef _WIN32
+    std::lock_guard<std::mutex> lock(libMutex_);
+    DBCommon::UnLoadGrdLib(dlHandle_);
+    dlHandle_ = nullptr;
+#endif
 }
 
 DBStatus KvStoreNbDelegateImpl::Get(const Key &key, Value &value) const
@@ -1405,5 +1409,13 @@ DBStatus KvStoreNbDelegateImpl::OperateDataStatus(uint32_t dataOperator)
         LOGI("[KvStoreNbDelegate] Operate data status success");
     }
     return TransferDBErrno(errCode);
+}
+
+void KvStoreNbDelegateImpl::SetHandle(void *handle)
+{
+#ifndef _WIN32
+    std::lock_guard<std::mutex> lock(libMutex_);
+    dlHandle_ = handle;
+#endif
 }
 } // namespace DistributedDB

@@ -65,7 +65,6 @@ namespace {
 }
 
 static std::atomic_bool g_isGrdLoaded = false;
-static std::mutex g_mutex;
 
 int DBCommon::CreateDirectory(const std::string &directory)
 {
@@ -607,21 +606,28 @@ uint64_t DBCommon::EraseBit(uint64_t origin, uint64_t eraseBit)
     return origin & (~eraseBit);
 }
 
-void DBCommon::LoadGrdLib(void)
+void *DBCommon::LoadGrdLib(void)
 {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    static std::once_flag loadOnceFlag;
-    std::call_once(loadOnceFlag, []() {
 #ifndef _WIN32
-        if (!g_isGrdLoaded) {
-            if (dlopen("libarkdata_db_core.z.so", RTLD_LAZY) != NULL) {
-                g_isGrdLoaded = true;
-            } else {
-                LOGW("[DBCommon] unable to load grd lib, errno: %d, %s", errno, dlerror());
-            }
-        }
+    auto handle = dlopen("libarkdata_db_core.z.so", RTLD_LAZY);
+    if (handle == nullptr) {
+        LOGW("[DBCommon] unable to load grd lib, errno: %d, %s", errno, dlerror());
+        return nullptr;
+    }
+    return handle;
+#else
+    return nullptr;
 #endif
-    });
+}
+
+void DBCommon::UnLoadGrdLib(void *handle)
+{
+#ifndef _WIN32
+    if (handle == nullptr) {
+        return;
+    }
+    dlclose(handle);
+#endif
 }
 
 bool DBCommon::IsGrdLibLoaded(void)

@@ -145,7 +145,9 @@ public:
 
     static uint64_t EraseBit(uint64_t origin, uint64_t eraseBit);
 
-    static void LoadGrdLib(void);
+    static void *LoadGrdLib(void);
+
+    static void UnLoadGrdLib(void *handle);
 
     static bool IsGrdLibLoaded(void);
 
