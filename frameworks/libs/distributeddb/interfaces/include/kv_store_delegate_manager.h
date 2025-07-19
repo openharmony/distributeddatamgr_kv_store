@@ -124,6 +124,8 @@ private:
     bool GetKvStoreParamCheck(const std::string &storeId, const KvStoreNbDelegate::Option &option,
         const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback) const;
     DBStatus SetObserverNotifier(KvStoreNbDelegate *kvStore, const KvStoreNbDelegate::Option &option);
+    void GetKvStoreInner(const std::string &storeId, const KvStoreNbDelegate::Option &option,
+        const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback, void *handle);
 
     const std::string &GetKvStorePath() const;
     static const std::string DEFAULT_PROCESS_APP_ID;

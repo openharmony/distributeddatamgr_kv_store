@@ -304,28 +304,19 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
     return true;
 }
 
-void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStoreNbDelegate::Option &option,
-    const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback)
+void KvStoreDelegateManager::GetKvStoreInner(const std::string &storeId, const KvStoreNbDelegate::Option &option,
+    const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback, void *handle)
 {
-    if (!GetKvStoreParamCheck(storeId, option, callback)) {
-        return;
-    }
-    auto tmpOption = option;
-    if (tmpOption.storageEngineType == std::string(GAUSSDB_RD)) {
-        DBCommon::LoadGrdLib();
-        if (!DBCommon::IsGrdLibLoaded()) {
-            tmpOption.storageEngineType = std::string(SQLITE);
-        }
-    }
     // check if schema is supported and valid
     SchemaObject schema;
-    DBStatus retCode = CheckAndGetSchema(tmpOption.isMemoryDb, tmpOption.schema, schema);
+    DBStatus retCode = CheckAndGetSchema(option.isMemoryDb, option.schema, schema);
     if (retCode != OK) {
+        DBCommon::UnLoadGrdLib(handle);
         callback(retCode, nullptr);
         return;
     }
     KvDBProperties properties;
-    InitPropWithNbOption(properties, GetKvStorePath(), schema, tmpOption);
+    InitPropWithNbOption(properties, GetKvStorePath(), schema, option);
     DbIdParam dbIdParam = {appId_, userId_, storeId, subUser_, instanceId_};
     DBCommon::SetDatabaseIds(properties, dbIdParam);
 
@@ -333,6 +324,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     IKvDBConnection *conn = GetOneConnectionWithRetry(properties, errCode);
     DBStatus status = TransferDBErrno(errCode);
     if (conn == nullptr) {
+        DBCommon::UnLoadGrdLib(handle);
         callback(status, nullptr);
         return;
     }
@@ -341,13 +333,15 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     if (kvStore == nullptr) {
         conn->Close();
         conn = nullptr;
+        DBCommon::UnLoadGrdLib(handle);
         callback(DB_ERROR, nullptr);
         return;
     }
-
-    status = SetObserverNotifier(kvStore, tmpOption);
+    kvStore->SetHandle(handle);
+    status = SetObserverNotifier(kvStore, option);
     if (status != OK) {
         CloseKvStore(kvStore);
+        DBCommon::UnLoadGrdLib(handle);
         callback(status, nullptr);
         return;
     }
@@ -355,10 +349,27 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     bool enAutoSync = false;
     (void)conn->Pragma(PRAGMA_AUTO_SYNC, static_cast<void *>(&enAutoSync));
 
-    SecurityOption secOption = tmpOption.secOption;
+    SecurityOption secOption = option.secOption;
     (void)conn->Pragma(PRAGMA_TRIGGER_TO_MIGRATE_DATA, &secOption);
 
     callback(OK, kvStore);
+}
+
+void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStoreNbDelegate::Option &option,
+    const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback)
+{
+    if (!GetKvStoreParamCheck(storeId, option, callback)) {
+        return;
+    }
+    auto tmpOption = option;
+    void *handle = nullptr;
+    if (tmpOption.storageEngineType == std::string(GAUSSDB_RD)) {
+        handle = DBCommon::LoadGrdLib();
+        if (handle == nullptr) {
+            tmpOption.storageEngineType = std::string(SQLITE);
+        }
+    }
+    return GetKvStoreInner(storeId, tmpOption, callback, handle);
 }
 
 DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreDelegate *kvStore)

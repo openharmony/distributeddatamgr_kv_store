@@ -197,6 +197,9 @@ public:
 #endif
 
     DBStatus OperateDataStatus(uint32_t dataOperator) override;
+
+    void SetHandle(void *handle);
+
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);
@@ -224,6 +227,10 @@ private:
     IKvDBConnection *conn_;
     std::string storeId_;
     bool releaseFlag_;
+#ifndef _WIN32
+    mutable std::mutex libMutex_;
+    void *dlHandle_ = nullptr;
+#endif
     std::mutex observerMapLock_;
     std::map<const KvStoreObserver *, const KvDBObserverHandle *> observerMap_;
     std::map<const KvStoreObserver *, unsigned int> cloudObserverMap_;
