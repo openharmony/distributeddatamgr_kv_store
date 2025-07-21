@@ -215,6 +215,8 @@ extern "C" {
     FFI_EXPORT bool FfiOHOSDistributedKVStoreKVStoreResultSetIsAfterLast(int64_t id);
 
     FFI_EXPORT CEntry FfiOHOSDistributedKVStoreKVStoreResultSetGetEntry(int64_t id);
+
+    FFI_EXPORT void FfiOHOSFreeCString(char* str);
 }
 }
 }

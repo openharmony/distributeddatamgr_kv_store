@@ -29,5 +29,9 @@ namespace DistributedKVStore {
         }
         return std::char_traits<char>::copy(res, origin.c_str(), len);
     }
+    void FreeCString(char* str)
+    {
+        free(str);
+    }
 }
 }
