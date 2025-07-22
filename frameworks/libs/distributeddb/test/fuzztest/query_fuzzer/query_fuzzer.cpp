@@ -126,15 +126,17 @@ void FuzzIsNull(FuzzedDataProvider &provider)
 void FuzzAssetsOnly(FuzzedDataProvider &provider)
 {
     const int lenMod = 30;  // 30 is mod for string vector size
-    std::string tableName = provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, lenMod));
-    std::string fieldName = provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, lenMod));
+    std::string tableName = provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, lenMod));
+    std::string fieldName = provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, lenMod));
     std::map<std::string, std::set<std::string>> assets;
     std::set<std::string> set;
-    size_t size = provider.ConsumeIntegral<size_t>();
+    // 512 max size
+    size_t maxSize = 512;
+    size_t size = provider.ConsumeIntegralInRange<size_t>(0, maxSize);
     for (size_t i = 1; i <= size; i++) {
-        set.insert(provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, i)));
+        set.insert(provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, i)));
     }
-    assets[provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<int>(0, lenMod))] = set;
+    assets[provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, lenMod))] = set;
     Query query = Query::Select().From(tableName)
                       .BeginGroup()
                       .EqualTo(fieldName, provider.ConsumeIntegral<int>())
