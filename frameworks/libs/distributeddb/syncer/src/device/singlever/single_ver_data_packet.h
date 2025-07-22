@@ -36,7 +36,6 @@ public:
     void SetData(std::vector<SendDataItem> &data);
 
     const std::vector<SendDataItem> &GetData() const;
-    const std::vector<uint8_t> &GetCompressedData() const;
 
     void SetCompressData(std::vector<uint8_t> &compressData);
 

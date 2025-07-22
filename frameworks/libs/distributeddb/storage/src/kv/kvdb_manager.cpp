@@ -293,16 +293,16 @@ bool KvDBManager::CheckOpenDBOptionWithCached(const KvDBProperties &properties, 
         return false;
     }
 
-    bool compressOnSyncUser = properties.GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
-    bool compressOnSyncGet = kvDB->GetMyProperties().GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
+    bool compressOnSyncUser = properties.GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
+    bool compressOnSyncGet = kvDB->GetMyProperties().GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
     if (compressOnSyncUser != compressOnSyncGet) {
         LOGE("Failed to check compress option, the input %d not match with cached %d.", compressOnSyncUser,
             compressOnSyncGet);
         return false;
     }
     if (compressOnSyncUser) {
-        int compressRateUser = properties.GetIntProp(KvDBProperties::COMPRESSION_RATE, 0);
-        int compressRateGet = kvDB->GetMyProperties().GetIntProp(KvDBProperties::COMPRESSION_RATE, 0);
+        int compressRateUser = properties.GetIntProp(DBProperties::COMPRESSION_RATE, 0);
+        int compressRateGet = kvDB->GetMyProperties().GetIntProp(DBProperties::COMPRESSION_RATE, 0);
         if (compressRateUser != compressRateGet) {
             LOGE("Failed to check compress rate, the input %d not match with cached %d.", compressRateUser,
                 compressRateGet);

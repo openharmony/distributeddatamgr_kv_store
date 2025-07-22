@@ -67,6 +67,9 @@ public:
 
     static constexpr const char *DATABASE_TYPE = "databaseType";
 
+    static constexpr const char *COMPRESS_ON_SYNC = "needCompressOnSync";
+    static constexpr const char *COMPRESSION_RATE = "compressionRate";
+
 protected:
 
     std::map<std::string, std::string> stringProperties_;

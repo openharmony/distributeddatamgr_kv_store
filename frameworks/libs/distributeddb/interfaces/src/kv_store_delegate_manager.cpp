@@ -106,10 +106,10 @@ void InitPropWithNbOption(KvDBProperties &properties, const std::string &storePa
     if (option.isEncryptedDb) {
         properties.SetPassword(option.cipher, option.passwd);
     }
-    properties.SetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, option.isNeedCompressOnSync);
+    properties.SetBoolProp(DBProperties::COMPRESS_ON_SYNC, option.isNeedCompressOnSync);
     if (option.isNeedCompressOnSync) {
         properties.SetIntProp(
-            KvDBProperties::COMPRESSION_RATE, ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
+            DBProperties::COMPRESSION_RATE, ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
     }
     properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
     properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);

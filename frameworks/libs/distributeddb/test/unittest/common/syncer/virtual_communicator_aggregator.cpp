@@ -417,4 +417,14 @@ void VirtualCommunicatorAggregator::SetRemoteDeviceId(const std::string &dev)
     remoteDeviceId_ = dev;
     LOGI("[VirtualCommunicatorAggregator] Set dev %s", dev.c_str());
 }
+
+uint64_t VirtualCommunicatorAggregator::GetAllSendMsgSize() const
+{
+    uint64_t size = 0;
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    for (const auto &communicator : communicators_) {
+        size += communicator.second->GetSendMsgSize();
+    }
+    return size;
+}
 } // namespace DistributedDB

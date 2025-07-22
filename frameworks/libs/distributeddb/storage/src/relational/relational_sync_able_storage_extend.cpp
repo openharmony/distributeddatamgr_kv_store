@@ -624,5 +624,13 @@ int RelationalSyncAbleStorage::GetLocalDataCount(const std::string &tableName, i
     ReleaseHandle(handle);
     return errCode;
 }
+
+int RelationalSyncAbleStorage::GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const
+{
+    needCompressOnSync = GetDbProperties().GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
+    compressionRate = GetDbProperties().GetIntProp(DBProperties::COMPRESSION_RATE,
+        DBConstant::DEFAULT_COMPTRESS_RATE);
+    return E_OK;
+}
 }
 #endif

@@ -86,11 +86,10 @@ public:
     std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
 
     void SetTargetUserId(const std::string &userId);
+
+    uint64_t GetSendMsgSize() const;
 private:
-    int TimeSync();
-    int DataSync();
-    int WaterMarkSync();
-    static int TranslateMsg(const Message *inMsg, Message *&outMsg);
+    int TranslateMsg(const Message *inMsg, Message *&outMsg);
 
     mutable std::mutex onMessageLock_;
     OnMessageCallback onMessage_;
@@ -117,6 +116,7 @@ private:
     uint16_t remoteVersion_ = UINT16_MAX;
 
     std::string targetUserId_;
+    std::atomic<uint64_t> sendMsgSize_ = 0;
 };
 } // namespace DistributedDB
 

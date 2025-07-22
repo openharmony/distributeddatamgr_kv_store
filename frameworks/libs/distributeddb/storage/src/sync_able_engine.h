@@ -50,6 +50,8 @@ public:
         uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
+
+    int GetDeviceSyncTaskCount();
 private:
     // Start syncer
     int StartSyncer(bool isCheckSyncActive = false, bool isNeedActive = true);

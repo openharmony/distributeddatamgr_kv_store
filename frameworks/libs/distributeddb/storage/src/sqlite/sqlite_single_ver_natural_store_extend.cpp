@@ -314,8 +314,8 @@ int SQLiteSingleVerNaturalStore::DeleteMetaDataByPrefixKey(const Key &keyPrefix)
 
 int SQLiteSingleVerNaturalStore::GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const
 {
-    needCompressOnSync = GetDbProperties().GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
-    compressionRate = GetDbProperties().GetIntProp(KvDBProperties::COMPRESSION_RATE,
+    needCompressOnSync = GetDbProperties().GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
+    compressionRate = GetDbProperties().GetIntProp(DBProperties::COMPRESSION_RATE,
         DBConstant::DEFAULT_COMPTRESS_RATE);
     return E_OK;
 }

@@ -64,8 +64,6 @@ public:
     static const std::string CONFLICT_RESOLVE_POLICY;
     static const std::string CHECK_INTEGRITY;
     static const std::string RM_CORRUPTED_DB;
-    static const std::string COMPRESS_ON_SYNC;
-    static const std::string COMPRESSION_RATE;
     static const std::string LOCAL_ONLY;
 
     static const std::string SHARED_MODE;

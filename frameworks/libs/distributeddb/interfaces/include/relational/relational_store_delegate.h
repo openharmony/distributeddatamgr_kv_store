@@ -42,6 +42,8 @@ public:
         CipherPassword passwd;
         uint32_t iterateTimes = 0;
         DistributedTableMode tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
+        bool isNeedCompressOnSync = false;
+        uint8_t compressionRate = 100; // Valid in [1, 100]
     };
 
     struct StoreConfig {
@@ -165,6 +167,11 @@ public:
     DB_API virtual DBStatus OperateDataStatus([[gnu::unused]] uint32_t dataOperator)
     {
         return OK;
+    }
+
+    DB_API virtual int32_t GetDeviceSyncTaskCount()
+    {
+        return 0;
     }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;

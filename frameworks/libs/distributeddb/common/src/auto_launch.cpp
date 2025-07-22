@@ -1039,9 +1039,9 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
         propertiesPtr->SetIntProp(KvDBProperties::SECURITY_LABEL, param.option.secOption.securityLabel);
         propertiesPtr->SetIntProp(KvDBProperties::SECURITY_FLAG, param.option.secOption.securityFlag);
     }
-    propertiesPtr->SetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, param.option.isNeedCompressOnSync);
+    propertiesPtr->SetBoolProp(DBProperties::COMPRESS_ON_SYNC, param.option.isNeedCompressOnSync);
     if (param.option.isNeedCompressOnSync) {
-        propertiesPtr->SetIntProp(KvDBProperties::COMPRESSION_RATE,
+        propertiesPtr->SetIntProp(DBProperties::COMPRESSION_RATE,
             ParamCheckUtils::GetValidCompressionRate(param.option.compressionRate));
     }
     propertiesPtr->SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, param.option.syncDualTupleMode);
@@ -1070,6 +1070,11 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
             return -E_INVALID_ARGS;
         }
         propertiesPtr->SetCipherArgs(param.option.cipher, param.option.passwd, param.option.iterateTimes);
+    }
+    propertiesPtr->SetBoolProp(DBProperties::COMPRESS_ON_SYNC, param.option.isNeedCompressOnSync);
+    if (param.option.isNeedCompressOnSync) {
+        propertiesPtr->SetIntProp(DBProperties::COMPRESSION_RATE,
+            ParamCheckUtils::GetValidCompressionRate(param.option.compressionRate));
     }
     return E_OK;
 }

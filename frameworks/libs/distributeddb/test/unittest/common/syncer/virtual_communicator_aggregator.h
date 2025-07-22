@@ -107,6 +107,8 @@ public:
 
     void SetRemoteDeviceId(const std::string &dev);
 
+    uint64_t GetAllSendMsgSize() const;
+
     ~VirtualCommunicatorAggregator() override = default;
     VirtualCommunicatorAggregator() = default;
 

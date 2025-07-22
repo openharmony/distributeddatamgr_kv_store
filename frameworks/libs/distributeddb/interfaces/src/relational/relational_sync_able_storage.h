@@ -272,6 +272,8 @@ public:
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status) override;
 
     bool IsExistTableContainAssets() override;
+
+    int GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

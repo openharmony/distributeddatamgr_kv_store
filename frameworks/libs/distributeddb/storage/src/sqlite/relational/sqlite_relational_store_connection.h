@@ -84,6 +84,8 @@ public:
 #endif
 
     int OperateDataStatus(uint32_t dataOperator) override;
+
+    int32_t GetDeviceSyncTaskCount() override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

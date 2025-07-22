@@ -221,7 +221,7 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
     if (errCode != E_OK) {
         return errCode;
     }
-
+    sendMsgSize_ += buffer->GetSize();
     outMsg = ProtocolProto::ToMessage(buffer, errCode);
     delete buffer;
     buffer = nullptr;
@@ -245,5 +245,10 @@ std::string VirtualCommunicator::GetTargetUserId(const ExtendInfo &paramInfo) co
 void VirtualCommunicator::SetTargetUserId(const std::string &userId)
 {
     targetUserId_ = userId;
+}
+
+uint64_t VirtualCommunicator::GetSendMsgSize() const
+{
+    return sendMsgSize_;
 }
 } // namespace DistributedDB

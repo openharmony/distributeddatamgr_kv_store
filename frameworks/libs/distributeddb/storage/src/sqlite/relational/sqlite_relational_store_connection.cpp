@@ -525,5 +525,15 @@ int SQLiteRelationalStoreConnection::OperateDataStatus(uint32_t dataOperator)
     }
     return store->OperateDataStatus(dataOperator);
 }
+
+int32_t SQLiteRelationalStoreConnection::GetDeviceSyncTaskCount()
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when get device sync task count.");
+        return 0;
+    }
+    return store->GetDeviceSyncTaskCount();
+}
 }
 #endif

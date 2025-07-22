@@ -186,6 +186,22 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
         LOGE("Failed to check dual tuple sync mode for rdb.");
         return -E_MODE_MISMATCH;
     }
+    bool compressOnSyncUser = prop.GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
+    bool compressOnSyncGet = existedProp.GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
+    if (compressOnSyncUser != compressOnSyncGet) {
+        LOGE("Failed to check compress option, the input %d not match with cached %d.", compressOnSyncUser,
+             compressOnSyncGet);
+        return -E_INVALID_ARGS;
+    }
+    if (compressOnSyncUser) {
+        int compressRateUser = prop.GetIntProp(DBProperties::COMPRESSION_RATE, 0);
+        int compressRateGet = existedProp.GetIntProp(DBProperties::COMPRESSION_RATE, 0);
+        if (compressRateUser != compressRateGet) {
+            LOGE("Failed to check compress rate, the input %d not match with cached %d.", compressRateUser,
+                compressRateGet);
+            return -E_INVALID_ARGS;
+        }
+    }
     return E_OK;
 }
 }
