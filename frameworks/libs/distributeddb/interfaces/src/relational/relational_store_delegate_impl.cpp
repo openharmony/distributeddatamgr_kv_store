@@ -604,7 +604,9 @@ int32_t RelationalStoreDelegateImpl::GetDeviceSyncTaskCount()
         LOGW("[RelationalStore Delegate] Invalid connection for get device sync task count.");
         return 0;
     }
-    return conn_->GetDeviceSyncTaskCount();
+    int32_t count = conn_->GetDeviceSyncTaskCount();
+    LOGI("[RelationalStore Delegate] Get device sync task count %" PRId32, count);
+    return count;
 }
 } // namespace DistributedDB
 #endif

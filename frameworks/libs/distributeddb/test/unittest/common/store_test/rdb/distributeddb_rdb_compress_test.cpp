@@ -13,8 +13,13 @@
  * limitations under the License.
  */
 
-
 #include "rdb_general_ut.h"
+#include "relational_store_delegate_impl.h"
+#include "single_ver_relational_syncer.h"
+#include "sqlite_relational_store.h"
+#include "sqlite_relational_store_connection.h"
+#include "sync_able_engine.h"
+#include "mock_sync_engine.h"
 
 namespace DistributedDB {
 using namespace testing::ext;
@@ -184,7 +189,7 @@ void DistributedDBRDBCompressTest::CompressTest(bool store1Compress, bool store2
  */
 HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync001, TestSize.Level0)
 {
-    CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PUSH_ONLY);
+    ASSERT_NO_FATAL_FAILURE(CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PUSH_ONLY));
 }
 
 /**
@@ -195,7 +200,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync001, TestSize.Level0)
  */
 HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync002, TestSize.Level0)
 {
-    CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY);
+    ASSERT_NO_FATAL_FAILURE(CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY));
 }
 
 /**
@@ -207,7 +212,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync002, TestSize.Level0)
 HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync003, TestSize.Level1)
 {
     mode_ = DistributedTableMode::SPLIT_BY_DEVICE;
-    CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PUSH_ONLY);
+    ASSERT_NO_FATAL_FAILURE(CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PUSH_ONLY));
 }
 
 /**
@@ -219,7 +224,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync003, TestSize.Level1)
 HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync004, TestSize.Level1)
 {
     mode_ = DistributedTableMode::SPLIT_BY_DEVICE;
-    CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY);
+    ASSERT_NO_FATAL_FAILURE(CompressTest(true, true, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY));
 }
 
 /**
@@ -230,7 +235,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync004, TestSize.Level1)
  */
 HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync005, TestSize.Level1)
 {
-    CompressTest(true, false, 100, 100, SyncMode::SYNC_MODE_PUSH_ONLY);
+    ASSERT_NO_FATAL_FAILURE(CompressTest(true, false, 100, 100, SyncMode::SYNC_MODE_PUSH_ONLY));
 }
 
 /**
@@ -241,7 +246,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync005, TestSize.Level1)
  */
 HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync006, TestSize.Level1)
 {
-    CompressTest(true, false, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY);
+    ASSERT_NO_FATAL_FAILURE(CompressTest(true, false, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY));
 }
 
 /**
@@ -250,7 +255,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync006, TestSize.Level1)
  * @tc.type: FUNC
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress001, TestSize.Level1)
+HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress001, TestSize.Level0)
 {
     ASSERT_NO_FATAL_FAILURE(InitInfo(info1_, DEVICE_A, mode_, true, 0));
     RDBGeneralUt::CloseAllDelegate();
@@ -267,7 +272,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress001, TestSize.Level1)
  * @tc.type: FUNC
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress002, TestSize.Level1)
+HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress002, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. Open store1 with compress and rate1.
@@ -287,6 +292,10 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress002, TestSize.Level1)
      * @tc.expected: step3. Open failed by conflict with cache
      */
     InitOption(mode_, false, 1); // compress rate is 1
+    std::tie(errCode, delegate) = OpenRDBStore(info1_);
+    EXPECT_EQ(errCode, INVALID_ARGS);
+    EXPECT_EQ(delegate, nullptr);
+    InitOption(mode_, true, 100); // compress rate is 100
     std::tie(errCode, delegate) = OpenRDBStore(info1_);
     EXPECT_EQ(errCode, INVALID_ARGS);
     EXPECT_EQ(delegate, nullptr);
@@ -314,7 +323,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress002, TestSize.Level1)
  * @tc.type: FUNC
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCompressTest, RDBGetDevTaskCount001, TestSize.Level1)
+HWTEST_F(DistributedDBRDBCompressTest, RDBGetDevTaskCount001, TestSize.Level0)
 {
     std::atomic<bool> checkFlag = false;
     RegBeforeDispatch([this, &checkFlag](const std::string &dev, const Message *inMsg) {
@@ -342,7 +351,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBGetDevTaskCount001, TestSize.Level1)
  * @tc.type: FUNC
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCompressTest, VerifyDeviceSyncTaskCountAfterRemoteQuery001, TestSize.Level1)
+HWTEST_F(DistributedDBRDBCompressTest, VerifyDeviceSyncTaskCountAfterRemoteQuery001, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. Init store1 and store2.
@@ -366,5 +375,27 @@ HWTEST_F(DistributedDBRDBCompressTest, VerifyDeviceSyncTaskCountAfterRemoteQuery
     RemoteQuery(info1_, info2_, "SELECT * FROM DEVICE_SYNC_TABLE", OK);
     RegBeforeDispatch(nullptr);
     EXPECT_GT(msgCount, 0);
+}
+
+/**
+ * @tc.name: VerifyInvalidGetDeviceSyncTaskCount001
+ * @tc.desc: Test abnormal get device task count.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBCompressTest, VerifyInvalidGetDeviceSyncTaskCount001, TestSize.Level0)
+{
+    RelationalStoreDelegateImpl delegate;
+    EXPECT_EQ(delegate.GetDeviceSyncTaskCount(), 0);
+    SyncAbleEngine engine(nullptr);
+    EXPECT_EQ(engine.GetDeviceSyncTaskCount(), 0);
+    SQLiteRelationalStore store;
+    EXPECT_EQ(store.GetDeviceSyncTaskCount(), 0);
+    SQLiteRelationalStoreConnection connection(nullptr);
+    EXPECT_EQ(connection.GetDeviceSyncTaskCount(), 0);
+    MockSyncEngine syncEngine;
+    EXPECT_EQ(syncEngine.GetRemoteQueryTaskCount(), 0);
+    SingleVerRelationalSyncer syncer;
+    EXPECT_EQ(syncer.GetTaskCount(), 0);
 }
 }

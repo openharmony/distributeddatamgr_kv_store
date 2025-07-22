@@ -1152,3 +1152,32 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunchRelational001, TestSize.Leve
     mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
     EXPECT_EQ(mode, DistributedTableMode::COLLABORATION);
 }
+
+void GetAutoLaunchPropertiesTest(DBTypeInner type)
+{
+    AutoLaunchOption defaultOption;
+    defaultOption.compressionRate = 100;
+    AutoLaunchParam param = {USER_ID, APP_ID, STORE_ID_0, defaultOption, nullptr, "", ""};
+    std::shared_ptr<DBProperties> ptr;
+    int errCode = AutoLaunch::GetAutoLaunchProperties(param, type, false, ptr);
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(ptr, nullptr);
+    EXPECT_EQ(ptr->GetIntProp(DBProperties::COMPRESSION_RATE, 0), 0);
+    param.option.isNeedCompressOnSync = true;
+    errCode = AutoLaunch::GetAutoLaunchProperties(param, type, false, ptr);
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(ptr, nullptr);
+    EXPECT_EQ(ptr->GetIntProp(DBProperties::COMPRESSION_RATE, 0), defaultOption.compressionRate);
+}
+
+/**
+ * @tc.name: GetAutoLaunchProperties001
+ * @tc.desc: test GetAutoLaunchProperties will give back the correct tableMode
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties001, TestSize.Level0)
+{
+    ASSERT_NO_FATAL_FAILURE(GetAutoLaunchPropertiesTest(DBTypeInner::DB_KV));
+    ASSERT_NO_FATAL_FAILURE(GetAutoLaunchPropertiesTest(DBTypeInner::DB_RELATION));
+}

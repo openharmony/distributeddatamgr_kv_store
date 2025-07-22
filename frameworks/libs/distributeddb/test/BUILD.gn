@@ -897,6 +897,11 @@ distributeddb_unittest("DistributedDBKVCompressTest") {
       [ "unittest/common/store_test/kv/distributeddb_kv_compress_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRDBCompressTest") {
+  sources =
+      [ "unittest/common/store_test/rdb/distributeddb_rdb_compress_test.cpp" ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1168,6 +1173,7 @@ group("unittest") {
     ":DistributedDBNotificationChainTest",
     ":DistributedDBParcelTest",
     ":DistributedDBRDBCollaborationTest",
+    ":DistributedDBRDBCompressTest",
     ":DistributedDBRDBDataStatusTest",
     ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
