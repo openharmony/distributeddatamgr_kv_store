@@ -15,11 +15,11 @@
 #ifndef OMIT_MULTI_VER
 #include "distributed_crud_transaction_tools.h"
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <dirent.h>
 #include <string>
 #include <sys/stat.h>
 #include <random>
-#include <algorithm>
 #include <thread>
 #include <cstdio>
 #include <chrono>
