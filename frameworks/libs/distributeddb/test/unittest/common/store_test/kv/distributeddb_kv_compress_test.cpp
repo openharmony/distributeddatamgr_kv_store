@@ -30,7 +30,8 @@ protected:
     static constexpr const char *DEVICE_B = "DEVICE_B";
 };
 
-void DistributedDBKVCompressTest::SetUp() {
+void DistributedDBKVCompressTest::SetUp()
+{
     KVGeneralUt::SetUp();
 }
 
@@ -39,7 +40,7 @@ void DistributedDBKVCompressTest::PrepareEnv(bool isNeedCompressOnSync)
     KVGeneralUt::CloseAllDelegate();
     KvStoreNbDelegate::Option option;
     option.isNeedCompressOnSync = isNeedCompressOnSync;
-    option.compressionRate = 100;
+    option.compressionRate = 100; // compress rate is 100
     SetOption(option);
     auto storeInfo1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, DEVICE_A), E_OK);

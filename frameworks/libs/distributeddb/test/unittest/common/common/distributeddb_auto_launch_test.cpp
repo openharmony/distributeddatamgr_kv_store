@@ -1156,7 +1156,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunchRelational001, TestSize.Leve
 void GetAutoLaunchPropertiesTest(DBTypeInner type)
 {
     AutoLaunchOption defaultOption;
-    defaultOption.compressionRate = 100;
+    defaultOption.compressionRate = 100; // compress rate is 100
     AutoLaunchParam param = {USER_ID, APP_ID, STORE_ID_0, defaultOption, nullptr, "", ""};
     std::shared_ptr<DBProperties> ptr;
     int errCode = AutoLaunch::GetAutoLaunchProperties(param, type, false, ptr);
