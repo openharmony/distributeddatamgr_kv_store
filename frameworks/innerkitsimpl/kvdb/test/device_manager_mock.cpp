@@ -106,1072 +106,853 @@ int32_t DeviceManager::GetEncryptedUuidByNetworkId(
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#include <new>
-#include <thread>
-#include "db_errno.h"
-#include "distributeddb_communicator_common.h"
-#include "distributeddb_tools_unit_test.h"
-#include "log_print.h"
-#include "network_adapter.h"
-#include "message.h"
-#include "mock_process_communicator.h"
-#include "serial_buffer.h"
+#include <openssl/rand.h>
 
-using namespace std;
+#include "db_common.h"
+#include "db_errno.h"
+#include "distributeddb_data_generate_unit_test.h"
+#include "distributeddb_tools_unit_test.h"
+#include "generic_single_ver_kv_entry.h"
+#include "kvdb_manager.h"
+#include "process_communicator_test_stub.h"
+#include "process_system_api_adapter_impl.h"
+#include "query_sync_object.h"
+#include "sqlite_single_ver_natural_store.h"
+#include "sqlite_single_ver_natural_store_connection.h"
+
 using namespace testing::ext;
 using namespace DistributedDB;
+using namespace DistributedDBUnitTest;
+using namespace std;
 
 namespace {
-    EnvHandle g_envDeviceA;
-    EnvHandle g_envDeviceB;
-    EnvHandle g_envDeviceC;
-    ICommunicator *g_commAA = nullptr;
-    ICommunicator *g_commAB = nullptr;
-    ICommunicator *g_commBB = nullptr;
-    ICommunicator *g_commBC = nullptr;
-    ICommunicator *g_commCC = nullptr;
-    ICommunicator *g_commCA = nullptr;
+DistributedDB::KvStoreConfig g_config;
+std::string g_testDir;
+string g_resourceDir;
+
+KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
+// define the g_kvDelegateCallback, used to get some information when open a kv store.
+DBStatus g_kvDelegateStatus = INVALID_ARGS;
+KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
+auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
+    placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
+
+const uint8_t PRESET_DATA_SIZE = 2;
+const std::string SUBSCRIBE_ID = "680A20600517073AE306B11FEA8306C57DC5102CD33E322F7C513176AA707F0C";
+
+const std::string REMOTE_DEVICE_ID = "remote_device_id";
+const std::string REMOTE_DEVICE_A = "remote_device_A";
+const std::string REMOTE_DEVICE_B = "remote_device_B";
+const Key PREFIX_KEY = { 'k' };
+const Key KEY1 = { 'k', '1' };
+const Key KEY2 = { 'k', '2' };
+const Key KEY3 = { 'k', '3' };
+const Value VALUE1 = { 'v', '1' };
+const Value VALUE2 = { 'v', '2' };
+const Value VALUE3 = { 'v', '3' };
+
+const std::string NORMAL_FBS_FILE_NAME = "normal_fbs.bfbs";
+const string SCHEMA_STRING =
+    "{\"SCHEMA_VERSION\":\"1.0\","
+    "\"SCHEMA_MODE\":\"STRICT\","
+    "\"SCHEMA_DEFINE\":{"
+    "\"field_name1\":\"BOOL\","
+    "\"field_name2\":\"BOOL\","
+    "\"field_name3\":\"INTEGER, NOT NULL\","
+    "\"field_name4\":\"LONG, DEFAULT 100\","
+    "\"field_name5\":\"DOUBLE, DEFAULT 3.14\","
+    "\"field_name6\":\"STRING, DEFAULT '3.1415'\","
+    "\"field_name7\":\"LONG, DEFAULT 100\","
+    "\"field_name8\":\"LONG, DEFAULT 100\","
+    "\"field_name9\":\"LONG, DEFAULT 100\","
+    "\"field_name10\":\"LONG, DEFAULT 100\""
+    "},"
+    "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name2\"]}";
+
+void PreSetData(uint8_t dataNum)
+{
+    EXPECT_GE(dataNum, 0); // 0 No preset data
+    EXPECT_LT(dataNum, 128); // 128 Max preset data size
+    for (uint8_t i = 0; i < dataNum; i++) {
+        Key keyA = {'K', i};
+        Value value;
+        std::string validJsonData;
+        if (i % 2 == 0) { // 2 : for data construct
+            validJsonData = R"({"field_name1":false,"field_name2":true,"field_name3":100})";
+        } else {
+            validJsonData = R"({"field_name1":false,"field_name2":false,"field_name3":100})";
+        }
+        value.assign(validJsonData.begin(), validJsonData.end());
+        EXPECT_EQ(g_kvNbDelegatePtr->Put(keyA, value), OK);
+    }
 }
 
-class DistributedDBCommunicatorDeepTest : public testing::Test {
+void CreateAndGetStore(const std::string &storeId, const std::string &schemaString,
+    SQLiteSingleVerNaturalStoreConnection *&conn, SQLiteSingleVerNaturalStore *&store, uint8_t preSetDataNum = 0)
+{
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.schema = schemaString;
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    PreSetData(preSetDataNum);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+    std::string oriIdentifier = USER_ID + "-" + APP_ID + "-" + storeId;
+    std::string identifier = DBCommon::TransferHashString(oriIdentifier);
+    KvDBProperties property;
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, identifier);
+    std::string identifierHex = DBCommon::TransferStringToHex(identifier);
+    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    property.SetStringProp(KvDBProperties::STORE_ID, storeId);
+    property.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierHex);
+    property.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, ConflictResolvePolicy::LAST_WIN);
+
+    if (!schemaString.empty()) {
+        SchemaObject schemaObj;
+        schemaObj.ParseFromSchemaString(schemaString);
+        EXPECT_EQ(schemaObj.IsSchemaValid(), true);
+        property.SetSchema(schemaObj);
+    }
+
+    int errCode = E_OK;
+    conn = static_cast<SQLiteSingleVerNaturalStoreConnection *>(KvDBManager::GetDatabaseConnection(property, errCode));
+    EXPECT_EQ(errCode, E_OK);
+    ASSERT_NE(conn, nullptr);
+    store = static_cast<SQLiteSingleVerNaturalStore *>(KvDBManager::OpenDatabase(property, errCode));
+    EXPECT_EQ(errCode, E_OK);
+    ASSERT_NE(store, nullptr);
+}
+
+#ifndef OMIT_FLATBUFFER
+std::string FbfFileToSchemaString(const std::string &fileName)
+{
+    std::string filePath = g_resourceDir + "fbs_files_for_ut/" + fileName;
+    std::ifstream is(filePath, std::ios::binary | std::ios::ate);
+    if (!is.is_open()) {
+        LOGE("[FbfFileToSchemaString] open file failed name : %s", filePath.c_str());
+        return "";
+    }
+
+    auto size = is.tellg();
+    LOGE("file size %u", static_cast<unsigned>(size));
+    std::string schema(size, '\0');
+    is.seekg(0);
+    if (is.read(&schema[0], size)) {
+        return schema;
+    }
+    LOGE("[FbfFileToSchemaString] read file failed path : %s", filePath.c_str());
+    return "";
+}
+#endif
+
+void CheckDataNumByKey(const std::string &storeId, const Key& key, size_t expSize)
+{
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.schema = SCHEMA_STRING;
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    std::vector<Entry> entries;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(key, entries), OK);
+    EXPECT_TRUE(entries.size() == expSize);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+}
+}
+
+class DistributedDBStorageSubscribeQueryTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
-    void SetUp();
-    void TearDown();
+    void SetUp() override;
+    void TearDown() override;
 };
 
-void DistributedDBCommunicatorDeepTest::SetUpTestCase(void)
+static std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter;
+void DistributedDBStorageSubscribeQueryTest::SetUpTestCase(void)
 {
-    /**
-     * @tc.setup: Create and init CommunicatorAggregator and AdapterStub
-     */
-    LOGI("[UT][DeepTest][SetUpTestCase] Enter.");
-    bool errCode = SetUpEnv(g_envDeviceA, DEVICE_NAME_A);
-    ASSERT_EQ(errCode, true);
-    errCode = SetUpEnv(g_envDeviceB, DEVICE_NAME_B);
-    ASSERT_EQ(errCode, true);
-    errCode = SetUpEnv(g_envDeviceC, DEVICE_NAME_C);
-    ASSERT_EQ(errCode, true);
-    DoRegTransformFunction();
-    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
+    g_mgr.SetProcessLabel("DistributedDBStorageSubscribeQueryTest", "test");
+    g_mgr.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>()); // export and import get devID
+
+    DistributedDBToolsUnitTest::TestDirInit(g_testDir);
+    ASSERT_EQ(DistributedDBToolsUnitTest::GetResourceDir(g_resourceDir), E_OK);
+    LOGD("Test dir is %s", g_testDir.c_str());
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/TestQuerySync/" + DBConstant::SINGLE_SUB_DIR);
+
+    g_config.dataDir = g_testDir;
+    g_mgr.SetKvStoreConfig(g_config);
+
+    g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    EXPECT_TRUE(g_adapter != nullptr);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
 }
 
-void DistributedDBCommunicatorDeepTest::TearDownTestCase(void)
+void DistributedDBStorageSubscribeQueryTest::TearDownTestCase(void)
+{
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
+
+void DistributedDBStorageSubscribeQueryTest::SetUp()
+{
+    Test::SetUp();
+    DistributedDBToolsUnitTest::PrintTestCaseInfo();
+}
+
+void DistributedDBStorageSubscribeQueryTest::TearDown()
+{
+    Test::TearDown();
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+}
+
+/**
+  * @tc.name: CheckAndInitQueryCondition001
+  * @tc.desc: Check the condition is legal or not with json schema
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition001, TestSize.Level1)
 {
     /**
-     * @tc.teardown: Finalize and release CommunicatorAggregator and AdapterStub
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: step1. Get results OK and non-null store.
      */
-    LOGI("[UT][DeepTest][TearDownTestCase] Enter.");
-    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure all thread quiet and memory released
-    TearDownEnv(g_envDeviceA);
-    TearDownEnv(g_envDeviceB);
-    TearDownEnv(g_envDeviceC);
-    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SchemaCondition01", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Create a query with prefixKey only, check it as condition.
+     * @tc.expected: step2. Check condition return E_OK.
+     */
+    Query query1 = Query::Select().PrefixKey({});
+    QueryObject queryObject1(query1);
+    int errCode = store->CheckAndInitQueryCondition(queryObject1);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step3. Create a query with predicate, check it as condition.
+     * @tc.expected: step3. Check condition return E_OK.
+     */
+    Query query2 = Query::Select().GreaterThan("field_name3", 10);
+    QueryObject queryObject2(query2);
+    errCode = store->CheckAndInitQueryCondition(queryObject2);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step4. Create a query with invalid field, check it as condition.
+     * @tc.expected: step4. Check condition return E_INVALID_QUERY_FIELD.
+     */
+    Query query3 = Query::Select().GreaterThan("field_name11", 10);
+    QueryObject queryObject3(query3);
+    errCode = store->CheckAndInitQueryCondition(queryObject3);
+    EXPECT_EQ(errCode, -E_INVALID_QUERY_FIELD);
+
+    /**
+     * @tc.steps:step5. Create a query with invalid format, check it as condition.
+     * @tc.expected: step5. Check condition return E_INVALID_QUERY_FORMAT.
+     */
+    Query query4 = Query::Select().GreaterThan("field_name3", 10).And().BeginGroup().
+        LessThan("field_name3", 100).OrderBy("field_name3").EndGroup();
+    QueryObject queryObject4(query4);
+    errCode = store->CheckAndInitQueryCondition(queryObject4);
+    EXPECT_EQ(errCode, -E_INVALID_QUERY_FORMAT);
+
+    /**
+     * @tc.steps:step6. Close natural store
+     * @tc.expected: step6. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+#ifndef OMIT_FLATBUFFER
+/**
+  * @tc.name: CheckAndInitQueryCondition002
+  * @tc.desc: Check the condition always illegal with flatbuffer schema
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a flatbuffer schema db, get the natural store instance.
+     * @tc.expected: step1. Get results OK and non-null store.
+     */
+    std::string fbSchema = FbfFileToSchemaString(NORMAL_FBS_FILE_NAME);
+    EXPECT_FALSE(fbSchema.empty());
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SchemaCondition02", fbSchema, conn, store);
+
+    /**
+     * @tc.steps:step2. Create a query, check it as condition.
+     *                  flatbuffer schema is not support with querySync and subscribe.
+     * @tc.expected: step2. Check condition return E_NOT_SUPPORT.
+     */
+    Query query1 = Query::Select().PrefixKey({});
+    QueryObject queryObject1(query1);
+    int errCode = store->CheckAndInitQueryCondition(queryObject1);
+    EXPECT_EQ(errCode, -E_NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+#endif
+
+/**
+  * @tc.name: CheckAndInitQueryCondition003
+  * @tc.desc: Check the condition always illegal with flatbuffer schema
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, CheckAndInitQueryCondition003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a kv db, get the natural store instance.
+     * @tc.expected: step1. Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SchemaCondition03", "", conn, store);
+
+    /**
+     * @tc.steps:step2. Create a prefixKey query, check it as condition.
+     * @tc.expected: step2. Check condition return E_OK.
+     */
+    Query query1 = Query::Select().PrefixKey({});
+    QueryObject queryObject1(query1);
+    int errCode = store->CheckAndInitQueryCondition(queryObject1);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. Create a predicate query, check it as condition.
+     * @tc.expected: step2. Check condition return E_NOT_SUPPORT.
+     */
+    Query query2 = Query::Select().GreaterThan("field_name3", 10);
+    QueryObject queryObject2(query2);
+    errCode = store->CheckAndInitQueryCondition(queryObject2);
+    EXPECT_EQ(errCode, -E_NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+/**
+  * @tc.name: PutSyncDataTestWithQuery
+  * @tc.desc: put remote devices sync data(get by query sync or subscribe) with query.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. create and open a schema store, preset some data;
+     * @tc.expected: step1. open success
+     */
+    const std::string storeId = "PutSyncData01";
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore(storeId, SCHEMA_STRING, conn, store, PRESET_DATA_SIZE);
+
+    /**
+     * @tc.steps:step2. Construct sync data
+     * @tc.expected: OK
+     */
+    Key key;
+    Value value;
+    Timestamp now = store->GetCurrentTimestamp();
+    LOGD("now time is : %ld", now);
+    std::vector<DataItem> data;
+    for (uint8_t i = 0; i < PRESET_DATA_SIZE; i++) {
+        DataItem item{key, value, now, DataItem::REMOTE_DEVICE_DATA_MISS_QUERY, REMOTE_DEVICE_ID, now};
+        item.key.clear();
+        DBCommon::CalcValueHash({'K', i}, item.key);
+        EXPECT_EQ(item.key.empty(), false);
+        data.push_back(item);
+    }
+
+    /**
+     * @tc.steps:step3. put sync data with query
+     * @tc.expected: step3. data put success
+     */
+    Query query = Query::Select().EqualTo("field_name2", true);
+    QueryObject queryObj(query);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+
+    /**
+     * @tc.steps:step4. Check sync data
+     * @tc.expected: step4. check data ok
+     */
+    CheckDataNumByKey(storeId, {'K'}, PRESET_DATA_SIZE / 2);
+}
+
+/**
+  * @tc.name: PutSyncDataTestWithQuery002
+  * @tc.desc: put remote devices sync data(timestamp is smaller then DB data) with query.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. create and open a schema store, preset some data;
+     * @tc.expected: step1. open success
+     */
+    const std::string storeId = "PutSyncData02";
+
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore(storeId, SCHEMA_STRING, conn, store);
+
+    Key key({'K', 'e', 'y'});
+    Value value;
+    Timestamp now = store->GetCurrentTimestamp();
+    /**
+     * @tc.steps:step2. put sync data
+     * @tc.expected: OK
+     */
+    std::string validJsonData(R"({"field_name1":false,"field_name2":true,"field_name3":100})");
+    value.assign(validJsonData.begin(), validJsonData.end());
+    std::vector<DataItem> data;
+    DataItem item{key, value, now, DataItem::LOCAL_FLAG, REMOTE_DEVICE_ID, now};
+    data.push_back(item);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID), E_OK);
+
+    /**
+     * @tc.steps:step3. put sync miss query data with smaller timestamp
+     * @tc.expected: OK
+     */
+    data.clear();
+    value.clear();
+    DataItem itemMiss{key, value, now - 1, DataItem::REMOTE_DEVICE_DATA_MISS_QUERY, REMOTE_DEVICE_ID, now - 1};
+    itemMiss.key.clear();
+    DBCommon::CalcValueHash({'K', 'e', 'y'}, itemMiss.key);
+    EXPECT_EQ(itemMiss.key.empty(), false);
+    data.push_back(itemMiss);
+    Query query = Query::Select().EqualTo("field_name2", true);
+    QueryObject queryObj(query);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+
+    /**
+     * @tc.steps:step4. Check sync data
+     * @tc.expected: check data ok, data {key} is not erased.
+     */
+    CheckDataNumByKey(storeId, {'K', 'e', 'y'}, 1);
+}
+
+/**
+  * @tc.name: PutSyncDataTestWithQuery003
+  * @tc.desc: put remote devices sync data(with same timestamp in DB data but different devices) with query.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. create and open a schema store, preset some data;
+     * @tc.expected: step1. open success
+     */
+    const std::string storeId = "PutSyncData03";
+
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore(storeId, SCHEMA_STRING, conn, store);
+
+    Key key({'K', 'e', 'y'});
+    Value value;
+    Timestamp now = store->GetCurrentTimestamp();
+    /**
+     * @tc.steps:step2. put sync data
+     * @tc.expected: OK
+     */
+    std::string validJsonData(R"({"field_name1":false,"field_name2":true,"field_name3":100})");
+    value.assign(validJsonData.begin(), validJsonData.end());
+    std::vector<DataItem> data;
+    DataItem item{key, value, now, DataItem::LOCAL_FLAG, REMOTE_DEVICE_ID, now};
+    data.push_back(item);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID), E_OK);
+
+    /**
+     * @tc.steps:step3. put sync miss query data with same timestamp
+     * @tc.expected: OK
+     */
+    data.clear();
+    DataItem itemMiss{key, {}, now, DataItem::REMOTE_DEVICE_DATA_MISS_QUERY, REMOTE_DEVICE_ID, now};
+    itemMiss.key.clear();
+    DBCommon::CalcValueHash({'K', 'e', 'y'}, itemMiss.key);
+    EXPECT_EQ(itemMiss.key.empty(), false);
+    data.push_back(itemMiss);
+    Query query = Query::Select().EqualTo("field_name2", true);
+    QueryObject queryObj(query);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+
+    /**
+     * @tc.steps:step4. Check sync data
+     * @tc.expected: check data ok, data {key} is not erased.
+     */
+    CheckDataNumByKey(storeId, {'K', 'e', 'y'}, 1);
+}
+
+/**
+  * @tc.name: PutSyncDataTestWithQuery004
+  * @tc.desc: put remote devices sync data(with same timestamp in DB data but different devices) with query.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, PutSyncDataTestWithQuery004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. create and open a schema store, preset some data;
+     * @tc.expected: step1. open success
+     */
+    const std::string storeId = "PutSyncData04";
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore(storeId, SCHEMA_STRING, conn, store);
+
+    Key key({'K', 'e', 'y'});
+    Value value;
+    Timestamp now = store->GetCurrentTimestamp();
+    /**
+     * @tc.steps:step2. put sync data
+     * @tc.expected: OK
+     */
+    std::string validJsonData(R"({"field_name1":false,"field_name2":true,"field_name3":100})");
+    value.assign(validJsonData.begin(), validJsonData.end());
+    std::vector<DataItem> data;
+    DataItem item{key, value, now, DataItem::LOCAL_FLAG, REMOTE_DEVICE_A, now};
+    data.push_back(item);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID), E_OK);
+
+    /**
+     * @tc.steps:step3. put sync miss query data with same timestamp
+     * @tc.expected: OK
+     */
+    data.clear();
+    DataItem itemMiss{key, {}, now, DataItem::REMOTE_DEVICE_DATA_MISS_QUERY, REMOTE_DEVICE_B, now};
+    itemMiss.key.clear();
+    DBCommon::CalcValueHash({'K', 'e', 'y'}, itemMiss.key);
+    EXPECT_EQ(itemMiss.key.empty(), false);
+    data.push_back(itemMiss);
+    Query query = Query::Select().EqualTo("field_name2", true);
+    QueryObject queryObj(query);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_B, queryObj), E_OK);
+
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+
+    /**
+     * @tc.steps:step4. Check sync data
+     * @tc.expected: check data ok, data {key} is not erased.
+     */
+    CheckDataNumByKey(storeId, {'K', 'e', 'y'}, 1);
+}
+
+/**
+  * @tc.name: AddSubscribeTest001
+  * @tc.desc: Add subscribe with query
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest01", SCHEMA_STRING, conn, store);
+
+    std::vector<Query> queryList;
+    queryList.push_back(Query::Select().PrefixKey({10, 20}));
+    queryList.push_back(Query::Select().EqualTo("field_name3", 30));
+    queryList.push_back(Query::Select().NotEqualTo("field_name3", 30));
+    queryList.push_back(Query::Select().GreaterThan("field_name3", 10));
+    queryList.push_back(Query::Select().LessThan("field_name3", 30));
+    queryList.push_back(Query::Select().GreaterThanOrEqualTo("field_name3", 30));
+    queryList.push_back(Query::Select().LessThanOrEqualTo("field_name3", 30));
+    queryList.push_back(Query::Select().Like("field_name6", "Abc%"));
+    queryList.push_back(Query::Select().NotLike("field_name6", "Asd%"));
+    std::vector<int> set = {1, 2, 3, 4};
+    queryList.push_back(Query::Select().In("field_name3", set));
+    queryList.push_back(Query::Select().NotIn("field_name3", set));
+    queryList.push_back(Query::Select().IsNull("field_name4"));
+    queryList.push_back(Query::Select().IsNotNull("field_name5"));
+    queryList.push_back(Query::Select().EqualTo("field_name3", 30).And().EqualTo("field_name1", true));
+    queryList.push_back(Query::Select().EqualTo("field_name3", 30).Or().EqualTo("field_name1", true));
+    queryList.push_back(Query::Select().EqualTo("field_name2", false).Or().
+        BeginGroup().EqualTo("field_name3", 30).Or().EqualTo("field_name1", true).EndGroup());
+
+    /**
+     * @tc.steps:step2. Add subscribe with query, remove subscribe.
+     * @tc.expected: success.
+     */
+    for (const auto &query : queryList) {
+        QueryObject queryObj(query);
+        EXPECT_EQ(store->AddSubscribe(SUBSCRIBE_ID, queryObj, false), E_OK);
+        EXPECT_EQ(store->RemoveSubscribe(SUBSCRIBE_ID), E_OK);
+    }
+
+    /**
+     * @tc.steps:step6. Close natural store
+     * @tc.expected: step6. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+/**
+  * @tc.name: AddSubscribeTest002
+  * @tc.desc: Add subscribe with same query not failed
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", SCHEMA_STRING, conn, store);
+
+    Query query = Query::Select().EqualTo("field_name2", false).Or().
+        BeginGroup().EqualTo("field_name3", 30).Or().EqualTo("field_name1", true).EndGroup();
+    /**
+     * @tc.steps:step2. Add subscribe with same query
+     * @tc.expected: step2. add success
+     */
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(store->RemoveSubscribe(SUBSCRIBE_ID), E_OK);
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+/**
+  * @tc.name: AddSubscribeErrTest001
+  * @tc.desc: Test invalid parameters of Subscribe
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeErrTest001, TestSize.Level1)
+{
+    DistributedDB::SQLiteSingleVerNaturalStore *store = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(store, nullptr);
+    Query query = Query::Select().EqualTo("field_name2", false);
+    QueryObject queryObj(query);
+    EXPECT_EQ(store->CheckAndInitQueryCondition(queryObj), -E_INVALID_DB);
+    EXPECT_EQ(store->AddSubscribe(SUBSCRIBE_ID, queryObj, false), -E_INVALID_DB);
+    EXPECT_EQ(store->RemoveSubscribe(SUBSCRIBE_ID), -E_INVALID_DB);
+    RefObject::DecObjRef(store);
 }
 
 namespace {
-void AllocAllCommunicator()
+void PutSyncData(SQLiteSingleVerNaturalStore *store, const Key &key, const std::string &valStr)
 {
-    int errorNo = E_OK;
-    g_commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAA, "");
-    g_commAB = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAB, "");
-    g_commBB = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBB, "");
-    g_commBC = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_C, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBC, "");
-    g_commCC = g_envDeviceC.commAggrHandle->AllocCommunicator(LABEL_C, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCC, "");
-    g_commCA = g_envDeviceC.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCA, "");
-}
-
-void ReleaseAllCommunicator()
-{
-    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAA);
-    g_commAA = nullptr;
-    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAB);
-    g_commAB = nullptr;
-    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBB);
-    g_commBB = nullptr;
-    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBC);
-    g_commBC = nullptr;
-    g_envDeviceC.commAggrHandle->ReleaseCommunicator(g_commCC);
-    g_commCC = nullptr;
-    g_envDeviceC.commAggrHandle->ReleaseCommunicator(g_commCA);
-    g_commCA = nullptr;
-}
-}
-
-void DistributedDBCommunicatorDeepTest::SetUp()
-{
-    DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
-    /**
-     * @tc.setup: Alloc communicator AA, AB, BB, BC, CC, CA
-     */
-    AllocAllCommunicator();
-}
-
-void DistributedDBCommunicatorDeepTest::TearDown()
-{
-    /**
-     * @tc.teardown: Release communicator AA, AB, BB, BC, CC, CA
-     */
-    ReleaseAllCommunicator();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure all thread quiet
-}
-
-/**
- * @tc.name: WaitAndRetrySend 001
- * @tc.desc: Test send retry semantic
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2)
-{
-    // Preset
-    Message *msgForBB = nullptr;
-    g_commBB->RegOnMessageCallback([&msgForBB](const std::string &srcTarget, Message *inMsg) {
-        msgForBB = inMsg;
-    }, nullptr);
-    Message *msgForCA = nullptr;
-    g_commCA->RegOnMessageCallback([&msgForCA](const std::string &srcTarget, Message *inMsg) {
-        msgForCA = inMsg;
-    }, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device A with device B
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure quiet
-
-    /**
-     * @tc.steps: step2. device A simulate send retry
-     */
-    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
-
-    /**
-     * @tc.steps: step3. device A send message to device B using communicator AB
-     * @tc.expected: step3. communicator BB received no message
-     */
-    Message *msgForAB = BuildRegedTinyMessage();
-    ASSERT_NE(msgForAB, nullptr);
-    SendConfig conf = {true, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, msgForAB, conf);
-    EXPECT_EQ(errCode, E_OK);
-
-    Message *msgForAA = BuildRegedTinyMessage();
-    ASSERT_NE(msgForAA, nullptr);
-    errCode = g_commAA->SendMessage(DEVICE_NAME_C, msgForAA, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
-    EXPECT_EQ(msgForBB, nullptr);
-    EXPECT_NE(msgForCA, nullptr);
-    delete msgForCA;
-    msgForCA = nullptr;
-
-    /**
-     * @tc.steps: step4. device A simulate sendable feedback
-     * @tc.expected: step4. communicator BB received the message
-     */
-    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
-    EXPECT_NE(msgForBB, nullptr);
-    delete msgForBB;
-    msgForBB = nullptr;
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-}
-
-static int CreateBufferThenAddIntoScheduler(SendTaskScheduler &scheduler, const std::string &dstTarget, Priority inPrio)
-{
-    SerialBuffer *eachBuff = new (std::nothrow) SerialBuffer();
-    if (eachBuff == nullptr) {
-        return -E_OUT_OF_MEMORY;
-    }
-    int errCode = eachBuff->AllocBufferByTotalLength(100, 0); // 100 totallen without header
-    if (errCode != E_OK) {
-        delete eachBuff;
-        eachBuff = nullptr;
-        return errCode;
-    }
-    SendTask task{eachBuff, dstTarget, nullptr, 0u};
-    errCode = scheduler.AddSendTaskIntoSchedule(task, inPrio);
-    if (errCode != E_OK) {
-        delete eachBuff;
-        eachBuff = nullptr;
-        return errCode;
-    }
-    return E_OK;
-}
-
-/**
- * @tc.name: SendSchedule 001
- * @tc.desc: Test schedule in Priority order than in send order
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, SendSchedule001, TestSize.Level2)
-{
-    // Preset
-    SendTaskScheduler scheduler;
-    scheduler.Initialize();
-
-    /**
-     * @tc.steps: step1. Add low priority target A buffer to schecduler
-     */
-    int errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_A, Priority::LOW);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step2. Add low priority target B buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_B, Priority::LOW);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step3. Add normal priority target B buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_B, Priority::NORMAL);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step4. Add normal priority target C buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_C, Priority::NORMAL);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step5. Add high priority target C buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_C, Priority::HIGH);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step6. Add high priority target A buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_A, Priority::HIGH);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step7. schedule out buffers one by one
-     * @tc.expected: step7. the order is: high priority target C
-     *                                    high priority target A
-     *                                    normal priority target B
-     *                                    normal priority target C
-     *                                    low priority target A
-     *                                    low priority target B
-     */
-    SendTask outTask;
-    SendTaskInfo outTaskInfo;
-    uint32_t totalLength = 0;
-    // high priority target C
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_C);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::HIGH);
-    scheduler.FinalizeLastScheduleTask();
-    // high priority target A
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_A);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::HIGH);
-    scheduler.FinalizeLastScheduleTask();
-    // normal priority target B
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_B);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::NORMAL);
-    scheduler.FinalizeLastScheduleTask();
-    // normal priority target C
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_C);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::NORMAL);
-    scheduler.FinalizeLastScheduleTask();
-    // low priority target A
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_A);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::LOW);
-    scheduler.FinalizeLastScheduleTask();
-    // low priority target B
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_B);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::LOW);
-    scheduler.FinalizeLastScheduleTask();
-}
-
-/**
- * @tc.name: Fragment 001
- * @tc.desc: Test fragmentation in send and receive
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment001, TestSize.Level2)
-{
-    // Preset
-    Message *recvMsgForBB = nullptr;
-    g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
-        recvMsgForBB = inMsg;
-    }, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device A with device B
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-
-    /**
-     * @tc.steps: step2. device A send message(registered and giant) to device B using communicator AB
-     * @tc.expected: step2. communicator BB received the message
-     */
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForAB, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsgForAB, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2600)); // Wait 2600 ms to make sure send done
-    ASSERT_NE(recvMsgForBB, nullptr);
-    ASSERT_EQ(recvMsgForBB->GetMessageId(), REGED_GIANT_MSG_ID);
-
-    /**
-     * @tc.steps: step3. Compare received data with send data
-     * @tc.expected: step3. equal
-     */
-    Message *oriMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(oriMsgForAB, nullptr);
-    const RegedGiantObject *oriObjForAB = oriMsgForAB->GetObject<RegedGiantObject>();
-    ASSERT_NE(oriObjForAB, nullptr);
-    const RegedGiantObject *recvObjForBB = recvMsgForBB->GetObject<RegedGiantObject>();
-    ASSERT_NE(recvObjForBB, nullptr);
-    bool isEqual = RegedGiantObject::CheckEqual(*oriObjForAB, *recvObjForBB);
-    EXPECT_EQ(isEqual, true);
-
-    // CleanUp
-    delete oriMsgForAB;
-    oriMsgForAB = nullptr;
-    delete recvMsgForBB;
-    recvMsgForBB = nullptr;
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-}
-
-/**
- * @tc.name: Fragment 002
- * @tc.desc: Test fragmentation in partial loss
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment002, TestSize.Level2)
-{
-    // Preset
-    Message *recvMsgForCC = nullptr;
-    g_commCC->RegOnMessageCallback([&recvMsgForCC](const std::string &srcTarget, Message *inMsg) {
-        recvMsgForCC = inMsg;
-    }, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device B with device C
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure quiet
-
-    /**
-     * @tc.steps: step2. device B simulate partial loss
-     */
-    g_envDeviceB.adapterHandle->SimulateSendPartialLoss();
-
-    /**
-     * @tc.steps: step3. device B send message(registered and giant) to device C using communicator BC
-     * @tc.expected: step3. communicator CC not receive the message
-     */
-    uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsgForBC = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForBC, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commBC->SendMessage(DEVICE_NAME_C, sendMsgForBC, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2600)); // Wait 2600 ms to make sure send done
-    EXPECT_EQ(recvMsgForCC, nullptr);
-
-    /**
-     * @tc.steps: step4. device B not simulate partial loss
-     */
-    g_envDeviceB.adapterHandle->SimulateSendPartialLossClear();
-
-    /**
-     * @tc.steps: step5. device B send message(registered and giant) to device C using communicator BC
-     * @tc.expected: step5. communicator CC received the message, the length equal to the one that is second send
-     */
-    dataLength = 17 * 1024 * 1024; // 17 MB, 1024 is scale
-    Message *resendMsgForBC = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(resendMsgForBC, nullptr);
-    errCode = g_commBC->SendMessage(DEVICE_NAME_C, resendMsgForBC, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(3400)); // Wait 3400 ms to make sure send done
-    ASSERT_NE(recvMsgForCC, nullptr);
-    ASSERT_EQ(recvMsgForCC->GetMessageId(), REGED_GIANT_MSG_ID);
-    const RegedGiantObject *recvObjForCC = recvMsgForCC->GetObject<RegedGiantObject>();
-    ASSERT_NE(recvObjForCC, nullptr);
-    EXPECT_EQ(dataLength, recvObjForCC->rawData_.size());
-
-    // CleanUp
-    delete recvMsgForCC;
-    recvMsgForCC = nullptr;
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-}
-
-/**
- * @tc.name: Fragment 003
- * @tc.desc: Test fragmentation simultaneously
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
-{
-    // Preset
-    std::atomic<int> count {0};
-    OnMessageCallback callback = [&count](const std::string &srcTarget, Message *inMsg) {
-        delete inMsg;
-        inMsg = nullptr;
-        count.fetch_add(1, std::memory_order_seq_cst);
-    };
-    g_commBB->RegOnMessageCallback(callback, nullptr);
-    g_commBC->RegOnMessageCallback(callback, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device A with device B, then device B with device C
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::milliseconds(400)); // Wait 400 ms to make sure quiet
-
-    /**
-     * @tc.steps: step2. device A and device C simulate send block
-     */
-    g_envDeviceA.adapterHandle->SimulateSendBlock();
-    g_envDeviceC.adapterHandle->SimulateSendBlock();
-
-    /**
-     * @tc.steps: step3. device A send message(registered and giant) to device B using communicator AB
-     */
-    uint32_t dataLength = 23 * 1024 * 1024; // 23 MB, 1024 is scale
-    Message *sendMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForAB, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsgForAB, conf);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step4. device C send message(registered and giant) to device B using communicator CC
-     */
-    Message *sendMsgForCC = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForCC, nullptr);
-    errCode = g_commCC->SendMessage(DEVICE_NAME_B, sendMsgForCC, conf);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step5. device A and device C not simulate send block
-     * @tc.expected: step5. communicator BB and BV received the message
-     */
-    g_envDeviceA.adapterHandle->SimulateSendBlockClear();
-    g_envDeviceC.adapterHandle->SimulateSendBlockClear();
-    std::this_thread::sleep_for(std::chrono::milliseconds(9200)); // Wait 9200 ms to make sure send done
-    EXPECT_EQ(count, 2); // 2 combined message received
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-}
-
-/**
- * @tc.name: Fragment 004
- * @tc.desc: Test fragmentation in send and receive when rate limit
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
-{
-    /**
-     * @tc.steps: step1. connect device A with device B
-     */
-    Message *recvMsgForBB = nullptr;
-    g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
-        recvMsgForBB = inMsg;
-    }, nullptr);
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    std::atomic<int> count = 0;
-    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
-        count++;
-        if (count % 3 == 0) { // retry each 3 packet
-            return -E_WAIT_RETRY;
-        }
-        return E_OK;
-    });
-    /**
-     * @tc.steps: step2. device A send message(registered and giant) to device B using communicator AB
-     * @tc.expected: step2. communicator BB received the message
-     */
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsg = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
-    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
-    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B);
-    int reTryTimes = 5;
-    while (recvMsgForBB == nullptr && reTryTimes > 0) {
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        reTryTimes--;
-    }
-    ASSERT_NE(recvMsgForBB, nullptr);
-    ASSERT_EQ(recvMsgForBB->GetMessageId(), REGED_GIANT_MSG_ID);
-    /**
-     * @tc.steps: step3. Compare received data with send data
-     * @tc.expected: step3. equal
-     */
-    Message *oriMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(oriMsgForAB, nullptr);
-    auto *recvObjForBB = recvMsgForBB->GetObject<RegedGiantObject>();
-    ASSERT_NE(recvObjForBB, nullptr);
-    auto *oriObjForAB = oriMsgForAB->GetObject<RegedGiantObject>();
-    ASSERT_NE(oriObjForAB, nullptr);
-    bool isEqual = RegedGiantObject::CheckEqual(*oriObjForAB, *recvObjForBB);
-    EXPECT_EQ(isEqual, true);
-    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    delete oriMsgForAB;
-    oriMsgForAB = nullptr;
-    delete recvMsgForBB;
-    recvMsgForBB = nullptr;
-}
-
-namespace {
-void ClearPreviousTestCaseInfluence()
-{
-    ReleaseAllCommunicator();
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::seconds(10)); // Wait 10 s to make sure all thread quiet
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-    AllocAllCommunicator();
+    Value value(valStr.begin(), valStr.end());
+    std::vector<DataItem> data;
+    Timestamp now = store->GetCurrentTimestamp();
+    DataItem item{key, value, now, DataItem::LOCAL_FLAG, REMOTE_DEVICE_A, now};
+    data.push_back(item);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID), E_OK);
 }
 }
 
 /**
- * @tc.name: ReliableOnline 001
- * @tc.desc: Test device online reliability
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, ReliableOnline001, TestSize.Level2)
-{
-    // Preset
-    ClearPreviousTestCaseInfluence();
-    std::atomic<int> count {0};
-    OnConnectCallback callback = [&count](const std::string &target, bool isConnect) {
-        if (isConnect) {
-            count.fetch_add(1, std::memory_order_seq_cst);
-        }
-    };
-    g_commAA->RegOnConnectCallback(callback, nullptr);
-    g_commAB->RegOnConnectCallback(callback, nullptr);
-    g_commBB->RegOnConnectCallback(callback, nullptr);
-    g_commBC->RegOnConnectCallback(callback, nullptr);
-    g_commCC->RegOnConnectCallback(callback, nullptr);
-    g_commCA->RegOnConnectCallback(callback, nullptr);
-
-    /**
-     * @tc.steps: step1. device A and device B and device C simulate send total loss
-     */
-    g_envDeviceA.adapterHandle->SimulateSendTotalLoss();
-    g_envDeviceB.adapterHandle->SimulateSendTotalLoss();
-    g_envDeviceC.adapterHandle->SimulateSendTotalLoss();
-
-    /**
-     * @tc.steps: step2. connect device A with device B, device B with device C, device C with device A
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-
-    /**
-     * @tc.steps: step3. wait a long time
-     * @tc.expected: step3. no communicator received the online callback
-     */
-    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure quiet
-    EXPECT_EQ(count, 0); // no online callback received
-
-    /**
-     * @tc.steps: step4. device A and device B and device C not simulate send total loss
-     */
-    g_envDeviceA.adapterHandle->SimulateSendTotalLossClear();
-    g_envDeviceB.adapterHandle->SimulateSendTotalLossClear();
-    g_envDeviceC.adapterHandle->SimulateSendTotalLossClear();
-    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure send done
-    EXPECT_EQ(count, 6); // 6 online callback received in total
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-}
-
-/**
- * @tc.name: NetworkAdapter001
- * @tc.desc: Test networkAdapter start func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    EXPECT_CALL(*processCommunicator, Stop()).WillRepeatedly(testing::Return(OK));
-    /**
-     * @tc.steps: step1. adapter start with empty label
-     * @tc.expected: step1. start failed
-     */
-    auto adapter = std::make_shared<NetworkAdapter>("");
-    EXPECT_EQ(adapter->StartAdapter(), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step2. adapter start with not empty label but processCommunicator is null
-     * @tc.expected: step2. start failed
-     */
-    adapter = std::make_shared<NetworkAdapter>("label");
-    EXPECT_EQ(adapter->StartAdapter(), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step3. processCommunicator start not ok
-     * @tc.expected: step3. start failed
-     */
-    adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly(testing::Return(DB_ERROR));
-    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    /**
-     * @tc.steps: step4. processCommunicator reg not ok
-     * @tc.expected: step4. start failed
-     */
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly(testing::Return(OK));
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(testing::Return(DB_ERROR));
-    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(testing::Return(OK));
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(testing::Return(DB_ERROR));
-    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    /**
-     * @tc.steps: step5. processCommunicator reg ok
-     * @tc.expected: step5. start success
-     */
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(testing::Return(OK));
-    EXPECT_CALL(*processCommunicator, GetLocalDeviceInfos).WillRepeatedly([]() {
-        DeviceInfos deviceInfos;
-        deviceInfos.identifier = "DEVICES_A"; // local is deviceA
-        return deviceInfos;
-    });
-    EXPECT_CALL(*processCommunicator, GetRemoteOnlineDeviceInfosList).WillRepeatedly([]() {
-        std::vector<DeviceInfos> res;
-        DeviceInfos deviceInfos;
-        deviceInfos.identifier = "DEVICES_A"; // search local is deviceA
-        res.push_back(deviceInfos);
-        deviceInfos.identifier = "DEVICES_B"; // search remote is deviceB
-        res.push_back(deviceInfos);
-        return res;
-    });
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return false;
-    });
-    EXPECT_EQ(adapter->StartAdapter(), E_OK);
-    RuntimeContext::GetInstance()->StopTaskPool();
-}
-
-/**
- * @tc.name: NetworkAdapter002
- * @tc.desc: Test networkAdapter get mtu func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter002, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    /**
-     * @tc.steps: step1. processCommunicator return 0 mtu
-     * @tc.expected: step1. adapter will adjust to min mtu
-     */
-    EXPECT_CALL(*processCommunicator, GetMtuSize).WillRepeatedly([]() {
-        return 0u;
-    });
-    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MIN_MTU_SIZE);
-    /**
-     * @tc.steps: step2. processCommunicator return 2 max mtu
-     * @tc.expected: step2. adapter will return min mtu util re make
-     */
-    EXPECT_CALL(*processCommunicator, GetMtuSize).WillRepeatedly([]() {
-        return 2 * DBConstant::MAX_MTU_SIZE;
-    });
-    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MIN_MTU_SIZE);
-    adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MAX_MTU_SIZE);
-}
-
-/**
- * @tc.name: NetworkAdapter003
- * @tc.desc: Test networkAdapter get timeout func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter003, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    /**
-     * @tc.steps: step1. processCommunicator return 0 timeout
-     * @tc.expected: step1. adapter will adjust to min timeout
-     */
-    EXPECT_CALL(*processCommunicator, GetTimeout).WillRepeatedly([]() {
-        return 0u;
-    });
-    EXPECT_EQ(adapter->GetTimeout(), DBConstant::MIN_TIMEOUT);
-    /**
-     * @tc.steps: step2. processCommunicator return 2 max timeout
-     * @tc.expected: step2. adapter will adjust to max timeout
-     */
-    EXPECT_CALL(*processCommunicator, GetTimeout).WillRepeatedly([]() {
-        return 2 * DBConstant::MAX_TIMEOUT;
-    });
-    EXPECT_EQ(adapter->GetTimeout(), DBConstant::MAX_TIMEOUT);
-}
-
-/**
- * @tc.name: NetworkAdapter004
- * @tc.desc: Test networkAdapter send bytes func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter004, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-
-    EXPECT_CALL(*processCommunicator, SendData).WillRepeatedly([](const DeviceInfos &, const uint8_t *, uint32_t) {
-        return OK;
-    });
-    /**
-     * @tc.steps: step1. adapter send data with error param
-     * @tc.expected: step1. adapter send failed
-     */
-    auto data = std::make_shared<uint8_t>(1u);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1, 0), -E_INVALID_ARGS);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0, 0), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step2. adapter send data with right param
-     * @tc.expected: step2. adapter send ok
-     */
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1, 0), E_OK);
-    RuntimeContext::GetInstance()->StopTaskPool();
-}
-
-namespace {
-void InitAdapter(const std::shared_ptr<NetworkAdapter> &adapter,
-    const std::shared_ptr<MockProcessCommunicator> &processCommunicator,
-    OnDataReceive &onDataReceive, OnDeviceChange &onDataChange)
-{
-    EXPECT_CALL(*processCommunicator, Stop).WillRepeatedly([]() {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(
-        [&onDataReceive](const OnDataReceive &callback) {
-            onDataReceive = callback;
-            return OK;
-    });
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(
-        [&onDataChange](const OnDeviceChange &callback) {
-            onDataChange = callback;
-            return OK;
-    });
-    EXPECT_CALL(*processCommunicator, GetRemoteOnlineDeviceInfosList).WillRepeatedly([]() {
-        std::vector<DeviceInfos> res;
-        return res;
-    });
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return false;
-    });
-    EXPECT_EQ(adapter->StartAdapter(), E_OK);
-}
-}
-/**
- * @tc.name: NetworkAdapter005
- * @tc.desc: Test networkAdapter receive data func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    OnDataReceive onDataReceive;
-    OnDeviceChange onDeviceChange;
-    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
-    ASSERT_NE(onDataReceive, nullptr);
-    /**
-     * @tc.steps: step1. adapter recv data with error param
-     */
-    auto data = std::make_shared<uint8_t>(1);
-    DeviceInfos deviceInfos;
-    onDataReceive(deviceInfos, nullptr, 1);
-    onDataReceive(deviceInfos, data.get(), 0);
-    /**
-     * @tc.steps: step2. adapter recv data with no permission
-     */
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](DataHeadInfo, uint32_t &) {
-        return NO_PERMISSION;
-    });
-    onDataReceive(deviceInfos, data.get(), 1);
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](DataHeadInfo, uint32_t &) {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, GetDataUserInfo).WillRepeatedly(
-        [](DataUserInfo, std::vector<UserInfo> &userInfos) {
-            UserInfo userId = {"1"};
-            userInfos.emplace_back(userId);
-            return OK;
-    });
-    /**
-     * @tc.steps: step3. adapter recv data with no callback
-     */
-    onDataReceive(deviceInfos, data.get(), 1);
-    adapter->RegBytesReceiveCallback([](const ReceiveBytesInfo &, const DataUserInfoProc &) {
-    }, nullptr);
-    onDataReceive(deviceInfos, data.get(), 1);
-    RuntimeContext::GetInstance()->StopTaskPool();
-}
-
-/**
- * @tc.name: NetworkAdapter006
- * @tc.desc: Test networkAdapter device change func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    OnDataReceive onDataReceive;
-    OnDeviceChange onDeviceChange;
-    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
-    ASSERT_NE(onDeviceChange, nullptr);
-    DeviceInfos deviceInfos;
-    /**
-     * @tc.steps: step1. onDeviceChange with no same process
-     */
-    onDeviceChange(deviceInfos, true);
-    /**
-     * @tc.steps: step2. onDeviceChange with same process
-     */
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return true;
-    });
-    onDeviceChange(deviceInfos, true);
-    adapter->RegTargetChangeCallback([](const std::string &, bool) {
-    }, nullptr);
-    onDeviceChange(deviceInfos, false);
-    /**
-     * @tc.steps: step3. adapter send data with db_error
-     * @tc.expected: step3. adapter send failed
-     */
-    onDeviceChange(deviceInfos, true);
-    EXPECT_CALL(*processCommunicator, SendData).WillRepeatedly([](const DeviceInfos &, const uint8_t *, uint32_t) {
-        return DB_ERROR;
-    });
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return false;
-    });
-    auto data = std::make_shared<uint8_t>(1);
-    EXPECT_EQ(adapter->SendBytes("", data.get(), 1, 0), static_cast<int>(DB_ERROR));
-    RuntimeContext::GetInstance()->StopTaskPool();
-    EXPECT_EQ(adapter->IsDeviceOnline(""), false);
-    ExtendInfo info;
-    EXPECT_EQ(adapter->GetExtendHeaderHandle(info), nullptr);
-}
-
-/**
- * @tc.name: NetworkAdapter007
- * @tc.desc: Test networkAdapter recv invalid head length
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("NetworkAdapter007", processCommunicator);
-    OnDataReceive onDataReceive;
-    OnDeviceChange onDeviceChange;
-    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
-    ASSERT_NE(onDeviceChange, nullptr);
-    /**
-     * @tc.steps: step1. GetDataHeadInfo return invalid headLen
-     * @tc.expected: step1. adapter check this len
-     */
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillOnce([](DataHeadInfo, uint32_t &headLen) {
-        headLen = UINT32_MAX;
-        return OK;
-    });
-    /**
-     * @tc.steps: step2. Adapter ignore data because len is too large
-     * @tc.expected: step2. BytesReceive never call
-     */
-    int callByteReceiveCount = 0;
-    int res = adapter->RegBytesReceiveCallback([&callByteReceiveCount](const ReceiveBytesInfo &,
-        const DataUserInfoProc &) {
-            printf("callByteReceiveCount++;");
-        callByteReceiveCount++;
-    }, nullptr);
-    EXPECT_EQ(res, E_OK);
-    std::vector<uint8_t> data = { 1u };
-    DeviceInfos deviceInfos;
-    onDataReceive(deviceInfos, data.data(), 1u);
-    printf("callByteReceiveCount++%d;", callByteReceiveCount);
-    EXPECT_EQ(callByteReceiveCount, 0);
-}
-
-/**
- * @tc.name: RetrySendExceededLimit001
- * @tc.desc: Test send result when the number of retry times exceeds the limit
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit001, TestSize.Level2)
+  * @tc.name: GetSyncDataTransTest001
+  * @tc.desc: Get sync data with put
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, GetSyncDataTransTest001, TestSize.Level3)
 {
     /**
-     * @tc.steps: step1. connect device A with device B and fork SendBytes
-     * @tc.expected: step1. operation OK
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
      */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    std::atomic<int> count = 0;
-    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
-        count++;
-        return -E_WAIT_RETRY;
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Put data when sync
+     * @tc.expected: step2. Get sync data correct
+     */
+    std::string data1(R""({"field_name1":false,"field_name2":true,"field_name3":100})"");
+    PutSyncData(store, KEY1, data1);
+
+    std::thread th([store]() {
+        std::string data2(R""({"field_name1":false,"field_name2":true,"field_name3":101})"");
+        PutSyncData(store, KEY2, data2);
     });
 
-    /**
-     * @tc.steps: step2. the number of retry times for device A to send a message exceeds the limit
-     * @tc.expected: step2. sendResult fail
-     */
-    std::vector<std::pair<int, bool>> sendResult;
-    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
-        sendResult.push_back(std::pair<int, bool>(result, isDirectEnd));
-    };
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsg = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
-    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
-    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B, -E_BASE);
-    int reTryTimes = 5;
-    while ((count < 4) && (reTryTimes > 0)) { // Wait to make sure retry exceeds the limit
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        reTryTimes--;
-    }
-    ASSERT_EQ(sendResult.size(), static_cast<size_t>(1)); // only one callback result notification
-    EXPECT_EQ(sendResult[0].first, -E_BASE); // index 0 retry fail
-    EXPECT_EQ(sendResult[0].second, false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5)); // wait for 5 ms
+    Query query = Query::Select().EqualTo("field_name1", false);
+    QueryObject queryObj(query);
+    DataSizeSpecInfo  specInfo = {4 * 1024 * 1024, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
+    std::vector<SingleVerKvEntry *> entries;
+    ContinueToken token = nullptr;
+    EXPECT_EQ(store->GetSyncData(queryObj, SyncTimeRange{}, specInfo, token, entries), E_OK);
 
-    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-}
+    th.join();
 
-/**
- * @tc.name: RetrySendExceededLimit002
- * @tc.desc: Test multi thread call SendableCallback when the number of retry times exceeds the limit
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit002, TestSize.Level2)
-{
-    /**
-     * @tc.steps: step1. DeviceA send SendMessage and set SendBytes interface return -E_WAIT_RETRY
-     * @tc.expected: step1. Send ok
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    std::atomic<int> count = 0;
-    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
-        count++;
-        return -E_WAIT_RETRY;
-    });
-    std::vector<std::pair<int, bool>> sendResult;
-    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
-        sendResult.push_back(std::pair<int, bool>(result, isDirectEnd));
-    };
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsg = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
-    EXPECT_EQ(g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier), E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
-
-    /**
-     * @tc.steps: step2. Triggering multi thread call SendableCallback interface and set errorCode
-     * @tc.expected: step2. Callback success
-     */
-    std::vector<std::thread> threads;
-    int threadNum = 3;
-    threads.reserve(threadNum);
-    for (int n = 0; n < threadNum; n++) {
-        threads.emplace_back([&]() {
-            g_envDeviceA.adapterHandle->SimulateTriggerSendableCallback(DEVICE_NAME_B, -E_BASE);
-        });
-    }
-    for (std::thread &t : threads) {
-        t.join();
+    if (entries.size() == 1U) {
+        EXPECT_EQ(entries[0]->GetKey(), KEY1);
+    } else if (entries.size() == 2U) {
+        EXPECT_EQ(entries[0]->GetKey(), KEY1);
+        EXPECT_EQ(entries[0]->GetFlag(), 0U);
+        EXPECT_EQ(entries[1]->GetKey(), KEY2);
+        EXPECT_EQ(entries[1]->GetFlag(), 0U);
     }
 
     /**
-     * @tc.steps: step3. Make The number of messages sent by device A exceed the limit
-     * @tc.expected: step3. SendResult is the errorCode set by SendableCallback interface
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
      */
-    int reTryTimes = 5;
-    while ((count < 4) && (reTryTimes > 0)) {
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        reTryTimes--;
-    }
-    ASSERT_EQ(sendResult.size(), static_cast<size_t>(1));
-    EXPECT_EQ(sendResult[0].first, -E_BASE);
-    EXPECT_EQ(sendResult[0].second, false);
-    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+    SingleVerKvEntry::Release(entries);
+}
+
+/**
+  * @tc.name: AddSubscribeTest003
+  * @tc.desc: Test put sync data with subscribe trigger
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("AddSubscribeErrTest002", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Add subscribe with query
+     * @tc.expected: step2. add success
+     */
+    Query query = Query::Select().EqualTo("field_name2", false);
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step3. Reput same data with delete flag
+     * @tc.expected: step3. put data success
+     */
+    Key key ;
+    Value value;
+    std::string validJsonData(R"({"field_name1":false,"field_name2":false,"field_name3":100})");
+    DBCommon::StringToVector(validJsonData, value);
+    Timestamp now = store->GetCurrentTimestamp();
+    std::vector<DataItem> data;
+    data.push_back({{'K', '0'}, value, now, 0, REMOTE_DEVICE_ID, now});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    data.clear();
+    Key hashKey;
+    DBCommon::CalcValueHash({'K', '0'}, hashKey);
+    data.push_back({hashKey, {}, now + 1, 1, REMOTE_DEVICE_ID, now + 1});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    // repeat put with delete flag
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    /**
+     * @tc.steps:step4. Close natural store
+     * @tc.expected: step4. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+/**
+  * @tc.name: AddSubscribeTest004
+  * @tc.desc: Add subscribe with query by prefixKey
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", "", conn, store);
+
+    /**
+     * @tc.steps:step2. Add subscribe with query by prefixKey
+     * @tc.expected: step2. add success
+     */
+    Query query = Query::Select().PrefixKey(NULL_KEY_1);
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+
+    IOption syncIOpt {IOption::SYNC_DATA};
+    EXPECT_EQ(conn->Put(syncIOpt, KEY_1, {}), E_OK);
+
+    Value valGot;
+    EXPECT_EQ(conn->Get(syncIOpt, KEY_1, valGot), E_OK);
+    EXPECT_EQ(valGot, Value {});
+
+    std::string subKey = DBConstant::SUBSCRIBE_QUERY_PREFIX + DBCommon::TransferHashString(SUBSCRIBE_ID);
+    Key metaKey(subKey.begin(), subKey.end());
+    EXPECT_EQ(store->GetMetaData(metaKey, valGot), E_OK);
+    EXPECT_NE(valGot.size(), 0u);
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
 }
