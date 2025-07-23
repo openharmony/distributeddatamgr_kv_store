@@ -14,9 +14,8 @@
  */
 #define LOG_TAG "AutoSyncTimerMock"
 #include "auto_sync_timer.h"
-
-#include "kvdb_service_client.h"
 #include "log_print.h"
+#include "kvdb_service_client.h"
 
 namespace OHOS::DistributedKv {
 AutoSyncTimer &AutoSyncTimer::GetInstance()
