@@ -25,7 +25,7 @@ namespace DistributedKVStore {
 extern "C" {
 int64_t FfiOHOSDistributedKVStoreCreateKVManager(const char* boudleName, OHOS::AbilityRuntime::Context* context)
 {
-    if (context == nullptr) {
+    if (context == nullptr || boudleName == nullptr) {
         return -1;
     }
     auto nativeCJKVManager = FFIData::Create<CJKVManager>(boudleName, context);
@@ -37,6 +37,13 @@ int64_t FfiOHOSDistributedKVStoreCreateKVManager(const char* boudleName, OHOS::A
 
 int64_t FfiOHOSDistributedKVStoreGetKVStore(int64_t id, const char* storeId, CJOptions options, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return -1;
+    }
+    if (storeId == nullptr) {
+        *errCode = -1;
+        return -1;
+    }
     auto instance = FFIData::GetData<CJKVManager>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -47,6 +54,9 @@ int64_t FfiOHOSDistributedKVStoreGetKVStore(int64_t id, const char* storeId, CJO
 
 int32_t FfiOHOSDistributedKVStoreCloseKVStore(int64_t id, const char* appId, const char* storeId)
 {
+    if (appId == nullptr || storeId == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJKVManager>(id);
     if (instance == nullptr) {
         return -1;
@@ -56,6 +66,9 @@ int32_t FfiOHOSDistributedKVStoreCloseKVStore(int64_t id, const char* appId, con
 
 int32_t FfiOHOSDistributedKVStoreDeleteKVStore(int64_t id, const char* appId, const char* storeId)
 {
+    if (appId == nullptr || storeId == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJKVManager>(id);
     if (instance == nullptr) {
         return -1;
@@ -65,6 +78,13 @@ int32_t FfiOHOSDistributedKVStoreDeleteKVStore(int64_t id, const char* appId, co
 
 CArrStr FfiOHOSDistributedKVStoreGetAllKVStoreId(int64_t id, const char* appId, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return CArrStr{};
+    }
+    if (appId == nullptr) {
+        *errCode = -1;
+        return CArrStr{};
+    }
     auto instance = FFIData::GetData<CJKVManager>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -102,6 +122,9 @@ int32_t FfiOHOSDistributedKVStoreOffAllDistributedDataServiceDie(int64_t id)
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStorePut(int64_t id, const char* key, ValueType value)
 {
+    if (key == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         return -1;
@@ -120,6 +143,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStorePutBatch(int64_t id, const CArrEnt
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStoreDelete(int64_t id, const char* key)
 {
+    if (key == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         return -1;
@@ -138,6 +164,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreDeleteBatch(int64_t id, const CArr
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStoreRemoveDeviceData(int64_t id, const char* deviceId)
 {
+    if (deviceId == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         return -1;
@@ -147,6 +176,13 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreRemoveDeviceData(int64_t id, const
 
 ValueType FfiOHOSDistributedKVStoreSingleKVStoreGet(int64_t id, const char* key, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return ValueType{};
+    }
+    if (key == nullptr) {
+        *errCode = -1;
+        return ValueType{};
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -157,6 +193,9 @@ ValueType FfiOHOSDistributedKVStoreSingleKVStoreGet(int64_t id, const char* key,
 
 CArrEntry FfiOHOSDistributedKVStoreSingleKVStoreGetEntriesByQuery(int64_t id, int64_t queryId, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return CArrEntry{};
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     auto query = FFIData::GetData<CQuery>(queryId);
     if (instance == nullptr || query == nullptr) {
@@ -168,6 +207,13 @@ CArrEntry FfiOHOSDistributedKVStoreSingleKVStoreGetEntriesByQuery(int64_t id, in
 
 CArrEntry FfiOHOSDistributedKVStoreSingleKVStoreGetEntriesByString(int64_t id, const char* prefix, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return CArrEntry{};
+    }
+    if (prefix == nullptr) {
+        *errCode = -1;
+        return CArrEntry{};
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -178,6 +224,13 @@ CArrEntry FfiOHOSDistributedKVStoreSingleKVStoreGetEntriesByString(int64_t id, c
 
 int64_t FfiOHOSDistributedKVStoreSingleKVStoreGetResultSetByString(int64_t id, const char* keyPrefix, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return 0;
+    }
+    if (keyPrefix == nullptr) {
+        *errCode = -1;
+        return 0;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -188,6 +241,9 @@ int64_t FfiOHOSDistributedKVStoreSingleKVStoreGetResultSetByString(int64_t id, c
 
 int64_t FfiOHOSDistributedKVStoreSingleKVStoreGetResultSetByQuery(int64_t id, int64_t queryId, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return 0;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     auto query = FFIData::GetData<CQuery>(queryId);
     if (instance == nullptr || query == nullptr) {
@@ -209,6 +265,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreCloseResultSet(int64_t id, int64_t
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStoreGetResultSize(int64_t id, int64_t queryId, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return 0;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     auto query = FFIData::GetData<CQuery>(queryId);
     if (instance == nullptr || query == nullptr) {
@@ -220,6 +279,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreGetResultSize(int64_t id, int64_t 
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStoreBackup(int64_t id, const char* file)
 {
+    if (file == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         return -1;
@@ -229,6 +291,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreBackup(int64_t id, const char* fil
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStoreRestore(int64_t id, const char* file)
 {
+    if (file == nullptr) {
+        return -1;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         return -1;
@@ -239,6 +304,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreRestore(int64_t id, const char* fi
 CStringNum FfiOHOSDistributedKVStoreSingleKVStoreDeleteBackup(int64_t id,
     const CArrStr cArrStr, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return CStringNum{};
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -371,6 +439,9 @@ int32_t FfiOHOSDistributedKVStoreSingleKVStoreOffAllSyncComplete(int64_t id)
 
 int32_t FfiOHOSDistributedKVStoreSingleKVStoreGetSecurityLevel(int64_t id, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return 0;
+    }
     auto instance = FFIData::GetData<CJSingleKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -399,6 +470,9 @@ void FfiOHOSDistributedKVStoreQueryReset(int64_t id)
 
 void FfiOHOSDistributedKVStoreQueryEqualTo(int64_t id, const char* field, ValueType value)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -408,6 +482,9 @@ void FfiOHOSDistributedKVStoreQueryEqualTo(int64_t id, const char* field, ValueT
 
 void FfiOHOSDistributedKVStoreQueryNotEqualTo(int64_t id, const char* field, ValueType value)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -417,6 +494,9 @@ void FfiOHOSDistributedKVStoreQueryNotEqualTo(int64_t id, const char* field, Val
 
 void FfiOHOSDistributedKVStoreQueryGreaterThan(int64_t id, const char* field, ValueType value)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -426,6 +506,9 @@ void FfiOHOSDistributedKVStoreQueryGreaterThan(int64_t id, const char* field, Va
 
 void FfiOHOSDistributedKVStoreQueryLessThan(int64_t id, const char* field, ValueType value)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -435,6 +518,9 @@ void FfiOHOSDistributedKVStoreQueryLessThan(int64_t id, const char* field, Value
 
 void FfiOHOSDistributedKVStoreQueryGreaterThanOrEqualTo(int64_t id, const char* field, ValueType value)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -444,6 +530,9 @@ void FfiOHOSDistributedKVStoreQueryGreaterThanOrEqualTo(int64_t id, const char* 
 
 void FfiOHOSDistributedKVStoreQueryLessThanOrEqualTo(int64_t id, const char* field, ValueType value)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -453,6 +542,9 @@ void FfiOHOSDistributedKVStoreQueryLessThanOrEqualTo(int64_t id, const char* fie
 
 void FfiOHOSDistributedKVStoreQueryIsNull(int64_t id, const char* field)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -462,6 +554,9 @@ void FfiOHOSDistributedKVStoreQueryIsNull(int64_t id, const char* field)
 
 void FfiOHOSDistributedKVStoreQueryInNumber(int64_t id, const char* field, const CArrNumber valueList)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -471,6 +566,9 @@ void FfiOHOSDistributedKVStoreQueryInNumber(int64_t id, const char* field, const
 
 void FfiOHOSDistributedKVStoreQueryInString(int64_t id, const char* field, const CArrStr valueList)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -480,6 +578,9 @@ void FfiOHOSDistributedKVStoreQueryInString(int64_t id, const char* field, const
 
 void FfiOHOSDistributedKVStoreQueryNotInNumber(int64_t id, const char* field, const CArrNumber valueList)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -489,6 +590,9 @@ void FfiOHOSDistributedKVStoreQueryNotInNumber(int64_t id, const char* field, co
 
 void FfiOHOSDistributedKVStoreQueryNotInString(int64_t id, const char* field, const CArrStr valueList)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -498,6 +602,9 @@ void FfiOHOSDistributedKVStoreQueryNotInString(int64_t id, const char* field, co
 
 void FfiOHOSDistributedKVStoreQueryLike(int64_t id, const char* field, const char* value)
 {
+    if (field == nullptr || value == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -507,6 +614,9 @@ void FfiOHOSDistributedKVStoreQueryLike(int64_t id, const char* field, const cha
 
 void FfiOHOSDistributedKVStoreQueryUnlike(int64_t id, const char* field, const char* value)
 {
+    if (field == nullptr || value == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -534,6 +644,9 @@ void FfiOHOSDistributedKVStoreQueryOr(int64_t id)
 
 void FfiOHOSDistributedKVStoreQueryOrderByAsc(int64_t id, const char* field)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -543,6 +656,9 @@ void FfiOHOSDistributedKVStoreQueryOrderByAsc(int64_t id, const char* field)
 
 void FfiOHOSDistributedKVStoreQueryOrderByDesc(int64_t id, const char* field)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -561,6 +677,9 @@ void FfiOHOSDistributedKVStoreQueryLimit(int64_t id, int32_t total, int32_t offs
 
 void FfiOHOSDistributedKVStoreQueryIsNotNull(int64_t id, const char* field)
 {
+    if (field == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -588,6 +707,9 @@ void FfiOHOSDistributedKVStoreQueryEndGroup(int64_t id)
 
 void FfiOHOSDistributedKVStoreQueryPrefixKey(int64_t id, const char* prefix)
 {
+    if (prefix == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -597,6 +719,9 @@ void FfiOHOSDistributedKVStoreQueryPrefixKey(int64_t id, const char* prefix)
 
 void FfiOHOSDistributedKVStoreQuerySetSuggestIndex(int64_t id, const char* index)
 {
+    if (index == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -606,6 +731,9 @@ void FfiOHOSDistributedKVStoreQuerySetSuggestIndex(int64_t id, const char* index
 
 void FfiOHOSDistributedKVStoreQueryDeviceId(int64_t id, const char* deviceId)
 {
+    if (deviceId == nullptr) {
+        return;
+    }
     auto instance = FFIData::GetData<CQuery>(id);
     if (instance == nullptr) {
         return;
@@ -625,6 +753,13 @@ const char* FfiOHOSDistributedKVStoreQueryGetSqlLike(int64_t id)
 ValueType FfiOHOSDistributedKVStoreDeviceKVStoreGet(int64_t id, const char* deviceId,
     const char* key, int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return ValueType{};
+    }
+    if (deviceId == nullptr || key == nullptr) {
+        *errCode = -1;
+        return ValueType{};
+    }
     auto instance = FFIData::GetData<CJDeviceKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -636,6 +771,13 @@ ValueType FfiOHOSDistributedKVStoreDeviceKVStoreGet(int64_t id, const char* devi
 CArrEntry FfiOHOSDistributedKVStoreDeviceKVStoreGetEntries(int64_t id, const char* deviceId, const char* keyPrefix,
     int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return  CArrEntry{};
+    }
+    if (deviceId == nullptr || keyPrefix == nullptr) {
+        *errCode = -1;
+        return CArrEntry{};
+    }
     auto instance = FFIData::GetData<CJDeviceKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -647,6 +789,13 @@ CArrEntry FfiOHOSDistributedKVStoreDeviceKVStoreGetEntries(int64_t id, const cha
 CArrEntry FfiOHOSDistributedKVStoreDeviceKVStoreGetEntriesQuery(int64_t id, const char* deviceId, int64_t queryId,
     int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return CArrEntry{};
+    }
+    if (deviceId == nullptr) {
+        *errCode = -1;
+        return CArrEntry{};
+    }
     auto instance = FFIData::GetData<CJDeviceKVStore>(id);
     auto query = FFIData::GetData<CQuery>(queryId);
     if (instance == nullptr || query == nullptr) {
@@ -659,6 +808,13 @@ CArrEntry FfiOHOSDistributedKVStoreDeviceKVStoreGetEntriesQuery(int64_t id, cons
 int64_t FfiOHOSDistributedKVStoreDeviceKVStoreGetResultSet(int64_t id, const char* deviceId, const char* keyPrefix,
     int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return -1;
+    }
+    if (deviceId == nullptr || keyPrefix == nullptr) {
+        *errCode = -1;
+        return -1;
+    }
     auto instance = FFIData::GetData<CJDeviceKVStore>(id);
     if (instance == nullptr) {
         *errCode = -1;
@@ -670,6 +826,13 @@ int64_t FfiOHOSDistributedKVStoreDeviceKVStoreGetResultSet(int64_t id, const cha
 int64_t FfiOHOSDistributedKVStoreDeviceKVStoreGetResultSetQuery(int64_t id, const char* deviceId, int64_t queryId,
     int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return -1;
+    }
+    if (deviceId == nullptr) {
+        *errCode = -1;
+        return -1;
+    }
     auto instance = FFIData::GetData<CJDeviceKVStore>(id);
     auto query = FFIData::GetData<CQuery>(queryId);
     if (instance == nullptr || query == nullptr) {
@@ -682,6 +845,13 @@ int64_t FfiOHOSDistributedKVStoreDeviceKVStoreGetResultSetQuery(int64_t id, cons
 int32_t FfiOHOSDistributedKVStoreDeviceKVStoreGetResultSize(int64_t id, const char* deviceId, int64_t queryId,
     int32_t* errCode)
 {
+    if (errCode == nullptr) {
+        return -1;
+    }
+    if (deviceId == nullptr) {
+        *errCode = -1;
+        return -1;
+    }
     auto instance = FFIData::GetData<CJDeviceKVStore>(id);
     auto query = FFIData::GetData<CQuery>(queryId);
     if (instance == nullptr || query == nullptr) {
@@ -806,6 +976,11 @@ CEntry FfiOHOSDistributedKVStoreKVStoreResultSetGetEntry(int64_t id)
         return CEntry{};
     }
     return instance->GetEntry();
+}
+
+void FfiOHOSFreeCString(char* str)
+{
+    FreeCString(str);
 }
 }
 }

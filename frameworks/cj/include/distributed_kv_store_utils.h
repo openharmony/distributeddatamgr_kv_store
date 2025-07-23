@@ -22,6 +22,7 @@
 namespace OHOS {
 namespace DistributedKVStore {
     char* MallocCString(const std::string& origin);
+    void FreeCString(char* str);
     enum CJErrorCode {
         CJ_ERROR_PERMISSION_DENIED = 202,
 
