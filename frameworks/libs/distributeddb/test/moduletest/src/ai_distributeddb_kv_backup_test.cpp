@@ -462,7 +462,7 @@ TEST_F(BackupManagerTest, GetRestorePassword_Fail) {
  * @tc.desc: Verify BackupManager initialization with residue files
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerInitTest001, TestSize.Level1)
 {
@@ -486,7 +486,7 @@ HWTEST_F(BackupManagerTest, BackupManagerInitTest001, TestSize.Level1)
  * @tc.desc: Verify BackupManager initialization with auto backup files
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerInitTest002, TestSize.Level1)
 {
@@ -506,7 +506,7 @@ HWTEST_F(BackupManagerTest, BackupManagerInitTest002, TestSize.Level1)
  * @tc.desc: Verify BackupManager prepare creates necessary directories and files
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerPrepareTest001, TestSize.Level1)
 {
@@ -521,7 +521,7 @@ HWTEST_F(BackupManagerTest, BackupManagerPrepareTest001, TestSize.Level1)
  * @tc.desc: Verify successful backup operation
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerBackupTest001, TestSize.Level1)
 {
@@ -546,7 +546,7 @@ HWTEST_F(BackupManagerTest, BackupManagerBackupTest001, TestSize.Level1)
  * @tc.desc: Verify backup operation with integrity check
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerBackupTest002, TestSize.Level1)
 {
@@ -569,7 +569,7 @@ HWTEST_F(BackupManagerTest, BackupManagerBackupTest002, TestSize.Level1)
  * @tc.desc: Verify backup operation fails when DB integrity check fails
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerBackupTest003, TestSize.Level1)
 {
@@ -591,7 +591,7 @@ HWTEST_F(BackupManagerTest, BackupManagerBackupTest003, TestSize.Level1)
  * @tc.desc: Verify backup operation with encryption
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerBackupTest004, TestSize.Level1)
 {
@@ -620,7 +620,7 @@ HWTEST_F(BackupManagerTest, BackupManagerBackupTest004, TestSize.Level1)
  * @tc.desc: Verify backup operation rollback when export fails
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerBackupTest005, TestSize.Level1)
 {
@@ -645,7 +645,7 @@ HWTEST_F(BackupManagerTest, BackupManagerBackupTest005, TestSize.Level1)
  * @tc.desc: Verify successful restore operation
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerRestoreTest001, TestSize.Level1)
 {
@@ -670,7 +670,7 @@ HWTEST_F(BackupManagerTest, BackupManagerRestoreTest001, TestSize.Level1)
  * @tc.desc: Verify restore operation with integrity check
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerRestoreTest002, TestSize.Level1)
 {
@@ -695,7 +695,7 @@ HWTEST_F(BackupManagerTest, BackupManagerRestoreTest002, TestSize.Level1)
  * @tc.desc: Verify restore operation with encryption
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerRestoreTest003, TestSize.Level1)
 {
@@ -725,7 +725,7 @@ HWTEST_F(BackupManagerTest, BackupManagerRestoreTest003, TestSize.Level1)
  * @tc.desc: Verify restore operation fails when backup file doesn't exist
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerRestoreTest004, TestSize.Level1)
 {
@@ -746,7 +746,7 @@ HWTEST_F(BackupManagerTest, BackupManagerRestoreTest004, TestSize.Level1)
  * @tc.desc: Verify restore operation with auto backup
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerRestoreTest005, TestSize.Level1)
 {
@@ -777,7 +777,7 @@ HWTEST_F(BackupManagerTest, BackupManagerRestoreTest005, TestSize.Level1)
  * @tc.desc: Verify restore operation with service secret key when password fails
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerRestoreTest006, TestSize.Level1)
 {
@@ -811,7 +811,7 @@ HWTEST_F(BackupManagerTest, BackupManagerRestoreTest006, TestSize.Level1)
  * @tc.desc: Verify delete backup operation
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerDeleteBackupTest001, TestSize.Level1)
 {
@@ -839,7 +839,7 @@ HWTEST_F(BackupManagerTest, BackupManagerDeleteBackupTest001, TestSize.Level1)
  * @tc.desc: Verify delete auto backup is not allowed
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerDeleteBackupTest002, TestSize.Level1)
 {
@@ -861,7 +861,7 @@ HWTEST_F(BackupManagerTest, BackupManagerDeleteBackupTest002, TestSize.Level1)
  * @tc.desc: Verify delete non-existent backup
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerDeleteBackupTest003, TestSize.Level1)
 {
@@ -879,7 +879,7 @@ HWTEST_F(BackupManagerTest, BackupManagerDeleteBackupTest003, TestSize.Level1)
  * @tc.desc: Verify get backup file info by name
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetBackupFileInfoTest001, TestSize.Level1)
 {
@@ -897,7 +897,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetBackupFileInfoTest001, TestSize.Leve
  * @tc.desc: Verify get latest backup file info when name is empty
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetBackupFileInfoTest002, TestSize.Level1)
 {
@@ -915,7 +915,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetBackupFileInfoTest002, TestSize.Leve
  * @tc.desc: Verify get backup file info when file doesn't exist
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetBackupFileInfoTest003, TestSize.Level1)
 {
@@ -928,7 +928,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetBackupFileInfoTest003, TestSize.Leve
  * @tc.desc: Verify get secret key from service successfully
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetSecretKeyFromServiceTest001, TestSize.Level1)
 {
@@ -950,7 +950,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetSecretKeyFromServiceTest001, TestSiz
  * @tc.desc: Verify get secret key from service fails when service unavailable
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetSecretKeyFromServiceTest002, TestSize.Level1)
 {
@@ -969,7 +969,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetSecretKeyFromServiceTest002, TestSiz
  * @tc.desc: Verify get secret key from service fails when no key returned
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetSecretKeyFromServiceTest003, TestSize.Level1)
 {
@@ -989,7 +989,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetSecretKeyFromServiceTest003, TestSiz
  * @tc.desc: Verify import with secret key from service successfully
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerImportWithSecretKeyFromServiceTest001, TestSize.Level1)
 {
@@ -1020,7 +1020,7 @@ HWTEST_F(BackupManagerTest, BackupManagerImportWithSecretKeyFromServiceTest001, 
  * @tc.desc: Verify import with secret key from service fails when no valid key
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerImportWithSecretKeyFromServiceTest002, TestSize.Level1)
 {
@@ -1050,7 +1050,7 @@ HWTEST_F(BackupManagerTest, BackupManagerImportWithSecretKeyFromServiceTest002, 
  * @tc.desc: Verify get restore password for normal backup
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetRestorePasswordTest001, TestSize.Level1)
 {
@@ -1075,7 +1075,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetRestorePasswordTest001, TestSize.Lev
  * @tc.desc: Verify get restore password for auto backup
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetRestorePasswordTest002, TestSize.Level1)
 {
@@ -1099,7 +1099,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetRestorePasswordTest002, TestSize.Lev
  * @tc.desc: Verify get restore password returns empty when no password available
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetRestorePasswordTest003, TestSize.Level1)
 {
@@ -1117,7 +1117,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetRestorePasswordTest003, TestSize.Lev
  * @tc.desc: Verify have residue file detection
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerHaveResidueFileTest001, TestSize.Level1)
 {
@@ -1134,7 +1134,7 @@ HWTEST_F(BackupManagerTest, BackupManagerHaveResidueFileTest001, TestSize.Level1
  * @tc.desc: Verify no residue file detection
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerHaveResidueFileTest002, TestSize.Level1)
 {
@@ -1151,7 +1151,7 @@ HWTEST_F(BackupManagerTest, BackupManagerHaveResidueFileTest002, TestSize.Level1
  * @tc.desc: Verify have residue key detection
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerHaveResidueKeyTest001, TestSize.Level1)
 {
@@ -1168,7 +1168,7 @@ HWTEST_F(BackupManagerTest, BackupManagerHaveResidueKeyTest001, TestSize.Level1)
  * @tc.desc: Verify no residue key detection
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerHaveResidueKeyTest002, TestSize.Level1)
 {
@@ -1185,7 +1185,7 @@ HWTEST_F(BackupManagerTest, BackupManagerHaveResidueKeyTest002, TestSize.Level1)
  * @tc.desc: Verify build residue info for backup files
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerBuildResidueInfoTest001, TestSize.Level1)
 {
@@ -1214,7 +1214,7 @@ HWTEST_F(BackupManagerTest, BackupManagerBuildResidueInfoTest001, TestSize.Level
  * @tc.desc: Verify get clear type for rollback data
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest001, TestSize.Level1)
 {
@@ -1228,7 +1228,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest001, TestSize.Level1)
  * @tc.desc: Verify get clear type for backup data
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest002, TestSize.Level1) 
 {
@@ -1242,7 +1242,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest002, TestSize.Level1)
  * @tc.desc: Verify get clear type for all data
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest003, TestSize.Level1)
 {
@@ -1258,7 +1258,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest003, TestSize.Level1)
  * @tc.desc: Verify get clear type for no data
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest004, TestSize.Level1)
 {
@@ -1273,7 +1273,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest004, TestSize.Level1)
  * @tc.desc: Verify get clear type for unknown data
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest005, TestSize.Level1)
 {
@@ -1288,7 +1288,7 @@ HWTEST_F(BackupManagerTest, BackupManagerGetClearTypeTest005, TestSize.Level1)
  * @tc.desc: Verify residue key detection
  * @tc.type: FUNC
  * @tc.require: AR000D4876
- * @tc.author: zhangqiquan
+ * @tc.author: wangjiaqiang
  */
 HWTEST_F(BackupManagerTest, BackupManagerHaveResidueKeyTest001, TestSize.Level1)
 {
