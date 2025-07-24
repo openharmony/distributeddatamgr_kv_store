@@ -122,6 +122,8 @@ public:
 #endif
 
     int OperateDataStatus(uint32_t dataOperator);
+
+    int32_t GetDeviceSyncTaskCount() const;
 private:
     void ReleaseResources();
 

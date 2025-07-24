@@ -95,6 +95,7 @@ public:
 
     DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
 #endif
+    int32_t GetDeviceSyncTaskCount() override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

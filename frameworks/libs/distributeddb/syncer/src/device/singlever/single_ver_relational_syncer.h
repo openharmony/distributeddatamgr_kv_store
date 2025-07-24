@@ -31,6 +31,7 @@ public:
 
     void LocalDataChanged(int notifyEvent) override;
 
+    int32_t GetTaskCount() override;
 protected:
 
     int PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId) override;

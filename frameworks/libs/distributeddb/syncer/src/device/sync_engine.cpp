@@ -1422,4 +1422,17 @@ std::string SyncEngine::GetTargetUserId(const std::string &dev)
     RefObject::DecObjRef(communicator);
     return targetUserId;
 }
+
+int32_t SyncEngine::GetRemoteQueryTaskCount()
+{
+    auto executor = GetAndIncRemoteExector();
+    if (executor == nullptr) {
+        LOGW("[SyncEngine] RemoteExecutor is null when get remote query task count");
+        RefObject::DecObjRef(executor);
+        return 0;
+    }
+    auto count = executor->GetTaskCount();
+    RefObject::DecObjRef(executor);
+    return count;
+}
 } // namespace DistributedDB

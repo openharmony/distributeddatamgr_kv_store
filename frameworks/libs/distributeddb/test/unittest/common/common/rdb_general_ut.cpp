@@ -53,11 +53,7 @@ int RDBGeneralUt::InitDelegate(const StoreInfo &info)
             return E_OK;
         }
     }
-    std::string storePath = GetTestDir() + "/" + info.storeId + ".db";
-    RelationalStoreManager mgr(info.appId, info.userId);
-    RelationalStoreDelegate *delegate = nullptr;
-    RelationalStoreDelegate::Option option = GetOption();
-    int errCode = mgr.OpenStore(storePath, info.storeId, option, delegate);
+    auto [errCode, delegate] = OpenRDBStore(info);
     if ((errCode != E_OK )|| (delegate == nullptr)) {
         LOGE("[RDBGeneralUt] Open store failed %d", errCode);
         return errCode;
@@ -69,6 +65,18 @@ int RDBGeneralUt::InitDelegate(const StoreInfo &info)
     LOGI("[RDBGeneralUt] Init delegate app %s store %s user %s success", info.appId.c_str(),
         info.storeId.c_str(), info.userId.c_str());
     return E_OK;
+}
+
+std::pair<int, RelationalStoreDelegate *> RDBGeneralUt::OpenRDBStore(const StoreInfo &info)
+{
+    std::pair<int, RelationalStoreDelegate *> res;
+    auto &[errCode, delegate] = res;
+    delegate = nullptr;
+    std::string storePath = GetTestDir() + "/" + info.storeId + ".db";
+    RelationalStoreManager mgr(info.appId, info.userId);
+    RelationalStoreDelegate::Option option = GetOption();
+    errCode = mgr.OpenStore(storePath, info.storeId, option, delegate);
+    return res;
 }
 
 void RDBGeneralUt::SetOption(const RelationalStoreDelegate::Option& option)
@@ -284,6 +292,16 @@ int RDBGeneralUt::InsertLocalDBData(int64_t begin, int64_t count, const StoreInf
     return errCode;
 }
 
+int RDBGeneralUt::ExecuteSQL(const std::string &sql, const StoreInfo &info)
+{
+    auto db = GetSqliteHandle(info);
+    if (db == nullptr) {
+        LOGE("[RDBGeneralUt] Get null sqlite when insert data");
+        return -E_INVALID_DB;
+    }
+    return SQLiteUtils::ExecuteRawSQL(db, sql);
+}
+
 int RDBGeneralUt::CreateDistributedTable(const StoreInfo &info, const std::string &table, TableSyncType type)
 {
     auto store = GetDelegate(info);
@@ -345,20 +363,32 @@ RelationalStoreDelegate *RDBGeneralUt::GetDelegate(const StoreInfo &info) const
 
 void RDBGeneralUt::BlockPush(const StoreInfo &from, const StoreInfo &to, const std::string &table, DBStatus expectRet)
 {
+    ASSERT_NO_FATAL_FAILURE(BlockSync(from, to, table, SYNC_MODE_PUSH_ONLY, expectRet));
+}
+
+void RDBGeneralUt::BlockPull(const StoreInfo &from, const StoreInfo &to, const std::string &table, DBStatus expectRet)
+{
+    ASSERT_NO_FATAL_FAILURE(BlockSync(from, to, table, SYNC_MODE_PULL_ONLY, expectRet));
+}
+
+void RDBGeneralUt::BlockSync(const StoreInfo &from, const StoreInfo &to, const std::string &table, SyncMode mode,
+    DBStatus expectRet)
+{
     auto store = GetDelegate(from);
     ASSERT_NE(store, nullptr);
     auto toDevice  = GetDevice(to);
     ASSERT_FALSE(toDevice.empty());
     Query query = Query::Select(table);
-    DistributedDBToolsUnitTest::BlockSync(*store, query, SYNC_MODE_PUSH_ONLY, expectRet, {toDevice});
+    ASSERT_NO_FATAL_FAILURE(DistributedDBToolsUnitTest::BlockSync(*store, query, mode, expectRet, {toDevice}));
 }
 
-int RDBGeneralUt::CountTableData(const StoreInfo &info, const std::string &table)
+int RDBGeneralUt::CountTableData(const StoreInfo &info, const std::string &table, const std::string &condition)
 {
-    return CountTableDataByDev(info, table, "");
+    return CountTableDataByDev(info, table, "", condition);
 }
 
-int RDBGeneralUt::CountTableDataByDev(const StoreInfo &info, const std::string &table, const std::string &dev)
+int RDBGeneralUt::CountTableDataByDev(const StoreInfo &info, const std::string &table, const std::string &dev,
+    const std::string &condition)
 {
     auto db = GetSqliteHandle(info);
     if (db == nullptr) {
@@ -377,9 +407,18 @@ int RDBGeneralUt::CountTableDataByDev(const StoreInfo &info, const std::string &
     }
 
     std::string cntSql = "SELECT count(*) FROM '" + table + "'";
+    if (!condition.empty() || !dev.empty()) {
+        cntSql.append(" WHERE ");
+    }
+    if (!condition.empty()) {
+        cntSql.append(condition);
+        if (!dev.empty()) {
+            cntSql.append(" AND ");
+        }
+    }
     if (!dev.empty()) {
         auto hex = DBCommon::TransferStringToHex(DBCommon::TransferHashString(dev));
-        cntSql.append(" WHERE device='").append(hex).append("'");
+        cntSql.append("device='").append(hex).append("'");
     }
     sqlite3_stmt *stmt = nullptr;
     errCode = SQLiteUtils::GetStatement(db, cntSql, stmt);
@@ -526,5 +565,18 @@ int RDBGeneralUt::EncryptedDb(sqlite3 *db)
         return -E_INVALID_DB;
     }
     return E_OK;
+}
+
+void RDBGeneralUt::RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet)
+{
+    auto store = GetDelegate(from);
+    ASSERT_NE(store, nullptr);
+    auto toDevice  = GetDevice(to);
+    ASSERT_FALSE(toDevice.empty());
+    RemoteCondition condition;
+    condition.sql = sql;
+    std::shared_ptr<ResultSet> resultSet = nullptr;
+    EXPECT_EQ(store->RemoteQuery(toDevice, condition, DBConstant::MAX_TIMEOUT, resultSet), expectRet);
+    EXPECT_NE(resultSet, nullptr);
 }
 }

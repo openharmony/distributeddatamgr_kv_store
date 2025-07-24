@@ -597,5 +597,16 @@ DBStatus RelationalStoreDelegateImpl::OperateDataStatus(uint32_t dataOperator)
     }
     return OK;
 }
+
+int32_t RelationalStoreDelegateImpl::GetDeviceSyncTaskCount()
+{
+    if (conn_ == nullptr) {
+        LOGW("[RelationalStore Delegate] Invalid connection for get device sync task count.");
+        return 0;
+    }
+    int32_t count = conn_->GetDeviceSyncTaskCount();
+    LOGI("[RelationalStore Delegate] Get device sync task count %" PRId32, count);
+    return count;
+}
 } // namespace DistributedDB
 #endif

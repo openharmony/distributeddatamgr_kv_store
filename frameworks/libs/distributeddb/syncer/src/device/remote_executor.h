@@ -72,6 +72,7 @@ public:
 
     void NotifyConnectionClosed(uint64_t connectionId);
 
+    int32_t GetTaskCount() const;
 protected:
     virtual void ParseOneRequestMessage(const std::string &device, Message *inMsg);
 
@@ -147,7 +148,7 @@ private:
     static int CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage, int32_t remoteSecLabel,
         uint32_t remoteVersion);
 
-    std::mutex taskLock_;
+    mutable std::mutex taskLock_;
     std::map<std::string, std::deque<uint32_t>> searchTaskQueue_; // key is device, value is sessionId queue
     std::map<std::string, std::set<uint32_t>> deviceWorkingSet_; // key is device, value is sessionId set
     std::map<uint32_t, Task> taskMap_; // key is sessionId

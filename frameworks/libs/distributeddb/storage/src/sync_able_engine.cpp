@@ -291,4 +291,13 @@ int SyncAbleEngine::GetHashDeviceId(const std::string &clientId, std::string &ha
     }
     return syncer_.GetHashDeviceId(clientId, hashDevId);
 }
+
+int SyncAbleEngine::GetDeviceSyncTaskCount()
+{
+    if (NeedStartSyncer()) {
+        LOGW("[SyncAbleEngine] Syncer not start when get device sync task count");
+        return 0;
+    }
+    return syncer_.GetTaskCount();
+}
 }

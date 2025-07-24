@@ -250,5 +250,22 @@ std::vector<QuerySyncObject> SingleVerRelationalSyncer::GetQuerySyncObject(const
     }
     return res;
 }
+
+int32_t SingleVerRelationalSyncer::GetTaskCount()
+{
+    int32_t count = GenericSyncer::GetTaskCount();
+    ISyncEngine *syncEngine = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (syncEngine_ == nullptr) {
+            return count;
+        }
+        syncEngine = syncEngine_;
+        RefObject::IncObjRef(syncEngine);
+    }
+    count += syncEngine->GetRemoteQueryTaskCount();
+    RefObject::DecObjRef(syncEngine);
+    return count;
+}
 }
 #endif

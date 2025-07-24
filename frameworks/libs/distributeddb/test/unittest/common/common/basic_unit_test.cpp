@@ -118,4 +118,18 @@ StoreInfo BasicUnitTest::GetStoreInfo3()
     info.appId = DistributedDBUnitTest::DISTRIBUTED_APP_ID;
     return info;
 }
+
+uint64_t BasicUnitTest::GetAllSendMsgSize() const
+{
+    if (communicatorAggregator_ == nullptr) {
+        return 0u;
+    }
+    return communicatorAggregator_->GetAllSendMsgSize();
 }
+
+void BasicUnitTest::RegBeforeDispatch(const std::function<void(const std::string &, const Message *)> &beforeDispatch)
+{
+    ASSERT_NE(communicatorAggregator_, nullptr);
+    communicatorAggregator_->RegBeforeDispatch(beforeDispatch);
+}
+} // namespace DistributedDB

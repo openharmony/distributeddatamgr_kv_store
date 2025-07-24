@@ -1909,5 +1909,14 @@ int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string>
     ReleaseHandle(handle);
     return errCode;
 }
+
+int32_t SQLiteRelationalStore::GetDeviceSyncTaskCount() const
+{
+    if (syncAbleEngine_ == nullptr) {
+        LOGW("[RelationalStore] syncAbleEngine was not initialized when get device sync task count");
+        return 0;
+    }
+    return syncAbleEngine_->GetDeviceSyncTaskCount();
+}
 } // namespace DistributedDB
 #endif

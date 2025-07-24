@@ -37,6 +37,24 @@ namespace DistributedDB {
 namespace {
 const int GET_CONNECT_RETRY = 3;
 const int RETRY_GET_CONN_INTER = 30;
+
+DBStatus InitProperties(const RelationalStoreDelegate::Option &option, RelationalDBProperties &properties)
+{
+    properties.SetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(option.tableMode));
+    properties.SetBoolProp(RelationalDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
+    if (option.isEncryptedDb) {
+        if (!ParamCheckUtils::CheckEncryptedParameter(option.cipher, option.passwd) || option.iterateTimes == 0) {
+            return INVALID_ARGS;
+        }
+        properties.SetCipherArgs(option.cipher, option.passwd, option.iterateTimes);
+    }
+    properties.SetBoolProp(DBProperties::COMPRESS_ON_SYNC, option.isNeedCompressOnSync);
+    if (option.isNeedCompressOnSync) {
+        properties.SetIntProp(
+            DBProperties::COMPRESSION_RATE, ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
+    }
+    return OK;
+}
 }
 
 RelationalStoreManager::RelationalStoreManager(const std::string &appId, const std::string &userId, int32_t instanceId)
@@ -98,16 +116,11 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
 
     RelationalDBProperties properties;
     properties.SetStringProp(RelationalDBProperties::DATA_DIR, canonicalDir);
-    properties.SetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(option.tableMode));
     properties.SetIdentifier(userId_, appId_, storeId, subUser_, instanceId_);
-    properties.SetBoolProp(RelationalDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
-    if (option.isEncryptedDb) {
-        if (!ParamCheckUtils::CheckEncryptedParameter(option.cipher, option.passwd) || option.iterateTimes == 0) {
-            return INVALID_ARGS;
-        }
-        properties.SetCipherArgs(option.cipher, option.passwd, option.iterateTimes);
+    auto ret = InitProperties(option, properties);
+    if (ret != OK) {
+        return ret;
     }
-
     int errCode = E_OK;
     auto *conn = GetOneConnectionWithRetry(properties, errCode);
     if (conn == nullptr) {

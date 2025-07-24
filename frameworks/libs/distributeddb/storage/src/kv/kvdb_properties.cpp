@@ -28,8 +28,6 @@ const std::string KvDBProperties::SECURITY_FLAG = "securityFlag";
 const std::string KvDBProperties::CONFLICT_RESOLVE_POLICY = "conflictResolvePolicy";
 const std::string KvDBProperties::CHECK_INTEGRITY = "checkIntegrity";
 const std::string KvDBProperties::RM_CORRUPTED_DB = "rmCorruptedDb";
-const std::string KvDBProperties::COMPRESS_ON_SYNC = "needCompressOnSync";
-const std::string KvDBProperties::COMPRESSION_RATE = "compressionRate";
 const std::string KvDBProperties::LOCAL_ONLY = "localOnly";
 
 const std::string KvDBProperties::SHARED_MODE = "sharedMode";

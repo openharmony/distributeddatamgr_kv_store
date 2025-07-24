@@ -32,6 +32,7 @@ public:
     void TearDown() override;
 protected:
     int InitDelegate(const StoreInfo &info) override;
+    std::pair<int, RelationalStoreDelegate *> OpenRDBStore(const StoreInfo &info);
     int CloseDelegate(const StoreInfo &info) override;
     void CloseAllDelegate() override;
 
@@ -52,6 +53,8 @@ protected:
 
     int InsertLocalDBData(int64_t begin, int64_t count, const StoreInfo &info);
 
+    int ExecuteSQL(const std::string &sql, const StoreInfo &info);
+
     int CreateDistributedTable(const StoreInfo &info, const std::string &table,
         TableSyncType type = TableSyncType::DEVICE_COOPERATION);
 
@@ -62,9 +65,13 @@ protected:
     void BlockPush(const StoreInfo &from, const StoreInfo &to, const std::string &table,
         DBStatus expectRet = DBStatus::OK);
 
-    int CountTableData(const StoreInfo &info, const std::string &table);
+    void BlockPull(const StoreInfo &from, const StoreInfo &to, const std::string &table,
+        DBStatus expectRet = DBStatus::OK);
 
-    int CountTableDataByDev(const StoreInfo &info, const std::string &table, const std::string &dev);
+    int CountTableData(const StoreInfo &info, const std::string &table, const std::string &condition = "");
+
+    int CountTableDataByDev(const StoreInfo &info, const std::string &table, const std::string &dev,
+        const std::string &condition = "");
 
     int SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables);
 
@@ -83,6 +90,11 @@ protected:
     void SetIsDbEncrypted(bool isdbEncrypted);
     bool GetIsDbEncrypted() const;
     int EncryptedDb(sqlite3 *db);
+
+    void BlockSync(const StoreInfo &from, const StoreInfo &to, const std::string &table, SyncMode mode,
+        DBStatus expectRet);
+
+    void RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet);
 
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *> stores_;

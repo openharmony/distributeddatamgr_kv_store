@@ -1040,4 +1040,10 @@ int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericIn
     }
     return -E_SECURITY_OPTION_CHECK_ERROR;
 }
+
+int32_t RemoteExecutor::GetTaskCount() const
+{
+    std::lock_guard<std::mutex> autoLock(taskLock_);
+    return static_cast<int32_t>(taskMap_.size()); // max taskMap_ size is 32
+}
 }

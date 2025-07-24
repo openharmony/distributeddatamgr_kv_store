@@ -104,6 +104,8 @@ public:
     virtual void ClearAllSyncTaskByDevice(const std::string &deviceId) = 0;
 
     virtual int32_t GetResponseTaskCount() = 0;
+
+    virtual int32_t GetRemoteQueryTaskCount() = 0;
 protected:
     ~ISyncEngine() override {};
 };

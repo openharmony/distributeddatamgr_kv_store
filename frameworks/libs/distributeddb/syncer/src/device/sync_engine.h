@@ -137,6 +137,8 @@ public:
     void TimeChange() override;
 
     int32_t GetResponseTaskCount() override;
+
+    int32_t GetRemoteQueryTaskCount() override;
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) = 0;

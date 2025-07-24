@@ -35,6 +35,8 @@ protected:
     virtual int CloseDelegate(const StoreInfo &info) = 0;
     virtual void CloseAllDelegate() = 0;
     std::string GetDevice(const StoreInfo &info) const;
+    uint64_t GetAllSendMsgSize() const;
+    void RegBeforeDispatch(const std::function<void(const std::string &, const Message *)> &beforeDispatch);
     static StoreInfo GetStoreInfo1();
     static StoreInfo GetStoreInfo2();
     static StoreInfo GetStoreInfo3();
