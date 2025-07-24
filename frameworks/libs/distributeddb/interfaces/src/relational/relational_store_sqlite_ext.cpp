@@ -12,6 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
 #include <mutex>
 #include <openssl/sha.h>
 #include <openssl/crypto.h>
@@ -67,6 +70,9 @@ using namespace DistributedDB;
 
 namespace {
 const std::string DISTRIBUTED_TABLE_MODE = "distributed_table_mode";
+static std::mutex g_binlogInitMutex;
+static int g_binlogInit = -1;
+constexpr const char *BINLOG_WHITELIST[] = {};
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
@@ -1645,6 +1651,40 @@ SQLITE_API int sqlite3_open_v2_relational(const char *filename, sqlite3 **ppDb, 
     return err;
 }
 
+static bool IsBinlogSupported()
+{
+#ifndef _WIN32
+    auto handle = dlopen("libarkdata_db_core.z.so", RTLD_LAZY);
+    if (handle != nullptr) {
+        dlclose(handle);
+        return true;
+    }
+#endif
+    return false;
+}
+
+SQLITE_API int sqlite3_is_support_binlog_relational(const char *filename)
+{
+    if (filename == nullptr) {
+        return SQLITE_ERROR;
+    }
+    if (g_binlogInit == -1) {
+        std::lock_guard<std::mutex> lock(g_binlogInitMutex);
+        if (g_binlogInit == -1) {
+            g_binlogInit = static_cast<int>(IsBinlogSupported());
+        }
+    }
+    if (g_binlogInit != static_cast<int>(true)) {
+        return SQLITE_ERROR;
+    }
+    for (auto whiteItem : BINLOG_WHITELIST) {
+        if (strcmp(whiteItem, filename) == 0) {
+            return SQLITE_OK;
+        }
+    }
+    return SQLITE_ERROR;
+}
+
 DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientObserver &clientObserver)
 {
     std::string fileName;
@@ -1906,6 +1946,7 @@ struct sqlite3_api_routines_relational {
     int (*open)(const char *, sqlite3 **);
     int (*open16)(const void *, sqlite3 **);
     int (*open_v2)(const char *, sqlite3 **, int, const char *);
+    int (*is_support_binlog)(const char*);
 };
 
 typedef struct sqlite3_api_routines_relational sqlite3_api_routines_relational;
@@ -1913,8 +1954,10 @@ static const sqlite3_api_routines_relational sqlite3HwApis = {
 #ifdef SQLITE_DISTRIBUTE_RELATIONAL
     sqlite3_open_relational,
     sqlite3_open16_relational,
-    sqlite3_open_v2_relational
+    sqlite3_open_v2_relational,
+    sqlite3_is_support_binlog_relational
 #else
+    0,
     0,
     0,
     0
