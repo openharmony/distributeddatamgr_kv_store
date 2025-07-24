@@ -41,55 +41,32 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
  * limitations under the License.
  */
 
-#include <atomic>
 #include <gtest/gtest.h>
 #include <thread>
-
 #include "db_errno.h"
+#include "distributeddb_communicator_common.h"
 #include "distributeddb_tools_unit_test.h"
-#include "evloop/src/event_impl.h"
-#include "evloop/src/event_loop_epoll.h"
-#include "evloop/src/ievent.h"
-#include "evloop/src/ievent_loop.h"
 #include "log_print.h"
-#include "platform_specific.h"
+#include "message.h"
+#include "protocol_proto.h"
+#include "time_sync.h"
+#include "sync_types.h"
 
+using namespace std;
 using namespace testing::ext;
 using namespace DistributedDB;
 
 namespace {
-    IEventLoop *g_loop = nullptr;
-    constexpr int MAX_RETRY_TIMES = 1000;
-    constexpr int RETRY_TIMES_5 = 5;
-    constexpr int EPOLL_INIT_REVENTS = 32;
-    constexpr int ET_READ = 0x01;
-    constexpr int ET_WRITE = 0x02;
-    constexpr int ET_TIMEOUT = 0x08;
-    constexpr EventTime TIME_INACCURACY = 100LL;
-    constexpr EventTime TIME_PIECE_1 = 1LL;
-    constexpr EventTime TIME_PIECE_10 = 10LL;
-    constexpr EventTime TIME_PIECE_50 = 50LL;
-    constexpr EventTime TIME_PIECE_100 = 100LL;
-    constexpr EventTime TIME_PIECE_1000 = 1000LL;
-    constexpr EventTime TIME_PIECE_10000 = 10000LL;
+    constexpr int SEND_COUNT_GOAL = 20; // Send 20 times
 
-class TimerTester {
-public:
-    static EventTime GetCurrentTime();
-};
-
-EventTime TimerTester::GetCurrentTime()
-{
-    uint64_t now;
-    int errCode = OS::GetCurrentSysTimeInMicrosecond(now);
-    if (errCode != E_OK) {
-        LOGE("Get current time failed.");
-        return 0;
-    }
-    return now / 1000; // 1 ms equals to 1000 us
+    EnvHandle g_envDeviceA;
+    EnvHandle g_envDeviceB;
+    ICommunicator *g_commAA = nullptr;
+    ICommunicator *g_commBA = nullptr;
+    ICommunicator *g_commBB = nullptr;
 }
 
-class DistributedDBEventLoopTimerTest : public testing::Test {
+class DistributedDBCommunicatorSendReceiveTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -97,708 +74,755 @@ public:
     void TearDown();
 };
 
-void DistributedDBEventLoopTimerTest::SetUpTestCase(void) {}
+void DistributedDBCommunicatorSendReceiveTest::SetUpTestCase(void)
+{
+    /**
+     * @tc.setup: Create and init CommunicatorAggregator and AdapterStub
+     */
+    LOGI("[UT][SendRecvTest][SetUpTestCase] Enter.");
+    bool errCode = SetUpEnv(g_envDeviceA, DEVICE_NAME_A);
+    ASSERT_EQ(errCode, true);
+    errCode = SetUpEnv(g_envDeviceB, DEVICE_NAME_B);
+    ASSERT_EQ(errCode, true);
+    DoRegTransformFunction();
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
+}
 
-void DistributedDBEventLoopTimerTest::TearDownTestCase(void) {}
+void DistributedDBCommunicatorSendReceiveTest::TearDownTestCase(void)
+{
+    /**
+     * @tc.teardown: Finalize and release CommunicatorAggregator and AdapterStub
+     */
+    LOGI("[UT][SendRecvTest][TearDownTestCase] Enter.");
+    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure all thread quiet and memory released
+    TearDownEnv(g_envDeviceA);
+    TearDownEnv(g_envDeviceB);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
+}
 
-void DistributedDBEventLoopTimerTest::SetUp(void)
+static void GetCommunicator(uint64_t label, const std::string &userId, EnvHandle &device, ICommunicator **comm)
+{
+    int errorNo = E_OK;
+    *comm = device.commAggrHandle->AllocCommunicator(label, errorNo, userId);
+    ASSERT_EQ(errorNo, E_OK);
+    ASSERT_NOT_NULL_AND_ACTIVATE(*comm, userId);
+}
+
+void DistributedDBCommunicatorSendReceiveTest::SetUp()
 {
     DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
     /**
-     * @tc.setup: Create a loop object.
+     * @tc.setup: Alloc communicator AA, BA, BB
      */
-    if (g_loop == nullptr) {
-        int errCode = E_OK;
-        g_loop = IEventLoop::CreateEventLoop(errCode);
-        if (g_loop == nullptr) {
-            LOGE("Prepare loop in SetUp() failed.");
-        }
+    GetCommunicator(LABEL_A, "", g_envDeviceA, &g_commAA);
+    GetCommunicator(LABEL_A, "", g_envDeviceB, &g_commBA);
+    GetCommunicator(LABEL_B, "", g_envDeviceB, &g_commBB);
+}
+
+void DistributedDBCommunicatorSendReceiveTest::TearDown()
+{
+    /**
+     * @tc.teardown: Release communicator AA, BA, BB
+     */
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAA);
+    g_commAA = nullptr;
+    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBA);
+    g_commBA = nullptr;
+    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBB);
+    g_commBA = nullptr;
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure all thread quiet
+}
+
+static Message *BuildAppLayerFrameMessage()
+{
+    DistributedDBUnitTest::DataSyncMessageInfo info;
+    info.messageId_ = DistributedDB::TIME_SYNC_MESSAGE;
+    info.messageType_ = TYPE_REQUEST;
+    DistributedDB::Message *message = nullptr;
+    DistributedDBUnitTest::DistributedDBToolsUnitTest::BuildMessage(info, message);
+    return message;
+}
+
+static void CheckRecvMessage(Message *recvMsg, bool isEmpty, uint32_t msgId, uint32_t msgType)
+{
+    if (isEmpty) {
+        EXPECT_EQ(recvMsg, nullptr);
+    } else {
+        ASSERT_NE(recvMsg, nullptr);
+        EXPECT_EQ(recvMsg->GetMessageId(), msgId);
+        EXPECT_EQ(recvMsg->GetMessageType(), msgType);
+        EXPECT_EQ(recvMsg->GetSessionId(), FIXED_SESSIONID);
+        EXPECT_EQ(recvMsg->GetSequenceId(), FIXED_SEQUENCEID);
+        EXPECT_EQ(recvMsg->GetErrorNo(), NO_ERROR);
+        delete recvMsg;
+        recvMsg = nullptr;
     }
 }
 
-void DistributedDBEventLoopTimerTest::TearDown(void)
-{
-    /**
-     * @tc.teardown: Destroy the loop object.
-     */
-    if (g_loop != nullptr) {
-        g_loop->KillAndDecObjRef(g_loop);
-        g_loop = nullptr;
-    }
-}
+#define REG_MESSAGE_CALLBACK(src, label) \
+    string srcTargetFor##src##label; \
+    Message *recvMsgFor##src##label = nullptr; \
+    g_comm##src##label->RegOnMessageCallback( \
+        [&srcTargetFor##src##label, &recvMsgFor##src##label](const std::string &srcTarget, Message *inMsg) { \
+        srcTargetFor##src##label = srcTarget; \
+        recvMsgFor##src##label = inMsg; \
+    }, nullptr);
 
 /**
- * @tc.name: EventLoopTimerTest001
- * @tc.desc: Create and destroy the event loop object.
+ * @tc.name: Send And Receive 001
+ * @tc.desc: Test send and receive based on equipment communicator
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: fangyi
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive001, TestSize.Level1)
 {
-    /**
-     * @tc.steps: step1. create a loop.
-     * @tc.expected: step1. create successfully.
-     */
-    int errCode = E_OK;
-    IEventLoop *loop = IEventLoop::CreateEventLoop(errCode);
-    ASSERT_EQ(loop != nullptr, true);
+    // Preset
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+    REG_MESSAGE_CALLBACK(B, B);
 
     /**
-     * @tc.steps: step2. destroy the loop.
-     * @tc.expected: step2. destroy successfully.
+     * @tc.steps: step1. connect device A with device B
      */
-    bool finalized = false;
-    loop->OnLastRef([&finalized]() { finalized = true; });
-    RefObject::DecObjRef(loop);
-    loop = nullptr;
-    EXPECT_EQ(finalized, true);
-}
-
-/**
- * @tc.name: EventLoopTimerTest002
- * @tc.desc: Start and stop the loop
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: fangyi
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest002, TestSize.Level1)
-{
-    // ready data
-    ASSERT_EQ(g_loop != nullptr, true);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 
     /**
-     * @tc.steps: step1. create a loop.
-     * @tc.expected: step1. create successfully.
+     * @tc.steps: step2. device A send message(registered and tiny) to device B using communicator AA
+     * @tc.expected: step2. communicator BA received the message
      */
-    std::atomic<bool> running(false);
-    EventTime delta = 0;
-    std::thread loopThread([&running, &delta]() {
-            running = true;
-            EventTime start = TimerTester::GetCurrentTime();
-            g_loop->Run();
-            EventTime end = TimerTester::GetCurrentTime();
-            delta = end - start;
-        });
-    while (!running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_1));
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
-    g_loop->KillObj();
-    loopThread.join();
-    EXPECT_EQ(delta > TIME_PIECE_50, true);
-}
-
-/**
- * @tc.name: EventLoopTimerTest003
- * @tc.desc: Create and destroy a timer object.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: fangyi
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest003, TestSize.Level0)
-{
-     /**
-     * @tc.steps: step1. create event(timer) object.
-     * @tc.expected: step1. create successfully.
-     */
-    int errCode = E_OK;
-    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_1, errCode);
-    ASSERT_EQ(timer != nullptr, true);
-
-    /**
-     * @tc.steps: step2. destroy the event object.
-     * @tc.expected: step2. destroy successfully.
-     */
-    bool finalized = false;
-    errCode = timer->SetAction([](EventsMask revents) -> int {
-            return E_OK;
-        }, [&finalized]() {
-            finalized = true;
-        });
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
-    timer->KillAndDecObjRef(timer);
-    timer = nullptr;
-    EXPECT_EQ(finalized, true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
+    CheckRecvMessage(recvMsgForBB, true, 0, 0);
+    EXPECT_EQ(srcTargetForBA, DEVICE_NAME_A);
+    CheckRecvMessage(recvMsgForBA, false, REGED_TINY_MSG_ID, TYPE_REQUEST);
+
+    /**
+     * @tc.steps: step3. device B send message(registered and tiny) to device A using communicator BB
+     * @tc.expected: step3. communicator AA did not receive the message
+     */
+    Message *msgForBB = BuildRegedTinyMessage();
+    ASSERT_NE(msgForBB, nullptr);
+    conf = {true, 0};
+    errCode = g_commBB->SendMessage(DEVICE_NAME_A, msgForBB, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(srcTargetForAA, "");
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
 
 /**
- * @tc.name: EventLoopTimerTest004
- * @tc.desc: Start a timer
+ * @tc.name: Send And Receive 002
+ * @tc.desc: Test send oversize message will fail
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: fangyi
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest004, TestSize.Level1)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive002, TestSize.Level1)
 {
-    // ready data
-    ASSERT_EQ(g_loop != nullptr, true);
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 
     /**
-     * @tc.steps: step1. start the loop.
-     * @tc.expected: step1. start successfully.
+     * @tc.steps: step2. device A send message(registered and oversize) to device B using communicator AA
+     * @tc.expected: step2. send fail
      */
-    std::atomic<bool> running(false);
-    std::thread loopThread([&running]() {
-            running = true;
-            g_loop->Run();
-        });
+    Message *msgForAA = BuildRegedOverSizeMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {true, false, 0};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_NE(errCode, E_OK);
+    delete msgForAA;
+    msgForAA = nullptr;
 
-    int tryCounter = 0;
-    while (!running) {
-        tryCounter++;
-        if (tryCounter >= MAX_RETRY_TIMES) {
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: Send And Receive 003
+ * @tc.desc: Test send unregistered message will fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step2. device A send message(unregistered and tiny) to device B using communicator AA
+     * @tc.expected: step2. send fail
+     */
+    Message *msgForAA = BuildUnRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {true, false, 0};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_NE(errCode, E_OK);
+    delete msgForAA;
+    msgForAA = nullptr;
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: Send And Receive 004
+ * @tc.desc: Test send and receive with different users.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get communicators for users {"", "user_1", "user_2"}
+     * @tc.expected: step1. ok
+     */
+    ICommunicator *g_commAAUser1 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_1, g_envDeviceA, &g_commAAUser1);
+    ICommunicator *g_commBAUser1 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_1, g_envDeviceB, &g_commBAUser1);
+
+    ICommunicator *g_commAAUser2 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_2, g_envDeviceA, &g_commAAUser2);
+    ICommunicator *g_commBAUser2 = nullptr;
+    GetCommunicator(LABEL_A, USER_ID_2, g_envDeviceB, &g_commBAUser2);
+
+    /**
+     * @tc.steps: step2. Set callback on B, save all message from A
+     * @tc.expected: step2. ok
+     */
+    REG_MESSAGE_CALLBACK(B, A)
+    REG_MESSAGE_CALLBACK(B, AUser1)
+    REG_MESSAGE_CALLBACK(B, AUser2)
+
+    /**
+     * @tc.steps: step3. Connect and send message from A to B.
+     * @tc.expected: step3. ok
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    Message *msgForAAUser1 = BuildRegedHugeMessage();
+    ASSERT_NE(msgForAAUser1, nullptr);
+    Message *msgForAAUser2 = BuildRegedGiantMessage(HUGE_SIZE + HUGE_SIZE);
+    ASSERT_NE(msgForAAUser2, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    SendConfig confUser1 = {false, true, 0, {"appId", "storeId", USER_ID_1, "DeviceB", ""}};
+    errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAAUser1, confUser1);
+    EXPECT_EQ(errCode, E_OK);
+    SendConfig confUser2 = {false, true, 0, {"appId", "storeId", USER_ID_2, "DeviceB", ""}};
+    errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAAUser2, confUser2);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    /**
+     * @tc.steps: step4. Check message.
+     * @tc.expected: step4. ok
+     */
+    EXPECT_EQ(srcTargetForBA, DEVICE_NAME_A);
+    EXPECT_EQ(srcTargetForBAUser1, DEVICE_NAME_A);
+    EXPECT_EQ(srcTargetForBAUser2, DEVICE_NAME_A);
+    CheckRecvMessage(recvMsgForBA, false, REGED_TINY_MSG_ID, TYPE_REQUEST);
+    CheckRecvMessage(recvMsgForBAUser1, false, REGED_HUGE_MSG_ID, TYPE_RESPONSE);
+    CheckRecvMessage(recvMsgForBAUser2, false, REGED_GIANT_MSG_ID, TYPE_NOTIFY);
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAAUser1, USER_ID_1);
+    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBAUser1, USER_ID_1);
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAAUser2, USER_ID_2);
+    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBAUser2, USER_ID_2);
+}
+
+/**
+ * @tc.name: Send Flow Control 001
+ * @tc.desc: Test send in nonblock way
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl001, TestSize.Level1)
+{
+    // Preset
+    int countForBA = 0;
+    int countForBB = 0;
+    g_commBA->RegOnSendableCallback([&countForBA](){ countForBA++; }, nullptr);
+    g_commBB->RegOnSendableCallback([&countForBB](){ countForBB++; }, nullptr);
+
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms to make sure send cause by online done
+    countForBA = 0;
+    countForBB = 0;
+
+    /**
+     * @tc.steps: step2. device B simulates send block
+     */
+    g_envDeviceB.adapterHandle->SimulateSendBlock();
+
+    /**
+     * @tc.steps: step3. device B send as much as possible message(unregistered and huge) in nonblock way
+     *                   to device A using communicator BA until send fail;
+     * @tc.expected: step3. send fail will happen.
+     */
+    int sendCount = 0;
+    while (true) {
+        Message *msgForBA = BuildRegedHugeMessage();
+        ASSERT_NE(msgForBA, nullptr);
+        SendConfig conf = {true, false, 0};
+        int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
+        if (errCode == E_OK) {
+            sendCount++;
+        } else {
+            delete msgForBA;
+            msgForBA = nullptr;
             break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_1));
     }
-    EXPECT_EQ(running, true);
 
     /**
-     * @tc.steps: step2. create and start a timer.
-     * @tc.expected: step2. start successfully.
+     * @tc.steps: step4. device B simulates send block terminate
+     * @tc.expected: step4. send count before fail is equal as expected. sendable callback happened.
      */
-    int errCode = E_OK;
-    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_10, errCode);
-    ASSERT_EQ(timer != nullptr, true);
-    std::atomic<int> counter(0);
-    errCode = timer->SetAction([&counter](EventsMask revents) -> int { ++counter; return E_OK; }, nullptr);
-    EXPECT_EQ(errCode, E_OK);
-    errCode = g_loop->Add(timer);
-    EXPECT_EQ(errCode, E_OK);
+    g_envDeviceB.adapterHandle->SimulateSendBlockClear();
+    int expectSendCount = MAX_CAPACITY / (HUGE_SIZE + HEADER_SIZE) +
+        (MAX_CAPACITY % (HUGE_SIZE + HEADER_SIZE) == 0 ? 0 : 1);
+    EXPECT_EQ(sendCount, expectSendCount);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    EXPECT_GE(countForBA, 1);
+    EXPECT_GE(countForBB, 1);
 
-    /**
-     * @tc.steps: step3. wait and check.
-     * @tc.expected: step3. 'counter' increased by the timer.
-     */
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
-    EXPECT_EQ(counter > 0, true);
-    g_loop->KillObj();
-    loopThread.join();
-    RefObject::DecObjRef(timer);
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
 
 /**
- * @tc.name: EventLoopTimerTest005
- * @tc.desc: Stop a timer
+ * @tc.name: Send Flow Control 002
+ * @tc.desc: Test send in block(without timeout) way
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: fangyi
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest005, TestSize.Level1)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl002, TestSize.Level1)
 {
-    // ready data
-    ASSERT_EQ(g_loop != nullptr, true);
+    // Preset
+    int cntForBA = 0;
+    int cntForBB = 0;
+    g_commBA->RegOnSendableCallback([&cntForBA](){ cntForBA++; }, nullptr);
+    g_commBB->RegOnSendableCallback([&cntForBB](){ cntForBB++; }, nullptr);
 
     /**
-     * @tc.steps: step1. start the loop.
-     * @tc.expected: step1. start successfully.
+     * @tc.steps: step1. connect device A with device B
      */
-    std::atomic<bool> running(false);
-    std::thread loopThread([&running]() {
-            running = true;
-            g_loop->Run();
-        });
-
-    int tryCounter = 1;
-    while (!running && tryCounter <= MAX_RETRY_TIMES) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        tryCounter++;
-    }
-    EXPECT_EQ(running, true);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms to make sure send cause by online done
+    cntForBA = 0;
+    cntForBB = 0;
 
     /**
-     * @tc.steps: step2. create and start a timer.
-     * @tc.expected: step2. start successfully.
+     * @tc.steps: step2. device B simulates send block
      */
-    int errCode = E_OK;
-    IEvent *timer = IEvent::CreateEvent(10, errCode);
-    ASSERT_EQ(timer != nullptr, true);
-    std::atomic<int> counter(0);
-    std::atomic<bool> finalize(false);
-    errCode = timer->SetAction(
-        [&counter](EventsMask revents) -> int {
-            ++counter;
-            return E_OK;
-        }, [&finalize]() { finalize = true; });
-    EXPECT_EQ(errCode, E_OK);
-    errCode = g_loop->Add(timer);
-    EXPECT_EQ(errCode, E_OK);
+    g_envDeviceB.adapterHandle->SimulateSendBlock();
 
     /**
-     * @tc.steps: step3. wait and check.
-     * @tc.expected: step3. 'counter' increased by the timer and the timer object finalized.
+     * @tc.steps: step3. device B send a certain message(unregistered and huge) in block way
+     *                   without timeout to device A using communicator BA;
      */
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
-    timer->KillAndDecObjRef(timer);
-    timer = nullptr;
-    g_loop->KillObj();
-    loopThread.join();
-    EXPECT_EQ(counter > 0, true);
-    EXPECT_EQ(finalize, true);
-}
-
-/**
- * @tc.name: EventLoopTimerTest006
- * @tc.desc: Stop a timer
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: fangyi
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest006, TestSize.Level1)
-{
-    // ready data
-    ASSERT_EQ(g_loop != nullptr, true);
-
-    /**
-     * @tc.steps: step1. start the loop.
-     * @tc.expected: step1. start successfully.
-     */
-    std::atomic<bool> running(false);
-    std::thread loopThread([&running]() {
-            running = true;
-            g_loop->Run();
-        });
-
-    int tryCounter = 1;
-    while (!running && tryCounter <= MAX_RETRY_TIMES) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_10));
-        tryCounter++;
-    }
-    EXPECT_EQ(running, true);
-
-    /**
-     * @tc.steps: step2. create and start a timer.
-     * @tc.expected: step2. start successfully.
-     */
-    int errCode = E_OK;
-    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_10, errCode);
-    ASSERT_EQ(timer != nullptr, true);
-    std::atomic<int> counter(0);
-    std::atomic<bool> finalize(false);
-    errCode = timer->SetAction([&counter](EventsMask revents) -> int { ++counter; return -E_STALE; },
-        [&finalize]() { finalize = true; });
-    EXPECT_EQ(errCode, E_OK);
-    errCode = g_loop->Add(timer);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step3. wait and check.
-     * @tc.expected: step3. 'counter' increased by the timer and the timer object finalized.
-     */
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
-    g_loop->KillObj();
-    loopThread.join();
-    RefObject::DecObjRef(timer);
-    timer = nullptr;
-    EXPECT_EQ(finalize, true);
-    EXPECT_EQ(counter > 0, true);
-}
-
-/**
- * @tc.name: EventLoopTimerTest007
- * @tc.desc: Modify a timer
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: fangyi
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2)
-{
-    // ready data
-    ASSERT_EQ(g_loop != nullptr, true);
-
-    /**
-     * @tc.steps: step1. start the loop.
-     * @tc.expected: step1. start successfully.
-     */
-    std::atomic<bool> running(false);
-    std::thread loopThread([&running]() {
-            running = true;
-            g_loop->Run();
-        });
-
-    int tryCounter = 1;
-    while (!running && tryCounter <= MAX_RETRY_TIMES) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        tryCounter++;
-    }
-    EXPECT_EQ(running, true);
-
-    /**
-     * @tc.steps: step2. create and start a timer.
-     * @tc.expected: step2. start successfully.
-     */
-    int errCode = E_OK;
-    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_1000, errCode);
-    ASSERT_EQ(timer != nullptr, true);
-    int counter = 1; // Interval: 1 * TIME_PIECE_100
-    EventTime lastTime = TimerTester::GetCurrentTime();
-    std::atomic<EventTime> total = 0;
-    errCode = timer->SetAction(
-        [timer, &counter, &lastTime, &total](EventsMask revents) -> int {
-            EventTime now = TimerTester::GetCurrentTime();
-            EventTime delta = now - lastTime;
-            delta -= counter * TIME_PIECE_1000;
-            total += delta;
-            if (++counter > RETRY_TIMES_5) {
-                return -E_STALE;
+    int sendCount = 0;
+    int sendFailCount = 0;
+    std::thread sendThread([&sendCount, &sendFailCount]() {
+        while (sendCount < SEND_COUNT_GOAL) {
+            Message *msgForBA = BuildRegedHugeMessage();
+            ASSERT_NE(msgForBA, nullptr);
+            SendConfig conf = {false, false, 0};
+            int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
+            if (errCode != E_OK) {
+                delete msgForBA;
+                msgForBA = nullptr;
+                sendFailCount++;
             }
-            lastTime = TimerTester::GetCurrentTime();
-            int ret = timer->SetTimeout(counter * TIME_PIECE_1000);
-            if (ret != -E_OBJ_IS_KILLED) {
-                EXPECT_EQ(ret, E_OK);
+            sendCount++;
+        }
+    });
+
+    /**
+     * @tc.steps: step4. device B simulates send block terminate
+     * @tc.expected: step4. send fail count is zero. sendable callback happened.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    g_envDeviceB.adapterHandle->SimulateSendBlockClear();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    sendThread.join();
+    EXPECT_EQ(sendCount, SEND_COUNT_GOAL);
+    EXPECT_EQ(sendFailCount, 0);
+    EXPECT_GE(cntForBA, 1);
+    EXPECT_GE(cntForBB, 1);
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: Send Flow Control 003
+ * @tc.desc: Test send in block(with timeout) way
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl003, TestSize.Level1)
+{
+    // Preset
+    int cntsForBA = 0;
+    int cntsForBB = 0;
+    g_commBA->RegOnSendableCallback([&cntsForBA](){ cntsForBA++; }, nullptr);
+    g_commBB->RegOnSendableCallback([&cntsForBB](){ cntsForBB++; }, nullptr);
+
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    cntsForBA = 0;
+    cntsForBB = 0;
+
+    /**
+     * @tc.steps: step2. device B simulates send block
+     */
+    g_envDeviceB.adapterHandle->SimulateSendBlock();
+
+     /**
+     * @tc.steps: step3. device B send a certain message(unregistered and huge) in block way
+     *                   with timeout to device A using communicator BA;
+     */
+    int sendCnt = 0;
+    int sendFailCnt = 0;
+    std::thread sendThread([&sendCnt, &sendFailCnt]() {
+        while (sendCnt < SEND_COUNT_GOAL) {
+            Message *msgForBA = BuildRegedHugeMessage();
+            ASSERT_NE(msgForBA, nullptr);
+            SendConfig conf = {false, false, 100};
+            int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf); // 100 ms timeout
+            if (errCode != E_OK) {
+                delete msgForBA;
+                msgForBA = nullptr;
+                sendFailCnt++;
             }
-            return E_OK;
-        }, nullptr);
-    EXPECT_LE(std::abs(total), TIME_INACCURACY * RETRY_TIMES_5);
+            sendCnt++;
+        }
+    });
+
+    /**
+     * @tc.steps: step4. device B simulates send block terminate
+     * @tc.expected: step4. send fail count is no more than expected. sendable callback happened.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(300)); // wait 300 ms
+    g_envDeviceB.adapterHandle->SimulateSendBlockClear();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1200)); // wait 1200 ms
+    sendThread.join();
+    EXPECT_EQ(sendCnt, SEND_COUNT_GOAL);
+    EXPECT_LE(sendFailCnt, 4);
+    EXPECT_GE(cntsForBA, 1);
+    EXPECT_GE(cntsForBB, 1);
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: Receive Check 001
+ * @tc.desc: Receive packet field check
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck001, TestSize.Level1)
+{
+    // Preset
+    int recvCount = 0;
+    g_commAA->RegOnMessageCallback([&recvCount](const std::string &srcTarget, Message *inMsg) {
+        recvCount++;
+        if (inMsg != nullptr) {
+            delete inMsg;
+            inMsg = nullptr;
+        }
+    }, nullptr);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step1. create packet with magic field error
+     * @tc.expected: step1. no message callback
+     */
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInMagicField(true, 0xFFFF);
+    Message *msgForBA = BuildRegedTinyMessage();
+    SendConfig conf = {true, false, 0};
+    int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
-    errCode = g_loop->Add(timer);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(recvCount, 0);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInMagicField(false, 0);
+
+    /**
+     * @tc.steps: step2. create packet with version field error
+     * @tc.expected: step2. no message callback
+     */
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInVersionField(true, 0xFFFF);
+    msgForBA = BuildRegedTinyMessage();
+    errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_10000));
-    g_loop->KillObj();
-    loopThread.join();
-    RefObject::DecObjRef(timer);
-}
-
-/**
- * @tc.name: EventLoopTest001
- * @tc.desc: Test Initialize twice
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: chenchaohao
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest001, TestSize.Level0)
-{
-    EventLoopEpoll *loop = new (std::nothrow) EventLoopEpoll;
-
-    EXPECT_EQ(loop->Initialize(), E_OK);
-    EXPECT_EQ(loop->Initialize(), -E_INVALID_ARGS);
-    DistributedDB::RefObject::KillAndDecObjRef(loop);
-}
-
-/**
- * @tc.name: EventLoopTest002
- * @tc.desc: Test interface if args is invalid
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: chenchaohao
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest002, TestSize.Level0)
-{
-    // ready data
-    ASSERT_NE(g_loop, nullptr);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(recvCount, 0);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInVersionField(false, 0);
 
     /**
-     * @tc.steps: step1. test the loop interface.
-     * @tc.expected: step1. return INVALID_AGRS.
+     * @tc.steps: step3. create packet with checksum field error
+     * @tc.expected: step3. no message callback
      */
-    EXPECT_EQ(g_loop->Add(nullptr), -E_INVALID_ARGS);
-    EXPECT_EQ(g_loop->Remove(nullptr), -E_INVALID_ARGS);
-    EXPECT_EQ(g_loop->Stop(), E_OK);
-
-    EventLoopImpl *loopImpl= static_cast<EventLoopImpl *>(g_loop);
-    EventsMask events = 1u;
-    EXPECT_EQ(loopImpl->Modify(nullptr, true, events), -E_INVALID_ARGS);
-    EXPECT_EQ(loopImpl->Modify(nullptr, 0), -E_INVALID_ARGS);
-}
-
-/**
- * @tc.name: EventTest001
- * @tc.desc: Test CreateEvent if args is invalid
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: chenchaohao
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest001, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. set EventTime = -1 and CreateEvent
-     * @tc.expected: step1. return INVALID_ARGS
-     */
-    EventTime eventTime = -1; // -1 is invalid arg
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
-    ASSERT_EQ(event, nullptr);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps:step2. set EventsMask = 0 and CreateEvent
-     * @tc.expected: step2. return INVALID_ARGS
-     */
-    EventFd eventFd = EventFd();
-    EventsMask events = 0u;
-    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
-    ASSERT_EQ(event, nullptr);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps:step3. set EventsMask = 4 and EventFd is invalid then CreateEvent
-     * @tc.expected: step3. return INVALID_ARGS
-     */
-    EventsMask eventsMask = 1u; // 1 is ET_READ
-    event = IEvent::CreateEvent(eventFd, eventsMask, eventTime, errCode);
-    ASSERT_EQ(event, nullptr);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps:step4. set EventsMask = 8 and CreateEvent
-     * @tc.expected: step4. return INVALID_ARGS
-     */
-    events |= ET_TIMEOUT;
-    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
-    ASSERT_EQ(event, nullptr);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps:step5. set EventTime = 1 and CreateEvent
-     * @tc.expected: step5. return OK
-     */
-    eventTime = TIME_PIECE_1;
-    eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
-    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
-    ASSERT_NE(event, nullptr);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInCheckSumField(true, 0xFFFF);
+    msgForBA = BuildRegedTinyMessage();
+    errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
-    DistributedDB::RefObject::KillAndDecObjRef(event);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(recvCount, 0);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInCheckSumField(false, 0);
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
 
 /**
- * @tc.name: EventTest002
- * @tc.desc: Test SetAction if action is nullptr
+ * @tc.name: Receive Check 002
+ * @tc.desc: Receive packet field check
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: chenchaohao
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck002, TestSize.Level1)
 {
+    // Preset
+    int recvCount = 0;
+    g_commAA->RegOnMessageCallback([&recvCount](const std::string &srcTarget, Message *inMsg) {
+        recvCount++;
+        if (inMsg != nullptr) {
+            delete inMsg;
+            inMsg = nullptr;
+        }
+    }, nullptr);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
     /**
-     * @tc.steps:step1. CreateEvent
-     * @tc.expected: step1. return OK
+     * @tc.steps: step1. create packet with packetLen field error
+     * @tc.expected: step1. no message callback
      */
-    EventTime eventTime = TIME_PIECE_1;
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
-    ASSERT_NE(event, nullptr);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInPacketLenField(true, 0xFFFF);
+    Message *msgForBA = BuildRegedTinyMessage();
+    SendConfig conf = {true, false, 0};
+    int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(recvCount, 0);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInPacketLenField(false, 0);
 
     /**
-     * @tc.steps:step2. SetAction with nullptr
-     * @tc.expected: step2. return INVALID_ARGS
+     * @tc.steps: step1. create packet with packetType field error
+     * @tc.expected: step1. no message callback
      */
-    EXPECT_EQ(event->SetAction(nullptr), -E_INVALID_ARGS);
-    DistributedDB::RefObject::KillAndDecObjRef(event);
-}
-
-/**
- * @tc.name: EventTest003
- * @tc.desc: Test AddEvents and RemoveEvents with fd is invalid
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: chenchaohao
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest003, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. CreateEvent
-     * @tc.expected: step1. return OK
-     */
-    EventTime eventTime = TIME_PIECE_1;
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
-    ASSERT_NE(event, nullptr);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInPacketTypeField(true, 0xFF);
+    msgForBA = BuildRegedTinyMessage();
+    errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(recvCount, 0);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInPacketTypeField(false, 0);
 
     /**
-     * @tc.steps:step2. AddEvents and RemoveEvents with events is 0
-     * @tc.expected: step2. return INVALID_ARGS
+     * @tc.steps: step1. create packet with paddingLen field error
+     * @tc.expected: step1. no message callback
      */
-    EventsMask events = 0u;
-    EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
-    EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps:step3. AddEvents and RemoveEvents with fd is invalid
-     * @tc.expected: step3. return OK
-     */
-    events |= ET_READ;
-    EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
-    EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
-    DistributedDB::RefObject::KillAndDecObjRef(event);
-}
-
-/**
- * @tc.name: EventTest004
- * @tc.desc: Test AddEvents and RemoveEvents with fd is valid
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: chenchaohao
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest004, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. CreateEvent
-     * @tc.expected: step1. return OK
-     */
-    EventTime eventTime = TIME_PIECE_1;
-    EventFd eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
-    EventsMask events = 1u; // 1 means ET_READ
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
-    ASSERT_NE(event, nullptr);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInPaddingLenField(true, 0xFF);
+    msgForBA = BuildRegedTinyMessage();
+    errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(recvCount, 0);
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInPaddingLenField(false, 0);
 
-    /**
-     * @tc.steps:step2. AddEvents and RemoveEvents with fd is valid
-     * @tc.expected: step2. return OK
-     */
-    events |= ET_WRITE;
-    EXPECT_EQ(event->AddEvents(events), E_OK);
-    EXPECT_EQ(event->RemoveEvents(events), E_OK);
-
-    /**
-     * @tc.steps:step3. AddEvents and RemoveEvents after set action
-     * @tc.expected: step3. return OK
-     */
-    ASSERT_EQ(g_loop->Add(event), -E_INVALID_ARGS);
-    ASSERT_EQ(event->SetAction([](EventsMask revents) -> int {
-        return E_OK;
-        }), E_OK);
-    ASSERT_EQ(g_loop->Add(event), E_OK);
-    EXPECT_EQ(event->AddEvents(events), E_OK);
-    EXPECT_EQ(event->RemoveEvents(events), E_OK);
-    DistributedDB::RefObject::KillAndDecObjRef(event);
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
 
 /**
- * @tc.name: EventTest005
- * @tc.desc: Test constructor method with timeout < 0
+ * @tc.name: Send Result Notify 001
+ * @tc.desc: Test send result notify
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: chenchaohao
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest005, TestSize.Level0)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendResultNotify001, TestSize.Level1)
 {
-    /**
-     * @tc.steps:step1. instantiation event with eventTime
-     * @tc.expected: step1. return OK
-     */
-    EventTime eventTime = -1; // -1 is invalid arg
-    IEvent *event = new (std::nothrow) EventImpl(eventTime);
-    ASSERT_NE(event, nullptr);
-    DistributedDB::RefObject::KillAndDecObjRef(event);
+    // preset
+    std::vector<int> sendResult;
+    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
+        sendResult.push_back(result);
+    };
 
     /**
-     * @tc.steps:step2. instantiation event with eventFd, events, eventTime
-     * @tc.expected: step2. return OK
+     * @tc.steps: step1. connect device A with device B
      */
-    EventFd eventFd = EventFd();
-    EventsMask events = 1u; // 1 means ET_READ
-    EventImpl *eventImpl = new (std::nothrow) EventImpl(eventFd, events, eventTime);
-    ASSERT_NE(eventImpl, nullptr);
-    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
-}
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 
-/**
- * @tc.name: EventTest006
- * @tc.desc: Test SetTimeout
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: chenchaohao
- */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest006, TestSize.Level0)
-{
     /**
-     * @tc.steps:step1. CreateEvent
-     * @tc.expected: step1. return OK
+     * @tc.steps: step2. device A send message to device B using communicator AA
+     * @tc.expected: step2. notify send done and success
      */
-    EventTime eventTime = TIME_PIECE_1;
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
-    ASSERT_NE(event, nullptr);
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf, sendResultNotifier);
     EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
+    ASSERT_EQ(sendResult.size(), static_cast<size_t>(1)); // 1 notify
+    EXPECT_EQ(sendResult[0], E_OK);
 
     /**
-     * @tc.steps:step2. SetTimeout
-     * @tc.expected: step2. return INVALID_ARGS
+     * @tc.steps: step3. disconnect device A with device B
      */
-    event->IgnoreFinalizer();
-    EXPECT_EQ(event->SetTimeout(eventTime), E_OK);
-    eventTime = -1; // -1 is invalid args
-    EXPECT_EQ(event->SetTimeout(eventTime), -E_INVALID_ARGS);
-    DistributedDB::RefObject::KillAndDecObjRef(event);
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step4. device A send message to device B using communicator AA
+     * @tc.expected: step2. notify send done and fail
+     */
+    msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf, sendResultNotifier);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
+    ASSERT_EQ(sendResult.size(), static_cast<size_t>(2)); // 2 notify
+    EXPECT_NE(sendResult[1], E_OK); // 1 for second element
 }
 
 /**
- * @tc.name: EventTest007
- * @tc.desc: Test SetEvents and GetEvents
+ * @tc.name: Message Feedback 001
+ * @tc.desc: Test feedback not support messageid and communicator not found
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: chenchaohao
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest007, TestSize.Level0)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, MessageFeedback001, TestSize.Level1)
 {
-    /**
-     * @tc.steps:step1. CreateEvent
-     * @tc.expected: step1. return OK
-     */
-    EventTime eventTime = TIME_PIECE_1;
-    EventFd eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
-    EventsMask events = 1u; // 1 means ET_READ
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
-    ASSERT_NE(event, nullptr);
-    EXPECT_EQ(errCode, E_OK);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
+    // preset
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+    REG_MESSAGE_CALLBACK(B, B);
 
     /**
-     * @tc.steps:step2. Test GetEventFd and GetEvents
-     * @tc.expected: step2. return OK
+     * @tc.steps: step1. connect device A with device B
      */
-    EventImpl *eventImpl = static_cast<EventImpl *>(event);
-    eventImpl->SetRevents(events);
-    EXPECT_EQ(eventImpl->GetEventFd(), eventFd);
-    EXPECT_EQ(eventImpl->GetEvents(), events);
-    events = 2u; // 2 means ET_WRITE
-    eventImpl->SetEvents(true, events);
-    EXPECT_EQ(eventImpl->GetEvents(), 3u); // 3 means ET_WRITE | ET_READ
-    eventImpl->SetEvents(false, events);
-    EXPECT_EQ(eventImpl->GetEvents(), 1u); // 1 means ET_READ
-    EXPECT_FALSE(eventImpl->GetTimeoutPoint(eventTime));
-    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step2. device B send message to device A using communicator BB
+     * @tc.expected: step2. communicator BB receive communicator not found feedback
+     */
+    Message *msgForBB = BuildRegedTinyMessage();
+    ASSERT_NE(msgForBB, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commBB->SendMessage(DEVICE_NAME_A, msgForBB, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
+    ASSERT_NE(recvMsgForBB, nullptr);
+    EXPECT_EQ(srcTargetForBB, DEVICE_NAME_A);
+    EXPECT_EQ(recvMsgForBB->GetMessageId(), REGED_TINY_MSG_ID);
+    EXPECT_EQ(recvMsgForBB->GetMessageType(), TYPE_RESPONSE);
+    EXPECT_EQ(recvMsgForBB->GetSessionId(), FIXED_SESSIONID);
+    EXPECT_EQ(recvMsgForBB->GetSequenceId(), FIXED_SEQUENCEID);
+    EXPECT_EQ(recvMsgForBB->GetErrorNo(), static_cast<uint32_t>(E_FEEDBACK_COMMUNICATOR_NOT_FOUND));
+    EXPECT_EQ(recvMsgForBB->GetObject<RegedTinyObject>(), nullptr);
+    delete recvMsgForBB;
+    recvMsgForBB = nullptr;
+
+    /**
+     * @tc.steps: step3. simulate messageid not registered
+     */
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInMessageIdField(true, UNREGED_TINY_MSG_ID);
+
+    /**
+     * @tc.steps: step4. device B send message to device A using communicator BA
+     * @tc.expected: step4. communicator BA receive messageid not register feedback
+     */
+    Message *msgForBA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForBA, nullptr);
+    errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
+    ASSERT_NE(recvMsgForBA, nullptr);
+    EXPECT_EQ(srcTargetForBA, DEVICE_NAME_A);
+    EXPECT_EQ(recvMsgForBA->GetMessageId(), UNREGED_TINY_MSG_ID);
+    EXPECT_EQ(recvMsgForBA->GetMessageType(), TYPE_RESPONSE);
+    EXPECT_EQ(recvMsgForBA->GetSessionId(), FIXED_SESSIONID);
+    EXPECT_EQ(recvMsgForBA->GetSequenceId(), FIXED_SEQUENCEID);
+    EXPECT_EQ(recvMsgForBA->GetErrorNo(), static_cast<uint32_t>(E_FEEDBACK_UNKNOWN_MESSAGE));
+    EXPECT_EQ(recvMsgForBA->GetObject<RegedTinyObject>(), nullptr);
+    delete recvMsgForBA;
+    recvMsgForBA = nullptr;
+
+    // CleanUp
+    g_envDeviceB.adapterHandle->SimulateSendBitErrorInMessageIdField(false, 0);
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
 }
 
 /**
- * @tc.name: EventTest008
- * @tc.desc: Test SetTimeoutPeriod and GetTimeoutPoint
+ * @tc.name: SendAndReceiveWithExtendHead001
+ * @tc.desc: Test fill extendHead func
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: chenchaohao
+ * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBEventLoopTimerTest, EventTest008, TestSize.Level0)
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead001, TestSize.Level1)
 {
+    // Preset
+    TimeSync::RegisterTransformFunc();
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+
     /**
-     * @tc.steps:step1. CreateEvent
-     * @tc.expected: step1. return OK
+     * @tc.steps: step1. connect device A with device B
      */
-    EventTime eventTime = TIME_PIECE_1;
-    int errCode = E_OK;
-    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
-    ASSERT_NE(event, nullptr);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step2. device A send ApplayerFrameMessage to device B using communicator AA with extednHead
+     * @tc.expected: step2. communicator BA received the message
+     */
+    Message *msgForAA = BuildAppLayerFrameMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {false, true, 0, {"appId", "storeId", "userId", "DeviceB"}};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps:step2. SetTimeoutPeriod and GetTimeoutPoint
-     * @tc.expected: step2. return OK
-     */
-    EventImpl *eventImpl = static_cast<EventImpl *>(event);
-    eventTime = -1; // -1 is invalid args
-    eventImpl->SetTimeoutPeriod(eventTime);
-    EXPECT_TRUE(eventImpl->GetTimeoutPoint(eventTime));
-
-    /**
-     * @tc.steps:step3. Dispatch
-     * @tc.expected: step3. return INVALID_ARGS
-     */
-    EXPECT_EQ(eventImpl->Dispatch(), -E_INVALID_ARGS);
-    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
-}
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
+    EXPECT_EQ(srcTargetForBA, DEVICE_NAME_A);
+    ASSERT_NE(recvMsgForBA, nullptr);
+    delete recvMsgForBA;
+    recvMsgForBA = nullptr;
+    DistributedDB::ProtocolProto::UnRegTransformFunction(DistributedDB::TIME_SYNC_MESSAGE);
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
