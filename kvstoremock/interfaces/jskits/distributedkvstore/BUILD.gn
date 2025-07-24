@@ -79,6 +79,7 @@ if (use_platform_win || use_platforn_mac) {
 
     external_deps = [
       "data_share:datashare_common_lite",
+      "json:nlohmann_json_static",
     ]
 
     if (use_platform_win) {
