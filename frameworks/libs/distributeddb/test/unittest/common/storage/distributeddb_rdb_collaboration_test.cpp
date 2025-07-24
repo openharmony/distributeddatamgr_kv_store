@@ -2592,6 +2592,48 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig003, TestSize.Level0)
 }
 
 /**
+ * @tc.name: SetStoreConfig004
+ * @tc.desc: Test properties for concurrent get and set operations
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBCollaborationTest, SetStoreConfig004, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. Create device table and cloud table in SPLIT_BY_DEVICE
+     * @tc.expected: step1.ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDelegate(DistributedTableMode::SPLIT_BY_DEVICE));
+    /**
+     * @tc.steps: step2. Set store config.
+     * @tc.expected: step2.ok
+     */
+    EXPECT_EQ(delegate_->SetStoreConfig({DistributedTableMode::COLLABORATION}), OK);
+    auto schema = GetSchema();
+    auto distributedSchema = RDBDataGenerator::ParseSchema(schema, true);
+    deviceB_->SetDistributedSchema(distributedSchema);
+    EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
+    EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+    /**
+     * @tc.steps: step3. check for concurrent interface calls
+     * @tc.expected: step3.ok
+     */
+    std::thread t1([this, distributedSchema]() {
+        for (size_t i = 0; i < 10000; i++) {
+            EXPECT_EQ(delegate_->SetDistributedSchema(distributedSchema), OK);
+        }
+    });
+    std::thread t2([this, distributedSchema]() {
+        for (size_t i = 0; i < 10000; i++) {
+            EXPECT_EQ(delegate_->SetStoreConfig({DistributedTableMode::COLLABORATION}), OK);
+        }
+    });
+    t1.join();
+    t2.join();
+}
+
+/**
  * @tc.name: InvalidSync001
  * @tc.desc: Test remote set empty distributed schema and sync.
  * @tc.type: FUNC

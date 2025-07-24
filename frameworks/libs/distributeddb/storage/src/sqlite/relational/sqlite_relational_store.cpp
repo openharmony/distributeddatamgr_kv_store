@@ -448,7 +448,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         }
     }
 
-    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
+    auto mode = sqliteStorageEngine_->GetRelationalProperties().GetDistributedTableMode();
     std::string localIdentity; // collaboration mode need local identify
     if (mode == DistributedTableMode::COLLABORATION) {
         int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
@@ -549,7 +549,7 @@ int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tabl
 
 int SQLiteRelationalStore::RemoveDeviceData()
 {
-    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
+    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetRelationalProperties().GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(DistributedTableMode::SPLIT_BY_DEVICE)));
     if (mode == DistributedTableMode::COLLABORATION) {
         LOGE("Not support remove all device data in collaboration mode.");
@@ -600,7 +600,7 @@ int SQLiteRelationalStore::RemoveDeviceData()
 
 int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std::string &tableName)
 {
-    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
+    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetRelationalProperties().GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(DistributedTableMode::SPLIT_BY_DEVICE)));
     if (mode == DistributedTableMode::COLLABORATION) {
         LOGE("Not support remove device data in collaboration mode.");
@@ -684,13 +684,15 @@ int SQLiteRelationalStore::StartLifeCycleTimer(const DatabaseLifeCycleNotifier &
             if (lifeCycleNotifier_) {
                 // normal identifier mode
                 std::string identifier;
-                if (sqliteStorageEngine_->GetProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
-                    identifier = sqliteStorageEngine_->GetProperties().GetStringProp(
+                if (sqliteStorageEngine_->GetRelationalProperties().GetBoolProp(
+                    DBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
+                    identifier = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(
                         DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
                 } else {
-                    identifier = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
+                    identifier = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(
+                        DBProperties::IDENTIFIER_DATA, "");
                 }
-                auto userId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, "");
+                auto userId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::USER_ID, "");
                 lifeCycleNotifier_(identifier, userId);
             }
             return 0;
@@ -766,12 +768,12 @@ int SQLiteRelationalStore::ResetLifeCycleTimer()
 
 std::string SQLiteRelationalStore::GetStorePath() const
 {
-    return sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::DATA_DIR, "");
+    return sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::DATA_DIR, "");
 }
 
 RelationalDBProperties SQLiteRelationalStore::GetProperties() const
 {
-    return sqliteStorageEngine_->GetProperties();
+    return sqliteStorageEngine_->GetRelationalProperties();
 }
 
 void SQLiteRelationalStore::StopSync(uint64_t connectionId)
@@ -786,10 +788,10 @@ void SQLiteRelationalStore::Dump(int fd)
     std::string storeId = "";
     std::string label = "";
     if (sqliteStorageEngine_ != nullptr) {
-        userId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, "");
-        appId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, "");
-        storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
-        label = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
+        userId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::USER_ID, "");
+        appId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::APP_ID, "");
+        storeId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::STORE_ID, "");
+        label = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     }
     label = DBCommon::TransferStringToHex(label);
     DBDumpHelper::Dump(fd, "\tdb userId = %s, appId = %s, storeId = %s, label = %s\n", userId.c_str(), appId.c_str(),
@@ -851,9 +853,9 @@ int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string
 std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, const std::string &hashDev) const
 {
     std::string devTableName;
-    StoreInfo info = { sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
-        sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
-        sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "") };
+    StoreInfo info = { sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::USER_ID, ""),
+        sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::APP_ID, ""),
+        sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::STORE_ID, "") };
     if (RuntimeContext::GetInstance()->TranslateDeviceId(device, info, devTableName) != E_OK) {
         devTableName = hashDev;
     }
@@ -1147,7 +1149,7 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
     LOGI("sync mode:%d, pri:%d, comp:%d", option.mode, option.priorityTask, option.compensatedSyncOnly);
     if (option.compensatedSyncOnly) {
         CloudSyncer::CloudTaskInfo info = CloudSyncUtils::InitCompensatedSyncTaskInfo(option, onProcess);
-        info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
+        info.storeId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::STORE_ID, "");
         cloudSyncer_->GenerateCompensatedSync(info);
         return E_OK;
     }
@@ -1342,7 +1344,7 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.users.emplace_back("");
     info.lockAction = option.lockAction;
     info.merge = option.merge;
-    info.storeId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "");
+    info.storeId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::STORE_ID, "");
     info.prepareTraceId = option.prepareTraceId;
     info.asyncDownloadAssets = option.asyncDownloadAssets;
 }
@@ -1779,7 +1781,7 @@ int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema,
         LOGE("[RelationalStore] engine was not initialized");
         return -E_INVALID_DB;
     }
-    auto mode = sqliteStorageEngine_->GetProperties().GetDistributedTableMode();
+    auto mode = sqliteStorageEngine_->GetRelationalProperties().GetDistributedTableMode();
     std::string localIdentity; // collaboration mode need local identify
     if (mode == DistributedTableMode::COLLABORATION) {
         int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
@@ -1835,7 +1837,7 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
         LOGE("[RelationalStore][SetTableMode] sqliteStorageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    if (sqliteStorageEngine_->GetProperties().GetDistributedTableMode() != tableMode) {
+    if (sqliteStorageEngine_->GetRelationalProperties().GetDistributedTableMode() != tableMode) {
         auto schema = sqliteStorageEngine_->GetSchema();
         for (const auto &tableMap : schema.GetTables()) {
             if (tableMap.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
@@ -1845,7 +1847,7 @@ int SQLiteRelationalStore::SetTableMode(DistributedTableMode tableMode)
             }
         }
     }
-    RelationalDBProperties properties = sqliteStorageEngine_->GetProperties();
+    RelationalDBProperties properties = sqliteStorageEngine_->GetRelationalProperties();
     properties.SetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(tableMode));
     sqliteStorageEngine_->SetProperties(properties);
     LOGI("[RelationalStore][SetTableMode] Set table mode to %d successful", static_cast<int>(tableMode));
