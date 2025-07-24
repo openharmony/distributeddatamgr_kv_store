@@ -27,7 +27,7 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
 #endif // OHOS_JS_CONST_PROPERTIES_H
 
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -48,973 +48,1155 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
 #include "db_errno.h"
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
-#include "relational_schema_object.h"
-#include "schema_utils.h"
 #include "schema_constant.h"
-#include "schema_negotiate.h"
+#include "schema_object.h"
+#include "schema_utils.h"
 
 using namespace std;
 using namespace testing::ext;
 using namespace DistributedDB;
-using namespace DistributedDBUnitTest;
 
 namespace {
-    constexpr const char* DB_SUFFIX = ".db";
-    constexpr const char* STORE_ID = "Relational_Store_ID";
-    string g_testDir;
-    string g_dbDir;
+    const std::string VALID_SCHEMA_FULL_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\","
+            "\"field_name2\":{"
+                "\"field_name3\":\"INTEGER, NOT NULL\","
+                "\"field_name4\":\"LONG, DEFAULT 100\","
+                "\"field_name5\":\"DOUBLE, NOT NULL, DEFAULT 3.14\","
+                "\"field_name6\":\"STRING, NOT NULL, DEFAULT '3.1415'\","
+                "\"field_name7\":[],"
+                "\"field_name8\":{}"
+            "}"
+        "},"
+        "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name2.field_name6\"]}";
+    const std::string VALID_SCHEMA_INDEX_EMPTY = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "},"
+        "\"SCHEMA_INDEXES\":[]}";
+    const std::string VALID_SCHEMA_NO_INDEX = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "}}";
+    const std::string VALID_SCHEMA_PRE_SUF_BLANK = "{\"SCHEMA_VERSION\":\" 1.0\","
+        "\"SCHEMA_MODE\":\"STRICT  \","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"   BOOL    \""
+        "}}";
 
-    const std::string NORMAL_SCHEMA = R""({
-            "SCHEMA_VERSION": "2.0",
-            "SCHEMA_TYPE": "RELATIVE",
-            "TABLES": [{
-                "NAME": "FIRST",
-                "DEFINE": {
-                    "field_name1": {
-                        "COLUMN_ID":1,
-                        "TYPE": "STRING",
-                        "NOT_NULL": true,
-                        "DEFAULT": "abcd"
-                    },
-                    "field_name2": {
-                        "COLUMN_ID":2,
-                        "TYPE": "MYINT(21)",
-                        "NOT_NULL": false,
-                        "DEFAULT": "222"
-                    },
-                    "field_name3": {
-                        "COLUMN_ID":3,
-                        "TYPE": "INTGER",
-                        "NOT_NULL": false,
-                        "DEFAULT": "1"
-                    }
-                },
-                "AUTOINCREMENT": true,
-                "UNIQUE": [["field_name1"], ["field_name2", "field_name3"]],
-                "PRIMARY_KEY": "field_name1",
-                "INDEX": {
-                    "index_name1": ["field_name1", "field_name2"],
-                    "index_name2": ["field_name3"]
-                }
-            }, {
-                "NAME": "SECOND",
-                "DEFINE": {
-                    "key": {
-                        "COLUMN_ID":1,
-                        "TYPE": "BLOB",
-                        "NOT_NULL": true
-                    },
-                    "value": {
-                        "COLUMN_ID":2,
-                        "TYPE": "BLOB",
-                        "NOT_NULL": false
-                    }
-                },
-                "PRIMARY_KEY": "field_name1"
-            }]
-        })"";
+    const std::string INVALID_SCHEMA_INVALID_JSON = "[\"$.field_name1\", \"$.field_name2.field_name6\"]";
+    const std::string INVALID_SCHEMA_LESS_META_FIELD = "{\"SCHEMA_VERSION\":\" 1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\"}";
+    const std::string INVALID_SCHEMA_MORE_META_FIELD = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "},"
+        "\"SCHEMA_UNDEFINE_META_FIELD\":[]}";
+    const std::string INVALID_SCHEMA_WRONG_VERSION = "{\"SCHEMA_VERSION\":\"1.1\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "}}";
+    const std::string INVALID_SCHEMA_WRONG_MODE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"WRONG_MODE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "}}";
 
-    const std::string NORMAL_SCHEMA_V2_1 = R""({
-            "SCHEMA_VERSION": "2.1",
-            "SCHEMA_TYPE": "RELATIVE",
-            "TABLE_MODE": "SPLIT_BY_DEVICE",
-            "TABLES": [{
-                "NAME": "FIRST",
-                "DEFINE": {
-                    "field_name1": {
-                        "COLUMN_ID":1,
-                        "TYPE": "STRING",
-                        "NOT_NULL": true,
-                        "DEFAULT": "abcd"
-                    },
-                    "field_name2": {
-                        "COLUMN_ID":2,
-                        "TYPE": "MYINT(21)",
-                        "NOT_NULL": false,
-                        "DEFAULT": "222"
-                    },
-                    "field_name3": {
-                        "COLUMN_ID":3,
-                        "TYPE": "INTGER",
-                        "NOT_NULL": false,
-                        "DEFAULT": "1"
-                    }
-                },
-                "AUTOINCREMENT": true,
-                "UNIQUE": [["field_name1"], ["field_name2", "field_name3"]],
-                "PRIMARY_KEY": ["field_name1", "field_name3"],
-                "INDEX": {
-                    "index_name1": ["field_name1", "field_name2"],
-                    "index_name2": ["field_name3"]
-                }
-            }, {
-                "NAME": "SECOND",
-                "DEFINE": {
-                    "key": {
-                        "COLUMN_ID":1,
-                        "TYPE": "BLOB",
-                        "NOT_NULL": true
-                    },
-                    "value": {
-                        "COLUMN_ID":2,
-                        "TYPE": "BLOB",
-                        "NOT_NULL": false
-                    }
-                },
-                "PRIMARY_KEY": ["field_name1"]
-            }]
-        })"";
+    const std::string INVALID_SCHEMA_DEFINE_EMPTY = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{}}";
+    const std::string INVALID_SCHEMA_DEFINE_NEST_TOO_DEEP = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":{"
+                "\"field_name2\":{"
+                    "\"field_name3\":{"
+                        "\"field_name4\":{"
+                            "\"field_name5\":{"
+        "}}}}}}}";
+    const std::string INVALID_SCHEMA_DEFINE_INVALID_FIELD_NAME = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"12345\":\"BOOL\""
+        "}}";
+    const std::string INVALID_SCHEMA_DEFINE_INVALID_FIELD_ATTR = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL, DEFAULT null\""
+        "}}";
+    const std::string INVALID_SCHEMA_DEFINE_INVALID_ARRAY_TYPE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":[3.14]"
+        "}}";
 
-    const std::string INVALID_SCHEMA = R""({
-            "SCHEMA_VERSION": "2.0",
-            "SCHEMA_TYPE": "RELATIVE",
-            "TABLES": [{
-                "NAME": "FIRST",
-                "DEFINE": {
-                    "field_name1": {
-                        "COLUMN_ID":1,
-                        "TYPE": "STRING",
-                        "NOT_NULL": true,
-                        "DEFAULT": "abcd"
-                    },"field_name2": {
-                        "COLUMN_ID":2,
-                        "TYPE": "MYINT(21)",
-                        "NOT_NULL": false,
-                        "DEFAULT": "222"
-                    }
-                },
-                "PRIMARY_KEY": "field_name1"
-            }]
-        })"";
+    const std::string INVALID_SCHEMA_INDEX_INVALID = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "},"
+        "\"SCHEMA_INDEXES\":[true, false]}";
+    const std::string INVALID_SCHEMA_INDEX_PATH_INVALID = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "},"
+        "\"SCHEMA_INDEXES\":[\".field_name1\"]}";
+    const std::string INVALID_SCHEMA_INDEX_PATH_NOT_EXIST = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "},"
+        "\"SCHEMA_INDEXES\":[\"$.field_name2\"]}";
+    const std::string INVALID_SCHEMA_INDEX_PATH_NOT_INDEXABLE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":[]"
+        "},"
+        "\"SCHEMA_INDEXES\":[\"$.field_name1\"]}";
+    const std::string INVALID_SCHEMA_INDEX_PATH_DUPLICATE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\""
+        "},"
+        "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name1\"]}";
 
-    const std::string INVALID_JSON_STRING = R""({
-            "SCHEMA_VERSION": "2.0",
-            "SCHEMA_TYPE": "RELATIVE",
-            "TABLES": [{
-                "NAME": "FIRST",
-                "DEFINE": {
-                    "field_name1": {)"";
+    const std::string SCHEMA_COMPARE_BASELINE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_MORE_FIELD = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_more1\":\"LONG\","
+                "\"field_name5\":{"
+                    "\"field_more2\":\"DOUBLE\""
+        "}}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_MORE_FIELD_NOTNULL_FORBID = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_more1\":\"LONG\","
+                "\"field_name5\":{"
+                    "\"field_more2\":\"DOUBLE, NOT NULL\""
+        "}}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_MORE_FIELD_NOTNULL_PERMIT = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_more1\":\"LONG, NOT NULL, DEFAULT 88\","
+                "\"field_name5\":{"
+                    "\"field_more2\":\"DOUBLE\""
+        "}}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_LESS_FIELD = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_INDEX_MORE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\", [\"field_name2\", \"field_name3.field_name4\"]]}";
+    const std::string SCHEMA_INDEX_LESS = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[]}";
+    const std::string SCHEMA_INDEX_CHANGE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\", [\"field_name2\", \"field_name1\", \"field_name3.field_name4\"]]}";
+    const std::string SCHEMA_DEFINE_MORE_FIELD_MORE_INDEX = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{"
+                    "\"field_more1\":\"DOUBLE\""
+        "}}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\", [\"field_name2\", \"field_name3.field_name4\"]]}";
+    const std::string SCHEMA_SKIPSIZE_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_SKIPSIZE\":1,"
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_TYPE_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"DOUBLE\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_NOTNULL_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 100\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string SCHEMA_DEFINE_DEFAULT_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"field_name1\":\"BOOL, NOT NULL\","
+            "\"field_name2\":\"INTEGER, DEFAULT 88\","
+            "\"field_name3\":{"
+                "\"field_name4\":\"STRING\","
+                "\"field_name5\":{}"
+        "}},"
+        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
 
-    const std::string SCHEMA_VERSION_STR_1 = R"("SCHEMA_VERSION": "1.0",)";
-    const std::string SCHEMA_VERSION_STR_2 = R"("SCHEMA_VERSION": "2.0",)";
-    const std::string SCHEMA_VERSION_STR_2_1 = R"("SCHEMA_VERSION": "2.1",)";
-    const std::string SCHEMA_VERSION_STR_INVALID = R"("SCHEMA_VERSION": "awd3",)";
-    const std::string SCHEMA_TYPE_STR_NONE = R"("SCHEMA_TYPE": "NONE",)";
-    const std::string SCHEMA_TYPE_STR_JSON = R"("SCHEMA_TYPE": "JSON",)";
-    const std::string SCHEMA_TYPE_STR_FLATBUFFER = R"("SCHEMA_TYPE": "FLATBUFFER",)";
-    const std::string SCHEMA_TYPE_STR_RELATIVE = R"("SCHEMA_TYPE": "RELATIVE",)";
-    const std::string SCHEMA_TYPE_STR_INVALID = R"("SCHEMA_TYPE": "adewaaSAD",)";
-    const std::string SCHEMA_TABLE_MODE_COLLABORATION = R"("TABLE_MODE": "COLLABORATION",)";
-    const std::string SCHEMA_TABLE_MODE_SPLIT_BY_DEVICE = R"("TABLE_MODE": "SPLIT_BY_DEVICE",)";
-    const std::string SCHEMA_TABLE_MODE_INVALID = R"("TABLE_MODE": "SPLIT_BY_USER",)";
-    const std::string DISTRIBUTED_VALID_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": 1 })";
-    const std::string DISTRIBUTED_INVALID_SMALL_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": -1 })";
-    const std::string DISTRIBUTED_INVALID_LARGE_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": 50000000000000 })";
-    const std::string DISTRIBUTED_INVALID_NAN_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": "not a number" })";
+    // Compare with VALID_SCHEMA_FULL_DEFINE
+    const std::string VALUE_LESS_FIELD = "{\"field_name1\":true,"
+        "\"field_name2\":{"
+            "\"field_name3\":100,"
+            "\"field_name8\":{"
+                "\"field_name9\":200"
+            "}"
+        "}}";
+    const std::string VALUE_MORE_FIELD = "{\"field_name1\":true,"
+        "\"field_name2\":{"
+            "\"field_name3\":100,"
+            "\"field_name4\":8589934592,"
+            "\"field_name5\":3.14,"
+            "\"field_name6\":\"3.1415926\","
+            "\"field_name7\":[true,1,\"inArray\"],"
+            "\"field_name8\":{"
+                "\"field_name9\":200"
+            "},"
+            "\"field_name10\":300"
+        "}}";
+    const std::string VALUE_TYPE_MISMATCH = "{\"field_name1\":true,"
+        "\"field_name2\":{"
+            "\"field_name3\":8589934592,"
+            "\"field_name4\":100,"
+            "\"field_name5\":3.14,"
+            "\"field_name6\":\"3.1415926\","
+            "\"field_name7\":[true,1,\"inArray\"],"
+            "\"field_name8\":{"
+                "\"field_name9\":200"
+            "}"
+        "}}";
+    const std::string VALUE_NOT_NULL_VIOLATION = "{\"field_name1\":true,"
+        "\"field_name2\":{"
+            "\"field_name3\":null,"
+            "\"field_name4\":8589934592,"
+            "\"field_name5\":3.14,"
+            "\"field_name6\":\"3.1415926\","
+            "\"field_name7\":[true,1,\"inArray\"],"
+            "\"field_name8\":{"
+                "\"field_name9\":200"
+            "}"
+        "}}";
+    const std::string VALUE_MATCH_STRICT_SCHEMA = "{\"field_name1\":true,"
+        "\"field_name2\":{"
+            "\"field_name3\":100,"
+            "\"field_name4\":8589934592,"
+            "\"field_name5\":3.14,"
+            "\"field_name6\":\"3.1415926\","
+            "\"field_name7\":[true,1,\"inArray\"],"
+            "\"field_name8\":{"
+                "\"field_name9\":200"
+            "}"
+        "}}";
 
-    const std::string SCHEMA_TABLE_STR = R""("TABLES": [{
-            "NAME": "FIRST",
-            "DEFINE": {
-                "field_name1": {
-                    "COLUMN_ID":1,
-                    "TYPE": "STRING",
-                    "NOT_NULL": true,
-                    "DEFAULT": "abcd"
-                },"field_name2": {
-                    "COLUMN_ID":2,
-                    "TYPE": "MYINT(21)",
-                    "NOT_NULL": false,
-                    "DEFAULT": "222"
-                }
-            },
-            "PRIMARY_KEY": "field_name1"
-        }])"";
+    // For test lacking field.
+    const std::string SCHEMA_FOR_TEST_NOTNULL_AND_DEFAULT = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"no_notnull_no_default\":\"BOOL\","
+            "\"level_0_nest_0\":{"
+                "\"has_notnull_no_default\":\"INTEGER, NOT NULL\","
+                "\"level_1_nest_0\":{"
+                    "\"no_notnull_has_default\":\"LONG, DEFAULT 100\","
+                    "\"has_notnull_has_default\":\"DOUBLE, NOT NULL, DEFAULT 3.14\","
+                    "\"level_2_nest_0\":{"
+                        "\"extra_0\":\"STRING, NOT NULL, DEFAULT '3.1415'\","
+                        "\"extra_1\":\"DOUBLE\","
+                        "\"extra_2\":[]"
+                    "},"
+                    "\"level_2_nest_1\":{"
+                        "\"extra_3\":\"STRING\","
+                        "\"extra_4\":{}"
+                    "}"
+                "}"
+            "}"
+        "}}";
+    const std::string VALUE_NO_LACK_FIELD = "{"
+        "\"no_notnull_no_default\":true,"
+        "\"level_0_nest_0\":{"
+            "\"has_notnull_no_default\":10010,"
+            "\"level_1_nest_0\":{"
+                "\"no_notnull_has_default\":10086,"
+                "\"has_notnull_has_default\":1.38064,"
+                "\"level_2_nest_0\":{"
+                    "\"extra_0\":\"BLOOM\","
+                    "\"extra_1\":2.71828,"
+                    "\"extra_2\":[]"
+                "},"
+                "\"level_2_nest_1\":{"
+                    "\"extra_3\":\"Prejudice\","
+                    "\"extra_4\":{}"
+                "}"
+            "}"
+        "}}";
+    const std::string VALUE_LACK_LEVEL_0_NEST_0 = "{\"no_notnull_no_default\":true}";
+    const std::string VALUE_LEVEL_0_NEST_0_NOT_OBJECT = "{\"no_notnull_no_default\":true,\"level_0_nest_0\":1}";
+    const std::string VALUE_LACK_LEVEL_1_NEST_0 = "{"
+        "\"no_notnull_no_default\":true,"
+        "\"level_0_nest_0\":{"
+            "\"has_notnull_no_default\":10010"
+        "}}";
 
-    const std::string TABLE_DEFINE_STR = R""({
-        "NAME": "FIRST",
-        "DEFINE": {
-            "field_name1": {
-                "COLUMN_ID":1,
-                "TYPE": "STRING",
-                "NOT_NULL": true,
-                "DEFAULT": "abcd"
-            },"field_name2": {
-                "COLUMN_ID":2,
-                "TYPE": "MYINT(21)",
-                "NOT_NULL": false,
-                "DEFAULT": "222"
-            }
-        },
-        "PRIMARY_KEY": "field_name1"
-    })"";
-
-    const std::string TABLE_DEFINE_STR_NAME = R""("NAME": "FIRST",)"";
-    const std::string TABLE_DEFINE_STR_NAME_INVALID = R"("NAME": 123,)";
-    const std::string TABLE_DEFINE_STR_NAME_INVALID_CHARACTER = R"("NAME": "t1; --",)";
-    const std::string TABLE_DEFINE_STR_FIELDS = R""("DEFINE": {
-            "field_name1": {
-                "COLUMN_ID":1,
-                "TYPE": "STRING",
-                "NOT_NULL": true,
-                "DEFAULT": "abcd"
-            },"field_name2": {
-                "COLUMN_ID":2,
-                "TYPE": "MYINT(21)",
-                "NOT_NULL": false,
-                "DEFAULT": "222"
-            }
-        },)"";
-    const std::string TABLE_DEFINE_STR_FIELDS_EMPTY = R""("DEFINE": {},)"";
-    const std::string TABLE_DEFINE_STR_FIELDS_NOTYPE = R""("DEFINE": {
-            "field_name1": {
-                "COLUMN_ID":1,
-                "NOT_NULL": true,
-                "DEFAULT": "abcd"
-            }},)"";
-    const std::string TABLE_DEFINE_STR_FIELDS_INVALID_CHARACTER = R""("DEFINE": {
-            "1 = 1; --": {
-                "COLUMN_ID":1,
-                "NOT_NULL": true,
-                "DEFAULT": "abcd"
-            }},)"";
-    const std::string TABLE_DEFINE_STR_KEY = R""("PRIMARY_KEY": "field_name1")"";
-    const std::string TABLE_DEFINE_BOOL_KEY_INVALID = R""("PRIMARY_KEY": false)"";
-    const std::string TABLE_DEFINE_BOOL_ARRAY_KEY_INVALID = R""("PRIMARY_KEY": [false, true, true])"";
+std::string SchemaSwitchMode(const std::string &oriSchemaStr)
+{
+    std::string resultSchemaStr = oriSchemaStr;
+    auto iterForStrict = std::search(resultSchemaStr.begin(), resultSchemaStr.end(),
+        SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
+    auto iterForCompatible = std::search(resultSchemaStr.begin(), resultSchemaStr.end(),
+        SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
+    if (iterForStrict != resultSchemaStr.end()) {
+        resultSchemaStr.replace(iterForStrict, iterForStrict + SchemaConstant::KEYWORD_MODE_STRICT.size(),
+            SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
+        return resultSchemaStr;
+    }
+    if (iterForCompatible != resultSchemaStr.end()) {
+        resultSchemaStr.replace(iterForCompatible, iterForCompatible + SchemaConstant::KEYWORD_MODE_COMPATIBLE.size(),
+            SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
+        return resultSchemaStr;
+    }
+    return oriSchemaStr;
+}
 }
 
-class DistributedDBRelationalSchemaObjectTest : public testing::Test {
+class DistributedDBSchemaObjectTest : public testing::Test {
 public:
-    static void SetUpTestCase(void);
-    static void TearDownTestCase(void);
+    static void SetUpTestCase(void) {};
+    static void TearDownTestCase(void) {};
     void SetUp() override;
-    void TearDown() override;
+    void TearDown() override {};
 };
 
-void DistributedDBRelationalSchemaObjectTest::SetUpTestCase(void)
+void DistributedDBSchemaObjectTest::SetUp()
 {
-    DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
-    LOGI("The test db is:%s", g_testDir.c_str());
-    g_dbDir = g_testDir + "/";
-}
-
-void DistributedDBRelationalSchemaObjectTest::TearDownTestCase(void)
-{
-}
-
-void DistributedDBRelationalSchemaObjectTest::SetUp()
-{
-    DistributedDBToolsUnitTest::PrintTestCaseInfo();
-}
-
-void DistributedDBRelationalSchemaObjectTest::TearDown()
-{
-    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
-        LOGE("rm test db files error.");
-    }
-    return;
+    DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
 }
 
 /**
- * @tc.name: RelationalSchemaParseTest001
- * @tc.desc: Test relational schema parse from json string
+ * @tc.name: Parse Valid Schema 001
+ * @tc.desc: Parse Valid Schema
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: lianhuix
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest001, TestSize.Level1)
+HWTEST_F(DistributedDBSchemaObjectTest, ParseValidSchema001, TestSize.Level1)
 {
-    const std::string schemaStr = NORMAL_SCHEMA;
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(schemaStr);
-    EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(schemaObj.GetTable("FIRST").GetUniqueDefine().size(), 2u);
+    /**
+     * @tc.steps: step1. Parse valid schema with full define
+     * @tc.expected: step1. Parse Success.
+     */
+    SchemaObject schema1;
+    int stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_TRUE(stepOne == E_OK);
 
-    RelationalSchemaObject schemaObj2;
-    schemaObj2.ParseFromSchemaString(schemaObj.ToSchemaString());
-    EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(schemaObj2.GetTable("FIRST").GetUniqueDefine().size(), 2u);
+    /**
+     * @tc.steps: step2. Parse valid schema with empty index
+     * @tc.expected: step2. Parse Success.
+     */
+    SchemaObject schema2;
+    int stepTwo = schema2.ParseFromSchemaString(VALID_SCHEMA_INDEX_EMPTY);
+    EXPECT_TRUE(stepTwo == E_OK);
 
-    RelationalSyncOpinion op = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, schemaObj2.ToSchemaString(),
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+    /**
+     * @tc.steps: step3. Parse valid schema with no index field
+     * @tc.expected: step3. Parse Success.
+     */
+    SchemaObject schema3;
+    int stepThree = schema3.ParseFromSchemaString(VALID_SCHEMA_NO_INDEX);
+    EXPECT_TRUE(stepThree == E_OK);
 
-    EXPECT_EQ(op.size(), 2u);
-    EXPECT_EQ(op.at("FIRST").permitSync, true);
-    EXPECT_EQ(op.at("SECOND").permitSync, true);
+    /**
+     * @tc.steps: step4. Parse valid schema with prefix of suffix blank
+     * @tc.expected: step4. Parse Success.
+     */
+    SchemaObject schema4;
+    int stepFour = schema4.ParseFromSchemaString(VALID_SCHEMA_PRE_SUF_BLANK);
+    EXPECT_TRUE(stepFour == E_OK);
 }
 
 /**
- * @tc.name: RelationalSchemaParseTest002
- * @tc.desc: Test relational schema parse from invalid json string
+ * @tc.name: Parse Invalid Schema 001
+ * @tc.desc: Parse Invalid Schema
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: lianhuix
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest002, TestSize.Level1)
+HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema001, TestSize.Level1)
 {
-    RelationalSchemaObject schemaObj;
+    /**
+     * @tc.steps: step1. Parse invalid schema which is not valid json
+     * @tc.expected: step1. Parse Fail.
+     */
+    SchemaObject schema1;
+    int stepOne = schema1.ParseFromSchemaString(INVALID_SCHEMA_INVALID_JSON);
+    EXPECT_TRUE(stepOne != E_OK);
 
-    std::string schemaStr01(SchemaConstant::SCHEMA_STRING_SIZE_LIMIT + 1, 's');
-    int errCode = schemaObj.ParseFromSchemaString(schemaStr01);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+    /**
+     * @tc.steps: step2. Parse invalid schema with less field in depth 0
+     * @tc.expected: step2. Parse Fail.
+     */
+    SchemaObject schema2;
+    int stepTwo = schema2.ParseFromSchemaString(INVALID_SCHEMA_LESS_META_FIELD);
+    EXPECT_TRUE(stepTwo != E_OK);
 
-    errCode = schemaObj.ParseFromSchemaString(INVALID_JSON_STRING);
-    EXPECT_EQ(errCode, -E_JSON_PARSE_FAIL);
+    /**
+     * @tc.steps: step3. Parse invalid schema with more field in depth 0
+     * @tc.expected: step3. Parse Fail.
+     */
+    SchemaObject schema3;
+    int stepThree = schema3.ParseFromSchemaString(INVALID_SCHEMA_MORE_META_FIELD);
+    EXPECT_TRUE(stepThree != E_OK);
 
-    std::string noVersion = "{" + SCHEMA_TYPE_STR_RELATIVE + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(noVersion);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step4. Parse invalid schema with wrong version
+     * @tc.expected: step4. Parse Fail.
+     */
+    SchemaObject schema4;
+    int stepFour = schema4.ParseFromSchemaString(INVALID_SCHEMA_WRONG_VERSION);
+    EXPECT_TRUE(stepFour != E_OK);
 
-    std::string invalidVersion1 = "{" + SCHEMA_VERSION_STR_1  + SCHEMA_TYPE_STR_RELATIVE + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(invalidVersion1);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step5. Parse invalid schema with wrong mode
+     * @tc.expected: step5. Parse Fail.
+     */
+    SchemaObject schema5;
+    int stepFive = schema5.ParseFromSchemaString(INVALID_SCHEMA_WRONG_MODE);
+    EXPECT_TRUE(stepFive != E_OK);
+}
 
-    std::string invalidVersion2 = "{" + SCHEMA_VERSION_STR_INVALID  + SCHEMA_TYPE_STR_RELATIVE + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(invalidVersion2);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+/**
+ * @tc.name: Parse Invalid Schema 002
+ * @tc.desc: Parse Invalid Schema
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Parse invalid schema which is empty define
+     * @tc.expected: step1. Parse Fail.
+     */
+    SchemaObject schema1;
+    int stepOne = schema1.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_EMPTY);
+    EXPECT_TRUE(stepOne != E_OK);
 
-    std::string noType = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(noType);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step2. Parse invalid schema with define nest too deep
+     * @tc.expected: step2. Parse Fail.
+     */
+    SchemaObject schema2;
+    int stepTwo = schema2.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_NEST_TOO_DEEP);
+    EXPECT_TRUE(stepTwo != E_OK);
 
-    std::string invalidType1 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_NONE + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(invalidType1);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step3. Parse invalid schema with invalid fieldname in define
+     * @tc.expected: step3. Parse Fail.
+     */
+    SchemaObject schema3;
+    int stepThree = schema3.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_INVALID_FIELD_NAME);
+    EXPECT_TRUE(stepThree != E_OK);
 
-    std::string invalidType2 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_JSON + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(invalidType2);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step4. Parse invalid schema with invalid field attribute in define
+     * @tc.expected: step4. Parse Fail.
+     */
+    SchemaObject schema4;
+    int stepFour = schema4.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_INVALID_FIELD_ATTR);
+    EXPECT_TRUE(stepFour != E_OK);
 
-    std::string invalidType3 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_FLATBUFFER + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(invalidType3);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step5. Parse invalid schema with not empty array in define
+     * @tc.expected: step5. Parse Fail.
+     */
+    SchemaObject schema5;
+    int stepFive = schema5.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_INVALID_ARRAY_TYPE);
+    EXPECT_TRUE(stepFive != E_OK);
+}
 
-    std::string invalidType4 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_INVALID + SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(invalidType4);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+/**
+ * @tc.name: Parse Invalid Schema 003
+ * @tc.desc: Parse Invalid Schema
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Parse invalid schema with invalid array content
+     * @tc.expected: step1. Parse Fail.
+     */
+    SchemaObject schema1;
+    int stepOne = schema1.ParseFromSchemaString(INVALID_SCHEMA_INDEX_INVALID);
+    EXPECT_TRUE(stepOne != E_OK);
 
-    std::string noTable = "{" + SCHEMA_VERSION_STR_2 +
-        SCHEMA_TYPE_STR_RELATIVE.substr(0, SCHEMA_TYPE_STR_RELATIVE.length() - 1) + "}";
-    errCode = schemaObj.ParseFromSchemaString(noTable);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step2. Parse invalid schema with invalid path
+     * @tc.expected: step2. Parse Fail.
+     */
+    SchemaObject schema2;
+    int stepTwo = schema2.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_INVALID);
+    EXPECT_TRUE(stepTwo != E_OK);
+
+    /**
+     * @tc.steps: step3. Parse invalid schema with path not exist
+     * @tc.expected: step3. Parse Fail.
+     */
+    SchemaObject schema3;
+    int stepThree = schema3.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_NOT_EXIST);
+    EXPECT_TRUE(stepThree != E_OK);
+
+    /**
+     * @tc.steps: step4. Parse invalid schema with path not indexable
+     * @tc.expected: step4. Parse Fail.
+     */
+    SchemaObject schema4;
+    int stepFour = schema4.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_NOT_INDEXABLE);
+    EXPECT_TRUE(stepFour != E_OK);
+
+    /**
+     * @tc.steps: step5. Parse invalid schema with duplicate
+     * @tc.expected: step5. Parse Fail.
+     */
+    SchemaObject schema5;
+    int stepFive = schema5.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_DUPLICATE);
+    EXPECT_TRUE(stepFive != E_OK);
+}
+
+/**
+ * @tc.name: Compare Equal Exactly 001
+ * @tc.desc: Compare Equal Exactly
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, CompareEqualExactly001, TestSize.Level1)
+{
+    SchemaObject schemaOri;
+    int errCode = schemaOri.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_TRUE(errCode == E_OK);
+
+    /**
+     * @tc.steps: step1. Compare two same schema with full define
+     * @tc.expected: step1. Equal exactly.
+     */
+    int stepOne = schemaOri.CompareAgainstSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_TRUE(stepOne == -E_SCHEMA_EQUAL_EXACTLY);
+}
+
+/**
+ * @tc.name: Compare Unequal Compatible 001
+ * @tc.desc: Compare Unequal Compatible
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatible001, TestSize.Level1)
+{
+    SchemaObject compatibleSchema;
+    int errCode = compatibleSchema.ParseFromSchemaString(SCHEMA_COMPARE_BASELINE);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step1. new schema index more
+     * @tc.expected: step1. E_SCHEMA_UNEQUAL_COMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_INDEX_MORE);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE);
+
+    /**
+     * @tc.steps: step2. new schema index less
+     * @tc.expected: step2. E_SCHEMA_UNEQUAL_COMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_INDEX_LESS);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE);
+
+    /**
+     * @tc.steps: step3. new schema index change
+     * @tc.expected: step3. E_SCHEMA_UNEQUAL_COMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_INDEX_CHANGE);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE);
+}
+
+/**
+ * @tc.name: Compare Unequal Compatible Upgrade 001
+ * @tc.desc: Compare Unequal Compatible Upgrade
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatibleUpgrade001, TestSize.Level1)
+{
+    SchemaObject compatibleSchema;
+    int errCode = compatibleSchema.ParseFromSchemaString(SCHEMA_COMPARE_BASELINE);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step1. compatible new schema more field define
+     * @tc.expected: step1. E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE);
+
+    /**
+     * @tc.steps: step2. compatible new schema more field with not null and default
+     * @tc.expected: step2. E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD_NOTNULL_PERMIT);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE);
+
+    /**
+     * @tc.steps: step3. compatible new schema more field and more index
+     * @tc.expected: step3. E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD_MORE_INDEX);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE);
+}
+
+/**
+ * @tc.name: Compare Unequal Incompatible 001
+ * @tc.desc: Compare Unequal Incompatible
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalIncompatible001, TestSize.Level1)
+{
+    SchemaObject strictSchema;
+    int errCode = strictSchema.ParseFromSchemaString(SchemaSwitchMode(SCHEMA_COMPARE_BASELINE));
+    EXPECT_EQ(errCode, E_OK);
+    SchemaObject compatibleSchema;
+    errCode = compatibleSchema.ParseFromSchemaString(SCHEMA_COMPARE_BASELINE);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step1. strict new schema more field define
+     * @tc.expected: step1. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = strictSchema.CompareAgainstSchemaString(SchemaSwitchMode(SCHEMA_DEFINE_MORE_FIELD));
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step2. compatible new schema more field but not null
+     * @tc.expected: step2. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD_NOTNULL_FORBID);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step3. new schema less field
+     * @tc.expected: step3. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_LESS_FIELD);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+    errCode = strictSchema.CompareAgainstSchemaString(SchemaSwitchMode(SCHEMA_DEFINE_LESS_FIELD));
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step4. new schema skipsize differ
+     * @tc.expected: step4. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_SKIPSIZE_DIFFER);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step5. new schema type differ
+     * @tc.expected: step5. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_TYPE_DIFFER);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step6. new schema notnull differ
+     * @tc.expected: step6. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_NOTNULL_DIFFER);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step7. new schema default differ
+     * @tc.expected: step7. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_DEFAULT_DIFFER);
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step8. new schema mode differ
+     * @tc.expected: step8. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
+     */
+    errCode = compatibleSchema.CompareAgainstSchemaString(SchemaSwitchMode(SCHEMA_COMPARE_BASELINE));
+    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
+}
+
+/**
+ * @tc.name: Check Value 001
+ * @tc.desc: Check value both in strict and compatible mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, CheckValue001, TestSize.Level1)
+{
+    SchemaObject schemaStrict;
+    int errCode = schemaStrict.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_TRUE(errCode == E_OK);
+
+    /**
+     * @tc.steps: step1. value has less field in strict mode
+     * @tc.expected: step1. E_VALUE_MATCH_AMENDED.
+     */
+    ValueObject value1;
+    errCode = value1.Parse(VALUE_LESS_FIELD);
+    EXPECT_TRUE(errCode == E_OK);
+    int stepOne = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value1);
+    EXPECT_TRUE(stepOne == -E_VALUE_MATCH_AMENDED);
+
+    /**
+     * @tc.steps: step2. value has more field in strict mode
+     * @tc.expected: step2. E_VALUE_MISMATCH_FEILD_COUNT.
+     */
+    ValueObject value2;
+    errCode = value2.Parse(VALUE_MORE_FIELD);
+    EXPECT_TRUE(errCode == E_OK);
+    int stepTwo = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value2);
+    EXPECT_TRUE(stepTwo == -E_VALUE_MISMATCH_FEILD_COUNT);
+
+    /**
+     * @tc.steps: step3. value type mismatch
+     * @tc.expected: step3. E_VALUE_MISMATCH_FEILD_TYPE.
+     */
+    ValueObject value3;
+    errCode = value3.Parse(VALUE_TYPE_MISMATCH);
+    EXPECT_TRUE(errCode == E_OK);
+    int stepThree = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value3);
+    EXPECT_TRUE(stepThree == -E_VALUE_MISMATCH_FEILD_TYPE);
+
+    /**
+     * @tc.steps: step4. value not null violation
+     * @tc.expected: step4. E_VALUE_MISMATCH_CONSTRAINT.
+     */
+    ValueObject value4;
+    errCode = value4.Parse(VALUE_NOT_NULL_VIOLATION);
+    EXPECT_TRUE(errCode == E_OK);
+    int stepFour = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value4);
+    EXPECT_TRUE(stepFour == -E_VALUE_MISMATCH_CONSTRAINT);
+
+    /**
+     * @tc.steps: step5. value exactly match strict mode
+     * @tc.expected: step5. E_VALUE_MATCH.
+     */
+    ValueObject value5;
+    errCode = value5.Parse(VALUE_MATCH_STRICT_SCHEMA);
+    EXPECT_TRUE(errCode == E_OK);
+    int stepFive = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value5);
+    EXPECT_TRUE(stepFive == -E_VALUE_MATCH);
+
+    /**
+     * @tc.steps: step6. value has more field in compatible mode
+     * @tc.expected: step6. E_VALUE_MATCH.
+     */
+    std::string compatibleSchemaString = SchemaSwitchMode(VALID_SCHEMA_FULL_DEFINE);
+    SchemaObject schemaCompatible;
+    errCode = schemaCompatible.ParseFromSchemaString(compatibleSchemaString);
+    EXPECT_TRUE(errCode == E_OK);
+
+    ValueObject value6;
+    std::vector<uint8_t> moreFieldValueVector(VALUE_MORE_FIELD.begin(), VALUE_MORE_FIELD.end());
+    errCode = value6.Parse(moreFieldValueVector);
+    EXPECT_TRUE(errCode == E_OK);
+    int stepSix = schemaCompatible.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value6);
+    EXPECT_TRUE(stepSix == -E_VALUE_MATCH);
+}
+
+/**
+ * @tc.name: Check Value 002
+ * @tc.desc: Check value that has offset
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, CheckValue002, TestSize.Level1)
+{
+    SchemaObject schemaStrict;
+    int errCode = schemaStrict.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_TRUE(errCode == E_OK);
+
+    /**
+     * @tc.steps: step1. value has less field in strict mode
+     * @tc.expected: step1. E_VALUE_MATCH and data before offset not change.
+     */
+    std::string beforeOffset = "BOM_CONTENT:";
+    std::string strValue = beforeOffset + VALUE_MATCH_STRICT_SCHEMA;
+    vector<uint8_t> vecValue(strValue.begin(), strValue.end());
+
+    ValueObject value1;
+    errCode = value1.Parse(vecValue.data(), vecValue.data() + vecValue.size(), beforeOffset.size());
+    EXPECT_TRUE(errCode == E_OK);
+
+    int stepOne = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value1);
+    EXPECT_TRUE(stepOne == -E_VALUE_MATCH);
+
+    std::string valueToString = value1.ToString();
+    EXPECT_EQ(strValue.size(), valueToString.size());
+    std::string valueBeforeOffset = valueToString.substr(0, beforeOffset.size());
+    EXPECT_EQ(valueBeforeOffset, beforeOffset);
+}
+
+/**
+ * @tc.name: Value Edit 001
+ * @tc.desc: Edit the value in right way
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Insert value to ValueObject in different depth
+     * @tc.expected: step1. Check insert successful
+     */
+    ValueObject testObject;
+    FieldValue val;
+
+    val.stringValue = "stringValue";
+    int errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"}, FieldType::LEAF_FIELD_STRING, val);
+    EXPECT_TRUE(errCode == E_OK);
+    val.doubleValue = 1.1; // 1.1 for test
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F2"}, FieldType::LEAF_FIELD_DOUBLE, val);
+    EXPECT_TRUE(errCode == E_OK);
+    val.longValue = INT64_MAX;
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F2"}, FieldType::LEAF_FIELD_LONG, val);
+    EXPECT_TRUE(errCode == E_OK);
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F2"}, FieldType::LEAF_FIELD_OBJECT, val);
+    EXPECT_TRUE(errCode == E_OK);
+    val.integerValue = INT32_MIN;
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F2", "L3F3"}, FieldType::LEAF_FIELD_INTEGER, val);
+    EXPECT_TRUE(errCode == E_OK);
+    val.boolValue = true;
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F2", "L3F4"}, FieldType::LEAF_FIELD_BOOL, val);
+    EXPECT_TRUE(errCode == E_OK);
+    errCode = testObject.InsertField(FieldPath{"L1F2"}, FieldType::LEAF_FIELD_NULL, val);
+    EXPECT_TRUE(errCode == E_OK);
+
+    /**
+     * @tc.steps: step2. Delete value in ValueObject
+     * @tc.expected: step2. Check delete successful
+     */
+    errCode = testObject.DeleteField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"});
+    EXPECT_TRUE(errCode == E_OK);
+    errCode = testObject.DeleteField(FieldPath{"L1F1", "L2F1", "L3F1"});
+    EXPECT_TRUE(errCode == E_OK);
+    errCode = testObject.DeleteField(FieldPath{"L1F1"});
+    EXPECT_TRUE(errCode == E_OK);
+}
+
+/**
+ * @tc.name: Value Edit 002
+ * @tc.desc: Edit the value in wrong way
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiaozhenjian
+ */
+HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Insert value to ValueObject in different depth
+     * @tc.expected: step1. Check insert not successful
+     */
+    ValueObject testObject;
+    FieldValue val;
+
+    val.stringValue = "stringValue";
+    int errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1"}, FieldType::LEAF_FIELD_STRING, val);
+    EXPECT_TRUE(errCode == E_OK);
+    val.doubleValue = 1.1; // 1.1 for test
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1"}, FieldType::LEAF_FIELD_DOUBLE, val);
+    EXPECT_TRUE(errCode != E_OK);
+    val.longValue = INT64_MAX;
+    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"}, FieldType::LEAF_FIELD_LONG, val);
+    EXPECT_TRUE(errCode != E_OK);
+
+    /**
+     * @tc.steps: step2. Delete value in ValueObject
+     * @tc.expected: step2. Check delete not successful
+     */
+    errCode = testObject.DeleteField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"});
+    EXPECT_TRUE(errCode != E_OK);
 }
 
 namespace {
-std::string GenerateFromTableStr(const std::string &tableStr)
+void CheckValueLackField(const SchemaObject &schema, const std::string &oriValue, const std::string &lackField,
+    int expectErrCode, ValueObject &externalValueObject)
 {
-    return R""({
-        "SCHEMA_VERSION": "2.0",
-        "SCHEMA_TYPE": "RELATIVE",
-        "TABLES": )"" + tableStr + "}";
-}
-}
-
-/**
- * @tc.name: RelationalSchemaParseTest003
- * @tc.desc: Test relational schema parse from invalid json string
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest003, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = E_OK;
-
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr(TABLE_DEFINE_STR));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr01 = "{" + TABLE_DEFINE_STR_FIELDS + TABLE_DEFINE_STR_KEY + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr01 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr02 = "{" + TABLE_DEFINE_STR_NAME_INVALID + TABLE_DEFINE_STR_FIELDS +
-        TABLE_DEFINE_STR_KEY + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr02 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr04 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS_NOTYPE +
-        TABLE_DEFINE_STR_KEY + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr04 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr05 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS +
-        TABLE_DEFINE_BOOL_KEY_INVALID + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr05 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr06 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS +
-        TABLE_DEFINE_BOOL_ARRAY_KEY_INVALID + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr06 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr07 = "{" + TABLE_DEFINE_STR_NAME_INVALID_CHARACTER + TABLE_DEFINE_STR_FIELDS +
-        TABLE_DEFINE_STR_KEY + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr07 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    std::string invalidTableStr08 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS_INVALID_CHARACTER +
-        TABLE_DEFINE_STR_KEY + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr08 + "]"));
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-
-    errCode = schemaObj.ParseFromSchemaString("");
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-}
-
-/**
- * @tc.name: RelationalSchemaParseTest004
- * @tc.desc:
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest004, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = E_OK;
-
-    std::string schema = "{" + SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_COLLABORATION + SCHEMA_TYPE_STR_RELATIVE +
-        SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(schema);
+    std::string valueStr = oriValue;
+    auto startIter = std::search(valueStr.begin(), valueStr.end(), lackField.begin(), lackField.end());
+    valueStr.erase(startIter, startIter + lackField.size());
+    int errCode = externalValueObject.Parse(valueStr);
     EXPECT_EQ(errCode, E_OK);
+    errCode = schema.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, externalValueObject);
+    EXPECT_EQ(errCode, expectErrCode);
+}
+
+void CheckValueLackField(const SchemaObject &schema, const std::string &oriValue, const std::string &lackField,
+    int expectErrCode)
+{
+    ValueObject valueObj;
+    CheckValueLackField(schema, oriValue, lackField, expectErrCode, valueObj);
+}
 }
 
 /**
- * @tc.name: RelationalSchemaParseTest005
- * @tc.desc:
+ * @tc.name: Value LackField 001
+ * @tc.desc: check the value which lack field
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: lianhuix
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest005, TestSize.Level1)
+HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField001, TestSize.Level1)
 {
-    RelationalSchemaObject schemaObj;
-    int errCode = E_OK;
-
-    std::string schema = "{" + SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_SPLIT_BY_DEVICE + SCHEMA_TYPE_STR_RELATIVE +
-        SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(schema);
+    SchemaObject schema;
+    int errCode = schema.ParseFromSchemaString(SCHEMA_FOR_TEST_NOTNULL_AND_DEFAULT);
     EXPECT_EQ(errCode, E_OK);
-}
 
-/**
- * @tc.name: RelationalSchemaParseTest006
- * @tc.desc:
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest006, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = E_OK;
-
-    std::string schema = "{" + SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_INVALID + SCHEMA_TYPE_STR_RELATIVE +
-        SCHEMA_TABLE_STR + "}";
-    errCode = schemaObj.ParseFromSchemaString(schema);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
-}
-
-/**
- * @tc.name: RelationalSchemaParseTest007
- * @tc.desc: test parse for distributed version in schema
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liuhongyang
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest007, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    std::string schemaOtherField = SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_COLLABORATION + SCHEMA_TYPE_STR_RELATIVE +
-        SCHEMA_TABLE_STR + ",";
     /**
-     * @tc.steps: step1. call ParseFromSchemaString with a version less than the min of uint32_t
-     * @tc.expected: step1. return -E_SCHEMA_PARSE_FAIL.
+     * @tc.steps: step1. check value lack no field
+     * @tc.expected: step1. E_VALUE_MATCH
      */
-    std::string schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_SMALL_VERSION + "}";
-    int errCode = schemaObj.ParseFromSchemaString(schema);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "", -E_VALUE_MATCH);
+
     /**
-     * @tc.steps: step2. call ParseFromSchemaString with a version greater than the max of uint32_t
-     * @tc.expected: step2. return -E_SCHEMA_PARSE_FAIL.
+     * @tc.steps: step2. check value lack field on no_notnull_no_default
+     * @tc.expected: step2. E_VALUE_MATCH
      */
-    schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_LARGE_VERSION + "}";
-    errCode = schemaObj.ParseFromSchemaString(schema);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"no_notnull_no_default\":true,", -E_VALUE_MATCH);
+
     /**
-     * @tc.steps: step3. call ParseFromSchemaString with a version that is not a number
-     * @tc.expected: step3. return -E_SCHEMA_PARSE_FAIL.
+     * @tc.steps: step3. check value lack field on has_notnull_no_default
+     * @tc.expected: step3. E_VALUE_MISMATCH_CONSTRAINT
      */
-    schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_NAN_VERSION + "}";
-    errCode = schemaObj.ParseFromSchemaString(schema);
-    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"has_notnull_no_default\":10010,",
+        -E_VALUE_MISMATCH_CONSTRAINT);
+
     /**
-     * @tc.steps: step4. call ParseFromSchemaString with a normal version
-     * @tc.expected: step4. return E_OK.
+     * @tc.steps: step4. check value lack field on no_notnull_has_default
+     * @tc.expected: step4. E_VALUE_MATCH_AMENDED
      */
-    schema = "{" + schemaOtherField + DISTRIBUTED_VALID_VERSION + "}";
-    errCode = schemaObj.ParseFromSchemaString(schema);
-    EXPECT_EQ(errCode, E_OK);
+    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"no_notnull_has_default\":10086,",
+        -E_VALUE_MATCH_AMENDED);
+
+    /**
+     * @tc.steps: step5. check value lack field on has_notnull_has_default
+     * @tc.expected: step5. E_VALUE_MATCH_AMENDED
+     */
+    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"has_notnull_has_default\":1.38064,",
+        -E_VALUE_MATCH_AMENDED);
+
+    /**
+     * @tc.steps: step6. check value lack entire level_0_nest_0
+     * @tc.expected: step6. E_VALUE_MISMATCH_CONSTRAINT
+     */
+    CheckValueLackField(schema, VALUE_LACK_LEVEL_0_NEST_0, "", -E_VALUE_MISMATCH_CONSTRAINT);
+
+    /**
+     * @tc.steps: step7. check value level_0_nest_0 not json_object
+     * @tc.expected: step7. E_VALUE_MISMATCH_FEILD_TYPE
+     */
+    CheckValueLackField(schema, VALUE_LEVEL_0_NEST_0_NOT_OBJECT, "", -E_VALUE_MISMATCH_FEILD_TYPE);
 }
 
 /**
- * @tc.name: RelationalSchemaCompareTest001
- * @tc.desc: Test relational schema negotiate with same schema string
+ * @tc.name: Value LackField 002
+ * @tc.desc: check the value which lack field
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: lianhuix
+ * @tc.author: xiaozhenjian
  */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest001, TestSize.Level1)
+HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField002, TestSize.Level1)
 {
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
-    EXPECT_EQ(errCode, E_OK);
-
-    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
-    EXPECT_EQ(opinion.at("FIRST").permitSync, true);
-    EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
-    EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
-}
-
-/**
- * @tc.name: RelationalSchemaCompareTest002
- * @tc.desc: Test relational schema v2.1 negotiate with same schema string
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest002, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
+    SchemaObject schema;
+    int errCode = schema.ParseFromSchemaString(SCHEMA_FOR_TEST_NOTNULL_AND_DEFAULT);
     EXPECT_EQ(errCode, E_OK);
 
-    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
-    EXPECT_EQ(opinion.at("FIRST").permitSync, true);
-    EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
-    EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
+    /**
+     * @tc.steps: step1. check value lack entire level_1_nest_0
+     * @tc.expected: step1. E_VALUE_MATCH_AMENDED
+     */
+    ValueObject val;
+    CheckValueLackField(schema, VALUE_LACK_LEVEL_1_NEST_0, "", -E_VALUE_MATCH_AMENDED, val);
+    // Check Field Existence or not
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0"}), true);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "no_notnull_has_default"}), true);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "has_notnull_has_default"}), true);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0"}), true);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_0"}), true);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_1"}), false);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_2"}), false);
+    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_1"}), false);
+    // Check Field value
+    FieldValue theValue;
+    EXPECT_EQ(val.GetFieldValueByFieldPath(FieldPath{"level_0_nest_0", "level_1_nest_0", "no_notnull_has_default"},
+        theValue), E_OK);
+    EXPECT_EQ(theValue.integerValue, 100);
+    EXPECT_EQ(val.GetFieldValueByFieldPath(FieldPath{"level_0_nest_0", "level_1_nest_0", "has_notnull_has_default"},
+        theValue), E_OK);
+    EXPECT_LT(std::abs(theValue.doubleValue - 3.14), 0.1);
+    EXPECT_EQ(val.GetFieldValueByFieldPath(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_0"},
+        theValue), E_OK);
+    EXPECT_EQ(theValue.stringValue == std::string("3.1415"), true);
 }
 
 /**
- * @tc.name: RelationalSchemaCompareTest003
- * @tc.desc: Test relational schema v2.1 negotiate with schema v2.0
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest003, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
-    EXPECT_EQ(errCode, E_OK);
-
-    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
-    EXPECT_TRUE(opinion.empty());
-}
-
-/**
- * @tc.name: RelationalSchemaCompareTest004
- * @tc.desc: Test relational schema v2.0 negotiate with schema v2.1
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest004, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
-    EXPECT_EQ(errCode, E_OK);
-
-    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
-    EXPECT_TRUE(opinion.empty());
-}
-
-/**
- * @tc.name: RelationalSchemaCompareTest005
- * @tc.desc: Test collaboration relational schema negotiate with other table mode
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest005, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
-    EXPECT_EQ(errCode, E_OK);
-    schemaObj.SetTableMode(DistributedTableMode::COLLABORATION);
-
-    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
-    EXPECT_TRUE(opinion.empty());
-}
-
-/**
- * @tc.name: RelationalTableCompareTest001
- * @tc.desc: Test relational schema negotiate with same schema string
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalTableCompareTest001, TestSize.Level1)
-{
-    RelationalSchemaObject schemaObj;
-    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
-    EXPECT_EQ(errCode, E_OK);
-    TableInfo table1 = schemaObj.GetTable("FIRST");
-    TableInfo table2 = schemaObj.GetTable("FIRST");
-    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_EQUAL);
-
-    table2.AddIndexDefine("indexname", {"field_name2", "field_name1"});
-    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_COMPATIBLE);
-
-    TableInfo table3 = schemaObj.GetTable("SECOND");
-    EXPECT_EQ(table1.CompareWithTable(table3), -E_RELATIONAL_TABLE_INCOMPATIBLE);
-
-    TableInfo table4 = schemaObj.GetTable("FIRST");
-    table4.AddField(table3.GetFields().at("value"));
-    EXPECT_EQ(table1.CompareWithTable(table4), -E_RELATIONAL_TABLE_COMPATIBLE_UPGRADE);
-
-    TableInfo table5 = schemaObj.GetTable("FIRST");
-    table5.AddField(table3.GetFields().at("key"));
-    EXPECT_EQ(table1.CompareWithTable(table5), -E_RELATIONAL_TABLE_INCOMPATIBLE);
-
-    TableInfo table6 = schemaObj.GetTable("FIRST");
-    table6.SetUniqueDefine({{"field_name1", "field_name1"}});
-    EXPECT_EQ(table1.CompareWithTable(table6, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-
-    TableInfo table7 = schemaObj.GetTable("FIRST");
-    table7.SetAutoIncrement(false);
-    EXPECT_EQ(table1.CompareWithTable(table7, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-}
-
-/**
- * @tc.name: RelationalSchemaOpinionTest001
- * @tc.desc: Test relational schema sync opinion
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaOpinionTest001, TestSize.Level1)
-{
-    RelationalSyncOpinion opinion;
-    opinion["table_1"] = SyncOpinion {true, false, false};
-    opinion["table_2"] = SyncOpinion {false, true, false};
-    opinion["table_3"] = SyncOpinion {false, false, true};
-
-    uint32_t len = SchemaNegotiate::CalculateParcelLen(opinion);
-    std::vector<uint8_t> buff(len, 0);
-    Parcel writeParcel(buff.data(), len);
-    int errCode = SchemaNegotiate::SerializeData(opinion, writeParcel);
-    EXPECT_EQ(errCode, E_OK);
-
-    Parcel readParcel(buff.data(), len);
-    RelationalSyncOpinion opinionRecv;
-    errCode = SchemaNegotiate::DeserializeData(readParcel, opinionRecv);
-    EXPECT_EQ(errCode, E_OK);
-
-    EXPECT_EQ(opinion.size(), opinionRecv.size());
-    for (const auto &it : opinion) {
-        SyncOpinion tableOpinionRecv = opinionRecv.at(it.first);
-        EXPECT_EQ(it.second.permitSync, tableOpinionRecv.permitSync);
-        EXPECT_EQ(it.second.requirePeerConvert, tableOpinionRecv.requirePeerConvert);
-    }
-}
-
-/**
- * @tc.name: RelationalSchemaNegotiateTest001
- * @tc.desc: Test relational schema negotiate
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaNegotiateTest001, TestSize.Level1)
-{
-    RelationalSyncOpinion localOpinion;
-    localOpinion["table_1"] = SyncOpinion {true, false, false};
-    localOpinion["table_2"] = SyncOpinion {false, true, false};
-    localOpinion["table_3"] = SyncOpinion {false, false, true};
-
-    RelationalSyncOpinion remoteOpinion;
-    remoteOpinion["table_2"] = SyncOpinion {true, false, false};
-    remoteOpinion["table_3"] = SyncOpinion {false, true, false};
-    remoteOpinion["table_4"] = SyncOpinion {false, false, true};
-    RelationalSyncStrategy strategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion, remoteOpinion);
-
-    EXPECT_EQ(strategy.size(), 2u);
-    EXPECT_EQ(strategy.at("table_2").permitSync, true);
-    EXPECT_EQ(strategy.at("table_3").permitSync, false);
-}
-
-/**
- * @tc.name: TableCompareTest001
- * @tc.desc: Test table compare
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest001, TestSize.Level1)
-{
-    FieldInfo field1;
-    field1.SetFieldName("a");
-    FieldInfo field2;
-    field2.SetFieldName("b");
-    FieldInfo field3;
-    field3.SetFieldName("c");
-    FieldInfo field4;
-    field4.SetFieldName("d");
-
-    TableInfo table;
-    table.AddField(field2);
-    table.AddField(field3);
-
-    TableInfo inTable1;
-    inTable1.AddField(field1);
-    inTable1.AddField(field2);
-    inTable1.AddField(field3);
-    EXPECT_EQ(table.CompareWithTable(inTable1), -E_RELATIONAL_TABLE_COMPATIBLE_UPGRADE);
-
-    TableInfo inTable2;
-    inTable2.AddField(field1);
-    inTable2.AddField(field2);
-    inTable2.AddField(field4);
-    EXPECT_EQ(table.CompareWithTable(inTable2), -E_RELATIONAL_TABLE_INCOMPATIBLE);
-
-    TableInfo inTable3;
-    inTable3.AddField(field3);
-    inTable3.AddField(field2);
-    EXPECT_EQ(table.CompareWithTable(inTable3), -E_RELATIONAL_TABLE_EQUAL);
-}
-
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTest001, TestSize.Level1)
-{
-    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-    EXPECT_NE(db, nullptr);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    std::string createStudentSql = "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT, score INT, level INT)";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createStudentSql), SQLITE_OK);
-
-    TableInfo tableStudent;
-    EXPECT_EQ(SQLiteUtils::AnalysisSchema(db, "STUDENT", tableStudent), E_OK);
-
-    RelationalSchemaObject schema;
-    schema.AddRelationalTable(tableStudent);
-
-    EXPECT_FALSE(schema.GetTable("STUDENT").Empty());
-    EXPECT_FALSE(schema.GetTable("StudENT").Empty());
-    EXPECT_EQ(schema.GetTable("StudENT").CompareWithTable(schema.GetTable("STUDENT")), -E_RELATIONAL_TABLE_EQUAL);
-
-    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
-}
-
-namespace {
-TableInfo GetTableInfo(sqlite3 *db, const std::string &tableName, const std::string &sql)
-{
-    EXPECT_NE(db, nullptr);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-    TableInfo tableInfo;
-    EXPECT_EQ(SQLiteUtils::AnalysisSchema(db, tableName, tableInfo), E_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS " + tableName), SQLITE_OK);
-    return tableInfo;
-}
-}
-
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTest002, TestSize.Level1)
-{
-    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-    EXPECT_NE(db, nullptr);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-
-    std::string createTableSql1 = "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT, score INT, level INT); " \
-        "create index index_name on student (name);";
-    TableInfo table1 = GetTableInfo(db, "student", createTableSql1);
-    std::string createTableSql2 = "CREATE TABLE Student(ID INTEGER PRIMARY KEY, Name TEXT, Score INT, Level INT); " \
-        "create index index_NAME on student (Name);";
-    TableInfo table2 = GetTableInfo(db, "Student", createTableSql2);
-
-    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_EQUAL);
-
-    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
-    db = nullptr;
-}
-
-namespace {
-int TableCompareTest(sqlite3 *db, const std::string &sql1, const std::string &sql2)
-{
-    RelationalTestUtils::ExecSql(db, sql1);
-    TableInfo table1;
-    SQLiteUtils::AnalysisSchema(db, "student", table1);
-    RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student");
-    RelationalTestUtils::ExecSql(db, sql2);
-    TableInfo table2;
-    SQLiteUtils::AnalysisSchema(db, "student", table2);
-    RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student");
-    return table1.CompareWithTable(table2);
-}
-
-/**
- * @tc.name: TableCompareTest001
- * @tc.desc: Test table compare with default value
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest002, TestSize.Level1)
-{
-    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)"),
-        -E_RELATIONAL_TABLE_EQUAL);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'xue')"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'NULL')"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'null')"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'XUE')",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'xue')"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
-        -E_RELATIONAL_TABLE_EQUAL);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'NULL')",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'null')"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
-        -E_RELATIONAL_TABLE_INCOMPATIBLE);
-    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
-        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')"),
-        -E_RELATIONAL_TABLE_EQUAL);
-    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
-    db = nullptr;
-}
-} // namespace
-
-/**
- * @tc.name: FieldInfoCompareTest
- * @tc.desc: Test field info compare
+ * @tc.name: SchemaObjectErrTest
+ * @tc.desc: Parse Schema Object err scene
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, FieldInfoCompareTest, TestSize.Level1)
+HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest001, TestSize.Level1)
 {
     /**
-     * @tc.steps: step1. call CompareWithField when storageType is different
-     * @tc.expected: step1. return false.
+     * @tc.steps: step1. Call GetExtractFuncName interface with NONE SchemaType.
+     * @tc.expected: step1. Get non-JSON string.
      */
-    FieldInfo field1;
-    field1.SetStorageType(StorageType::STORAGE_TYPE_INTEGER);
-    FieldInfo field2;
-    EXPECT_EQ(field2.CompareWithField(field1, true), false);
-
-    /**
-     * @tc.steps: step2. call CompareWithField when fieldName is different
-     * @tc.expected: step2. return false.
-     */
-    field1.SetFieldName("test1");
-    field1.SetFieldName("test2");
-    EXPECT_EQ(field2.CompareWithField(field1, true), false);
-}
-
-/**
- * @tc.name: TableInfoInterfacesTest
- * @tc.desc: Test TableInfo Interfaces
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableInfoInterfacesTest, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. GetFieldName with empty TableInfo class
-     * @tc.expected: step1. return empty string.
-     */
-    TableInfo table1;
-    std::string str1 = table1.GetFieldName(0);
-    const std::string expectStr1 = "";
+    SchemaObject schema;
+    std::string str1 = schema.GetExtractFuncName(SchemaType::NONE);
+    const std::string expectStr1 = "flatbuffer_extract_by_path";
     EXPECT_TRUE(str1.compare(0, expectStr1.length(), expectStr1) == 0);
-    table1.ToTableInfoString("");
 
     /**
-     * @tc.steps: step2. Set and get tableId.
-     * @tc.expected: step2. success.
+     * @tc.steps: step2. Call interfaces with empty FieldPath.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
      */
-    int inputId = 1;
-    table1.SetTableId(inputId);
-    int outputId = table1.GetTableId();
-    EXPECT_EQ(outputId, inputId);
+    FieldPath inFieldpath1 = {};
+    std::string str2 = schema.GenerateExtractSQL(SchemaType::JSON, inFieldpath1, FieldType::LEAF_FIELD_BOOL, 0, "");
+    const std::string expectStr2 = "";
+    EXPECT_TRUE(str2.compare(0, expectStr2.length(), "") == 0);
+    FieldType schemaFieldType = FieldType::LEAF_FIELD_BOOL;
+    int ret = schema.CheckQueryableAndGetFieldType(inFieldpath1, schemaFieldType);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Call interfaces with LEAF_FIELD_NULL FieldType.
+     * @tc.expected: step3. return -E_NOT_FOUND.
+     */
+    FieldPath inFieldpath2 = {"test"};
+    str2 = schema.GenerateExtractSQL(SchemaType::JSON, inFieldpath2, FieldType::LEAF_FIELD_NULL, 0, "");
+    EXPECT_TRUE(str2.compare(0, expectStr2.length(), "") == 0);
+    ret = schema.CheckQueryableAndGetFieldType(inFieldpath2, schemaFieldType);
+    EXPECT_EQ(ret, -E_NOT_FOUND);
 }
 
 /**
- * @tc.name: SchemaTableCompareTest
- * @tc.desc: Test LiteSchemaTable Compare
+ * @tc.name: SchemaObjectErrTest002
+ * @tc.desc: Parse Schema Object err scene
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: suyue
  */
-HWTEST_F(DistributedDBRelationalSchemaObjectTest, SchemaTableCompareTest, TestSize.Level1)
+HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest002, TestSize.Level1)
 {
     /**
-     * @tc.steps: step1. Set key index of SetPrimaryKey to an invalid value
-     * @tc.expected: step1. fieldName vector is null.
+     * @tc.steps: step1. Call interfaces without Schema Parse.
+     * @tc.expected: step1. return -E_NOT_PERMIT.
      */
-    TableInfo table1;
-    int keyIndex = -1;
-    table1.SetPrimaryKey("test", keyIndex);
-    CompositeFields vec = table1.GetIdentifyKey();
-    uint32_t expectedVal = 0;
-    EXPECT_EQ(vec.size(), expectedVal);
+    SchemaObject schema;
+    IndexDifference indexDiffer;
+    int ret = schema.CompareAgainstSchemaObject(schema, indexDiffer);
+    EXPECT_EQ(ret, -E_NOT_PERMIT);
+    ValueObject inValue;
+    ret = schema.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, inValue);
+    EXPECT_EQ(ret, -E_NOT_PERMIT);
+
+    const Value val = {0};
+    ret = schema.VerifyValue(ValueSource::FROM_LOCAL, val);
+    EXPECT_EQ(ret, -E_NOT_PERMIT);
 
     /**
-     * @tc.steps: step2. Compare table when fieldName of SetPrimaryKey is set to'rowid'
-     * @tc.expected: step2. compare return -E_RELATIONAL_TABLE_INCOMPATIBLE.
+     * @tc.steps: step2. Call VerifyValue interface when RawValue first para is nullptr.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
      */
-    const std::vector<CompositeFields> uniqueDefine = {{"test0", "test1"}};
-    table1.SetUniqueDefine(uniqueDefine);
-    const std::map<int, FieldName> keyName1 = {{0, "rowid"}};
-    table1.SetPrimaryKey(keyName1);
-
-    vec = table1.GetIdentifyKey();
-    EXPECT_EQ(vec.size(), uniqueDefine[0].size());
-    int ret = table1.CompareWithLiteSchemaTable(table1);
-    EXPECT_EQ(ret, -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    ret = schema.VerifyValue(ValueSource::FROM_LOCAL, RawValue{nullptr, 0});
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
 
     /**
-     * @tc.steps: step3. Compare table when fieldName of SetPrimaryKey is not set to "rowid".
-     * @tc.expected: step3. compare return E_OK.
+     * @tc.steps: step3. Parse twice same schema.
+     * @tc.expected: step3. second return -E_NOT_PERMIT.
      */
-    FieldInfo field1;
-    table1.AddField(field1);
-    const std::map<int, FieldName> keyName2 = {{0, "test0"}, {1, "test1"}};
-    table1.SetPrimaryKey(keyName2);
-
-    vec = table1.GetIdentifyKey();
-    EXPECT_EQ(vec.size(), keyName2.size());
-    field1.SetFieldName("test1");
-    ret = table1.CompareWithLiteSchemaTable(table1);
-    EXPECT_EQ(ret, E_OK);
+    SchemaObject schema1;
+    int stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_EQ(stepOne, E_OK);
+    stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
+    EXPECT_EQ(stepOne, -E_NOT_PERMIT);
 }
 #endif
