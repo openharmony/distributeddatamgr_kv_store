@@ -27,7 +27,7 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
 #endif // OHOS_JS_CONST_PROPERTIES_H
 
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -41,18 +41,17 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
  * limitations under the License.
  */
 
+#ifndef OMIT_JSON
 #include <gtest/gtest.h>
-#include "auto_launch.h"
-#include "db_common.h"
+#include <cmath>
+
 #include "db_errno.h"
 #include "distributeddb_tools_unit_test.h"
-#include "kv_store_nb_conflict_data.h"
-#include "kvdb_manager.h"
-#include "kvdb_pragma.h"
 #include "log_print.h"
-#include "platform_specific.h"
-#include "runtime_config.h"
-#include "virtual_communicator_aggregator.h"
+#include "relational_schema_object.h"
+#include "schema_utils.h"
+#include "schema_constant.h"
+#include "schema_negotiate.h"
 
 using namespace std;
 using namespace testing::ext;
@@ -60,1123 +59,962 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
-    const std::string APP_ID = "appId";
-    const std::string USER_ID = "userId";
-    const std::string STORE_ID_0 = "storeId0";
-    const std::string STORE_ID_1 = "storeId1";
-    const std::string STORE_ID_2 = "storeId2";
-    const std::string STORE_ID_3 = "storeId3";
-    const std::string STORE_ID_4 = "storeId4";
-    const std::string STORE_ID_5 = "storeId5";
-    const std::string STORE_ID_6 = "storeId6";
-    const std::string STORE_ID_7 = "storeId7";
-    const std::string STORE_ID_8 = "storeId8";
+    constexpr const char* DB_SUFFIX = ".db";
+    constexpr const char* STORE_ID = "Relational_Store_ID";
     string g_testDir;
-    KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
-    KvStoreConfig g_config;
-    VirtualCommunicatorAggregator *g_communicatorAggregator = nullptr;
+    string g_dbDir;
 
-    const int TEST_ENABLE_CNT = 10; // 10 time
-    const int TEST_ONLINE_CNT = 200; // 10 time
-    const int WAIT_TIME = 1000; // 1000ms
-    const int LIFE_CYCLE_TIME = 5000; // 5000ms
-    const int WAIT_SHORT_TIME = 200; // 20ms
-    const Timestamp TIME_ADD = 1000; // not zero is ok
-    const std::string REMOTE_DEVICE_ID = "remote_device";
-    const std::string THIS_DEVICE = "real_device";
+    const std::string NORMAL_SCHEMA = R""({
+            "SCHEMA_VERSION": "2.0",
+            "SCHEMA_TYPE": "RELATIVE",
+            "TABLES": [{
+                "NAME": "FIRST",
+                "DEFINE": {
+                    "field_name1": {
+                        "COLUMN_ID":1,
+                        "TYPE": "STRING",
+                        "NOT_NULL": true,
+                        "DEFAULT": "abcd"
+                    },
+                    "field_name2": {
+                        "COLUMN_ID":2,
+                        "TYPE": "MYINT(21)",
+                        "NOT_NULL": false,
+                        "DEFAULT": "222"
+                    },
+                    "field_name3": {
+                        "COLUMN_ID":3,
+                        "TYPE": "INTGER",
+                        "NOT_NULL": false,
+                        "DEFAULT": "1"
+                    }
+                },
+                "AUTOINCREMENT": true,
+                "UNIQUE": [["field_name1"], ["field_name2", "field_name3"]],
+                "PRIMARY_KEY": "field_name1",
+                "INDEX": {
+                    "index_name1": ["field_name1", "field_name2"],
+                    "index_name2": ["field_name3"]
+                }
+            }, {
+                "NAME": "SECOND",
+                "DEFINE": {
+                    "key": {
+                        "COLUMN_ID":1,
+                        "TYPE": "BLOB",
+                        "NOT_NULL": true
+                    },
+                    "value": {
+                        "COLUMN_ID":2,
+                        "TYPE": "BLOB",
+                        "NOT_NULL": false
+                    }
+                },
+                "PRIMARY_KEY": "field_name1"
+            }]
+        })"";
 
-    const Key KEY1{'k', 'e', 'y', '1'};
-    const Key KEY2{'k', 'e', 'y', '2'};
-    const Value VALUE1{'v', 'a', 'l', 'u', 'e', '1'};
-    const Value VALUE2{'v', 'a', 'l', 'u', 'e', '2'};
-    KvDBProperties g_propA;
-    KvDBProperties g_propB;
-    KvDBProperties g_propC;
-    KvDBProperties g_propD;
-    KvDBProperties g_propE;
-    KvDBProperties g_propF;
-    KvDBProperties g_propG;
-    KvDBProperties g_propH;
-    KvDBProperties g_propI;
-    std::string g_identifierA;
-    std::string g_identifierB;
-    std::string g_identifierC;
-    std::string g_identifierD;
-    std::string g_identifierE;
-    std::string g_identifierF;
-    std::string g_identifierG;
-    std::string g_identifierH;
-    std::string g_identifierI;
-    std::string g_dualIdentifierA;
-    std::string g_dualIdentifierB;
-    std::string g_dualIdentifierC;
-    std::string g_dualIdentifierD;
-    std::string g_dualIdentifierE;
-    std::string g_dualIdentifierF;
-    std::string g_dualIdentifierG;
-    std::string g_dualIdentifierH;
-    std::string g_dualIdentifierI;
+    const std::string NORMAL_SCHEMA_V2_1 = R""({
+            "SCHEMA_VERSION": "2.1",
+            "SCHEMA_TYPE": "RELATIVE",
+            "TABLE_MODE": "SPLIT_BY_DEVICE",
+            "TABLES": [{
+                "NAME": "FIRST",
+                "DEFINE": {
+                    "field_name1": {
+                        "COLUMN_ID":1,
+                        "TYPE": "STRING",
+                        "NOT_NULL": true,
+                        "DEFAULT": "abcd"
+                    },
+                    "field_name2": {
+                        "COLUMN_ID":2,
+                        "TYPE": "MYINT(21)",
+                        "NOT_NULL": false,
+                        "DEFAULT": "222"
+                    },
+                    "field_name3": {
+                        "COLUMN_ID":3,
+                        "TYPE": "INTGER",
+                        "NOT_NULL": false,
+                        "DEFAULT": "1"
+                    }
+                },
+                "AUTOINCREMENT": true,
+                "UNIQUE": [["field_name1"], ["field_name2", "field_name3"]],
+                "PRIMARY_KEY": ["field_name1", "field_name3"],
+                "INDEX": {
+                    "index_name1": ["field_name1", "field_name2"],
+                    "index_name2": ["field_name3"]
+                }
+            }, {
+                "NAME": "SECOND",
+                "DEFINE": {
+                    "key": {
+                        "COLUMN_ID":1,
+                        "TYPE": "BLOB",
+                        "NOT_NULL": true
+                    },
+                    "value": {
+                        "COLUMN_ID":2,
+                        "TYPE": "BLOB",
+                        "NOT_NULL": false
+                    }
+                },
+                "PRIMARY_KEY": ["field_name1"]
+            }]
+        })"";
+
+    const std::string INVALID_SCHEMA = R""({
+            "SCHEMA_VERSION": "2.0",
+            "SCHEMA_TYPE": "RELATIVE",
+            "TABLES": [{
+                "NAME": "FIRST",
+                "DEFINE": {
+                    "field_name1": {
+                        "COLUMN_ID":1,
+                        "TYPE": "STRING",
+                        "NOT_NULL": true,
+                        "DEFAULT": "abcd"
+                    },"field_name2": {
+                        "COLUMN_ID":2,
+                        "TYPE": "MYINT(21)",
+                        "NOT_NULL": false,
+                        "DEFAULT": "222"
+                    }
+                },
+                "PRIMARY_KEY": "field_name1"
+            }]
+        })"";
+
+    const std::string INVALID_JSON_STRING = R""({
+            "SCHEMA_VERSION": "2.0",
+            "SCHEMA_TYPE": "RELATIVE",
+            "TABLES": [{
+                "NAME": "FIRST",
+                "DEFINE": {
+                    "field_name1": {)"";
+
+    const std::string SCHEMA_VERSION_STR_1 = R"("SCHEMA_VERSION": "1.0",)";
+    const std::string SCHEMA_VERSION_STR_2 = R"("SCHEMA_VERSION": "2.0",)";
+    const std::string SCHEMA_VERSION_STR_2_1 = R"("SCHEMA_VERSION": "2.1",)";
+    const std::string SCHEMA_VERSION_STR_INVALID = R"("SCHEMA_VERSION": "awd3",)";
+    const std::string SCHEMA_TYPE_STR_NONE = R"("SCHEMA_TYPE": "NONE",)";
+    const std::string SCHEMA_TYPE_STR_JSON = R"("SCHEMA_TYPE": "JSON",)";
+    const std::string SCHEMA_TYPE_STR_FLATBUFFER = R"("SCHEMA_TYPE": "FLATBUFFER",)";
+    const std::string SCHEMA_TYPE_STR_RELATIVE = R"("SCHEMA_TYPE": "RELATIVE",)";
+    const std::string SCHEMA_TYPE_STR_INVALID = R"("SCHEMA_TYPE": "adewaaSAD",)";
+    const std::string SCHEMA_TABLE_MODE_COLLABORATION = R"("TABLE_MODE": "COLLABORATION",)";
+    const std::string SCHEMA_TABLE_MODE_SPLIT_BY_DEVICE = R"("TABLE_MODE": "SPLIT_BY_DEVICE",)";
+    const std::string SCHEMA_TABLE_MODE_INVALID = R"("TABLE_MODE": "SPLIT_BY_USER",)";
+    const std::string DISTRIBUTED_VALID_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": 1 })";
+    const std::string DISTRIBUTED_INVALID_SMALL_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": -1 })";
+    const std::string DISTRIBUTED_INVALID_LARGE_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": 50000000000000 })";
+    const std::string DISTRIBUTED_INVALID_NAN_VERSION = R"("DISTRIBUTED_SCHEMA": { "VERSION": "not a number" })";
+
+    const std::string SCHEMA_TABLE_STR = R""("TABLES": [{
+            "NAME": "FIRST",
+            "DEFINE": {
+                "field_name1": {
+                    "COLUMN_ID":1,
+                    "TYPE": "STRING",
+                    "NOT_NULL": true,
+                    "DEFAULT": "abcd"
+                },"field_name2": {
+                    "COLUMN_ID":2,
+                    "TYPE": "MYINT(21)",
+                    "NOT_NULL": false,
+                    "DEFAULT": "222"
+                }
+            },
+            "PRIMARY_KEY": "field_name1"
+        }])"";
+
+    const std::string TABLE_DEFINE_STR = R""({
+        "NAME": "FIRST",
+        "DEFINE": {
+            "field_name1": {
+                "COLUMN_ID":1,
+                "TYPE": "STRING",
+                "NOT_NULL": true,
+                "DEFAULT": "abcd"
+            },"field_name2": {
+                "COLUMN_ID":2,
+                "TYPE": "MYINT(21)",
+                "NOT_NULL": false,
+                "DEFAULT": "222"
+            }
+        },
+        "PRIMARY_KEY": "field_name1"
+    })"";
+
+    const std::string TABLE_DEFINE_STR_NAME = R""("NAME": "FIRST",)"";
+    const std::string TABLE_DEFINE_STR_NAME_INVALID = R"("NAME": 123,)";
+    const std::string TABLE_DEFINE_STR_NAME_INVALID_CHARACTER = R"("NAME": "t1; --",)";
+    const std::string TABLE_DEFINE_STR_FIELDS = R""("DEFINE": {
+            "field_name1": {
+                "COLUMN_ID":1,
+                "TYPE": "STRING",
+                "NOT_NULL": true,
+                "DEFAULT": "abcd"
+            },"field_name2": {
+                "COLUMN_ID":2,
+                "TYPE": "MYINT(21)",
+                "NOT_NULL": false,
+                "DEFAULT": "222"
+            }
+        },)"";
+    const std::string TABLE_DEFINE_STR_FIELDS_EMPTY = R""("DEFINE": {},)"";
+    const std::string TABLE_DEFINE_STR_FIELDS_NOTYPE = R""("DEFINE": {
+            "field_name1": {
+                "COLUMN_ID":1,
+                "NOT_NULL": true,
+                "DEFAULT": "abcd"
+            }},)"";
+    const std::string TABLE_DEFINE_STR_FIELDS_INVALID_CHARACTER = R""("DEFINE": {
+            "1 = 1; --": {
+                "COLUMN_ID":1,
+                "NOT_NULL": true,
+                "DEFAULT": "abcd"
+            }},)"";
+    const std::string TABLE_DEFINE_STR_KEY = R""("PRIMARY_KEY": "field_name1")"";
+    const std::string TABLE_DEFINE_BOOL_KEY_INVALID = R""("PRIMARY_KEY": false)"";
+    const std::string TABLE_DEFINE_BOOL_ARRAY_KEY_INVALID = R""("PRIMARY_KEY": [false, true, true])"";
 }
 
-class DistributedDBAutoLaunchUnitTest : public testing::Test {
+class DistributedDBRelationalSchemaObjectTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
-    void SetUp();
-    void TearDown() {};
+    void SetUp() override;
+    void TearDown() override;
 };
 
-void DistributedDBAutoLaunchUnitTest::SetUpTestCase(void)
+void DistributedDBRelationalSchemaObjectTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    g_config.dataDir = g_testDir;
-    g_mgr.SetKvStoreConfig(g_config);
-
-    string dir = g_testDir;
-    DIR *dirTmp = opendir(dir.c_str());
-    if (dirTmp == nullptr) {
-        OS::MakeDBDirectory(dir);
-    } else {
-        closedir(dirTmp);
-    }
-    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(
-        g_testDir + "/" + DBCommon::TransferStringToHex(g_identifierA) + "/single_ver") != 0) {
-        LOGE("rm test db files error!");
-    }
-    g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
-    ASSERT_TRUE(g_communicatorAggregator != nullptr);
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+    LOGI("The test db is:%s", g_testDir.c_str());
+    g_dbDir = g_testDir + "/";
 }
 
-void DistributedDBAutoLaunchUnitTest::TearDownTestCase(void)
+void DistributedDBRelationalSchemaObjectTest::TearDownTestCase(void)
 {
-    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(
-        g_testDir + "/" + DBCommon::TransferStringToHex(g_identifierA) + "/single_ver") != 0) {
-        LOGE("rm test db files error!");
-    }
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
-static void GetProperty(KvDBProperties &prop, std::string &identifier, std::string storeId, std::string &dualIdentifier)
-{
-    prop.SetStringProp(KvDBProperties::USER_ID, USER_ID);
-    prop.SetStringProp(KvDBProperties::APP_ID, APP_ID);
-    prop.SetStringProp(KvDBProperties::STORE_ID, storeId);
-    identifier = DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + storeId);
-    prop.SetStringProp(KvDBProperties::IDENTIFIER_DATA, identifier);
-    dualIdentifier = DBCommon::TransferHashString(APP_ID + "-" + storeId);
-    prop.SetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, dualIdentifier);
-    std::string identifierDirA = DBCommon::TransferStringToHex(identifier);
-    prop.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierDirA);
-    prop.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
-    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
-    prop.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
-    prop.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false);
-}
-
-void DistributedDBAutoLaunchUnitTest::SetUp(void)
+void DistributedDBRelationalSchemaObjectTest::SetUp()
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
-    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(
-        g_testDir + "/" + DBCommon::TransferStringToHex(g_identifierA) + "/single_ver") != 0) {
-        LOGE("rm test db files error!");
+}
+
+void DistributedDBRelationalSchemaObjectTest::TearDown()
+{
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error.");
     }
-    GetProperty(g_propA, g_identifierA, STORE_ID_0, g_dualIdentifierA);
-    GetProperty(g_propB, g_identifierB, STORE_ID_1, g_dualIdentifierB);
-    GetProperty(g_propC, g_identifierC, STORE_ID_2, g_dualIdentifierC);
-    GetProperty(g_propD, g_identifierD, STORE_ID_3, g_dualIdentifierD);
-    GetProperty(g_propE, g_identifierE, STORE_ID_4, g_dualIdentifierE);
-    GetProperty(g_propF, g_identifierF, STORE_ID_5, g_dualIdentifierF);
-    GetProperty(g_propG, g_identifierG, STORE_ID_6, g_dualIdentifierG);
-    GetProperty(g_propH, g_identifierH, STORE_ID_7, g_dualIdentifierH);
-    GetProperty(g_propI, g_identifierI, STORE_ID_8, g_dualIdentifierI);
-}
-
-static void PutSyncData(const KvDBProperties &prop, const Key &key, const Value &value)
-{
-    int errCode = E_OK;
-    auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(KvDBManager::OpenDatabase(prop, errCode));
-    ASSERT_NE(kvStore, nullptr);
-    auto *connection = kvStore->GetDBConnection(errCode);
-    ASSERT_NE(connection, nullptr);
-    std::vector<DataItem> vect;
-    Timestamp time;
-    kvStore->GetMaxTimestamp(time);
-    time += TIME_ADD;
-    LOGD("time:%" PRIu64, time);
-    vect.push_back({key, value, time, 0, DBCommon::TransferHashString(REMOTE_DEVICE_ID)});
-    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(kvStore, vect, REMOTE_DEVICE_ID), E_OK);
-    RefObject::DecObjRef(kvStore);
-    connection->Close();
-    connection = nullptr;
-}
-
-static void SetLifeCycleTime(const KvDBProperties &prop)
-{
-    int errCode = E_OK;
-    auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(KvDBManager::OpenDatabase(prop, errCode));
-    ASSERT_NE(kvStore, nullptr);
-    auto *connection = kvStore->GetDBConnection(errCode);
-    ASSERT_NE(connection, nullptr);
-    uint32_t time = LIFE_CYCLE_TIME;
-    EXPECT_EQ(connection->Pragma(PRAGMA_SET_AUTO_LIFE_CYCLE, static_cast<PragmaData>(&time)), E_OK);
-    RefObject::DecObjRef(kvStore);
-    connection->Close();
-    connection = nullptr;
+    return;
 }
 
 /**
- * @tc.name: AutoLaunch001
- * @tc.desc: basic enable/disable func
+ * @tc.name: RelationalSchemaParseTest001
+ * @tc.desc: Test relational schema parse from json string
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangchuanqing
+ * @tc.author: lianhuix
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch001, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest001, TestSize.Level1)
 {
-    /**
-     * @tc.steps: step1. right param A enable
-     * @tc.expected: step1. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    int errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, nullptr, option);
-    EXPECT_TRUE(errCode == E_OK);
+    const std::string schemaStr = NORMAL_SCHEMA;
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(schemaStr);
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(schemaObj.GetTable("FIRST").GetUniqueDefine().size(), 2u);
 
-    /**
-     * @tc.steps: step2. wrong param B enable
-     * @tc.expected: step2. failed.
-     */
-    g_propB.SetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
-    errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, nullptr, option);
-    EXPECT_TRUE(errCode != E_OK);
+    RelationalSchemaObject schemaObj2;
+    schemaObj2.ParseFromSchemaString(schemaObj.ToSchemaString());
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(schemaObj2.GetTable("FIRST").GetUniqueDefine().size(), 2u);
 
-    /**
-     * @tc.steps: step3. right param C enable
-     * @tc.expected: step3. success.
-     */
-    errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propC, nullptr, option);
-    EXPECT_TRUE(errCode == E_OK);
+    RelationalSyncOpinion op = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, schemaObj2.ToSchemaString(),
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
 
-    /**
-     * @tc.steps: step4. param A disable
-     * @tc.expected: step4. E_OK.
-     */
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierA, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step5. param B disable
-     * @tc.expected: step5. -E_NOT_FOUND.
-     */
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID);
-    EXPECT_TRUE(errCode == -E_NOT_FOUND);
-
-    /**
-     * @tc.steps: step6. param C disable
-     * @tc.expected: step6. E_OK.
-     */
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierC, g_dualIdentifierC, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
+    EXPECT_EQ(op.size(), 2u);
+    EXPECT_EQ(op.at("FIRST").permitSync, true);
+    EXPECT_EQ(op.at("SECOND").permitSync, true);
 }
 
 /**
- * @tc.name: AutoLaunch002
- * @tc.desc: online callback
+ * @tc.name: RelationalSchemaParseTest002
+ * @tc.desc: Test relational schema parse from invalid json string
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangchuanqing
+ * @tc.author: lianhuix
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch002, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest002, TestSize.Level1)
 {
-    std::mutex cvMutex;
-    std::condition_variable cv;
-    bool finished = false;
-    std::map<const std::string, AutoLaunchStatus> statusMap;
+    RelationalSchemaObject schemaObj;
 
-    auto notifier = [&cvMutex, &cv, &finished, &statusMap] (const std::string &userId, const std::string &appId,
-        const std::string &storeId, AutoLaunchStatus status) {
-            LOGD("int AutoLaunch002 notifier status:%d", status);
-            std::string identifier = DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
-            std::unique_lock<std::mutex> lock(cvMutex);
-            statusMap[identifier] = status;
-            LOGD("int AutoLaunch002 notifier statusMap.size():%zu", statusMap.size());
-            if (statusMap.size() == 2) { // A and B
-                finished = true;
-                cv.notify_one();
-            }
-        };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    /**
-     * @tc.steps: step1. right param A B enable
-     * @tc.expected: step1. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    option.observer = observer;
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, notifier, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, notifier, option) == E_OK);
+    std::string schemaStr01(SchemaConstant::SCHEMA_STRING_SIZE_LIMIT + 1, 's');
+    int errCode = schemaObj.ParseFromSchemaString(schemaStr01);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
 
-    /**
-     * @tc.steps: step2. RunOnConnectCallback
-     * @tc.expected: step2. success.
-     */
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    errCode = schemaObj.ParseFromSchemaString(INVALID_JSON_STRING);
+    EXPECT_EQ(errCode, -E_JSON_PARSE_FAIL);
 
-    /**
-     * @tc.steps: step3. PutSyncData
-     * @tc.expected: step3. notifier WRITE_OPENED
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    PutSyncData(g_propB, KEY1, VALUE1);
-    {
-        std::unique_lock<std::mutex> lock(cvMutex);
-        cv.wait(lock, [&finished] {return finished;});
-        EXPECT_TRUE(statusMap[g_identifierA] == WRITE_OPENED);
-        EXPECT_TRUE(statusMap[g_identifierB] == WRITE_OPENED);
-        statusMap.clear();
-        finished = false;
-    }
-    EXPECT_TRUE(observer->GetCallCount() == 2); // A and B
-    delete observer;
-    /**
-     * @tc.steps: step4. param A B disable
-     * @tc.expected: step4. notifier WRITE_CLOSED
-     */
-    EXPECT_TRUE(RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierA, USER_ID)
-        == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID)
-        == E_OK);
+    std::string noVersion = "{" + SCHEMA_TYPE_STR_RELATIVE + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(noVersion);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-    std::unique_lock<std::mutex> lock(cvMutex);
-    cv.wait(lock, [&finished] {return finished;});
-    EXPECT_TRUE(statusMap[g_identifierA] == WRITE_CLOSED);
-    EXPECT_TRUE(statusMap[g_identifierB] == WRITE_CLOSED);
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
-}
+    std::string invalidVersion1 = "{" + SCHEMA_VERSION_STR_1  + SCHEMA_TYPE_STR_RELATIVE + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(invalidVersion1);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-/**
- * @tc.name: AutoLaunch003
- * @tc.desc: CommunicatorLackCallback
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch003, TestSize.Level3)
-{
-    std::mutex cvMutex;
-    std::condition_variable cv;
-    bool finished = false;
-    std::map<const std::string, AutoLaunchStatus> statusMap;
+    std::string invalidVersion2 = "{" + SCHEMA_VERSION_STR_INVALID  + SCHEMA_TYPE_STR_RELATIVE + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(invalidVersion2);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-    auto notifier = [&cvMutex, &cv, &finished, &statusMap] (const std::string &userId, const std::string &appId,
-        const std::string &storeId, AutoLaunchStatus status) {
-            LOGD("int AutoLaunch002 notifier status:%d", status);
-            std::string identifier = DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
-            std::unique_lock<std::mutex> lock(cvMutex);
-            statusMap[identifier] = status;
-            LOGD("int AutoLaunch002 notifier statusMap.size():%zu", statusMap.size());
-            finished = true;
-            cv.notify_one();
-        };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
+    std::string noType = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(noType);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-    /**
-     * @tc.steps: step1. right param A B enable
-     * @tc.expected: step1. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    option.observer = observer;
-    int errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, notifier, option);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, notifier, option);
-    EXPECT_TRUE(errCode == E_OK);
+    std::string invalidType1 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_NONE + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(invalidType1);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    std::string invalidType2 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_JSON + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(invalidType2);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-    /**
-     * @tc.steps: step3. PutSyncData
-     * @tc.expected: step3. notifier WRITE_OPENED
-     */
-    PutSyncData(g_propA, KEY2, VALUE2);
-    {
-        std::unique_lock<std::mutex> lock(cvMutex);
-        cv.wait(lock, [&finished] {return finished;});
-        EXPECT_TRUE(statusMap[g_identifierA] == WRITE_OPENED);
-        statusMap.clear();
-        finished = false;
-    }
-    EXPECT_TRUE(observer->GetCallCount() == 1); // only A
-    delete observer;
-    /**
-     * @tc.steps: step4. param A B disable
-     * @tc.expected: step4. notifier WRITE_CLOSED
-     */
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierA, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
+    std::string invalidType3 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_FLATBUFFER + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(invalidType3);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-    std::unique_lock<std::mutex> lock(cvMutex);
-    cv.wait(lock, [&finished] {return finished;});
-    EXPECT_TRUE(statusMap[g_identifierA] == WRITE_CLOSED);
-    EXPECT_TRUE(statusMap.size() == 1);
-}
+    std::string invalidType4 = "{" + SCHEMA_VERSION_STR_2 + SCHEMA_TYPE_STR_INVALID + SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(invalidType4);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
-/**
- * @tc.name: AutoLaunch004
- * @tc.desc: basic enable/disable func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch004, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. right param A~H enable
-     * @tc.expected: step1. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propC, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propD, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propE, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propF, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propG, nullptr, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propH, nullptr, option) == E_OK);
-
-    /**
-     * @tc.steps: step2. right param I enable
-     * @tc.expected: step2. -E_MAX_LIMITS.
-     */
-    int errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propI, nullptr, option);
-    EXPECT_TRUE(errCode == -E_MAX_LIMITS);
-
-    /**
-     * @tc.steps: step3. param A disable
-     * @tc.expected: step3. E_OK.
-     */
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierA, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step4. right param I enable
-     * @tc.expected: step4. E_OK.
-     */
-    errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propI, nullptr, option);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step6. param B~I disable
-     * @tc.expected: step6. E_OK.
-     */
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierC, g_dualIdentifierC, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierD, g_dualIdentifierD, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierE, g_dualIdentifierE, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierF, g_dualIdentifierF, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierG, g_dualIdentifierG, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierH, g_dualIdentifierH, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierI, g_dualIdentifierI, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-}
-
-/**
- * @tc.name: AutoLaunch005
- * @tc.desc: online device before enable
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch005, TestSize.Level3)
-{
-    std::mutex cvMutex;
-    std::condition_variable cv;
-    bool finished = false;
-    std::map<const std::string, AutoLaunchStatus> statusMap;
-
-    auto notifier = [&cvMutex, &cv, &finished, &statusMap] (const std::string &userId, const std::string &appId,
-        const std::string &storeId, AutoLaunchStatus status) {
-            LOGD("int AutoLaunch002 notifier status:%d", status);
-            std::string identifier = DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
-            std::unique_lock<std::mutex> lock(cvMutex);
-            statusMap[identifier] = status;
-            LOGD("int AutoLaunch002 notifier statusMap.size():%zu", statusMap.size());
-            finished = true;
-            cv.notify_one();
-        };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    /**
-     * @tc.steps: step1. RunOnConnectCallback
-     * @tc.expected: step1. success.
-     */
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-
-    /**
-     * @tc.steps: step2. right param A enable
-     * @tc.expected: step2. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    option.observer = observer;
-    int errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, notifier, option);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step3. PutSyncData
-     * @tc.expected: step3. notifier WRITE_OPENED
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    {
-        std::unique_lock<std::mutex> lock(cvMutex);
-        cv.wait(lock, [&finished] {return finished;});
-        EXPECT_TRUE(statusMap[g_identifierA] == WRITE_OPENED);
-        statusMap.clear();
-        finished = false;
-    }
-    EXPECT_TRUE(observer->GetCallCount() == 1); // only A
-    /**
-     * @tc.steps: step4. param A  disable
-     * @tc.expected: step4. notifier WRITE_CLOSED
-     */
-    std::string identifierA = g_propA.GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
-    std::string userIdA = g_propA.GetStringProp(KvDBProperties::USER_ID, "");
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierB, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-
-    std::unique_lock<std::mutex> lock(cvMutex);
-    cv.wait(lock, [&finished] {return finished;});
-    EXPECT_TRUE(statusMap[g_identifierA] == WRITE_CLOSED);
-    delete observer;
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
-}
-
-/**
- * @tc.name: AutoLaunch006
- * @tc.desc: online callback
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
-{
-    auto notifier = [] (const std::string &userId, const std::string &appId,
-        const std::string &storeId, AutoLaunchStatus status) {
-            LOGD("int AutoLaunch006 notifier status:%d", status);
-        };
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    std::mutex cvLock;
-    std::condition_variable cv;
-    bool threadIsWorking = true;
-    thread aggregatorThread([&cvLock, &cv, &threadIsWorking]() {
-            LabelType label(g_identifierA.begin(), g_identifierA.end());
-            for (int i = 0; i < TEST_ONLINE_CNT; i++) {
-                g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, true);
-                std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_SHORT_TIME));
-                g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
-                std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_SHORT_TIME));
-                g_communicatorAggregator->RunCommunicatorLackCallback(label);
-                std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_SHORT_TIME));
-                LOGD("AutoLaunch006 thread i:%d", i);
-            }
-            std::unique_lock<std::mutex> lock(cvLock);
-            threadIsWorking = false;
-            cv.notify_one();
-        });
-    aggregatorThread.detach();
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    option.observer = observer;
-    for (int i = 0; i < TEST_ENABLE_CNT; i++) {
-        int errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, notifier, option);
-        EXPECT_TRUE(errCode == E_OK);
-        errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, notifier, option);
-        EXPECT_TRUE(errCode == E_OK);
-
-        errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierA, USER_ID);
-        EXPECT_TRUE(errCode == E_OK);
-        errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID);
-        EXPECT_TRUE(errCode == E_OK);
-        LOGD("AutoLaunch006 disable i:%d", i);
-    }
-    std::unique_lock<std::mutex> lock(cvLock);
-    cv.wait(lock, [&threadIsWorking] { return !threadIsWorking; });
-
-    delete observer;
-    observer = nullptr;
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
+    std::string noTable = "{" + SCHEMA_VERSION_STR_2 +
+        SCHEMA_TYPE_STR_RELATIVE.substr(0, SCHEMA_TYPE_STR_RELATIVE.length() - 1) + "}";
+    errCode = schemaObj.ParseFromSchemaString(noTable);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 }
 
 namespace {
-std::mutex g_cvMutex;
-std::condition_variable g_cv;
-bool g_finished = false;
-std::map<const std::string, AutoLaunchStatus> g_statusMap;
-void ConflictNotifierCallback(const KvStoreNbConflictData &data)
+std::string GenerateFromTableStr(const std::string &tableStr)
 {
-    LOGD("in ConflictNotifierCallback");
-    Key key;
-    Value oldValue;
-    Value newValue;
-    data.GetKey(key);
-    data.GetValue(KvStoreNbConflictData::ValueType::OLD_VALUE, oldValue);
-    data.GetValue(KvStoreNbConflictData::ValueType::NEW_VALUE, newValue);
-    EXPECT_EQ(key, KEY1);
-    EXPECT_EQ(oldValue, VALUE1);
-    EXPECT_EQ(newValue, VALUE2);
-    g_finished = true;
-    g_cv.notify_one();
-}
-
-void TestAutoLaunchNotifier(const std::string &userId, const std::string &appId, const std::string &storeId,
-    AutoLaunchStatus status)
-{
-    LOGD("int AutoLaunchNotifier, status:%d", status);
-    std::string identifier = DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
-    std::unique_lock<std::mutex> lock(g_cvMutex);
-    g_statusMap[identifier] = status;
-    g_finished = true;
-    g_cv.notify_one();
-};
-
-bool AutoLaunchCallBack(const std::string &identifier, AutoLaunchParam &param, KvStoreObserverUnitTest *observer,
-    bool ret)
-{
-    LOGD("int AutoLaunchCallBack");
-    EXPECT_TRUE(identifier == g_identifierA);
-    param.userId = USER_ID;
-    param.appId = APP_ID;
-    param.storeId = STORE_ID_0;
-    CipherPassword passwd;
-    param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, observer,
-        CONFLICT_FOREIGN_KEY_ONLY, ConflictNotifierCallback};
-    param.notifier = TestAutoLaunchNotifier;
-    return ret;
-}
-
-bool AutoLaunchCallBackBadParam(const std::string &identifier, AutoLaunchParam &param)
-{
-    LOGD("int AutoLaunchCallBack");
-    EXPECT_TRUE(identifier == g_identifierA);
-    param.notifier = TestAutoLaunchNotifier;
-    return true;
+    return R""({
+        "SCHEMA_VERSION": "2.0",
+        "SCHEMA_TYPE": "RELATIVE",
+        "TABLES": )"" + tableStr + "}";
 }
 }
 
 /**
- * @tc.name: AutoLaunch007
- * @tc.desc: enhancement callback return true
+ * @tc.name: RelationalSchemaParseTest003
+ * @tc.desc: Test relational schema parse from invalid json string
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangchuanqing
+ * @tc.author: lianhuix
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest003, TestSize.Level1)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    /**
-     * @tc.steps: step1. SetAutoLaunchRequestCallback
-     * @tc.expected: step1. success.
-     */
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
-        DBTypeInner::DB_KV);
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    /**
-     * @tc.steps: step3. PutSyncData key1 value1
-     * @tc.expected: step3. notifier WRITE_OPENED
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_OPENED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    EXPECT_TRUE(observer->GetCallCount() == 1); // only A
-    /**
-     * @tc.steps: step4. PutSyncData key1 value2
-     * @tc.expected: step4. ConflictNotifierCallback
-     */
-    PutSyncData(g_propA, KEY1, VALUE2);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        g_finished = false;
-    }
-    /**
-     * @tc.steps: step5. wait life cycle ,db close
-     * @tc.expected: step5. notifier WRITE_CLOSED
-     */
-    SetLifeCycleTime(g_propA);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_CLOSED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    RelationalSchemaObject schemaObj;
+    int errCode = E_OK;
+
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr(TABLE_DEFINE_STR));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr01 = "{" + TABLE_DEFINE_STR_FIELDS + TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr01 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr02 = "{" + TABLE_DEFINE_STR_NAME_INVALID + TABLE_DEFINE_STR_FIELDS +
+        TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr02 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr04 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS_NOTYPE +
+        TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr04 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr05 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS +
+        TABLE_DEFINE_BOOL_KEY_INVALID + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr05 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr06 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS +
+        TABLE_DEFINE_BOOL_ARRAY_KEY_INVALID + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr06 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr07 = "{" + TABLE_DEFINE_STR_NAME_INVALID_CHARACTER + TABLE_DEFINE_STR_FIELDS +
+        TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr07 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr08 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS_INVALID_CHARACTER +
+        TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr08 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    errCode = schemaObj.ParseFromSchemaString("");
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }
 
 /**
- * @tc.name: AutoLaunch008
- * @tc.desc: enhancement callback return false
+ * @tc.name: RelationalSchemaParseTest004
+ * @tc.desc:
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangchuanqing
+ * @tc.author: lianhuix
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest004, TestSize.Level1)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    /**
-     * @tc.steps: step1. SetAutoLaunchRequestCallback
-     * @tc.expected: step1. success.
-     */
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, false),
-        DBTypeInner::DB_KV);
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    /**
-     * @tc.steps: step3. PutSyncData key1 value1
-     * @tc.expected: step3. db not open
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    PutSyncData(g_propA, KEY1, VALUE2);
+    RelationalSchemaObject schemaObj;
+    int errCode = E_OK;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    EXPECT_TRUE(observer->GetCallCount() == 0);
-    EXPECT_TRUE(g_finished == false);
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    std::string schema = "{" + SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_COLLABORATION + SCHEMA_TYPE_STR_RELATIVE +
+        SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, E_OK);
 }
 
 /**
- * @tc.name: AutoLaunch009
- * @tc.desc: enhancement callback return bad param
+ * @tc.name: RelationalSchemaParseTest005
+ * @tc.desc:
  * @tc.type: FUNC
  * @tc.require:
+ * @tc.author: lianhuix
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest005, TestSize.Level1)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    /**
-     * @tc.steps: step1. SetAutoLaunchRequestCallback
-     * @tc.expected: step1. success.
-     */
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(AutoLaunchCallBackBadParam, DBTypeInner::DB_KV);
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    /**
-     * @tc.steps: step3. PutSyncData key1 value1
-     * @tc.expected: step3. db not open, notify INVALID_PARAM
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    PutSyncData(g_propA, KEY1, VALUE2);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    EXPECT_TRUE(observer->GetCallCount() == 0);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[DBCommon::TransferHashString("--")] == INVALID_PARAM);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    RelationalSchemaObject schemaObj;
+    int errCode = E_OK;
+
+    std::string schema = "{" + SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_SPLIT_BY_DEVICE + SCHEMA_TYPE_STR_RELATIVE +
+        SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, E_OK);
 }
 
 /**
- * @tc.name: AutoLaunch010
- * @tc.desc: enhancement nullptr callback
+ * @tc.name: RelationalSchemaParseTest006
+ * @tc.desc:
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangchuanqing
+ * @tc.author: lianhuix
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest006, TestSize.Level1)
 {
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    /**
-     * @tc.steps: step1. SetAutoLaunchRequestCallback, then set nullptr
-     * @tc.expected: step1. success.
-     */
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, false),
-        DBTypeInner::DB_KV);
+    RelationalSchemaObject schemaObj;
+    int errCode = E_OK;
 
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    /**
-     * @tc.steps: step3. PutSyncData key1 value1
-     * @tc.expected: step3. db not open
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    PutSyncData(g_propA, KEY1, VALUE2);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    EXPECT_TRUE(observer->GetCallCount() == 0);
-    EXPECT_TRUE(g_finished == false);
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
+    std::string schema = "{" + SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_INVALID + SCHEMA_TYPE_STR_RELATIVE +
+        SCHEMA_TABLE_STR + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 }
 
 /**
- * @tc.name: AutoLaunch011
- * @tc.desc: enhancement GetKvStoreIdentifier
+ * @tc.name: RelationalSchemaParseTest007
+ * @tc.desc: test parse for distributed version in schema
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch011, TestSize.Level3)
-{
-    EXPECT_EQ(KvStoreDelegateManager::GetKvStoreIdentifier("", APP_ID, STORE_ID_0), "");
-    EXPECT_EQ(RuntimeConfig::GetStoreIdentifier("", APP_ID, STORE_ID_0), "");
-    EXPECT_EQ(KvStoreDelegateManager::GetKvStoreIdentifier(
-        USER_ID, APP_ID, STORE_ID_0), DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0));
-    EXPECT_EQ(RuntimeConfig::GetStoreIdentifier(USER_ID, APP_ID, STORE_ID_0),
-        DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0));
-}
-
-/**
- * @tc.name: AutoLaunch012
- * @tc.desc: CommunicatorLackCallback
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch012, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. right param A B enable
-     * @tc.expected: step1. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = ConflictNotifierCallback;
-    option.conflictType = CONFLICT_FOREIGN_KEY_ONLY;
-    int errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propA, TestAutoLaunchNotifier, option);
-    EXPECT_TRUE(errCode == E_OK);
-    AutoLaunchOption option1;
-    option1.notifier = nullptr;
-    errCode = RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, nullptr, option1);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    PutSyncData(g_propA, KEY1, VALUE1);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_OPENED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    /**
-     * @tc.steps: step3. PutSyncData key1 value2
-     * @tc.expected: step3. ConflictNotifierCallback
-     */
-    PutSyncData(g_propA, KEY1, VALUE2);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        g_finished = false;
-    }
-    /**
-     * @tc.steps: step4. wait life cycle ,db close
-     * @tc.expected: step4. notifier WRITE_CLOSED
-     */
-    SetLifeCycleTime(g_propA);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_CLOSED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    /**
-     * @tc.steps: step5. param A B disable
-     * @tc.expected: step5. OK
-     */
-    std::string identifierA = g_propA.GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
-    std::string userIdA = g_propA.GetStringProp(KvDBProperties::USER_ID, "");
-    std::string identifierB = g_propB.GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
-    std::string userIdB = g_propB.GetStringProp(KvDBProperties::USER_ID, "");
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierA, g_dualIdentifierA, USER_ID);
-    EXPECT_TRUE(errCode == E_OK);
-}
-
-/**
- * @tc.name: AutoLaunch013
- * @tc.desc: online callback
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: wangchuanqing
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
-{
-    auto notifier = [] (const std::string &userId, const std::string &appId,
-        const std::string &storeId, AutoLaunchStatus status) {
-            LOGD("int AutoLaunch013 notifier status:%d", status);
-        };
-    /**
-     * @tc.steps: step1. right param b c enable, a SetAutoLaunchRequestCallback
-     * @tc.expected: step1. success.
-     */
-    AutoLaunchOption option;
-    option.notifier = nullptr;
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propB, notifier, option) == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->EnableKvStoreAutoLaunch(g_propC, notifier, option) == E_OK);
-
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
-        DBTypeInner::DB_KV);
-
-    /**
-     * @tc.steps: step2. RunOnConnectCallback RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, true);
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-
-    /**
-     * @tc.steps: step3. PutSyncData
-     * @tc.expected: step3. notifier WRITE_OPENED
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    PutSyncData(g_propB, KEY1, VALUE1);
-    PutSyncData(g_propC, KEY1, VALUE1);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_OPENED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    /**
-     * @tc.steps: step4. PutSyncData key1 value2
-     * @tc.expected: step4. ConflictNotifierCallback
-     */
-    PutSyncData(g_propA, KEY1, VALUE2);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        g_finished = false;
-    }
-    /**
-     * @tc.steps: step5. wait life cycle ,db close
-     * @tc.expected: step5. notifier WRITE_CLOSED
-     */
-    SetLifeCycleTime(g_propA);
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_CLOSED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
-    delete observer;
-    /**
-     * @tc.steps: step4. param A B disable
-     * @tc.expected: step4. notifier WRITE_CLOSED
-     */
-    EXPECT_TRUE(RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierB, g_dualIdentifierB, USER_ID)
-        == E_OK);
-    EXPECT_TRUE(RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierC, g_dualIdentifierC, USER_ID)
-        == E_OK);
-    g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
-}
-
-/**
- * @tc.name: AutoLaunch014
- * @tc.desc: enhancement callback and release auto launch connection
- * @tc.type: FUNC
- * @tc.require:
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. SetAutoLaunchRequestCallback
-     * @tc.expected: step1. success.
-     */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    RuntimeConfig::SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
-
-    /**
-     * @tc.steps: step2. RunCommunicatorLackCallback
-     * @tc.expected: step2. success.
-     */
-    LabelType label(g_identifierA.begin(), g_identifierA.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(label);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-
-    /**
-     * @tc.steps: step3. PutSyncData key1 value1
-     * @tc.expected: step3. db open, notify WRITE_OPENED
-     */
-    PutSyncData(g_propA, KEY1, VALUE1);
-    PutSyncData(g_propA, KEY1, VALUE2);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    EXPECT_EQ(observer->GetCallCount(), 2u); // 2: observer count
-    {
-        std::unique_lock<std::mutex> lock(g_cvMutex);
-        g_cv.wait(lock, [] {return g_finished;});
-        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_OPENED);
-        g_statusMap.clear();
-        g_finished = false;
-    }
-
-    /**
-     * @tc.steps: step4. Release autolaunch db connection
-     * @tc.expected: step3. success
-     */
-    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
-    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
-    EXPECT_EQ(g_statusMap[DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0)],
-        AutoLaunchStatus::WRITE_CLOSED);
-    delete observer;
-}
-
-/**
- * @tc.name: AutoLaunch015
- * @tc.desc: release auto launch connection when autolaunch execute
- * @tc.type: FUNC
- * @tc.require:
- */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. SetAutoLaunchRequestCallback
-     * @tc.expected: step1. success.
-     */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
-    ASSERT_TRUE(observer != nullptr);
-    RuntimeConfig::SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
-
-    std::thread th ([&]() {
-        /**
-         * @tc.steps: step2. RunCommunicatorLackCallback
-         * @tc.expected: step2. success.
-         */
-        LabelType label(g_identifierA.begin(), g_identifierA.end());
-        g_communicatorAggregator->RunCommunicatorLackCallback(label);
-        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    });
-
-    /**
-     * @tc.steps: step4. Release autolaunch db connection
-     * @tc.expected: step3. success
-     */
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
-    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
-
-    th.join();
-    delete observer;
-}
-
-/**
- * @tc.name: AutoLaunchRelational001
- * @tc.desc: test GetAutoLaunchProperties will give back the correct tableMode
- * @tc.type: FUNC
  * @tc.author: liuhongyang
  */
-HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunchRelational001, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest007, TestSize.Level1)
 {
-    AutoLaunchOption defaultOption;
-    AutoLaunchOption splitOption;
-    AutoLaunchOption collaborateOption;
-    splitOption.tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
-    collaborateOption.tableMode = DistributedTableMode::COLLABORATION;
+    RelationalSchemaObject schemaObj;
+    std::string schemaOtherField = SCHEMA_VERSION_STR_2_1 + SCHEMA_TABLE_MODE_COLLABORATION + SCHEMA_TYPE_STR_RELATIVE +
+        SCHEMA_TABLE_STR + ",";
     /**
-     * @tc.steps: step1. call GetAutoLaunchProperties with default param
-     * @tc.expected: step1. property pointer has SPLIT_BY_DEVICE mode
+     * @tc.steps: step1. call ParseFromSchemaString with a version less than the min of uint32_t
+     * @tc.expected: step1. return -E_SCHEMA_PARSE_FAIL.
      */
-    AutoLaunchParam param = {USER_ID, APP_ID, STORE_ID_0, defaultOption, nullptr, "", ""};
-    std::shared_ptr<DBProperties> ptr;
-    int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_RELATION, false, ptr);
-    ASSERT_EQ(errCode, E_OK);
-    DistributedTableMode mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
-    EXPECT_EQ(mode, DistributedTableMode::SPLIT_BY_DEVICE);
+    std::string schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_SMALL_VERSION + "}";
+    int errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
     /**
-     * @tc.steps: step2. call GetAutoLaunchProperties with split param
-     * @tc.expected: step2. property pointer has SPLIT_BY_DEVICE mode
+     * @tc.steps: step2. call ParseFromSchemaString with a version greater than the max of uint32_t
+     * @tc.expected: step2. return -E_SCHEMA_PARSE_FAIL.
      */
-    param.option = splitOption;
-    errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_RELATION, false, ptr);
-    ASSERT_EQ(errCode, E_OK);
-    mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
-    EXPECT_EQ(mode, DistributedTableMode::SPLIT_BY_DEVICE);
+    schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_LARGE_VERSION + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
     /**
-     * @tc.steps: step3. call GetAutoLaunchProperties with collaboration param
-     * @tc.expected: step3. property pointer has COLLABORATION mode
+     * @tc.steps: step3. call ParseFromSchemaString with a version that is not a number
+     * @tc.expected: step3. return -E_SCHEMA_PARSE_FAIL.
      */
-    param.option = collaborateOption;
-    errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_RELATION, false, ptr);
-    ASSERT_EQ(errCode, E_OK);
-    mode = std::static_pointer_cast<RelationalDBProperties>(ptr)->GetDistributedTableMode();
-    EXPECT_EQ(mode, DistributedTableMode::COLLABORATION);
+    schema = "{" + schemaOtherField + DISTRIBUTED_INVALID_NAN_VERSION + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    /**
+     * @tc.steps: step4. call ParseFromSchemaString with a normal version
+     * @tc.expected: step4. return E_OK.
+     */
+    schema = "{" + schemaOtherField + DISTRIBUTED_VALID_VERSION + "}";
+    errCode = schemaObj.ParseFromSchemaString(schema);
+    EXPECT_EQ(errCode, E_OK);
 }
+
+/**
+ * @tc.name: RelationalSchemaCompareTest001
+ * @tc.desc: Test relational schema negotiate with same schema string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest001, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
+    EXPECT_EQ(errCode, E_OK);
+
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+    EXPECT_EQ(opinion.at("FIRST").permitSync, true);
+    EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
+    EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
+}
+
+/**
+ * @tc.name: RelationalSchemaCompareTest002
+ * @tc.desc: Test relational schema v2.1 negotiate with same schema string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest002, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
+    EXPECT_EQ(errCode, E_OK);
+
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+    EXPECT_EQ(opinion.at("FIRST").permitSync, true);
+    EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
+    EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
+}
+
+/**
+ * @tc.name: RelationalSchemaCompareTest003
+ * @tc.desc: Test relational schema v2.1 negotiate with schema v2.0
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest003, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
+    EXPECT_EQ(errCode, E_OK);
+
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+    EXPECT_TRUE(opinion.empty());
+}
+
+/**
+ * @tc.name: RelationalSchemaCompareTest004
+ * @tc.desc: Test relational schema v2.0 negotiate with schema v2.1
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest004, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
+    EXPECT_EQ(errCode, E_OK);
+
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+    EXPECT_TRUE(opinion.empty());
+}
+
+/**
+ * @tc.name: RelationalSchemaCompareTest005
+ * @tc.desc: Test collaboration relational schema negotiate with other table mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest005, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
+    EXPECT_EQ(errCode, E_OK);
+    schemaObj.SetTableMode(DistributedTableMode::COLLABORATION);
+
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+    EXPECT_TRUE(opinion.empty());
+}
+
+/**
+ * @tc.name: RelationalTableCompareTest001
+ * @tc.desc: Test relational schema negotiate with same schema string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalTableCompareTest001, TestSize.Level1)
+{
+    RelationalSchemaObject schemaObj;
+    int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
+    EXPECT_EQ(errCode, E_OK);
+    TableInfo table1 = schemaObj.GetTable("FIRST");
+    TableInfo table2 = schemaObj.GetTable("FIRST");
+    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_EQUAL);
+
+    table2.AddIndexDefine("indexname", {"field_name2", "field_name1"});
+    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_COMPATIBLE);
+
+    TableInfo table3 = schemaObj.GetTable("SECOND");
+    EXPECT_EQ(table1.CompareWithTable(table3), -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    TableInfo table4 = schemaObj.GetTable("FIRST");
+    table4.AddField(table3.GetFields().at("value"));
+    EXPECT_EQ(table1.CompareWithTable(table4), -E_RELATIONAL_TABLE_COMPATIBLE_UPGRADE);
+
+    TableInfo table5 = schemaObj.GetTable("FIRST");
+    table5.AddField(table3.GetFields().at("key"));
+    EXPECT_EQ(table1.CompareWithTable(table5), -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    TableInfo table6 = schemaObj.GetTable("FIRST");
+    table6.SetUniqueDefine({{"field_name1", "field_name1"}});
+    EXPECT_EQ(table1.CompareWithTable(table6, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    TableInfo table7 = schemaObj.GetTable("FIRST");
+    table7.SetAutoIncrement(false);
+    EXPECT_EQ(table1.CompareWithTable(table7, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+}
+
+/**
+ * @tc.name: RelationalSchemaOpinionTest001
+ * @tc.desc: Test relational schema sync opinion
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaOpinionTest001, TestSize.Level1)
+{
+    RelationalSyncOpinion opinion;
+    opinion["table_1"] = SyncOpinion {true, false, false};
+    opinion["table_2"] = SyncOpinion {false, true, false};
+    opinion["table_3"] = SyncOpinion {false, false, true};
+
+    uint32_t len = SchemaNegotiate::CalculateParcelLen(opinion);
+    std::vector<uint8_t> buff(len, 0);
+    Parcel writeParcel(buff.data(), len);
+    int errCode = SchemaNegotiate::SerializeData(opinion, writeParcel);
+    EXPECT_EQ(errCode, E_OK);
+
+    Parcel readParcel(buff.data(), len);
+    RelationalSyncOpinion opinionRecv;
+    errCode = SchemaNegotiate::DeserializeData(readParcel, opinionRecv);
+    EXPECT_EQ(errCode, E_OK);
+
+    EXPECT_EQ(opinion.size(), opinionRecv.size());
+    for (const auto &it : opinion) {
+        SyncOpinion tableOpinionRecv = opinionRecv.at(it.first);
+        EXPECT_EQ(it.second.permitSync, tableOpinionRecv.permitSync);
+        EXPECT_EQ(it.second.requirePeerConvert, tableOpinionRecv.requirePeerConvert);
+    }
+}
+
+/**
+ * @tc.name: RelationalSchemaNegotiateTest001
+ * @tc.desc: Test relational schema negotiate
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaNegotiateTest001, TestSize.Level1)
+{
+    RelationalSyncOpinion localOpinion;
+    localOpinion["table_1"] = SyncOpinion {true, false, false};
+    localOpinion["table_2"] = SyncOpinion {false, true, false};
+    localOpinion["table_3"] = SyncOpinion {false, false, true};
+
+    RelationalSyncOpinion remoteOpinion;
+    remoteOpinion["table_2"] = SyncOpinion {true, false, false};
+    remoteOpinion["table_3"] = SyncOpinion {false, true, false};
+    remoteOpinion["table_4"] = SyncOpinion {false, false, true};
+    RelationalSyncStrategy strategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion, remoteOpinion);
+
+    EXPECT_EQ(strategy.size(), 2u);
+    EXPECT_EQ(strategy.at("table_2").permitSync, true);
+    EXPECT_EQ(strategy.at("table_3").permitSync, false);
+}
+
+/**
+ * @tc.name: TableCompareTest001
+ * @tc.desc: Test table compare
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest001, TestSize.Level1)
+{
+    FieldInfo field1;
+    field1.SetFieldName("a");
+    FieldInfo field2;
+    field2.SetFieldName("b");
+    FieldInfo field3;
+    field3.SetFieldName("c");
+    FieldInfo field4;
+    field4.SetFieldName("d");
+
+    TableInfo table;
+    table.AddField(field2);
+    table.AddField(field3);
+
+    TableInfo inTable1;
+    inTable1.AddField(field1);
+    inTable1.AddField(field2);
+    inTable1.AddField(field3);
+    EXPECT_EQ(table.CompareWithTable(inTable1), -E_RELATIONAL_TABLE_COMPATIBLE_UPGRADE);
+
+    TableInfo inTable2;
+    inTable2.AddField(field1);
+    inTable2.AddField(field2);
+    inTable2.AddField(field4);
+    EXPECT_EQ(table.CompareWithTable(inTable2), -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    TableInfo inTable3;
+    inTable3.AddField(field3);
+    inTable3.AddField(field2);
+    EXPECT_EQ(table.CompareWithTable(inTable3), -E_RELATIONAL_TABLE_EQUAL);
+}
+
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTest001, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string createStudentSql = "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT, score INT, level INT)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createStudentSql), SQLITE_OK);
+
+    TableInfo tableStudent;
+    EXPECT_EQ(SQLiteUtils::AnalysisSchema(db, "STUDENT", tableStudent), E_OK);
+
+    RelationalSchemaObject schema;
+    schema.AddRelationalTable(tableStudent);
+
+    EXPECT_FALSE(schema.GetTable("STUDENT").Empty());
+    EXPECT_FALSE(schema.GetTable("StudENT").Empty());
+    EXPECT_EQ(schema.GetTable("StudENT").CompareWithTable(schema.GetTable("STUDENT")), -E_RELATIONAL_TABLE_EQUAL);
+
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+namespace {
+TableInfo GetTableInfo(sqlite3 *db, const std::string &tableName, const std::string &sql)
+{
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    TableInfo tableInfo;
+    EXPECT_EQ(SQLiteUtils::AnalysisSchema(db, tableName, tableInfo), E_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS " + tableName), SQLITE_OK);
+    return tableInfo;
+}
+}
+
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTest002, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+
+    std::string createTableSql1 = "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT, score INT, level INT); " \
+        "create index index_name on student (name);";
+    TableInfo table1 = GetTableInfo(db, "student", createTableSql1);
+    std::string createTableSql2 = "CREATE TABLE Student(ID INTEGER PRIMARY KEY, Name TEXT, Score INT, Level INT); " \
+        "create index index_NAME on student (Name);";
+    TableInfo table2 = GetTableInfo(db, "Student", createTableSql2);
+
+    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_EQUAL);
+
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    db = nullptr;
+}
+
+namespace {
+int TableCompareTest(sqlite3 *db, const std::string &sql1, const std::string &sql2)
+{
+    RelationalTestUtils::ExecSql(db, sql1);
+    TableInfo table1;
+    SQLiteUtils::AnalysisSchema(db, "student", table1);
+    RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student");
+    RelationalTestUtils::ExecSql(db, sql2);
+    TableInfo table2;
+    SQLiteUtils::AnalysisSchema(db, "student", table2);
+    RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student");
+    return table1.CompareWithTable(table2);
+}
+
+/**
+ * @tc.name: TableCompareTest001
+ * @tc.desc: Test table compare with default value
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest002, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)"),
+        -E_RELATIONAL_TABLE_EQUAL);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'xue')"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'NULL')"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'null')"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'XUE')",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'xue')"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
+        -E_RELATIONAL_TABLE_EQUAL);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'NULL')",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'null')"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+    EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
+        "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')"),
+        -E_RELATIONAL_TABLE_EQUAL);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    db = nullptr;
+}
+} // namespace
+
+/**
+ * @tc.name: FieldInfoCompareTest
+ * @tc.desc: Test field info compare
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, FieldInfoCompareTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. call CompareWithField when storageType is different
+     * @tc.expected: step1. return false.
+     */
+    FieldInfo field1;
+    field1.SetStorageType(StorageType::STORAGE_TYPE_INTEGER);
+    FieldInfo field2;
+    EXPECT_EQ(field2.CompareWithField(field1, true), false);
+
+    /**
+     * @tc.steps: step2. call CompareWithField when fieldName is different
+     * @tc.expected: step2. return false.
+     */
+    field1.SetFieldName("test1");
+    field1.SetFieldName("test2");
+    EXPECT_EQ(field2.CompareWithField(field1, true), false);
+}
+
+/**
+ * @tc.name: TableInfoInterfacesTest
+ * @tc.desc: Test TableInfo Interfaces
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableInfoInterfacesTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. GetFieldName with empty TableInfo class
+     * @tc.expected: step1. return empty string.
+     */
+    TableInfo table1;
+    std::string str1 = table1.GetFieldName(0);
+    const std::string expectStr1 = "";
+    EXPECT_TRUE(str1.compare(0, expectStr1.length(), expectStr1) == 0);
+    table1.ToTableInfoString("");
+
+    /**
+     * @tc.steps: step2. Set and get tableId.
+     * @tc.expected: step2. success.
+     */
+    int inputId = 1;
+    table1.SetTableId(inputId);
+    int outputId = table1.GetTableId();
+    EXPECT_EQ(outputId, inputId);
+}
+
+/**
+ * @tc.name: SchemaTableCompareTest
+ * @tc.desc: Test LiteSchemaTable Compare
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyue
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, SchemaTableCompareTest, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set key index of SetPrimaryKey to an invalid value
+     * @tc.expected: step1. fieldName vector is null.
+     */
+    TableInfo table1;
+    int keyIndex = -1;
+    table1.SetPrimaryKey("test", keyIndex);
+    CompositeFields vec = table1.GetIdentifyKey();
+    uint32_t expectedVal = 0;
+    EXPECT_EQ(vec.size(), expectedVal);
+
+    /**
+     * @tc.steps: step2. Compare table when fieldName of SetPrimaryKey is set to'rowid'
+     * @tc.expected: step2. compare return -E_RELATIONAL_TABLE_INCOMPATIBLE.
+     */
+    const std::vector<CompositeFields> uniqueDefine = {{"test0", "test1"}};
+    table1.SetUniqueDefine(uniqueDefine);
+    const std::map<int, FieldName> keyName1 = {{0, "rowid"}};
+    table1.SetPrimaryKey(keyName1);
+
+    vec = table1.GetIdentifyKey();
+    EXPECT_EQ(vec.size(), uniqueDefine[0].size());
+    int ret = table1.CompareWithLiteSchemaTable(table1);
+    EXPECT_EQ(ret, -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step3. Compare table when fieldName of SetPrimaryKey is not set to "rowid".
+     * @tc.expected: step3. compare return E_OK.
+     */
+    FieldInfo field1;
+    table1.AddField(field1);
+    const std::map<int, FieldName> keyName2 = {{0, "test0"}, {1, "test1"}};
+    table1.SetPrimaryKey(keyName2);
+
+    vec = table1.GetIdentifyKey();
+    EXPECT_EQ(vec.size(), keyName2.size());
+    field1.SetFieldName("test1");
+    ret = table1.CompareWithLiteSchemaTable(table1);
+    EXPECT_EQ(ret, E_OK);
+}
+#endif
