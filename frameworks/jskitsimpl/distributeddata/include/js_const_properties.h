@@ -41,1162 +41,1555 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
  * limitations under the License.
  */
 
-#ifndef OMIT_JSON
-#include <gtest/gtest.h>
-#include <cmath>
-
-#include "db_errno.h"
 #include "distributeddb_tools_unit_test.h"
-#include "log_print.h"
-#include "schema_constant.h"
-#include "schema_object.h"
-#include "schema_utils.h"
 
-using namespace std;
-using namespace testing::ext;
+#include <codecvt>
+#include <cstdio>
+#include <cstring>
+#include <dirent.h>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <locale>
+#include <openssl/rand.h>
+#include <random>
+#include <set>
+#include <sys/types.h>
+
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_sync_utils_test.h"
+#include "cloud/cloud_db_types.h"
+#include "cloud/virtual_cloud_data_translate.h"
+#include "db_common.h"
+#include "db_constant.h"
+#include "generic_single_ver_kv_entry.h"
+#include "get_query_info.h"
+#include "platform_specific.h"
+#include "res_finalizer.h"
+#include "runtime_config.h"
+#include "single_ver_data_packet.h"
+#include "sqlite_relational_utils.h"
+#include "store_observer.h"
+#include "time_helper.h"
+#include "value_hash_calc.h"
+
 using namespace DistributedDB;
 
+namespace DistributedDBUnitTest {
 namespace {
-    const std::string VALID_SCHEMA_FULL_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\","
-            "\"field_name2\":{"
-                "\"field_name3\":\"INTEGER, NOT NULL\","
-                "\"field_name4\":\"LONG, DEFAULT 100\","
-                "\"field_name5\":\"DOUBLE, NOT NULL, DEFAULT 3.14\","
-                "\"field_name6\":\"STRING, NOT NULL, DEFAULT '3.1415'\","
-                "\"field_name7\":[],"
-                "\"field_name8\":{}"
-            "}"
-        "},"
-        "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name2.field_name6\"]}";
-    const std::string VALID_SCHEMA_INDEX_EMPTY = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "},"
-        "\"SCHEMA_INDEXES\":[]}";
-    const std::string VALID_SCHEMA_NO_INDEX = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "}}";
-    const std::string VALID_SCHEMA_PRE_SUF_BLANK = "{\"SCHEMA_VERSION\":\" 1.0\","
-        "\"SCHEMA_MODE\":\"STRICT  \","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"   BOOL    \""
-        "}}";
+    const std::string CREATE_LOCAL_TABLE_SQL =
+        "CREATE TABLE IF NOT EXISTS local_data(" \
+        "key BLOB PRIMARY KEY," \
+        "value BLOB," \
+        "timestamp INT," \
+        "hash_key BLOB);";
 
-    const std::string INVALID_SCHEMA_INVALID_JSON = "[\"$.field_name1\", \"$.field_name2.field_name6\"]";
-    const std::string INVALID_SCHEMA_LESS_META_FIELD = "{\"SCHEMA_VERSION\":\" 1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\"}";
-    const std::string INVALID_SCHEMA_MORE_META_FIELD = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "},"
-        "\"SCHEMA_UNDEFINE_META_FIELD\":[]}";
-    const std::string INVALID_SCHEMA_WRONG_VERSION = "{\"SCHEMA_VERSION\":\"1.1\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "}}";
-    const std::string INVALID_SCHEMA_WRONG_MODE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"WRONG_MODE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "}}";
+    const std::string CREATE_META_TABLE_SQL =
+        "CREATE TABLE IF NOT EXISTS meta_data("  \
+        "key    BLOB PRIMARY KEY  NOT NULL," \
+        "value  BLOB);";
 
-    const std::string INVALID_SCHEMA_DEFINE_EMPTY = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{}}";
-    const std::string INVALID_SCHEMA_DEFINE_NEST_TOO_DEEP = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":{"
-                "\"field_name2\":{"
-                    "\"field_name3\":{"
-                        "\"field_name4\":{"
-                            "\"field_name5\":{"
-        "}}}}}}}";
-    const std::string INVALID_SCHEMA_DEFINE_INVALID_FIELD_NAME = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"12345\":\"BOOL\""
-        "}}";
-    const std::string INVALID_SCHEMA_DEFINE_INVALID_FIELD_ATTR = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL, DEFAULT null\""
-        "}}";
-    const std::string INVALID_SCHEMA_DEFINE_INVALID_ARRAY_TYPE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":[3.14]"
-        "}}";
+    const std::string CREATE_SYNC_TABLE_SQL =
+        "CREATE TABLE IF NOT EXISTS sync_data(" \
+        "key         BLOB NOT NULL," \
+        "value       BLOB," \
+        "timestamp   INT  NOT NULL," \
+        "flag        INT  NOT NULL," \
+        "device      BLOB," \
+        "ori_device  BLOB," \
+        "hash_key    BLOB PRIMARY KEY NOT NULL," \
+        "w_timestamp INT);";
 
-    const std::string INVALID_SCHEMA_INDEX_INVALID = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "},"
-        "\"SCHEMA_INDEXES\":[true, false]}";
-    const std::string INVALID_SCHEMA_INDEX_PATH_INVALID = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "},"
-        "\"SCHEMA_INDEXES\":[\".field_name1\"]}";
-    const std::string INVALID_SCHEMA_INDEX_PATH_NOT_EXIST = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "},"
-        "\"SCHEMA_INDEXES\":[\"$.field_name2\"]}";
-    const std::string INVALID_SCHEMA_INDEX_PATH_NOT_INDEXABLE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":[]"
-        "},"
-        "\"SCHEMA_INDEXES\":[\"$.field_name1\"]}";
-    const std::string INVALID_SCHEMA_INDEX_PATH_DUPLICATE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\""
-        "},"
-        "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name1\"]}";
+    const std::string CREATE_SYNC_TABLE_INDEX_SQL =
+        "CREATE INDEX IF NOT EXISTS key_index ON sync_data (key);";
 
-    const std::string SCHEMA_COMPARE_BASELINE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_MORE_FIELD = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_more1\":\"LONG\","
-                "\"field_name5\":{"
-                    "\"field_more2\":\"DOUBLE\""
-        "}}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_MORE_FIELD_NOTNULL_FORBID = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_more1\":\"LONG\","
-                "\"field_name5\":{"
-                    "\"field_more2\":\"DOUBLE, NOT NULL\""
-        "}}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_MORE_FIELD_NOTNULL_PERMIT = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_more1\":\"LONG, NOT NULL, DEFAULT 88\","
-                "\"field_name5\":{"
-                    "\"field_more2\":\"DOUBLE\""
-        "}}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_LESS_FIELD = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_INDEX_MORE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\", [\"field_name2\", \"field_name3.field_name4\"]]}";
-    const std::string SCHEMA_INDEX_LESS = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[]}";
-    const std::string SCHEMA_INDEX_CHANGE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\", [\"field_name2\", \"field_name1\", \"field_name3.field_name4\"]]}";
-    const std::string SCHEMA_DEFINE_MORE_FIELD_MORE_INDEX = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{"
-                    "\"field_more1\":\"DOUBLE\""
-        "}}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\", [\"field_name2\", \"field_name3.field_name4\"]]}";
-    const std::string SCHEMA_SKIPSIZE_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_SKIPSIZE\":1,"
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_TYPE_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"DOUBLE\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_NOTNULL_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 100\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
-    const std::string SCHEMA_DEFINE_DEFAULT_DIFFER = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"field_name1\":\"BOOL, NOT NULL\","
-            "\"field_name2\":\"INTEGER, DEFAULT 88\","
-            "\"field_name3\":{"
-                "\"field_name4\":\"STRING\","
-                "\"field_name5\":{}"
-        "}},"
-        "\"SCHEMA_INDEXES\":[\"field_name1\"]}";
+    const std::string CREATE_TABLE_SQL =
+        "CREATE TABLE IF NOT EXISTS version_data(key BLOB, value BLOB, oper_flag INTEGER, version INTEGER, " \
+        "timestamp INTEGER, ori_timestamp INTEGER, hash_key BLOB, " \
+        "PRIMARY key(hash_key, version));";
 
-    // Compare with VALID_SCHEMA_FULL_DEFINE
-    const std::string VALUE_LESS_FIELD = "{\"field_name1\":true,"
-        "\"field_name2\":{"
-            "\"field_name3\":100,"
-            "\"field_name8\":{"
-                "\"field_name9\":200"
-            "}"
-        "}}";
-    const std::string VALUE_MORE_FIELD = "{\"field_name1\":true,"
-        "\"field_name2\":{"
-            "\"field_name3\":100,"
-            "\"field_name4\":8589934592,"
-            "\"field_name5\":3.14,"
-            "\"field_name6\":\"3.1415926\","
-            "\"field_name7\":[true,1,\"inArray\"],"
-            "\"field_name8\":{"
-                "\"field_name9\":200"
-            "},"
-            "\"field_name10\":300"
-        "}}";
-    const std::string VALUE_TYPE_MISMATCH = "{\"field_name1\":true,"
-        "\"field_name2\":{"
-            "\"field_name3\":8589934592,"
-            "\"field_name4\":100,"
-            "\"field_name5\":3.14,"
-            "\"field_name6\":\"3.1415926\","
-            "\"field_name7\":[true,1,\"inArray\"],"
-            "\"field_name8\":{"
-                "\"field_name9\":200"
-            "}"
-        "}}";
-    const std::string VALUE_NOT_NULL_VIOLATION = "{\"field_name1\":true,"
-        "\"field_name2\":{"
-            "\"field_name3\":null,"
-            "\"field_name4\":8589934592,"
-            "\"field_name5\":3.14,"
-            "\"field_name6\":\"3.1415926\","
-            "\"field_name7\":[true,1,\"inArray\"],"
-            "\"field_name8\":{"
-                "\"field_name9\":200"
-            "}"
-        "}}";
-    const std::string VALUE_MATCH_STRICT_SCHEMA = "{\"field_name1\":true,"
-        "\"field_name2\":{"
-            "\"field_name3\":100,"
-            "\"field_name4\":8589934592,"
-            "\"field_name5\":3.14,"
-            "\"field_name6\":\"3.1415926\","
-            "\"field_name7\":[true,1,\"inArray\"],"
-            "\"field_name8\":{"
-                "\"field_name9\":200"
-            "}"
-        "}}";
+    const std::string CREATE_SQL =
+        "CREATE TABLE IF NOT EXISTS data(key BLOB PRIMARY key, value BLOB);";
 
-    // For test lacking field.
-    const std::string SCHEMA_FOR_TEST_NOTNULL_AND_DEFAULT = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"COMPATIBLE\","
-        "\"SCHEMA_DEFINE\":{"
-            "\"no_notnull_no_default\":\"BOOL\","
-            "\"level_0_nest_0\":{"
-                "\"has_notnull_no_default\":\"INTEGER, NOT NULL\","
-                "\"level_1_nest_0\":{"
-                    "\"no_notnull_has_default\":\"LONG, DEFAULT 100\","
-                    "\"has_notnull_has_default\":\"DOUBLE, NOT NULL, DEFAULT 3.14\","
-                    "\"level_2_nest_0\":{"
-                        "\"extra_0\":\"STRING, NOT NULL, DEFAULT '3.1415'\","
-                        "\"extra_1\":\"DOUBLE\","
-                        "\"extra_2\":[]"
-                    "},"
-                    "\"level_2_nest_1\":{"
-                        "\"extra_3\":\"STRING\","
-                        "\"extra_4\":{}"
-                    "}"
-                "}"
-            "}"
-        "}}";
-    const std::string VALUE_NO_LACK_FIELD = "{"
-        "\"no_notnull_no_default\":true,"
-        "\"level_0_nest_0\":{"
-            "\"has_notnull_no_default\":10010,"
-            "\"level_1_nest_0\":{"
-                "\"no_notnull_has_default\":10086,"
-                "\"has_notnull_has_default\":1.38064,"
-                "\"level_2_nest_0\":{"
-                    "\"extra_0\":\"BLOOM\","
-                    "\"extra_1\":2.71828,"
-                    "\"extra_2\":[]"
-                "},"
-                "\"level_2_nest_1\":{"
-                    "\"extra_3\":\"Prejudice\","
-                    "\"extra_4\":{}"
-                "}"
-            "}"
-        "}}";
-    const std::string VALUE_LACK_LEVEL_0_NEST_0 = "{\"no_notnull_no_default\":true}";
-    const std::string VALUE_LEVEL_0_NEST_0_NOT_OBJECT = "{\"no_notnull_no_default\":true,\"level_0_nest_0\":1}";
-    const std::string VALUE_LACK_LEVEL_1_NEST_0 = "{"
-        "\"no_notnull_no_default\":true,"
-        "\"level_0_nest_0\":{"
-            "\"has_notnull_no_default\":10010"
-        "}}";
-
-std::string SchemaSwitchMode(const std::string &oriSchemaStr)
-{
-    std::string resultSchemaStr = oriSchemaStr;
-    auto iterForStrict = std::search(resultSchemaStr.begin(), resultSchemaStr.end(),
-        SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
-    auto iterForCompatible = std::search(resultSchemaStr.begin(), resultSchemaStr.end(),
-        SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
-    if (iterForStrict != resultSchemaStr.end()) {
-        resultSchemaStr.replace(iterForStrict, iterForStrict + SchemaConstant::KEYWORD_MODE_STRICT.size(),
-            SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
-        return resultSchemaStr;
+    bool CompareEntry(const DistributedDB::Entry &a, const DistributedDB::Entry &b)
+    {
+        return (a.key < b.key);
     }
-    if (iterForCompatible != resultSchemaStr.end()) {
-        resultSchemaStr.replace(iterForCompatible, iterForCompatible + SchemaConstant::KEYWORD_MODE_COMPATIBLE.size(),
-            SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
-        return resultSchemaStr;
+}
+
+// OpenDbProperties.uri do not need
+int DistributedDBToolsUnitTest::CreateMockSingleDb(DatabaseInfo &dbInfo, OpenDbProperties &properties)
+{
+    std::string identifier = dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId;
+    std::string hashIdentifier = DBCommon::TransferHashString(identifier);
+    std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
+
+    if (OS::GetRealPath(dbInfo.dir, properties.uri) != E_OK) {
+        LOGE("Failed to canonicalize the path.");
+        return -E_INVALID_ARGS;
     }
-    return oriSchemaStr;
-}
+
+    int errCode = DBCommon::CreateStoreDirectory(dbInfo.dir, identifierName, DBConstant::SINGLE_SUB_DIR, true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    properties.uri = dbInfo.dir + "/" + identifierName + "/" +
+        DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+    if (properties.sqls.empty()) {
+        std::vector<std::string> defaultCreateTableSqls = {
+            CREATE_LOCAL_TABLE_SQL,
+            CREATE_META_TABLE_SQL,
+            CREATE_SYNC_TABLE_SQL,
+            CREATE_SYNC_TABLE_INDEX_SQL
+        };
+        properties.sqls = defaultCreateTableSqls;
+    }
+
+    sqlite3 *db = nullptr;
+    errCode = SQLiteUtils::OpenDatabase(properties, db);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::SetUserVer(properties, dbInfo.dbUserVersion);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    (void)sqlite3_close_v2(db);
+    db = nullptr;
+    return errCode;
 }
 
-class DistributedDBSchemaObjectTest : public testing::Test {
-public:
-    static void SetUpTestCase(void) {};
-    static void TearDownTestCase(void) {};
-    void SetUp() override;
-    void TearDown() override {};
-};
-
-void DistributedDBSchemaObjectTest::SetUp()
+static int CreatMockMultiDb(OpenDbProperties &properties, DatabaseInfo &dbInfo)
 {
-    DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
+    sqlite3 *db = nullptr;
+    (void)SQLiteUtils::OpenDatabase(properties, db);
+    int errCode = SQLiteUtils::SetUserVer(properties, dbInfo.dbUserVersion);
+    (void)sqlite3_close_v2(db);
+    db = nullptr;
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return errCode;
 }
 
-/**
- * @tc.name: Parse Valid Schema 001
- * @tc.desc: Parse Valid Schema
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ParseValidSchema001, TestSize.Level1)
+int DistributedDBToolsUnitTest::OpenMockMultiDb(DatabaseInfo &dbInfo, OpenDbProperties &properties)
 {
-    /**
-     * @tc.steps: step1. Parse valid schema with full define
-     * @tc.expected: step1. Parse Success.
-     */
-    SchemaObject schema1;
-    int stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_TRUE(stepOne == E_OK);
+    std::string identifier = dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId;
+    std::string hashIdentifier = DBCommon::TransferHashString(identifier);
+    std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
 
-    /**
-     * @tc.steps: step2. Parse valid schema with empty index
-     * @tc.expected: step2. Parse Success.
-     */
-    SchemaObject schema2;
-    int stepTwo = schema2.ParseFromSchemaString(VALID_SCHEMA_INDEX_EMPTY);
-    EXPECT_TRUE(stepTwo == E_OK);
+    OpenDbProperties commitProperties = properties;
+    commitProperties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
+        "/commit_logs" + DBConstant::DB_EXTENSION;
 
-    /**
-     * @tc.steps: step3. Parse valid schema with no index field
-     * @tc.expected: step3. Parse Success.
-     */
-    SchemaObject schema3;
-    int stepThree = schema3.ParseFromSchemaString(VALID_SCHEMA_NO_INDEX);
-    EXPECT_TRUE(stepThree == E_OK);
+    commitProperties.sqls = {CREATE_SQL};
 
-    /**
-     * @tc.steps: step4. Parse valid schema with prefix of suffix blank
-     * @tc.expected: step4. Parse Success.
-     */
-    SchemaObject schema4;
-    int stepFour = schema4.ParseFromSchemaString(VALID_SCHEMA_PRE_SUF_BLANK);
-    EXPECT_TRUE(stepFour == E_OK);
+    OpenDbProperties kvStorageProperties = commitProperties;
+    kvStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
+        DBConstant::MULTI_SUB_DIR + "/value_storage" + DBConstant::DB_EXTENSION;
+    OpenDbProperties metaStorageProperties = commitProperties;
+    metaStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
+        DBConstant::MULTI_SUB_DIR + "/meta_storage" + DBConstant::DB_EXTENSION;
+
+    // test code, Don't needpay too much attention to exception handling
+    int errCode = CreatMockMultiDb(properties, dbInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    errCode = CreatMockMultiDb(kvStorageProperties, dbInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    errCode = CreatMockMultiDb(metaStorageProperties, dbInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    return errCode;
 }
 
-/**
- * @tc.name: Parse Invalid Schema 001
- * @tc.desc: Parse Invalid Schema
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema001, TestSize.Level1)
+// OpenDbProperties.uri do not need
+int DistributedDBToolsUnitTest::CreateMockMultiDb(DatabaseInfo &dbInfo, OpenDbProperties &properties)
 {
-    /**
-     * @tc.steps: step1. Parse invalid schema which is not valid json
-     * @tc.expected: step1. Parse Fail.
-     */
-    SchemaObject schema1;
-    int stepOne = schema1.ParseFromSchemaString(INVALID_SCHEMA_INVALID_JSON);
-    EXPECT_TRUE(stepOne != E_OK);
+    std::string identifier = dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId;
+    std::string hashIdentifier = DBCommon::TransferHashString(identifier);
+    std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
 
-    /**
-     * @tc.steps: step2. Parse invalid schema with less field in depth 0
-     * @tc.expected: step2. Parse Fail.
-     */
-    SchemaObject schema2;
-    int stepTwo = schema2.ParseFromSchemaString(INVALID_SCHEMA_LESS_META_FIELD);
-    EXPECT_TRUE(stepTwo != E_OK);
+    if (OS::GetRealPath(dbInfo.dir, properties.uri) != E_OK) {
+        LOGE("Failed to canonicalize the path.");
+        return -E_INVALID_ARGS;
+    }
 
-    /**
-     * @tc.steps: step3. Parse invalid schema with more field in depth 0
-     * @tc.expected: step3. Parse Fail.
-     */
-    SchemaObject schema3;
-    int stepThree = schema3.ParseFromSchemaString(INVALID_SCHEMA_MORE_META_FIELD);
-    EXPECT_TRUE(stepThree != E_OK);
+    int errCode = DBCommon::CreateStoreDirectory(dbInfo.dir, identifierName, DBConstant::MULTI_SUB_DIR, true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
 
-    /**
-     * @tc.steps: step4. Parse invalid schema with wrong version
-     * @tc.expected: step4. Parse Fail.
-     */
-    SchemaObject schema4;
-    int stepFour = schema4.ParseFromSchemaString(INVALID_SCHEMA_WRONG_VERSION);
-    EXPECT_TRUE(stepFour != E_OK);
+    properties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
+        "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
 
-    /**
-     * @tc.steps: step5. Parse invalid schema with wrong mode
-     * @tc.expected: step5. Parse Fail.
-     */
-    SchemaObject schema5;
-    int stepFive = schema5.ParseFromSchemaString(INVALID_SCHEMA_WRONG_MODE);
-    EXPECT_TRUE(stepFive != E_OK);
+    if (properties.sqls.empty()) {
+        properties.sqls = {CREATE_TABLE_SQL};
+    }
+
+    OpenMockMultiDb(dbInfo, properties);
+
+    return errCode;
 }
 
-/**
- * @tc.name: Parse Invalid Schema 002
- * @tc.desc: Parse Invalid Schema
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema002, TestSize.Level1)
+int DistributedDBToolsUnitTest::GetResourceDir(std::string& dir)
 {
-    /**
-     * @tc.steps: step1. Parse invalid schema which is empty define
-     * @tc.expected: step1. Parse Fail.
-     */
-    SchemaObject schema1;
-    int stepOne = schema1.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_EMPTY);
-    EXPECT_TRUE(stepOne != E_OK);
-
-    /**
-     * @tc.steps: step2. Parse invalid schema with define nest too deep
-     * @tc.expected: step2. Parse Fail.
-     */
-    SchemaObject schema2;
-    int stepTwo = schema2.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_NEST_TOO_DEEP);
-    EXPECT_TRUE(stepTwo != E_OK);
-
-    /**
-     * @tc.steps: step3. Parse invalid schema with invalid fieldname in define
-     * @tc.expected: step3. Parse Fail.
-     */
-    SchemaObject schema3;
-    int stepThree = schema3.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_INVALID_FIELD_NAME);
-    EXPECT_TRUE(stepThree != E_OK);
-
-    /**
-     * @tc.steps: step4. Parse invalid schema with invalid field attribute in define
-     * @tc.expected: step4. Parse Fail.
-     */
-    SchemaObject schema4;
-    int stepFour = schema4.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_INVALID_FIELD_ATTR);
-    EXPECT_TRUE(stepFour != E_OK);
-
-    /**
-     * @tc.steps: step5. Parse invalid schema with not empty array in define
-     * @tc.expected: step5. Parse Fail.
-     */
-    SchemaObject schema5;
-    int stepFive = schema5.ParseFromSchemaString(INVALID_SCHEMA_DEFINE_INVALID_ARRAY_TYPE);
-    EXPECT_TRUE(stepFive != E_OK);
+    int errCode = GetCurrentDir(dir);
+    if (errCode != E_OK) {
+        return -E_INVALID_PATH;
+    }
+#ifdef DB_DEBUG_ENV
+    dir = dir + "/resource/";
+#endif
+    return E_OK;
 }
 
-/**
- * @tc.name: Parse Invalid Schema 003
- * @tc.desc: Parse Invalid Schema
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ParseInvalidSchema003, TestSize.Level1)
+#ifndef OMIT_MULTI_VER
+void DistributedDBToolsUnitTest::KvStoreDelegateCallback(
+    DBStatus statusSrc, KvStoreDelegate *kvStoreSrc, DBStatus &statusDst, KvStoreDelegate *&kvStoreDst)
 {
-    /**
-     * @tc.steps: step1. Parse invalid schema with invalid array content
-     * @tc.expected: step1. Parse Fail.
-     */
-    SchemaObject schema1;
-    int stepOne = schema1.ParseFromSchemaString(INVALID_SCHEMA_INDEX_INVALID);
-    EXPECT_TRUE(stepOne != E_OK);
-
-    /**
-     * @tc.steps: step2. Parse invalid schema with invalid path
-     * @tc.expected: step2. Parse Fail.
-     */
-    SchemaObject schema2;
-    int stepTwo = schema2.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_INVALID);
-    EXPECT_TRUE(stepTwo != E_OK);
-
-    /**
-     * @tc.steps: step3. Parse invalid schema with path not exist
-     * @tc.expected: step3. Parse Fail.
-     */
-    SchemaObject schema3;
-    int stepThree = schema3.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_NOT_EXIST);
-    EXPECT_TRUE(stepThree != E_OK);
-
-    /**
-     * @tc.steps: step4. Parse invalid schema with path not indexable
-     * @tc.expected: step4. Parse Fail.
-     */
-    SchemaObject schema4;
-    int stepFour = schema4.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_NOT_INDEXABLE);
-    EXPECT_TRUE(stepFour != E_OK);
-
-    /**
-     * @tc.steps: step5. Parse invalid schema with duplicate
-     * @tc.expected: step5. Parse Fail.
-     */
-    SchemaObject schema5;
-    int stepFive = schema5.ParseFromSchemaString(INVALID_SCHEMA_INDEX_PATH_DUPLICATE);
-    EXPECT_TRUE(stepFive != E_OK);
+    statusDst = statusSrc;
+    kvStoreDst = kvStoreSrc;
 }
 
-/**
- * @tc.name: Compare Equal Exactly 001
- * @tc.desc: Compare Equal Exactly
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, CompareEqualExactly001, TestSize.Level1)
+void DistributedDBToolsUnitTest::SnapshotDelegateCallback(
+    DBStatus statusSrc, KvStoreSnapshotDelegate* snapshot, DBStatus &statusDst, KvStoreSnapshotDelegate *&snapshotDst)
 {
-    SchemaObject schemaOri;
-    int errCode = schemaOri.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step1. Compare two same schema with full define
-     * @tc.expected: step1. Equal exactly.
-     */
-    int stepOne = schemaOri.CompareAgainstSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_TRUE(stepOne == -E_SCHEMA_EQUAL_EXACTLY);
-}
-
-/**
- * @tc.name: Compare Unequal Compatible 001
- * @tc.desc: Compare Unequal Compatible
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatible001, TestSize.Level1)
-{
-    SchemaObject compatibleSchema;
-    int errCode = compatibleSchema.ParseFromSchemaString(SCHEMA_COMPARE_BASELINE);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step1. new schema index more
-     * @tc.expected: step1. E_SCHEMA_UNEQUAL_COMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_INDEX_MORE);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE);
-
-    /**
-     * @tc.steps: step2. new schema index less
-     * @tc.expected: step2. E_SCHEMA_UNEQUAL_COMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_INDEX_LESS);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE);
-
-    /**
-     * @tc.steps: step3. new schema index change
-     * @tc.expected: step3. E_SCHEMA_UNEQUAL_COMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_INDEX_CHANGE);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE);
-}
-
-/**
- * @tc.name: Compare Unequal Compatible Upgrade 001
- * @tc.desc: Compare Unequal Compatible Upgrade
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalCompatibleUpgrade001, TestSize.Level1)
-{
-    SchemaObject compatibleSchema;
-    int errCode = compatibleSchema.ParseFromSchemaString(SCHEMA_COMPARE_BASELINE);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step1. compatible new schema more field define
-     * @tc.expected: step1. E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE);
-
-    /**
-     * @tc.steps: step2. compatible new schema more field with not null and default
-     * @tc.expected: step2. E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD_NOTNULL_PERMIT);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE);
-
-    /**
-     * @tc.steps: step3. compatible new schema more field and more index
-     * @tc.expected: step3. E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD_MORE_INDEX);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_COMPATIBLE_UPGRADE);
-}
-
-/**
- * @tc.name: Compare Unequal Incompatible 001
- * @tc.desc: Compare Unequal Incompatible
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, CompareUnequalIncompatible001, TestSize.Level1)
-{
-    SchemaObject strictSchema;
-    int errCode = strictSchema.ParseFromSchemaString(SchemaSwitchMode(SCHEMA_COMPARE_BASELINE));
-    EXPECT_EQ(errCode, E_OK);
-    SchemaObject compatibleSchema;
-    errCode = compatibleSchema.ParseFromSchemaString(SCHEMA_COMPARE_BASELINE);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step1. strict new schema more field define
-     * @tc.expected: step1. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = strictSchema.CompareAgainstSchemaString(SchemaSwitchMode(SCHEMA_DEFINE_MORE_FIELD));
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step2. compatible new schema more field but not null
-     * @tc.expected: step2. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_MORE_FIELD_NOTNULL_FORBID);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step3. new schema less field
-     * @tc.expected: step3. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_LESS_FIELD);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-    errCode = strictSchema.CompareAgainstSchemaString(SchemaSwitchMode(SCHEMA_DEFINE_LESS_FIELD));
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step4. new schema skipsize differ
-     * @tc.expected: step4. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_SKIPSIZE_DIFFER);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step5. new schema type differ
-     * @tc.expected: step5. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_TYPE_DIFFER);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step6. new schema notnull differ
-     * @tc.expected: step6. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_NOTNULL_DIFFER);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step7. new schema default differ
-     * @tc.expected: step7. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SCHEMA_DEFINE_DEFAULT_DIFFER);
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-
-    /**
-     * @tc.steps: step8. new schema mode differ
-     * @tc.expected: step8. E_SCHEMA_UNEQUAL_INCOMPATIBLE.
-     */
-    errCode = compatibleSchema.CompareAgainstSchemaString(SchemaSwitchMode(SCHEMA_COMPARE_BASELINE));
-    EXPECT_EQ(errCode, -E_SCHEMA_UNEQUAL_INCOMPATIBLE);
-}
-
-/**
- * @tc.name: Check Value 001
- * @tc.desc: Check value both in strict and compatible mode
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, CheckValue001, TestSize.Level1)
-{
-    SchemaObject schemaStrict;
-    int errCode = schemaStrict.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step1. value has less field in strict mode
-     * @tc.expected: step1. E_VALUE_MATCH_AMENDED.
-     */
-    ValueObject value1;
-    errCode = value1.Parse(VALUE_LESS_FIELD);
-    EXPECT_TRUE(errCode == E_OK);
-    int stepOne = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value1);
-    EXPECT_TRUE(stepOne == -E_VALUE_MATCH_AMENDED);
-
-    /**
-     * @tc.steps: step2. value has more field in strict mode
-     * @tc.expected: step2. E_VALUE_MISMATCH_FEILD_COUNT.
-     */
-    ValueObject value2;
-    errCode = value2.Parse(VALUE_MORE_FIELD);
-    EXPECT_TRUE(errCode == E_OK);
-    int stepTwo = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value2);
-    EXPECT_TRUE(stepTwo == -E_VALUE_MISMATCH_FEILD_COUNT);
-
-    /**
-     * @tc.steps: step3. value type mismatch
-     * @tc.expected: step3. E_VALUE_MISMATCH_FEILD_TYPE.
-     */
-    ValueObject value3;
-    errCode = value3.Parse(VALUE_TYPE_MISMATCH);
-    EXPECT_TRUE(errCode == E_OK);
-    int stepThree = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value3);
-    EXPECT_TRUE(stepThree == -E_VALUE_MISMATCH_FEILD_TYPE);
-
-    /**
-     * @tc.steps: step4. value not null violation
-     * @tc.expected: step4. E_VALUE_MISMATCH_CONSTRAINT.
-     */
-    ValueObject value4;
-    errCode = value4.Parse(VALUE_NOT_NULL_VIOLATION);
-    EXPECT_TRUE(errCode == E_OK);
-    int stepFour = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value4);
-    EXPECT_TRUE(stepFour == -E_VALUE_MISMATCH_CONSTRAINT);
-
-    /**
-     * @tc.steps: step5. value exactly match strict mode
-     * @tc.expected: step5. E_VALUE_MATCH.
-     */
-    ValueObject value5;
-    errCode = value5.Parse(VALUE_MATCH_STRICT_SCHEMA);
-    EXPECT_TRUE(errCode == E_OK);
-    int stepFive = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value5);
-    EXPECT_TRUE(stepFive == -E_VALUE_MATCH);
-
-    /**
-     * @tc.steps: step6. value has more field in compatible mode
-     * @tc.expected: step6. E_VALUE_MATCH.
-     */
-    std::string compatibleSchemaString = SchemaSwitchMode(VALID_SCHEMA_FULL_DEFINE);
-    SchemaObject schemaCompatible;
-    errCode = schemaCompatible.ParseFromSchemaString(compatibleSchemaString);
-    EXPECT_TRUE(errCode == E_OK);
-
-    ValueObject value6;
-    std::vector<uint8_t> moreFieldValueVector(VALUE_MORE_FIELD.begin(), VALUE_MORE_FIELD.end());
-    errCode = value6.Parse(moreFieldValueVector);
-    EXPECT_TRUE(errCode == E_OK);
-    int stepSix = schemaCompatible.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value6);
-    EXPECT_TRUE(stepSix == -E_VALUE_MATCH);
-}
-
-/**
- * @tc.name: Check Value 002
- * @tc.desc: Check value that has offset
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, CheckValue002, TestSize.Level1)
-{
-    SchemaObject schemaStrict;
-    int errCode = schemaStrict.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step1. value has less field in strict mode
-     * @tc.expected: step1. E_VALUE_MATCH and data before offset not change.
-     */
-    std::string beforeOffset = "BOM_CONTENT:";
-    std::string strValue = beforeOffset + VALUE_MATCH_STRICT_SCHEMA;
-    vector<uint8_t> vecValue(strValue.begin(), strValue.end());
-
-    ValueObject value1;
-    errCode = value1.Parse(vecValue.data(), vecValue.data() + vecValue.size(), beforeOffset.size());
-    EXPECT_TRUE(errCode == E_OK);
-
-    int stepOne = schemaStrict.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, value1);
-    EXPECT_TRUE(stepOne == -E_VALUE_MATCH);
-
-    std::string valueToString = value1.ToString();
-    EXPECT_EQ(strValue.size(), valueToString.size());
-    std::string valueBeforeOffset = valueToString.substr(0, beforeOffset.size());
-    EXPECT_EQ(valueBeforeOffset, beforeOffset);
-}
-
-/**
- * @tc.name: Value Edit 001
- * @tc.desc: Edit the value in right way
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit001, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Insert value to ValueObject in different depth
-     * @tc.expected: step1. Check insert successful
-     */
-    ValueObject testObject;
-    FieldValue val;
-
-    val.stringValue = "stringValue";
-    int errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"}, FieldType::LEAF_FIELD_STRING, val);
-    EXPECT_TRUE(errCode == E_OK);
-    val.doubleValue = 1.1; // 1.1 for test
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F2"}, FieldType::LEAF_FIELD_DOUBLE, val);
-    EXPECT_TRUE(errCode == E_OK);
-    val.longValue = INT64_MAX;
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F2"}, FieldType::LEAF_FIELD_LONG, val);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F2"}, FieldType::LEAF_FIELD_OBJECT, val);
-    EXPECT_TRUE(errCode == E_OK);
-    val.integerValue = INT32_MIN;
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F2", "L3F3"}, FieldType::LEAF_FIELD_INTEGER, val);
-    EXPECT_TRUE(errCode == E_OK);
-    val.boolValue = true;
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F2", "L3F4"}, FieldType::LEAF_FIELD_BOOL, val);
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = testObject.InsertField(FieldPath{"L1F2"}, FieldType::LEAF_FIELD_NULL, val);
-    EXPECT_TRUE(errCode == E_OK);
-
-    /**
-     * @tc.steps: step2. Delete value in ValueObject
-     * @tc.expected: step2. Check delete successful
-     */
-    errCode = testObject.DeleteField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"});
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = testObject.DeleteField(FieldPath{"L1F1", "L2F1", "L3F1"});
-    EXPECT_TRUE(errCode == E_OK);
-    errCode = testObject.DeleteField(FieldPath{"L1F1"});
-    EXPECT_TRUE(errCode == E_OK);
-}
-
-/**
- * @tc.name: Value Edit 002
- * @tc.desc: Edit the value in wrong way
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ValueEdit002, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Insert value to ValueObject in different depth
-     * @tc.expected: step1. Check insert not successful
-     */
-    ValueObject testObject;
-    FieldValue val;
-
-    val.stringValue = "stringValue";
-    int errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1"}, FieldType::LEAF_FIELD_STRING, val);
-    EXPECT_TRUE(errCode == E_OK);
-    val.doubleValue = 1.1; // 1.1 for test
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1"}, FieldType::LEAF_FIELD_DOUBLE, val);
-    EXPECT_TRUE(errCode != E_OK);
-    val.longValue = INT64_MAX;
-    errCode = testObject.InsertField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"}, FieldType::LEAF_FIELD_LONG, val);
-    EXPECT_TRUE(errCode != E_OK);
-
-    /**
-     * @tc.steps: step2. Delete value in ValueObject
-     * @tc.expected: step2. Check delete not successful
-     */
-    errCode = testObject.DeleteField(FieldPath{"L1F1", "L2F1", "L3F1", "L4F1"});
-    EXPECT_TRUE(errCode != E_OK);
-}
-
-namespace {
-void CheckValueLackField(const SchemaObject &schema, const std::string &oriValue, const std::string &lackField,
-    int expectErrCode, ValueObject &externalValueObject)
-{
-    std::string valueStr = oriValue;
-    auto startIter = std::search(valueStr.begin(), valueStr.end(), lackField.begin(), lackField.end());
-    valueStr.erase(startIter, startIter + lackField.size());
-    int errCode = externalValueObject.Parse(valueStr);
-    EXPECT_EQ(errCode, E_OK);
-    errCode = schema.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, externalValueObject);
-    EXPECT_EQ(errCode, expectErrCode);
-}
-
-void CheckValueLackField(const SchemaObject &schema, const std::string &oriValue, const std::string &lackField,
-    int expectErrCode)
-{
-    ValueObject valueObj;
-    CheckValueLackField(schema, oriValue, lackField, expectErrCode, valueObj);
-}
-}
-
-/**
- * @tc.name: Value LackField 001
- * @tc.desc: check the value which lack field
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField001, TestSize.Level1)
-{
-    SchemaObject schema;
-    int errCode = schema.ParseFromSchemaString(SCHEMA_FOR_TEST_NOTNULL_AND_DEFAULT);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step1. check value lack no field
-     * @tc.expected: step1. E_VALUE_MATCH
-     */
-    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "", -E_VALUE_MATCH);
-
-    /**
-     * @tc.steps: step2. check value lack field on no_notnull_no_default
-     * @tc.expected: step2. E_VALUE_MATCH
-     */
-    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"no_notnull_no_default\":true,", -E_VALUE_MATCH);
-
-    /**
-     * @tc.steps: step3. check value lack field on has_notnull_no_default
-     * @tc.expected: step3. E_VALUE_MISMATCH_CONSTRAINT
-     */
-    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"has_notnull_no_default\":10010,",
-        -E_VALUE_MISMATCH_CONSTRAINT);
-
-    /**
-     * @tc.steps: step4. check value lack field on no_notnull_has_default
-     * @tc.expected: step4. E_VALUE_MATCH_AMENDED
-     */
-    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"no_notnull_has_default\":10086,",
-        -E_VALUE_MATCH_AMENDED);
-
-    /**
-     * @tc.steps: step5. check value lack field on has_notnull_has_default
-     * @tc.expected: step5. E_VALUE_MATCH_AMENDED
-     */
-    CheckValueLackField(schema, VALUE_NO_LACK_FIELD, "\"has_notnull_has_default\":1.38064,",
-        -E_VALUE_MATCH_AMENDED);
-
-    /**
-     * @tc.steps: step6. check value lack entire level_0_nest_0
-     * @tc.expected: step6. E_VALUE_MISMATCH_CONSTRAINT
-     */
-    CheckValueLackField(schema, VALUE_LACK_LEVEL_0_NEST_0, "", -E_VALUE_MISMATCH_CONSTRAINT);
-
-    /**
-     * @tc.steps: step7. check value level_0_nest_0 not json_object
-     * @tc.expected: step7. E_VALUE_MISMATCH_FEILD_TYPE
-     */
-    CheckValueLackField(schema, VALUE_LEVEL_0_NEST_0_NOT_OBJECT, "", -E_VALUE_MISMATCH_FEILD_TYPE);
-}
-
-/**
- * @tc.name: Value LackField 002
- * @tc.desc: check the value which lack field
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBSchemaObjectTest, ValueLackField002, TestSize.Level1)
-{
-    SchemaObject schema;
-    int errCode = schema.ParseFromSchemaString(SCHEMA_FOR_TEST_NOTNULL_AND_DEFAULT);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step1. check value lack entire level_1_nest_0
-     * @tc.expected: step1. E_VALUE_MATCH_AMENDED
-     */
-    ValueObject val;
-    CheckValueLackField(schema, VALUE_LACK_LEVEL_1_NEST_0, "", -E_VALUE_MATCH_AMENDED, val);
-    // Check Field Existence or not
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0"}), true);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "no_notnull_has_default"}), true);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "has_notnull_has_default"}), true);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0"}), true);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_0"}), true);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_1"}), false);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_2"}), false);
-    EXPECT_EQ(val.IsFieldPathExist(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_1"}), false);
-    // Check Field value
-    FieldValue theValue;
-    EXPECT_EQ(val.GetFieldValueByFieldPath(FieldPath{"level_0_nest_0", "level_1_nest_0", "no_notnull_has_default"},
-        theValue), E_OK);
-    EXPECT_EQ(theValue.integerValue, 100);
-    EXPECT_EQ(val.GetFieldValueByFieldPath(FieldPath{"level_0_nest_0", "level_1_nest_0", "has_notnull_has_default"},
-        theValue), E_OK);
-    EXPECT_LT(std::abs(theValue.doubleValue - 3.14), 0.1);
-    EXPECT_EQ(val.GetFieldValueByFieldPath(FieldPath{"level_0_nest_0", "level_1_nest_0", "level_2_nest_0", "extra_0"},
-        theValue), E_OK);
-    EXPECT_EQ(theValue.stringValue == std::string("3.1415"), true);
-}
-
-/**
- * @tc.name: SchemaObjectErrTest
- * @tc.desc: Parse Schema Object err scene
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest001, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Call GetExtractFuncName interface with NONE SchemaType.
-     * @tc.expected: step1. Get non-JSON string.
-     */
-    SchemaObject schema;
-    std::string str1 = schema.GetExtractFuncName(SchemaType::NONE);
-    const std::string expectStr1 = "flatbuffer_extract_by_path";
-    EXPECT_TRUE(str1.compare(0, expectStr1.length(), expectStr1) == 0);
-
-    /**
-     * @tc.steps: step2. Call interfaces with empty FieldPath.
-     * @tc.expected: step2. return -E_INVALID_ARGS.
-     */
-    FieldPath inFieldpath1 = {};
-    std::string str2 = schema.GenerateExtractSQL(SchemaType::JSON, inFieldpath1, FieldType::LEAF_FIELD_BOOL, 0, "");
-    const std::string expectStr2 = "";
-    EXPECT_TRUE(str2.compare(0, expectStr2.length(), "") == 0);
-    FieldType schemaFieldType = FieldType::LEAF_FIELD_BOOL;
-    int ret = schema.CheckQueryableAndGetFieldType(inFieldpath1, schemaFieldType);
-    EXPECT_EQ(ret, -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps: step3. Call interfaces with LEAF_FIELD_NULL FieldType.
-     * @tc.expected: step3. return -E_NOT_FOUND.
-     */
-    FieldPath inFieldpath2 = {"test"};
-    str2 = schema.GenerateExtractSQL(SchemaType::JSON, inFieldpath2, FieldType::LEAF_FIELD_NULL, 0, "");
-    EXPECT_TRUE(str2.compare(0, expectStr2.length(), "") == 0);
-    ret = schema.CheckQueryableAndGetFieldType(inFieldpath2, schemaFieldType);
-    EXPECT_EQ(ret, -E_NOT_FOUND);
-}
-
-/**
- * @tc.name: SchemaObjectErrTest002
- * @tc.desc: Parse Schema Object err scene
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBSchemaObjectTest, SchemaObjectErrTest002, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. Call interfaces without Schema Parse.
-     * @tc.expected: step1. return -E_NOT_PERMIT.
-     */
-    SchemaObject schema;
-    IndexDifference indexDiffer;
-    int ret = schema.CompareAgainstSchemaObject(schema, indexDiffer);
-    EXPECT_EQ(ret, -E_NOT_PERMIT);
-    ValueObject inValue;
-    ret = schema.CheckValueAndAmendIfNeed(ValueSource::FROM_LOCAL, inValue);
-    EXPECT_EQ(ret, -E_NOT_PERMIT);
-
-    const Value val = {0};
-    ret = schema.VerifyValue(ValueSource::FROM_LOCAL, val);
-    EXPECT_EQ(ret, -E_NOT_PERMIT);
-
-    /**
-     * @tc.steps: step2. Call VerifyValue interface when RawValue first para is nullptr.
-     * @tc.expected: step2. return -E_INVALID_ARGS.
-     */
-    ret = schema.VerifyValue(ValueSource::FROM_LOCAL, RawValue{nullptr, 0});
-    EXPECT_EQ(ret, -E_INVALID_ARGS);
-
-    /**
-     * @tc.steps: step3. Parse twice same schema.
-     * @tc.expected: step3. second return -E_NOT_PERMIT.
-     */
-    SchemaObject schema1;
-    int stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_EQ(stepOne, E_OK);
-    stepOne = schema1.ParseFromSchemaString(VALID_SCHEMA_FULL_DEFINE);
-    EXPECT_EQ(stepOne, -E_NOT_PERMIT);
+    statusDst = statusSrc;
+    snapshotDst = snapshot;
 }
 #endif
+
+void DistributedDBToolsUnitTest::KvStoreNbDelegateCallback(
+    DBStatus statusSrc, KvStoreNbDelegate* kvStoreSrc, DBStatus &statusDst, KvStoreNbDelegate *&kvStoreDst)
+{
+    statusDst = statusSrc;
+    kvStoreDst = kvStoreSrc;
+}
+
+void DistributedDBToolsUnitTest::ValueCallback(
+    DBStatus statusSrc, const Value &valueSrc, DBStatus &statusDst, Value &valueDst)
+{
+    statusDst = statusSrc;
+    valueDst = valueSrc;
+}
+
+void DistributedDBToolsUnitTest::EntryVectorCallback(DBStatus statusSrc, const std::vector<Entry> &entrySrc,
+    DBStatus &statusDst, unsigned long &matchSize, std::vector<Entry> &entryDst)
+{
+    statusDst = statusSrc;
+    matchSize = static_cast<unsigned long>(entrySrc.size());
+    entryDst = entrySrc;
+}
+
+// size need bigger than prefixkey length
+std::vector<uint8_t> DistributedDBToolsUnitTest::GetRandPrefixKey(const std::vector<uint8_t> &prefixKey, uint32_t size)
+{
+    std::vector<uint8_t> value;
+    if (size <= prefixKey.size()) {
+        return value;
+    }
+    DistributedDBToolsUnitTest::GetRandomKeyValue(value, size - prefixKey.size());
+    std::vector<uint8_t> res(prefixKey);
+    res.insert(res.end(), value.begin(), value.end());
+    return res;
+}
+
+void DistributedDBToolsUnitTest::GetRandomKeyValue(std::vector<uint8_t> &value, uint32_t defaultSize)
+{
+    uint32_t randSize = 0;
+    if (defaultSize == 0) {
+        uint8_t simSize = 0;
+        RAND_bytes(&simSize, 1);
+        randSize = (simSize == 0) ? 1 : simSize;
+    } else {
+        randSize = defaultSize;
+    }
+
+    value.resize(randSize);
+    RAND_bytes(value.data(), randSize);
+}
+
+bool DistributedDBToolsUnitTest::IsValueEqual(const DistributedDB::Value &read, const DistributedDB::Value &origin)
+{
+    if (read != origin) {
+        DBCommon::PrintHexVector(read, __LINE__, "read");
+        DBCommon::PrintHexVector(origin, __LINE__, "origin");
+        return false;
+    }
+
+    return true;
+}
+
+bool DistributedDBToolsUnitTest::IsEntryEqual(const DistributedDB::Entry &entryOrg,
+    const DistributedDB::Entry &entryRet)
+{
+    if (entryOrg.key != entryRet.key) {
+        LOGD("key not equal, entryOrg key size is [%zu], entryRet key size is [%zu]", entryOrg.key.size(),
+            entryRet.key.size());
+        return false;
+    }
+
+    if (entryOrg.value != entryRet.value) {
+        LOGD("value not equal, entryOrg value size is [%zu], entryRet value size is [%zu]", entryOrg.value.size(),
+            entryRet.value.size());
+        return false;
+    }
+
+    return true;
+}
+
+bool DistributedDBToolsUnitTest::IsEntriesEqual(const std::vector<DistributedDB::Entry> &entriesOrg,
+    const std::vector<DistributedDB::Entry> &entriesRet, bool needSort)
+{
+    LOGD("entriesOrg size is [%zu], entriesRet size is [%zu]", entriesOrg.size(),
+        entriesRet.size());
+
+    if (entriesOrg.size() != entriesRet.size()) {
+        return false;
+    }
+    std::vector<DistributedDB::Entry> entries1 = entriesOrg;
+    std::vector<DistributedDB::Entry> entries2 = entriesRet;
+
+    if (needSort) {
+        sort(entries1.begin(), entries1.end(), CompareEntry);
+        sort(entries2.begin(), entries2.end(), CompareEntry);
+    }
+
+    for (size_t i = 0; i < entries1.size(); i++) {
+        if (entries1[i].key != entries2[i].key) {
+            LOGE("IsEntriesEqual failed, key of index[%zu] not match", i);
+            return false;
+        }
+        if (entries1[i].value != entries2[i].value) {
+            LOGE("IsEntriesEqual failed, value of index[%zu] not match", i);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool DistributedDBToolsUnitTest::CheckObserverResult(const std::vector<DistributedDB::Entry> &orgEntries,
+    const std::list<DistributedDB::Entry> &resultLst)
+{
+    LOGD("orgEntries.size() is [%zu], resultLst.size() is [%zu]", orgEntries.size(),
+        resultLst.size());
+
+    if (orgEntries.size() != resultLst.size()) {
+        return false;
+    }
+
+    int index = 0;
+    for (const auto &entry : resultLst) {
+        if (entry.key != orgEntries[index].key) {
+            LOGE("CheckObserverResult failed, key of index[%d] not match", index);
+            return false;
+        }
+        if (entry.value != orgEntries[index].value) {
+            LOGE("CheckObserverResult failed, value of index[%d] not match", index);
+            return false;
+        }
+        index++;
+    }
+
+    return true;
+}
+
+bool DistributedDBToolsUnitTest::IsEntryExist(const DistributedDB::Entry &entry,
+    const std::vector<DistributedDB::Entry> &entries)
+{
+    std::set<std::vector<uint8_t>> sets;
+    for (const auto &iter : entries) {
+        sets.insert(iter.key);
+    }
+
+    if (entries.size() != sets.size()) {
+        return false;
+    }
+    sets.clear();
+    bool isFound = false;
+    for (const auto &iter : entries) {
+        if (entry.key == iter.key) {
+            if (entry.value == iter.value) {
+                isFound = true;
+            }
+            break;
+        }
+    }
+    return isFound;
+}
+
+bool DistributedDBToolsUnitTest::IsItemValueExist(const DistributedDB::DataItem &item,
+    const std::vector<DistributedDB::DataItem> &items)
+{
+    std::set<Key> sets;
+    for (const auto &iter : items) {
+        sets.insert(iter.key);
+    }
+
+    if (items.size() != sets.size()) {
+        return false;
+    }
+    sets.clear();
+    bool isFound = false;
+    for (const auto &iter : items) {
+        if (item.key == iter.key) {
+            if (item.value == iter.value) {
+                isFound = true;
+            }
+            break;
+        }
+    }
+    return isFound;
+}
+
+bool DistributedDBToolsUnitTest::IsKvEntryExist(const DistributedDB::Entry &entry,
+    const std::vector<DistributedDB::Entry> &entries)
+{
+    std::set<std::vector<uint8_t>> sets;
+    for (const auto &iter : entries) {
+        sets.insert(iter.key);
+    }
+
+    if (entries.size() != sets.size()) {
+        return false;
+    }
+    sets.clear();
+    bool isFound = false;
+    for (const auto &iter : entries) {
+        if (entry.key == iter.key) {
+            if (entry.value == iter.value) {
+                isFound = true;
+            }
+            break;
+        }
+    }
+
+    return isFound;
+}
+
+int DistributedDBToolsUnitTest::ModifyDatabaseFile(const std::string &fileDir, uint64_t modifyPos,
+    uint32_t modifyCnt, uint32_t value)
+{
+    LOGI("Modify database file:%s", fileDir.c_str());
+    std::fstream dataFile(fileDir, std::fstream::binary | std::fstream::out | std::fstream::in);
+    if (!dataFile.is_open()) {
+        LOGD("Open the database file failed");
+        return -E_UNEXPECTED_DATA;
+    }
+
+    if (!dataFile.seekg(0, std::fstream::end)) {
+        return -E_UNEXPECTED_DATA;
+    }
+
+    uint64_t fileSize;
+    std::ios::pos_type pos = dataFile.tellg();
+    if (pos < 0) {
+        return -E_UNEXPECTED_DATA;
+    } else {
+        fileSize = static_cast<uint64_t>(pos);
+        if (fileSize < 1024) { // the least page size is 1024 bytes.
+            LOGE("Invalid database file:%" PRIu64 ".", fileSize);
+            return -E_UNEXPECTED_DATA;
+        }
+    }
+
+    if (fileSize <= modifyPos) {
+        return E_OK;
+    }
+
+    if (!dataFile.seekp(modifyPos)) {
+        return -E_UNEXPECTED_DATA;
+    }
+    for (uint32_t i = 0; i < modifyCnt; i++) {
+        if (!dataFile.write(reinterpret_cast<char *>(&value), sizeof(uint32_t))) {
+            return -E_UNEXPECTED_DATA;
+        }
+    }
+
+    dataFile.flush();
+    return E_OK;
+}
+
+int DistributedDBToolsUnitTest::GetSyncDataTest(const SyncInputArg &syncInputArg, SQLiteSingleVerNaturalStore *store,
+    std::vector<DataItem> &dataItems, ContinueToken &continueStmtToken)
+{
+    std::vector<SingleVerKvEntry *> entries;
+    DataSizeSpecInfo syncDataSizeInfo = {syncInputArg.blockSize_, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
+    int errCode = store->GetSyncData(syncInputArg.begin_, syncInputArg.end_, entries,
+        continueStmtToken, syncDataSizeInfo);
+
+    ConvertSingleVerEntryToItems(entries, dataItems);
+    return errCode;
+}
+
+int DistributedDBToolsUnitTest::GetSyncDataNextTest(SQLiteSingleVerNaturalStore *store, uint32_t blockSize,
+    std::vector<DataItem> &dataItems, ContinueToken &continueStmtToken)
+{
+    std::vector<SingleVerKvEntry *> entries;
+    DataSizeSpecInfo syncDataSizeInfo = {blockSize, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
+    int errCode = store->GetSyncDataNext(entries, continueStmtToken, syncDataSizeInfo);
+
+    ConvertSingleVerEntryToItems(entries, dataItems);
+    return errCode;
+}
+
+int DistributedDBToolsUnitTest::PutSyncDataTest(SQLiteSingleVerNaturalStore *store,
+    const std::vector<DataItem> &dataItems, const std::string &deviceName)
+{
+    QueryObject query(Query::Select());
+    return PutSyncDataTest(store, dataItems, deviceName, query);
+}
+
+int DistributedDBToolsUnitTest::PutSyncDataTest(SQLiteSingleVerNaturalStore *store,
+    const std::vector<DataItem> &dataItems, const std::string &deviceName, const QueryObject &query)
+{
+    std::vector<SingleVerKvEntry *> entries;
+    std::vector<DistributedDB::DataItem> items = dataItems;
+    for (auto &item : items) {
+        auto *entry = new (std::nothrow) GenericSingleVerKvEntry();
+        if (entry == nullptr) {
+            ReleaseSingleVerEntry(entries);
+            return -E_OUT_OF_MEMORY;
+        }
+        entry->SetEntryData(std::move(item));
+        entry->SetWriteTimestamp(entry->GetTimestamp());
+        entries.push_back(entry);
+    }
+
+    int errCode = store->PutSyncDataWithQuery(query, entries, deviceName);
+    ReleaseSingleVerEntry(entries);
+    return errCode;
+}
+
+int DistributedDBToolsUnitTest::ConvertItemsToSingleVerEntry(const std::vector<DistributedDB::DataItem> &dataItems,
+    std::vector<DistributedDB::SingleVerKvEntry *> &entries)
+{
+    std::vector<DistributedDB::DataItem> items = dataItems;
+    for (auto &item : items) {
+        GenericSingleVerKvEntry *entry = new (std::nothrow) GenericSingleVerKvEntry();
+        if (entry == nullptr) {
+            ReleaseSingleVerEntry(entries);
+            return -E_OUT_OF_MEMORY;
+        }
+        entry->SetEntryData(std::move(item));
+        entries.push_back(entry);
+    }
+    return E_OK;
+}
+
+void DistributedDBToolsUnitTest::ConvertSingleVerEntryToItems(std::vector<DistributedDB::SingleVerKvEntry *> &entries,
+    std::vector<DistributedDB::DataItem> &dataItems)
+{
+    for (auto &itemEntry : entries) {
+        GenericSingleVerKvEntry *entry = reinterpret_cast<GenericSingleVerKvEntry *>(itemEntry);
+        if (entry != nullptr) {
+            DataItem item;
+            item.origDev = entry->GetOrigDevice();
+            item.flag = entry->GetFlag();
+            item.timestamp = entry->GetTimestamp();
+            entry->GetKey(item.key);
+            entry->GetValue(item.value);
+            dataItems.push_back(item);
+            // clear vector entry
+            delete itemEntry;
+            itemEntry = nullptr;
+        }
+    }
+    entries.clear();
+}
+
+void DistributedDBToolsUnitTest::ReleaseSingleVerEntry(std::vector<DistributedDB::SingleVerKvEntry *> &entries)
+{
+    for (auto &item : entries) {
+        delete item;
+        item = nullptr;
+    }
+    entries.clear();
+}
+
+void DistributedDBToolsUnitTest::CalcHash(const std::vector<uint8_t> &value, std::vector<uint8_t> &hashValue)
+{
+    ValueHashCalc hashCalc;
+    hashCalc.Initialize();
+    hashCalc.Update(value);
+    hashCalc.GetResult(hashValue);
+}
+
+void DistributedDBToolsUnitTest::Dump()
+{
+    constexpr const char *rightDumpParam = "--database";
+    constexpr const char *ignoreDumpParam = "ignore-param";
+    const std::u16string u16DumpRightParam =
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(rightDumpParam);
+    const std::u16string u16DumpIgnoreParam =
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(ignoreDumpParam);
+    std::vector<std::u16string> params = {
+        u16DumpRightParam,
+        u16DumpIgnoreParam
+    };
+    // print to std::cout
+    RuntimeConfig::Dump(0, params);
+}
+
+std::string DistributedDBToolsUnitTest::GetKvNbStoreDirectory(const std::string &identifier,
+    const std::string &dbFilePath, const std::string &dbDir)
+{
+    std::string identifierName = DBCommon::TransferStringToHex(identifier);
+    return dbDir + "/" + identifierName + "/" + dbFilePath;
+}
+
+void DistributedDBToolsUnitTest::BlockSync(RelationalStoreDelegate &delegate, const Query &query,
+    DistributedDB::SyncMode syncMode, DistributedDB::DBStatus exceptStatus,
+    const std::vector<std::string> &devices)
+{
+    std::map<std::string, std::vector<TableStatus>> statusMap;
+    SyncStatusCallback callBack = [&statusMap](
+        const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+        statusMap = devicesMap;
+    };
+    DBStatus callStatus = delegate.Sync(devices, syncMode, query, callBack, true);
+    EXPECT_EQ(callStatus, OK);
+    QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
+    std::vector<std::string> syncTables;
+    if (queryExpression.IsUseFromTables()) {
+        syncTables = queryExpression.GetTables();
+    } else {
+        syncTables = {queryExpression.GetTableName()};
+    }
+    for (const auto &tablesRes : statusMap) {
+        ASSERT_EQ(tablesRes.second.size(), syncTables.size());
+        for (uint32_t i = 0; i < syncTables.size(); i++) {
+            EXPECT_EQ(tablesRes.second[i].status, exceptStatus);
+            EXPECT_EQ(tablesRes.second[i].tableName, syncTables[i]);
+        }
+    }
+}
+
+KvStoreObserverUnitTest::KvStoreObserverUnitTest() : callCount_(0), isCleared_(false)
+{}
+
+void KvStoreObserverUnitTest::OnChange(const KvStoreChangedData& data)
+{
+    callCount_++;
+    inserted_ = data.GetEntriesInserted();
+    updated_ = data.GetEntriesUpdated();
+    deleted_ = data.GetEntriesDeleted();
+    isCleared_ = data.IsCleared();
+    LOGD("Onchangedata :%zu -- %zu -- %zu -- %d", inserted_.size(), updated_.size(), deleted_.size(), isCleared_);
+    LOGD("Onchange() called success!");
+}
+
+void KvStoreObserverUnitTest::OnChange(const DistributedDB::StoreChangedData &data)
+{
+    (void)data;
+    KvStoreObserver::OnChange(data);
+}
+
+void KvStoreObserverUnitTest::OnChange(DistributedDB::StoreObserver::StoreChangedInfo &&data)
+{
+    (void)data;
+    KvStoreObserver::OnChange(std::move(data));
+}
+
+void KvStoreObserverUnitTest::OnChange(DistributedDB::Origin origin, const std::string &originalId,
+    DistributedDB::ChangedData &&data)
+{
+    callCount_++;
+    changedData_[data.tableName] = data;
+    LOGD("data change when cloud sync, origin = %d, tableName = %s", origin, data.tableName.c_str());
+    KvStoreObserver::OnChange(origin, originalId, std::move(data));
+}
+
+void KvStoreObserverUnitTest::ResetToZero()
+{
+    callCount_ = 0;
+    isCleared_ = false;
+    inserted_.clear();
+    updated_.clear();
+    deleted_.clear();
+    changedData_.clear();
+}
+
+unsigned long KvStoreObserverUnitTest::GetCallCount() const
+{
+    return callCount_;
+}
+
+const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesInserted() const
+{
+    return inserted_;
+}
+
+const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesUpdated() const
+{
+    return updated_;
+}
+
+const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesDeleted() const
+{
+    return deleted_;
+}
+
+bool KvStoreObserverUnitTest::IsCleared() const
+{
+    return isCleared_;
+}
+
+std::unordered_map<std::string, DistributedDB::ChangedData> KvStoreObserverUnitTest::GetChangedData() const
+{
+    return changedData_;
+}
+
+RelationalStoreObserverUnitTest::RelationalStoreObserverUnitTest() : callCount_(0)
+{
+}
+
+unsigned long RelationalStoreObserverUnitTest::GetCallCount() const
+{
+    return callCount_;
+}
+
+unsigned long RelationalStoreObserverUnitTest::GetCloudCallCount() const
+{
+    return cloudCallCount_;
+}
+
+void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData &data)
+{
+    callCount_++;
+    changeDevice_ = data.GetDataChangeDevice();
+    data.GetStoreProperty(storeProperty_);
+    LOGD("Onchangedata : %s", changeDevice_.c_str());
+    LOGD("Onchange() called success!");
+}
+
+void RelationalStoreObserverUnitTest::OnChange(
+    DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
+{
+    cloudCallCount_++;
+    savedChangedData_[data.tableName] = data;
+    lastOrigin_ = origin;
+    LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
+}
+
+uint32_t RelationalStoreObserverUnitTest::GetCallbackDetailsType() const
+{
+    return detailsType_;
+}
+
+void RelationalStoreObserverUnitTest::SetCallbackDetailsType(uint32_t type)
+{
+    detailsType_ = type;
+}
+
+void RelationalStoreObserverUnitTest::SetExpectedResult(const DistributedDB::ChangedData &changedData)
+{
+    expectedChangedData_[changedData.tableName] = changedData;
+}
+
+static bool IsPrimaryKeyEq(DistributedDB::Type &input, DistributedDB::Type &expected)
+{
+    if (input.index() != expected.index()) {
+        return false;
+    }
+    switch (expected.index()) {
+        case TYPE_INDEX<int64_t>:
+            if (std::get<int64_t>(input) != std::get<int64_t>(expected)) {
+                return false;
+            }
+            break;
+        case TYPE_INDEX<std::string>:
+            if (std::get<std::string>(input) != std::get<std::string>(expected)) {
+                return false;
+            }
+            break;
+        case TYPE_INDEX<bool>:
+            if (std::get<bool>(input) != std::get<bool>(expected)) {
+                return false;
+            }
+            break;
+        case TYPE_INDEX<double>:
+        case TYPE_INDEX<Bytes>:
+        case TYPE_INDEX<Asset>:
+        case TYPE_INDEX<Assets>:
+            LOGE("NOT HANDLE THIS SITUATION");
+            return false;
+        default: {
+            break;
+        }
+    }
+    return true;
+}
+
+static bool IsPrimaryDataEq(
+    uint64_t type, DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
+{
+    for (size_t m = 0; m < input.primaryData[type].size(); m++) {
+        if (m >= expected.primaryData[type].size()) {
+            LOGE("Actual primary data's size is more than the expected!");
+            return false;
+        }
+        if (input.primaryData[type][m].size() != expected.primaryData[type][m].size()) {
+            LOGE("Primary data fields' size is not equal!");
+            return false;
+        }
+        for (size_t k = 0; k < input.primaryData[type][m].size(); k++) {
+            if (!IsPrimaryKeyEq(input.primaryData[type][m][k], expected.primaryData[type][m][k])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool IsAllTypePrimaryDataEq(DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
+{
+    for (uint64_t type = ChangeType::OP_INSERT; type < ChangeType::OP_BUTT; ++type) {
+        if (!IsPrimaryDataEq(type, input, expected)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool isChangedDataEq(DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
+{
+    if (input.tableName != expected.tableName) {
+        return false;
+    }
+    if (input.properties.isTrackedDataChange != expected.properties.isTrackedDataChange) {
+        return false;
+    }
+    if (input.field.size() != expected.field.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < input.field.size(); i++) {
+        if (!DBCommon::CaseInsensitiveCompare(input.field[i], expected.field[i])) {
+            return false;
+        }
+    }
+    return IsAllTypePrimaryDataEq(input, expected);
+}
+
+bool RelationalStoreObserverUnitTest::IsAllChangedDataEq()
+{
+    for (auto iter = expectedChangedData_.begin(); iter != expectedChangedData_.end(); ++iter) {
+        auto iterInSavedChangedData = savedChangedData_.find(iter->first);
+        if (iterInSavedChangedData == savedChangedData_.end()) {
+            return false;
+        }
+        if (!isChangedDataEq(iterInSavedChangedData->second, iter->second)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void RelationalStoreObserverUnitTest::ClearChangedData()
+{
+    expectedChangedData_.clear();
+    savedChangedData_.clear();
+}
+
+void RelationalStoreObserverUnitTest::ResetToZero()
+{
+    callCount_ = 0;
+    changeDevice_.clear();
+    storeProperty_ = {};
+}
+
+void RelationalStoreObserverUnitTest::ResetCloudSyncToZero()
+{
+    cloudCallCount_ = 0u;
+    savedChangedData_.clear();
+}
+
+const std::string RelationalStoreObserverUnitTest::GetDataChangeDevice() const
+{
+    return changeDevice_;
+}
+
+DistributedDB::StoreProperty RelationalStoreObserverUnitTest::GetStoreProperty() const
+{
+    return storeProperty_;
+}
+
+std::unordered_map<std::string, DistributedDB::ChangedData> RelationalStoreObserverUnitTest::GetSavedChangedData() const
+{
+    return savedChangedData_;
+}
+
+DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
+    const std::vector<std::string>& devices, SyncMode mode,
+    std::map<std::string, DBStatus>& statuses, const Query &query)
+{
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(devices, mode,
+        [&statuses, this](const std::map<std::string, DBStatus>& statusMap) {
+            statuses = statusMap;
+            std::unique_lock<std::mutex> innerlock(this->syncLock_);
+            this->syncCondVar_.notify_one();
+        }, query, false);
+
+    std::unique_lock<std::mutex> lock(syncLock_);
+    syncCondVar_.wait(lock, [callStatus, &statuses]() {
+            if (callStatus != OK) {
+                return true;
+            }
+            return !statuses.empty();
+        });
+    return callStatus;
+}
+
+DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
+    const std::vector<std::string>& devices, SyncMode mode,
+    std::map<std::string, DBStatus>& statuses, bool wait)
+{
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(devices, mode,
+        [&statuses, this](const std::map<std::string, DBStatus>& statusMap) {
+            statuses = statusMap;
+            std::unique_lock<std::mutex> innerlock(this->syncLock_);
+            this->syncCondVar_.notify_one();
+        }, wait);
+    if (!wait) {
+        std::unique_lock<std::mutex> lock(syncLock_);
+        syncCondVar_.wait(lock, [callStatus, &statuses]() {
+                if (callStatus != OK) {
+                    return true;
+                }
+                if (statuses.size() != 0) {
+                    return true;
+                }
+                return false;
+            });
+        }
+    return callStatus;
+}
+
+static bool WaitUntilReady(DBStatus status, const std::map<std::string, DeviceSyncProcess> &syncProcessMap)
+{
+    if (status != OK) {
+        return true;
+    }
+    if (syncProcessMap.empty()) {
+        return false;
+    }
+    auto item = std::find_if(syncProcessMap.begin(), syncProcessMap.end(), [](const auto &entry) {
+        return entry.second.process < ProcessStatus::FINISHED;
+    });
+    if (item != syncProcessMap.end()) {
+        return false;
+    }
+    return true;
+}
+
+DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, DeviceSyncOption option,
+    std::map<std::string, DeviceSyncProcess> &syncProcessMap)
+{
+    syncProcessMap.clear();
+    DeviceSyncProcessCallback onProcess =
+        [&syncProcessMap, this](const std::map<std::string, DeviceSyncProcess> &processMap) {
+            syncProcessMap = processMap;
+            std::unique_lock<std::mutex> innerlock(this->syncLock_);
+            this->syncCondVar_.notify_one();
+        };
+    DBStatus status = delegate->Sync(option, onProcess);
+
+    if (!option.isWait) {
+        std::unique_lock<std::mutex> lock(this->syncLock_);
+        this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
+            return WaitUntilReady(status, syncProcessMap);
+        });
+    }
+    return status;
+}
+
+void KvStoreCorruptInfo::CorruptCallBack(const std::string &appId, const std::string &userId,
+    const std::string &storeId)
+{
+    DatabaseInfo databaseInfo;
+    databaseInfo.appId = appId;
+    databaseInfo.userId = userId;
+    databaseInfo.storeId = storeId;
+    LOGD("appId :%s, userId:%s, storeId:%s", appId.c_str(), userId.c_str(), storeId.c_str());
+    databaseInfoVect_.push_back(databaseInfo);
+}
+
+size_t KvStoreCorruptInfo::GetDatabaseInfoSize() const
+{
+    return databaseInfoVect_.size();
+}
+
+bool KvStoreCorruptInfo::IsDataBaseCorrupted(const std::string &appId, const std::string &userId,
+    const std::string &storeId) const
+{
+    for (const auto &item : databaseInfoVect_) {
+        if (item.appId == appId &&
+            item.userId == userId &&
+            item.storeId == storeId) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void KvStoreCorruptInfo::Reset()
+{
+    databaseInfoVect_.clear();
+}
+
+int DistributedDBToolsUnitTest::GetRandInt(const int randMin, const int randMax)
+{
+    std::random_device randDev;
+    std::mt19937 genRand(randDev());
+    std::uniform_int_distribution<int> disRand(randMin, randMax);
+    return disRand(genRand);
+}
+
+int64_t DistributedDBToolsUnitTest::GetRandInt64(const int64_t randMin, const int64_t randMax)
+{
+    std::random_device randDev;
+    std::mt19937_64 genRand(randDev());
+    std::uniform_int_distribution<int64_t> disRand(randMin, randMax);
+    return disRand(genRand);
+}
+
+void DistributedDBToolsUnitTest::PrintTestCaseInfo()
+{
+    testing::UnitTest *test = testing::UnitTest::GetInstance();
+    ASSERT_NE(test, nullptr);
+    const testing::TestInfo *testInfo = test->current_test_info();
+    ASSERT_NE(testInfo, nullptr);
+    LOGI("Start unit test: %s.%s", testInfo->test_case_name(), testInfo->name());
+}
+
+int DistributedDBToolsUnitTest::BuildMessage(const DataSyncMessageInfo &messageInfo,
+    DistributedDB::Message *&message)
+{
+    auto packet = new (std::nothrow) DataRequestPacket;
+    if (packet == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
+    message = new (std::nothrow) Message(messageInfo.messageId_);
+    if (message == nullptr) {
+        delete packet;
+        packet = nullptr;
+        return -E_OUT_OF_MEMORY;
+    }
+    packet->SetBasicInfo(messageInfo.sendCode_, messageInfo.version_, messageInfo.mode_);
+    packet->SetWaterMark(messageInfo.localMark_, messageInfo.peerMark_, messageInfo.deleteMark_);
+    std::vector<uint64_t> reserved {messageInfo.packetId_};
+    packet->SetReserved(reserved);
+    message->SetMessageType(messageInfo.messageType_);
+    message->SetSessionId(messageInfo.sessionId_);
+    message->SetSequenceId(messageInfo.sequenceId_);
+    message->SetExternalObject(packet);
+    return E_OK;
+}
+
+void RelationalTestUtils::CreateDeviceTable(sqlite3 *db, const std::string &table, const std::string &device)
+{
+    ASSERT_NE(db, nullptr);
+    std::string deviceTable = DBCommon::GetDistributedTableName(device, table);
+    TableInfo baseTbl;
+    ASSERT_EQ(SQLiteUtils::AnalysisSchema(db, table, baseTbl), E_OK);
+    EXPECT_EQ(SQLiteUtils::CreateSameStuTable(db, baseTbl, deviceTable), E_OK);
+    EXPECT_EQ(SQLiteUtils::CloneIndexes(db, table, deviceTable), E_OK);
+}
+
+int RelationalTestUtils::CheckSqlResult(sqlite3 *db, const std::string &sql, bool &result)
+{
+    if (db == nullptr || sql.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        goto END;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        result = true;
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        result = false;
+        errCode = E_OK;
+    }
+END:
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int RelationalTestUtils::CheckTableRecords(sqlite3 *db, const std::string &table)
+{
+    if (db == nullptr || table.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    int count = -1;
+    std::string sql = "select count(1) from " + table + ";";
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        goto END;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        count = sqlite3_column_int(stmt, 0);
+    }
+END:
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return count;
+}
+
+int RelationalTestUtils::GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value)
+{
+    if (db == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+
+    std::string sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        goto END;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key);
+    if (errCode != E_OK) {
+        goto END;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, value);
+    }
+END:
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int RelationalTestUtils::SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value)
+{
+    if (db == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+
+    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) +
+        "metadata VALUES (?, ?);";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        goto END;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key);
+    if (errCode != E_OK) {
+        goto END;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, value); // 2: bind index
+    if (errCode != E_OK) {
+        goto END;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    }
+END:
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return SQLiteUtils::MapSQLiteErrno(errCode);
+}
+
+void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
+    DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect,
+    DistributedDB::DBStatus callbackExpect)
+{
+    DistributedDB::CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SYNC_MODE_CLOUD_MERGE;
+    option.query = query;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    CloudBlockSync(option, delegate, expect, callbackExpect);
+}
+
+void RelationalTestUtils::CloudBlockSync(const DistributedDB::CloudSyncOption &option,
+    DistributedDB::RelationalStoreDelegate *delegate,
+    DistributedDB::DBStatus expect, DistributedDB::DBStatus callbackExpect)
+{
+    ASSERT_NE(delegate, nullptr);
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [callbackExpect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                EXPECT_EQ(item.second.errCode, callbackExpect);
+                cv.notify_one();
+            }
+        }
+    };
+    ASSERT_EQ(delegate->Sync(option, callback), expect);
+    if (expect != DistributedDB::DBStatus::OK) {
+        return;
+    }
+    std::unique_lock<std::mutex> uniqueLock(dataMutex);
+    cv.wait(uniqueLock, [&finish]() {
+        return finish;
+    });
+}
+
+int RelationalTestUtils::SelectData(sqlite3 *db, const DistributedDB::TableSchema &schema,
+    std::vector<DistributedDB::VBucket> &data)
+{
+    LOGD("[RelationalTestUtils] Begin select data");
+    int errCode = E_OK;
+    std::string selectSql = "SELECT ";
+    for (const auto &field : schema.fields) {
+        selectSql += field.colName + ",";
+    }
+    selectSql.pop_back();
+    selectSql += " FROM " + schema.name;
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, selectSql, statement);
+    if (errCode != E_OK) {
+        LOGE("[RelationalTestUtils] Prepare statement failed %d", errCode);
+        return errCode;
+    }
+    do {
+        errCode = SQLiteUtils::StepWithRetry(statement, false);
+        errCode = (errCode == -SQLITE_ROW) ? E_OK :
+            (errCode == -SQLITE_DONE) ? -E_FINISHED : errCode;
+        if (errCode != E_OK) {
+            break;
+        }
+        VBucket rowData;
+        for (size_t index = 0; index < schema.fields.size(); ++index) {
+            Type colValue;
+            int ret = SQLiteRelationalUtils::GetCloudValueByType(statement, schema.fields[index].type, index, colValue);
+            if (ret != E_OK) {
+                LOGE("[RelationalTestUtils] Get col value failed %d", ret);
+                break;
+            }
+            rowData[schema.fields[index].colName] = colValue;
+        }
+        data.push_back(rowData);
+    } while (errCode == E_OK);
+    if (errCode == -E_FINISHED) {
+        errCode = E_OK;
+    }
+    int err = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, err);
+    LOGW("[RelationalTestUtils] Select data finished errCode %d", errCode);
+    return errCode != E_OK ? errCode : err;
+}
+
+DistributedDB::Assets RelationalTestUtils::GetAssets(const DistributedDB::Type &value,
+    const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate, bool isAsset)
+{
+    DistributedDB::Assets assets;
+    if (value.index() == TYPE_INDEX<Assets>) {
+        auto tmp = std::get<Assets>(value);
+        assets.insert(assets.end(), tmp.begin(), tmp.end());
+    } else if (value.index() == TYPE_INDEX<Asset>) {
+        assets.push_back(std::get<Asset>(value));
+    } else if (value.index() == TYPE_INDEX<Bytes> && translate != nullptr) {
+        if (isAsset) {
+            auto tmpAsset = translate->BlobToAsset(std::get<Bytes>(value));
+            assets.push_back(tmpAsset);
+        } else {
+            auto tmpAssets = translate->BlobToAssets(std::get<Bytes>(value));
+            assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
+        }
+    }
+    return assets;
+}
+
+DistributedDB::DBStatus RelationalTestUtils::InsertCloudRecord(int64_t begin, int64_t count,
+    const std::string &tableName, const std::shared_ptr<DistributedDB::VirtualCloudDb> &cloudDbPtr, int32_t assetCount)
+{
+    if (cloudDbPtr == nullptr) {
+        LOGE("[RelationalTestUtils] Not support insert cloud with null");
+        return DistributedDB::DBStatus::DB_ERROR;
+    }
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    Timestamp now = DistributedDB::TimeHelper::GetSysCurrentTime();
+    for (int64_t i = begin; i < (begin + count); ++i) {
+        VBucket data;
+        data.insert_or_assign("id", std::to_string(i));
+        data.insert_or_assign("name", "Cloud" + std::to_string(i));
+        Assets assets;
+        std::string assetNameBegin = "Phone" + std::to_string(i);
+        for (int j = 1; j <= assetCount; ++j) {
+            Asset asset;
+            asset.name = assetNameBegin + "_" + std::to_string(j);
+            asset.status = AssetStatus::INSERT;
+            asset.hash = "DEC";
+            asset.assetId = std::to_string(j);
+            assets.push_back(asset);
+        }
+        data.insert_or_assign("assets", assets);
+        record.push_back(data);
+        VBucket log;
+        log.insert_or_assign(DistributedDB::CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
+            now / DistributedDB::CloudDbConstant::TEN_THOUSAND));
+        log.insert_or_assign(DistributedDB::CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
+            now / DistributedDB::CloudDbConstant::TEN_THOUSAND));
+        log.insert_or_assign(DistributedDB::CloudDbConstant::DELETE_FIELD, false);
+        extend.push_back(log);
+    }
+    return cloudDbPtr->BatchInsert(tableName, std::move(record), extend);
+}
+
+std::vector<DistributedDB::Assets> RelationalTestUtils::GetAllAssets(sqlite3 *db,
+    const DistributedDB::TableSchema &schema, const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate)
+{
+    std::vector<DistributedDB::Assets> res;
+    if (db == nullptr || translate == nullptr) {
+        LOGW("[RelationalTestUtils] DB or translate is null");
+        return res;
+    }
+    std::vector<VBucket> allData;
+    EXPECT_EQ(RelationalTestUtils::SelectData(db, schema, allData), E_OK);
+    std::map<std::string, int32_t> assetFields;
+    for (const auto &field : schema.fields) {
+        if (field.type != TYPE_INDEX<Asset> && field.type != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        assetFields[field.colName] = field.type;
+    }
+    for (const auto &oneRow : allData) {
+        Assets assets;
+        for (const auto &[col, data] : oneRow) {
+            if (assetFields.find(col) == assetFields.end()) {
+                continue;
+            }
+            auto tmpAssets = GetAssets(data, translate, (assetFields[col] == TYPE_INDEX<Asset>));
+            assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
+        }
+        res.push_back(assets);
+    }
+    return res;
+}
+
+int RelationalTestUtils::GetRecordLog(sqlite3 *db, const std::string &tableName,
+    std::vector<DistributedDB::VBucket> &records)
+{
+    DistributedDB::TableSchema schema;
+    schema.name = DBCommon::GetLogTableName(tableName);
+    Field field;
+    field.type = TYPE_INDEX<int64_t>;
+    field.colName = "data_key";
+    schema.fields.push_back(field);
+    field.colName = "flag";
+    schema.fields.push_back(field);
+    field.colName = "cursor";
+    schema.fields.push_back(field);
+    field.colName = "cloud_gid";
+    field.type = TYPE_INDEX<std::string>;
+    schema.fields.push_back(field);
+    return SelectData(db, schema, records);
+}
+
+int RelationalTestUtils::DeleteRecord(sqlite3 *db, const std::string &tableName,
+    const std::vector<std::map<std::string, std::string>> &conditions)
+{
+    if (db == nullptr || tableName.empty()) {
+        LOGE("[RelationalTestUtils] db is null or table is empty");
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    for (const auto &condition : conditions) {
+        std::string deleteSql = "DELETE FROM " + tableName + " WHERE ";
+        int count = 0;
+        for (const auto &[col, value] : condition) {
+            if (count > 0) {
+                deleteSql += " AND ";
+            }
+            deleteSql += col + "=" + value;
+            count++;
+        }
+        LOGD("[RelationalTestUtils] Sql is %s", deleteSql.c_str());
+        errCode = ExecSql(db, deleteSql);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return errCode;
+}
+
+bool RelationalTestUtils::IsExistEmptyHashAsset(sqlite3 *db, const DistributedDB::TableSchema &schema)
+{
+    if (db == nullptr) {
+        return false;
+    }
+    std::vector<Field> assetCol;
+    for (const auto &field : schema.fields) {
+        if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+            assetCol.push_back(field);
+        }
+    }
+    if (assetCol.empty()) {
+        return false;
+    }
+    std::string sql = "SELECT ";
+    for (const auto &field : assetCol) {
+        sql += field.colName + ",";
+    }
+    sql.pop_back();
+    sql += " FROM " + schema.name;
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return false;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+    });
+    VirtualCloudDataTranslate translate;
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        for (int index = 0; index < static_cast<int>(assetCol.size()); index++) {
+            Value value;
+            (void)SQLiteUtils::GetColumnBlobValue(stmt, index, value);
+            Assets assets;
+            if (assetCol[index].type == TYPE_INDEX<Asset>) {
+                assets.push_back(translate.BlobToAsset(value));
+            } else {
+                assets = translate.BlobToAssets(value);
+            }
+            if (IsExistEmptyHashAsset(assets)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool RelationalTestUtils::IsExistEmptyHashAsset(const DistributedDB::Assets &assets)
+{
+    return std::any_of(assets.begin(), assets.end(), [](const Asset &asset) {
+        return asset.hash.empty();
+    });
+}
+
+bool DBInfoHandleTest::IsSupport()
+{
+    std::lock_guard<std::mutex> autoLock(supportMutex_);
+    return localIsSupport_;
+}
+
+bool DBInfoHandleTest::IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
+    const DeviceInfos &devInfo)
+{
+    std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
+    return isNeedAutoSync_;
+}
+
+void DBInfoHandleTest::SetLocalIsSupport(bool isSupport)
+{
+    std::lock_guard<std::mutex> autoLock(supportMutex_);
+    localIsSupport_ = isSupport;
+}
+
+void DBInfoHandleTest::SetNeedAutoSync(bool needAutoSync)
+{
+    std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
+    isNeedAutoSync_ = needAutoSync;
+}
+
+DistributedDB::ICloudSyncStorageHook *RelationalTestUtils::GetRDBStorageHook(const std::string &userId,
+    const std::string &appId, const std::string &storeId, const std::string &dbPath)
+{
+    RelationalDBProperties properties;
+    CloudDBSyncUtilsTest::InitStoreProp(dbPath, appId, userId, storeId, properties);
+    int errCode = E_OK;
+    auto store = RelationalStoreInstance::GetDataBase(properties, errCode);
+    if (store == nullptr) {
+        return nullptr;
+    }
+    auto engine = static_cast<SQLiteRelationalStore *>(store)->GetStorageEngine();
+    RefObject::DecObjRef(store);
+    return static_cast<ICloudSyncStorageHook *>(engine);
+}
+
+void RelationalTestUtils::CheckIndexCount(sqlite3 *db, const std::string &table, size_t expect)
+{
+    TableInfo info;
+    ASSERT_EQ(SQLiteUtils::AnalysisSchema(db, table, info), E_OK);
+    auto index = info.GetIndexDefine();
+    EXPECT_EQ(index.size(), expect);
+}
+
+bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) const
+{
+    auto changeData = savedChangedData_.find(table);
+    if (changeData == savedChangedData_.end()) {
+        return false;
+    }
+    return changeData->second.type == ChangedDataType::ASSET;
+}
+
+DistributedDB::Origin RelationalStoreObserverUnitTest::GetLastOrigin() const
+{
+    return lastOrigin_;
+}
+
+void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,
+    DistributedDB::CloudSyncOption option, DistributedDB::DBStatus expectSyncResult)
+{
+    if (delegate == nullptr) {
+        return;
+    }
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    SyncProcess last;
+    auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish, &option](const std::map<std::string,
+        SyncProcess> &process) {
+        size_t notifyCnt = 0;
+        for (const auto &item: process) {
+            LOGD("user = %s, status = %d, errCode = %d", item.first.c_str(), item.second.process, item.second.errCode);
+            if (item.second.process != DistributedDB::FINISHED) {
+                continue;
+            }
+            EXPECT_EQ(item.second.errCode, expectDBStatus);
+            {
+                std::lock_guard<std::mutex> autoLock(dataMutex);
+                notifyCnt++;
+                std::set<std::string> userSet(option.users.begin(), option.users.end());
+                if (notifyCnt == userSet.size()) {
+                    finish = true;
+                    last = item.second;
+                    cv.notify_one();
+                }
+            }
+        }
+    };
+    auto actualRet = delegate->Sync(option, callback);
+    EXPECT_EQ(actualRet, expectSyncResult);
+    if (actualRet == OK) {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        cv.wait(uniqueLock, [&finish]() {
+            return finish;
+        });
+    }
+}
+} // namespace DistributedDBUnitTest
