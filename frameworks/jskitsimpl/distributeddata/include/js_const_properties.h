@@ -25,9 +25,8 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
 } // namespace OHOS::DistributedData
 
 #endif // OHOS_JS_CONST_PROPERTIES_H
-
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -40,1073 +39,1950 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include <condition_variable>
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#include <new>
-#include <thread>
-#include "db_errno.h"
-#include "distributeddb_communicator_common.h"
-#include "distributeddb_tools_unit_test.h"
-#include "log_print.h"
-#include "network_adapter.h"
-#include "message.h"
-#include "mock_process_communicator.h"
-#include "serial_buffer.h"
+#include <vector>
 
-using namespace std;
+#include "block_data.h"
+#include "dev_manager.h"
+#include "device_manager.h"
+#include "distributed_kv_data_manager.h"
+#include "dm_device_info.h"
+#include "file_ex.h"
+#include "kv_store_nb_delegate.h"
+#include "single_store_impl.h"
+#include "store_factory.h"
+#include "store_manager.h"
+#include "sys/stat.h"
+#include "types.h"
+
 using namespace testing::ext;
-using namespace DistributedDB;
+using namespace OHOS::DistributedKv;
+using DBStatus = DistributedDB::DBStatus;
+using DBStore = DistributedDB::KvStoreNbDelegate;
+using SyncCallback = KvStoreSyncCallback;
+using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
+namespace OHOS::Test {
 
-namespace {
-    EnvHandle g_envDeviceA;
-    EnvHandle g_envDeviceB;
-    EnvHandle g_envDeviceC;
-    ICommunicator *g_commAA = nullptr;
-    ICommunicator *g_commAB = nullptr;
-    ICommunicator *g_commBB = nullptr;
-    ICommunicator *g_commBC = nullptr;
-    ICommunicator *g_commCC = nullptr;
-    ICommunicator *g_commCA = nullptr;
+std::vector<uint8_t> Random(int32_t len)
+{
+    return std::vector<uint8_t>(len, 'a');
 }
 
-class DistributedDBCommunicatorDeepTest : public testing::Test {
+class SingleStoreImplTest : public testing::Test {
 public:
+    class TestObserver : public KvStoreObserver {
+    public:
+        TestObserver()
+        {
+            // The time interval parameter is 5.
+            data_ = std::make_shared<OHOS::BlockData<bool>>(5, false);
+        }
+        void OnChange(const ChangeNotification &notification) override
+        {
+            insert_ = notification.GetInsertEntries();
+            update_ = notification.GetUpdateEntries();
+            delete_ = notification.GetDeleteEntries();
+            deviceId_ = notification.GetDeviceId();
+            bool value = true;
+            data_->SetValue(value);
+        }
+        std::vector<Entry> insert_;
+        std::vector<Entry> update_;
+        std::vector<Entry> delete_;
+        std::string deviceId_;
+
+        std::shared_ptr<OHOS::BlockData<bool>> data_;
+    };
+
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+
+    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
+    std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false);
+    std::shared_ptr<SingleKvStore> kvStore_;
+    static constexpr int MAX_RESULTSET_SIZE = 8;
 };
 
-void DistributedDBCommunicatorDeepTest::SetUpTestCase(void)
+void SingleStoreImplTest::SetUpTestCase(void)
 {
-    /**
-     * @tc.setup: Create and init CommunicatorAggregator and AdapterStub
-     */
-    LOGI("[UT][DeepTest][SetUpTestCase] Enter.");
-    bool errCode = SetUpEnv(g_envDeviceA, DEVICE_NAME_A);
-    ASSERT_EQ(errCode, true);
-    errCode = SetUpEnv(g_envDeviceB, DEVICE_NAME_B);
-    ASSERT_EQ(errCode, true);
-    errCode = SetUpEnv(g_envDeviceC, DEVICE_NAME_C);
-    ASSERT_EQ(errCode, true);
-    DoRegTransformFunction();
-    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
-void DistributedDBCommunicatorDeepTest::TearDownTestCase(void)
+void SingleStoreImplTest::TearDownTestCase(void)
 {
-    /**
-     * @tc.teardown: Finalize and release CommunicatorAggregator and AdapterStub
-     */
-    LOGI("[UT][DeepTest][TearDownTestCase] Enter.");
-    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure all thread quiet and memory released
-    TearDownEnv(g_envDeviceA);
-    TearDownEnv(g_envDeviceB);
-    TearDownEnv(g_envDeviceC);
-    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "SingleKVStore" }, baseDir);
+
+    (void)remove("/data/service/el1/public/database/SingleStoreImplTest/key");
+    (void)remove("/data/service/el1/public/database/SingleStoreImplTest/kvdb");
+    (void)remove("/data/service/el1/public/database/SingleStoreImplTest");
 }
 
-namespace {
-void AllocAllCommunicator()
+void SingleStoreImplTest::SetUp(void)
 {
-    int errorNo = E_OK;
-    g_commAA = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAA, "");
-    g_commAB = g_envDeviceA.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commAB, "");
-    g_commBB = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_B, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBB, "");
-    g_commBC = g_envDeviceB.commAggrHandle->AllocCommunicator(LABEL_C, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commBC, "");
-    g_commCC = g_envDeviceC.commAggrHandle->AllocCommunicator(LABEL_C, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCC, "");
-    g_commCA = g_envDeviceC.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
-    ASSERT_NOT_NULL_AND_ACTIVATE(g_commCA, "");
-}
-
-void ReleaseAllCommunicator()
-{
-    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAA);
-    g_commAA = nullptr;
-    g_envDeviceA.commAggrHandle->ReleaseCommunicator(g_commAB);
-    g_commAB = nullptr;
-    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBB);
-    g_commBB = nullptr;
-    g_envDeviceB.commAggrHandle->ReleaseCommunicator(g_commBC);
-    g_commBC = nullptr;
-    g_envDeviceC.commAggrHandle->ReleaseCommunicator(g_commCC);
-    g_commCC = nullptr;
-    g_envDeviceC.commAggrHandle->ReleaseCommunicator(g_commCA);
-    g_commCA = nullptr;
-}
-}
-
-void DistributedDBCommunicatorDeepTest::SetUp()
-{
-    DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
-    /**
-     * @tc.setup: Alloc communicator AA, AB, BB, BC, CC, CA
-     */
-    AllocAllCommunicator();
-}
-
-void DistributedDBCommunicatorDeepTest::TearDown()
-{
-    /**
-     * @tc.teardown: Release communicator AA, AB, BB, BC, CC, CA
-     */
-    ReleaseAllCommunicator();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure all thread quiet
-}
-
-/**
- * @tc.name: WaitAndRetrySend 001
- * @tc.desc: Test send retry semantic
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2)
-{
-    // Preset
-    Message *msgForBB = nullptr;
-    g_commBB->RegOnMessageCallback([&msgForBB](const std::string &srcTarget, Message *inMsg) {
-        msgForBB = inMsg;
-    }, nullptr);
-    Message *msgForCA = nullptr;
-    g_commCA->RegOnMessageCallback([&msgForCA](const std::string &srcTarget, Message *inMsg) {
-        msgForCA = inMsg;
-    }, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device A with device B
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure quiet
-
-    /**
-     * @tc.steps: step2. device A simulate send retry
-     */
-    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
-
-    /**
-     * @tc.steps: step3. device A send message to device B using communicator AB
-     * @tc.expected: step3. communicator BB received no message
-     */
-    Message *msgForAB = BuildRegedTinyMessage();
-    ASSERT_NE(msgForAB, nullptr);
-    SendConfig conf = {true, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, msgForAB, conf);
-    EXPECT_EQ(errCode, E_OK);
-
-    Message *msgForAA = BuildRegedTinyMessage();
-    ASSERT_NE(msgForAA, nullptr);
-    errCode = g_commAA->SendMessage(DEVICE_NAME_C, msgForAA, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
-    EXPECT_EQ(msgForBB, nullptr);
-    EXPECT_NE(msgForCA, nullptr);
-    delete msgForCA;
-    msgForCA = nullptr;
-
-    /**
-     * @tc.steps: step4. device A simulate sendable feedback
-     * @tc.expected: step4. communicator BB received the message
-     */
-    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
-    EXPECT_NE(msgForBB, nullptr);
-    delete msgForBB;
-    msgForBB = nullptr;
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-}
-
-static int CreateBufferThenAddIntoScheduler(SendTaskScheduler &scheduler, const std::string &dstTarget, Priority inPrio)
-{
-    SerialBuffer *eachBuff = new (std::nothrow) SerialBuffer();
-    if (eachBuff == nullptr) {
-        return -E_OUT_OF_MEMORY;
+    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, true);
+    if (kvStore_ == nullptr) {
+        kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, true);
     }
-    int errCode = eachBuff->AllocBufferByTotalLength(100, 0); // 100 totallen without header
-    if (errCode != E_OK) {
-        delete eachBuff;
-        eachBuff = nullptr;
-        return errCode;
-    }
-    SendTask task{eachBuff, dstTarget, nullptr, 0u};
-    errCode = scheduler.AddSendTaskIntoSchedule(task, inPrio);
-    if (errCode != E_OK) {
-        delete eachBuff;
-        eachBuff = nullptr;
-        return errCode;
-    }
-    return E_OK;
+    ASSERT_NE(kvStore_, nullptr);
 }
 
-/**
- * @tc.name: SendSchedule 001
- * @tc.desc: Test schedule in Priority order than in send order
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, SendSchedule001, TestSize.Level2)
+void SingleStoreImplTest::TearDown(void)
 {
-    // Preset
-    SendTaskScheduler scheduler;
-    scheduler.Initialize();
-
-    /**
-     * @tc.steps: step1. Add low priority target A buffer to schecduler
-     */
-    int errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_A, Priority::LOW);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step2. Add low priority target B buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_B, Priority::LOW);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step3. Add normal priority target B buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_B, Priority::NORMAL);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step4. Add normal priority target C buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_C, Priority::NORMAL);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step5. Add high priority target C buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_C, Priority::HIGH);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step6. Add high priority target A buffer to schecduler
-     */
-    errCode = CreateBufferThenAddIntoScheduler(scheduler, DEVICE_NAME_A, Priority::HIGH);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step7. schedule out buffers one by one
-     * @tc.expected: step7. the order is: high priority target C
-     *                                    high priority target A
-     *                                    normal priority target B
-     *                                    normal priority target C
-     *                                    low priority target A
-     *                                    low priority target B
-     */
-    SendTask outTask;
-    SendTaskInfo outTaskInfo;
-    uint32_t totalLength = 0;
-    // high priority target C
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_C);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::HIGH);
-    scheduler.FinalizeLastScheduleTask();
-    // high priority target A
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_A);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::HIGH);
-    scheduler.FinalizeLastScheduleTask();
-    // normal priority target B
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_B);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::NORMAL);
-    scheduler.FinalizeLastScheduleTask();
-    // normal priority target C
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_C);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::NORMAL);
-    scheduler.FinalizeLastScheduleTask();
-    // low priority target A
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_A);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::LOW);
-    scheduler.FinalizeLastScheduleTask();
-    // low priority target B
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
-    ASSERT_EQ(errCode, E_OK);
-    EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_B);
-    EXPECT_EQ(outTaskInfo.taskPrio, Priority::LOW);
-    scheduler.FinalizeLastScheduleTask();
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStore" };
+    kvStore_ = nullptr;
+    auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 }
 
-/**
- * @tc.name: Fragment 001
- * @tc.desc: Test fragmentation in send and receive
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment001, TestSize.Level2)
+std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(
+    std::string storeIdTest, KvStoreType type, bool encrypt, bool backup)
 {
-    // Preset
-    Message *recvMsgForBB = nullptr;
-    g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
-        recvMsgForBB = inMsg;
-    }, nullptr);
+    Options options;
+    options.kvStoreType = type;
+    options.securityLevel = S1;
+    options.encrypt = encrypt;
+    options.area = EL1;
+    options.backup = backup;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
 
-    /**
-     * @tc.steps: step1. connect device A with device B
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-
-    /**
-     * @tc.steps: step2. device A send message(registered and giant) to device B using communicator AB
-     * @tc.expected: step2. communicator BB received the message
-     */
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForAB, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsgForAB, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2600)); // Wait 2600 ms to make sure send done
-    ASSERT_NE(recvMsgForBB, nullptr);
-    ASSERT_EQ(recvMsgForBB->GetMessageId(), REGED_GIANT_MSG_ID);
-
-    /**
-     * @tc.steps: step3. Compare received data with send data
-     * @tc.expected: step3. equal
-     */
-    Message *oriMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(oriMsgForAB, nullptr);
-    const RegedGiantObject *oriObjForAB = oriMsgForAB->GetObject<RegedGiantObject>();
-    ASSERT_NE(oriObjForAB, nullptr);
-    const RegedGiantObject *recvObjForBB = recvMsgForBB->GetObject<RegedGiantObject>();
-    ASSERT_NE(recvObjForBB, nullptr);
-    bool isEqual = RegedGiantObject::CheckEqual(*oriObjForAB, *recvObjForBB);
-    EXPECT_EQ(isEqual, true);
-
-    // CleanUp
-    delete oriMsgForAB;
-    oriMsgForAB = nullptr;
-    delete recvMsgForBB;
-    recvMsgForBB = nullptr;
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { storeIdTest };
+    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
+    return StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
 }
 
-/**
- * @tc.name: Fragment 002
- * @tc.desc: Test fragmentation in partial loss
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment002, TestSize.Level2)
+std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosync)
 {
-    // Preset
-    Message *recvMsgForCC = nullptr;
-    g_commCC->RegOnMessageCallback([&recvMsgForCC](const std::string &srcTarget, Message *inMsg) {
-        recvMsgForCC = inMsg;
-    }, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device B with device C
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure quiet
-
-    /**
-     * @tc.steps: step2. device B simulate partial loss
-     */
-    g_envDeviceB.adapterHandle->SimulateSendPartialLoss();
-
-    /**
-     * @tc.steps: step3. device B send message(registered and giant) to device C using communicator BC
-     * @tc.expected: step3. communicator CC not receive the message
-     */
-    uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsgForBC = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForBC, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commBC->SendMessage(DEVICE_NAME_C, sendMsgForBC, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(2600)); // Wait 2600 ms to make sure send done
-    EXPECT_EQ(recvMsgForCC, nullptr);
-
-    /**
-     * @tc.steps: step4. device B not simulate partial loss
-     */
-    g_envDeviceB.adapterHandle->SimulateSendPartialLossClear();
-
-    /**
-     * @tc.steps: step5. device B send message(registered and giant) to device C using communicator BC
-     * @tc.expected: step5. communicator CC received the message, the length equal to the one that is second send
-     */
-    dataLength = 17 * 1024 * 1024; // 17 MB, 1024 is scale
-    Message *resendMsgForBC = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(resendMsgForBC, nullptr);
-    errCode = g_commBC->SendMessage(DEVICE_NAME_C, resendMsgForBC, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(3400)); // Wait 3400 ms to make sure send done
-    ASSERT_NE(recvMsgForCC, nullptr);
-    ASSERT_EQ(recvMsgForCC->GetMessageId(), REGED_GIANT_MSG_ID);
-    const RegedGiantObject *recvObjForCC = recvMsgForCC->GetObject<RegedGiantObject>();
-    ASSERT_NE(recvObjForCC, nullptr);
-    EXPECT_EQ(dataLength, recvObjForCC->rawData_.size());
-
-    // CleanUp
-    delete recvMsgForCC;
-    recvMsgForCC = nullptr;
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-}
-
-/**
- * @tc.name: Fragment 003
- * @tc.desc: Test fragmentation simultaneously
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
-{
-    // Preset
-    std::atomic<int> count {0};
-    OnMessageCallback callback = [&count](const std::string &srcTarget, Message *inMsg) {
-        delete inMsg;
-        inMsg = nullptr;
-        count.fetch_add(1, std::memory_order_seq_cst);
-    };
-    g_commBB->RegOnMessageCallback(callback, nullptr);
-    g_commBC->RegOnMessageCallback(callback, nullptr);
-
-    /**
-     * @tc.steps: step1. connect device A with device B, then device B with device C
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::milliseconds(400)); // Wait 400 ms to make sure quiet
-
-    /**
-     * @tc.steps: step2. device A and device C simulate send block
-     */
-    g_envDeviceA.adapterHandle->SimulateSendBlock();
-    g_envDeviceC.adapterHandle->SimulateSendBlock();
-
-    /**
-     * @tc.steps: step3. device A send message(registered and giant) to device B using communicator AB
-     */
-    uint32_t dataLength = 23 * 1024 * 1024; // 23 MB, 1024 is scale
-    Message *sendMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForAB, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsgForAB, conf);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step4. device C send message(registered and giant) to device B using communicator CC
-     */
-    Message *sendMsgForCC = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsgForCC, nullptr);
-    errCode = g_commCC->SendMessage(DEVICE_NAME_B, sendMsgForCC, conf);
-    EXPECT_EQ(errCode, E_OK);
-
-    /**
-     * @tc.steps: step5. device A and device C not simulate send block
-     * @tc.expected: step5. communicator BB and BV received the message
-     */
-    g_envDeviceA.adapterHandle->SimulateSendBlockClear();
-    g_envDeviceC.adapterHandle->SimulateSendBlockClear();
-    std::this_thread::sleep_for(std::chrono::milliseconds(9200)); // Wait 9200 ms to make sure send done
-    EXPECT_EQ(count, 2); // 2 combined message received
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-}
-
-/**
- * @tc.name: Fragment 004
- * @tc.desc: Test fragmentation in send and receive when rate limit
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
-{
-    /**
-     * @tc.steps: step1. connect device A with device B
-     */
-    Message *recvMsgForBB = nullptr;
-    g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
-        recvMsgForBB = inMsg;
-    }, nullptr);
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    std::atomic<int> count = 0;
-    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
-        count++;
-        if (count % 3 == 0) { // retry each 3 packet
-            return -E_WAIT_RETRY;
-        }
-        return E_OK;
-    });
-    /**
-     * @tc.steps: step2. device A send message(registered and giant) to device B using communicator AB
-     * @tc.expected: step2. communicator BB received the message
-     */
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsg = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
-    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
-    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B);
-    int reTryTimes = 5;
-    while (recvMsgForBB == nullptr && reTryTimes > 0) {
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        reTryTimes--;
-    }
-    ASSERT_NE(recvMsgForBB, nullptr);
-    ASSERT_EQ(recvMsgForBB->GetMessageId(), REGED_GIANT_MSG_ID);
-    /**
-     * @tc.steps: step3. Compare received data with send data
-     * @tc.expected: step3. equal
-     */
-    Message *oriMsgForAB = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(oriMsgForAB, nullptr);
-    auto *recvObjForBB = recvMsgForBB->GetObject<RegedGiantObject>();
-    ASSERT_NE(recvObjForBB, nullptr);
-    auto *oriObjForAB = oriMsgForAB->GetObject<RegedGiantObject>();
-    ASSERT_NE(oriObjForAB, nullptr);
-    bool isEqual = RegedGiantObject::CheckEqual(*oriObjForAB, *recvObjForBB);
-    EXPECT_EQ(isEqual, true);
-    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    delete oriMsgForAB;
-    oriMsgForAB = nullptr;
-    delete recvMsgForBB;
-    recvMsgForBB = nullptr;
-}
-
-namespace {
-void ClearPreviousTestCaseInfluence()
-{
-    ReleaseAllCommunicator();
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-    std::this_thread::sleep_for(std::chrono::seconds(10)); // Wait 10 s to make sure all thread quiet
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-    AllocAllCommunicator();
-}
-}
-
-/**
- * @tc.name: ReliableOnline 001
- * @tc.desc: Test device online reliability
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiaozhenjian
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, ReliableOnline001, TestSize.Level2)
-{
-    // Preset
-    ClearPreviousTestCaseInfluence();
-    std::atomic<int> count {0};
-    OnConnectCallback callback = [&count](const std::string &target, bool isConnect) {
-        if (isConnect) {
-            count.fetch_add(1, std::memory_order_seq_cst);
-        }
-    };
-    g_commAA->RegOnConnectCallback(callback, nullptr);
-    g_commAB->RegOnConnectCallback(callback, nullptr);
-    g_commBB->RegOnConnectCallback(callback, nullptr);
-    g_commBC->RegOnConnectCallback(callback, nullptr);
-    g_commCC->RegOnConnectCallback(callback, nullptr);
-    g_commCA->RegOnConnectCallback(callback, nullptr);
-
-    /**
-     * @tc.steps: step1. device A and device B and device C simulate send total loss
-     */
-    g_envDeviceA.adapterHandle->SimulateSendTotalLoss();
-    g_envDeviceB.adapterHandle->SimulateSendTotalLoss();
-    g_envDeviceC.adapterHandle->SimulateSendTotalLoss();
-
-    /**
-     * @tc.steps: step2. connect device A with device B, device B with device C, device C with device A
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::ConnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-
-    /**
-     * @tc.steps: step3. wait a long time
-     * @tc.expected: step3. no communicator received the online callback
-     */
-    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure quiet
-    EXPECT_EQ(count, 0); // no online callback received
-
-    /**
-     * @tc.steps: step4. device A and device B and device C not simulate send total loss
-     */
-    g_envDeviceA.adapterHandle->SimulateSendTotalLossClear();
-    g_envDeviceB.adapterHandle->SimulateSendTotalLossClear();
-    g_envDeviceC.adapterHandle->SimulateSendTotalLossClear();
-    std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait 7 s to make sure send done
-    EXPECT_EQ(count, 6); // 6 online callback received in total
-
-    // CleanUp
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
-}
-
-/**
- * @tc.name: NetworkAdapter001
- * @tc.desc: Test networkAdapter start func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    EXPECT_CALL(*processCommunicator, Stop()).WillRepeatedly(testing::Return(OK));
-    /**
-     * @tc.steps: step1. adapter start with empty label
-     * @tc.expected: step1. start failed
-     */
-    auto adapter = std::make_shared<NetworkAdapter>("");
-    EXPECT_EQ(adapter->StartAdapter(), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step2. adapter start with not empty label but processCommunicator is null
-     * @tc.expected: step2. start failed
-     */
-    adapter = std::make_shared<NetworkAdapter>("label");
-    EXPECT_EQ(adapter->StartAdapter(), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step3. processCommunicator start not ok
-     * @tc.expected: step3. start failed
-     */
-    adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly(testing::Return(DB_ERROR));
-    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    /**
-     * @tc.steps: step4. processCommunicator reg not ok
-     * @tc.expected: step4. start failed
-     */
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly(testing::Return(OK));
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(testing::Return(DB_ERROR));
-    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(testing::Return(OK));
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(testing::Return(DB_ERROR));
-    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    /**
-     * @tc.steps: step5. processCommunicator reg ok
-     * @tc.expected: step5. start success
-     */
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(testing::Return(OK));
-    EXPECT_CALL(*processCommunicator, GetLocalDeviceInfos).WillRepeatedly([]() {
-        DeviceInfos deviceInfos;
-        deviceInfos.identifier = "DEVICES_A"; // local is deviceA
-        return deviceInfos;
-    });
-    EXPECT_CALL(*processCommunicator, GetRemoteOnlineDeviceInfosList).WillRepeatedly([]() {
-        std::vector<DeviceInfos> res;
-        DeviceInfos deviceInfos;
-        deviceInfos.identifier = "DEVICES_A"; // search local is deviceA
-        res.push_back(deviceInfos);
-        deviceInfos.identifier = "DEVICES_B"; // search remote is deviceB
-        res.push_back(deviceInfos);
-        return res;
-    });
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return false;
-    });
-    EXPECT_EQ(adapter->StartAdapter(), E_OK);
-    RuntimeContext::GetInstance()->StopTaskPool();
-}
-
-/**
- * @tc.name: NetworkAdapter002
- * @tc.desc: Test networkAdapter get mtu func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter002, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    /**
-     * @tc.steps: step1. processCommunicator return 0 mtu
-     * @tc.expected: step1. adapter will adjust to min mtu
-     */
-    EXPECT_CALL(*processCommunicator, GetMtuSize).WillRepeatedly([]() {
-        return 0u;
-    });
-    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MIN_MTU_SIZE);
-    /**
-     * @tc.steps: step2. processCommunicator return 2 max mtu
-     * @tc.expected: step2. adapter will return min mtu util re make
-     */
-    EXPECT_CALL(*processCommunicator, GetMtuSize).WillRepeatedly([]() {
-        return 2 * DBConstant::MAX_MTU_SIZE;
-    });
-    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MIN_MTU_SIZE);
-    adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MAX_MTU_SIZE);
-}
-
-/**
- * @tc.name: NetworkAdapter003
- * @tc.desc: Test networkAdapter get timeout func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter003, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    /**
-     * @tc.steps: step1. processCommunicator return 0 timeout
-     * @tc.expected: step1. adapter will adjust to min timeout
-     */
-    EXPECT_CALL(*processCommunicator, GetTimeout).WillRepeatedly([]() {
-        return 0u;
-    });
-    EXPECT_EQ(adapter->GetTimeout(), DBConstant::MIN_TIMEOUT);
-    /**
-     * @tc.steps: step2. processCommunicator return 2 max timeout
-     * @tc.expected: step2. adapter will adjust to max timeout
-     */
-    EXPECT_CALL(*processCommunicator, GetTimeout).WillRepeatedly([]() {
-        return 2 * DBConstant::MAX_TIMEOUT;
-    });
-    EXPECT_EQ(adapter->GetTimeout(), DBConstant::MAX_TIMEOUT);
-}
-
-/**
- * @tc.name: NetworkAdapter004
- * @tc.desc: Test networkAdapter send bytes func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter004, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-
-    EXPECT_CALL(*processCommunicator, SendData).WillRepeatedly([](const DeviceInfos &, const uint8_t *, uint32_t) {
-        return OK;
-    });
-    /**
-     * @tc.steps: step1. adapter send data with error param
-     * @tc.expected: step1. adapter send failed
-     */
-    auto data = std::make_shared<uint8_t>(1u);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1, 0), -E_INVALID_ARGS);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0, 0), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step2. adapter send data with right param
-     * @tc.expected: step2. adapter send ok
-     */
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1, 0), E_OK);
-    RuntimeContext::GetInstance()->StopTaskPool();
-}
-
-namespace {
-void InitAdapter(const std::shared_ptr<NetworkAdapter> &adapter,
-    const std::shared_ptr<MockProcessCommunicator> &processCommunicator,
-    OnDataReceive &onDataReceive, OnDeviceChange &onDataChange)
-{
-    EXPECT_CALL(*processCommunicator, Stop).WillRepeatedly([]() {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(
-        [&onDataReceive](const OnDataReceive &callback) {
-            onDataReceive = callback;
-            return OK;
-    });
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(
-        [&onDataChange](const OnDeviceChange &callback) {
-            onDataChange = callback;
-            return OK;
-    });
-    EXPECT_CALL(*processCommunicator, GetRemoteOnlineDeviceInfosList).WillRepeatedly([]() {
-        std::vector<DeviceInfos> res;
-        return res;
-    });
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return false;
-    });
-    EXPECT_EQ(adapter->StartAdapter(), E_OK);
-}
-}
-/**
- * @tc.name: NetworkAdapter005
- * @tc.desc: Test networkAdapter receive data func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    OnDataReceive onDataReceive;
-    OnDeviceChange onDeviceChange;
-    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
-    ASSERT_NE(onDataReceive, nullptr);
-    /**
-     * @tc.steps: step1. adapter recv data with error param
-     */
-    auto data = std::make_shared<uint8_t>(1);
-    DeviceInfos deviceInfos;
-    onDataReceive(deviceInfos, nullptr, 1);
-    onDataReceive(deviceInfos, data.get(), 0);
-    /**
-     * @tc.steps: step2. adapter recv data with no permission
-     */
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](DataHeadInfo, uint32_t &) {
-        return NO_PERMISSION;
-    });
-    onDataReceive(deviceInfos, data.get(), 1);
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillRepeatedly([](DataHeadInfo, uint32_t &) {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, GetDataUserInfo).WillRepeatedly(
-        [](DataUserInfo, std::vector<UserInfo> &userInfos) {
-            UserInfo userId = {"1"};
-            userInfos.emplace_back(userId);
-            return OK;
-    });
-    /**
-     * @tc.steps: step3. adapter recv data with no callback
-     */
-    onDataReceive(deviceInfos, data.get(), 1);
-    adapter->RegBytesReceiveCallback([](const ReceiveBytesInfo &, const DataUserInfoProc &) {
-    }, nullptr);
-    onDataReceive(deviceInfos, data.get(), 1);
-    RuntimeContext::GetInstance()->StopTaskPool();
-}
-
-/**
- * @tc.name: NetworkAdapter006
- * @tc.desc: Test networkAdapter device change func
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    OnDataReceive onDataReceive;
-    OnDeviceChange onDeviceChange;
-    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
-    ASSERT_NE(onDeviceChange, nullptr);
-    DeviceInfos deviceInfos;
-    /**
-     * @tc.steps: step1. onDeviceChange with no same process
-     */
-    onDeviceChange(deviceInfos, true);
-    /**
-     * @tc.steps: step2. onDeviceChange with same process
-     */
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return true;
-    });
-    onDeviceChange(deviceInfos, true);
-    adapter->RegTargetChangeCallback([](const std::string &, bool) {
-    }, nullptr);
-    onDeviceChange(deviceInfos, false);
-    /**
-     * @tc.steps: step3. adapter send data with db_error
-     * @tc.expected: step3. adapter send failed
-     */
-    onDeviceChange(deviceInfos, true);
-    EXPECT_CALL(*processCommunicator, SendData).WillRepeatedly([](const DeviceInfos &, const uint8_t *, uint32_t) {
-        return DB_ERROR;
-    });
-    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
-        return false;
-    });
-    auto data = std::make_shared<uint8_t>(1);
-    EXPECT_EQ(adapter->SendBytes("", data.get(), 1, 0), static_cast<int>(DB_ERROR));
-    RuntimeContext::GetInstance()->StopTaskPool();
-    EXPECT_EQ(adapter->IsDeviceOnline(""), false);
-    ExtendInfo info;
-    EXPECT_EQ(adapter->GetExtendHeaderHandle(info), nullptr);
-}
-
-/**
- * @tc.name: NetworkAdapter007
- * @tc.desc: Test networkAdapter recv invalid head length
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
-{
-    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    auto adapter = std::make_shared<NetworkAdapter>("NetworkAdapter007", processCommunicator);
-    OnDataReceive onDataReceive;
-    OnDeviceChange onDeviceChange;
-    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
-    ASSERT_NE(onDeviceChange, nullptr);
-    /**
-     * @tc.steps: step1. GetDataHeadInfo return invalid headLen
-     * @tc.expected: step1. adapter check this len
-     */
-    EXPECT_CALL(*processCommunicator, GetDataHeadInfo).WillOnce([](DataHeadInfo, uint32_t &headLen) {
-        headLen = UINT32_MAX;
-        return OK;
-    });
-    /**
-     * @tc.steps: step2. Adapter ignore data because len is too large
-     * @tc.expected: step2. BytesReceive never call
-     */
-    int callByteReceiveCount = 0;
-    int res = adapter->RegBytesReceiveCallback([&callByteReceiveCount](const ReceiveBytesInfo &,
-        const DataUserInfoProc &) {
-            printf("callByteReceiveCount++;");
-        callByteReceiveCount++;
-    }, nullptr);
-    EXPECT_EQ(res, E_OK);
-    std::vector<uint8_t> data = { 1u };
-    DeviceInfos deviceInfos;
-    onDataReceive(deviceInfos, data.data(), 1u);
-    printf("callByteReceiveCount++%d;", callByteReceiveCount);
-    EXPECT_EQ(callByteReceiveCount, 0);
-}
-
-/**
- * @tc.name: RetrySendExceededLimit001
- * @tc.desc: Test send result when the number of retry times exceeds the limit
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit001, TestSize.Level2)
-{
-    /**
-     * @tc.steps: step1. connect device A with device B and fork SendBytes
-     * @tc.expected: step1. operation OK
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    std::atomic<int> count = 0;
-    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
-        count++;
-        return -E_WAIT_RETRY;
-    });
-
-    /**
-     * @tc.steps: step2. the number of retry times for device A to send a message exceeds the limit
-     * @tc.expected: step2. sendResult fail
-     */
-    std::vector<std::pair<int, bool>> sendResult;
-    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
-        sendResult.push_back(std::pair<int, bool>(result, isDirectEnd));
-    };
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsg = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
-    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier);
-    EXPECT_EQ(errCode, E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
-    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
-    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B, -E_BASE);
-    int reTryTimes = 5;
-    while ((count < 4) && (reTryTimes > 0)) { // Wait to make sure retry exceeds the limit
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        reTryTimes--;
-    }
-    ASSERT_EQ(sendResult.size(), static_cast<size_t>(1)); // only one callback result notification
-    EXPECT_EQ(sendResult[0].first, -E_BASE); // index 0 retry fail
-    EXPECT_EQ(sendResult[0].second, false);
-
-    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-}
-
-/**
- * @tc.name: RetrySendExceededLimit002
- * @tc.desc: Test multi thread call SendableCallback when the number of retry times exceeds the limit
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: suyue
- */
-HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit002, TestSize.Level2)
-{
-    /**
-     * @tc.steps: step1. DeviceA send SendMessage and set SendBytes interface return -E_WAIT_RETRY
-     * @tc.expected: step1. Send ok
-     */
-    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
-    std::atomic<int> count = 0;
-    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
-        count++;
-        return -E_WAIT_RETRY;
-    });
-    std::vector<std::pair<int, bool>> sendResult;
-    auto sendResultNotifier = [&sendResult](int result, bool isDirectEnd) {
-        sendResult.push_back(std::pair<int, bool>(result, isDirectEnd));
-    };
-    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
-    Message *sendMsg = BuildRegedGiantMessage(dataLength);
-    ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
-    EXPECT_EQ(g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier), E_OK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
-
-    /**
-     * @tc.steps: step2. Triggering multi thread call SendableCallback interface and set errorCode
-     * @tc.expected: step2. Callback success
-     */
-    std::vector<std::thread> threads;
-    int threadNum = 3;
-    threads.reserve(threadNum);
-    for (int n = 0; n < threadNum; n++) {
-        threads.emplace_back([&]() {
-            g_envDeviceA.adapterHandle->SimulateTriggerSendableCallback(DEVICE_NAME_B, -E_BASE);
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DestructorTest" };
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S2;
+    options.area = EL1;
+    options.autoSync = autosync;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    StoreFactory storeFactory;
+    auto dbManager = storeFactory.GetDBManager(options.baseDir, appId);
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+    DBStatus dbStatus = DBStatus::DB_ERROR;
+    dbManager->GetKvStore(storeId, storeFactory.GetDBOption(options, dbPassword),
+        [&dbManager, &kvStore, &appId, &dbStatus, &options, &storeFactory](auto status, auto *store) {
+            dbStatus = status;
+            if (store == nullptr) {
+                return;
+            }
+            auto release = [dbManager](auto *store) {
+                dbManager->CloseKvStore(store);
+            };
+            auto dbStore = std::shared_ptr<DBStore>(store, release);
+            storeFactory.SetDbConfig(dbStore);
+            const Convertor &convertor = *(storeFactory.convertors_[options.kvStoreType]);
+            kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
         });
-    }
-    for (std::thread &t : threads) {
-        t.join();
-    }
-
-    /**
-     * @tc.steps: step3. Make The number of messages sent by device A exceed the limit
-     * @tc.expected: step3. SendResult is the errorCode set by SendableCallback interface
-     */
-    int reTryTimes = 5;
-    while ((count < 4) && (reTryTimes > 0)) {
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        reTryTimes--;
-    }
-    ASSERT_EQ(sendResult.size(), static_cast<size_t>(1));
-    EXPECT_EQ(sendResult[0].first, -E_BASE);
-    EXPECT_EQ(sendResult[0].second, false);
-    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
-    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    return kvStore;
 }
 
+/**
+ * @tc.name: GetStoreId
+ * @tc.desc: get the store id of the kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetStoreId, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto storeId = kvStore_->GetStoreId();
+    ASSERT_EQ(storeId.storeId, "SingleKVStore");
+}
+
+/**
+ * @tc.name: GetSubUser
+ * @tc.desc: get the subUser of the kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetSubUser, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto subUser = kvStore_->GetSubUser();
+    ASSERT_EQ(subUser, 0);
+}
+
+/**
+ * @tc.name: Put
+ * @tc.desc: put key-value data to the kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->Put({ "   Put Test" }, { "Put2 Value" });
+    ASSERT_EQ(status, SUCCESS);
+    Value value;
+    status = kvStore_->Get({ "Put Test" }, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "Put2 Value");
+}
+
+/**
+ * @tc.name: Put_Invalid_Key
+ * @tc.desc: put invalid key-value data to the device kv store and single kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, Put_Invalid_Key, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    size_t maxDevKeyLen = 897;
+    std::string str(maxDevKeyLen, 'a');
+    Blob key(str);
+    Blob value("test_value");
+    Status status = kvStore->Put(key, value);
+    EXPECT_EQ(status, INVALID_ARGUMENT);
+
+    Blob key1("");
+    Blob value1("test_value1");
+    status = kvStore->Put(key1, value1);
+    EXPECT_EQ(status, INVALID_ARGUMENT);
+
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+
+    size_t maxSingleKeyLen = 1025;
+    std::string str1(maxSingleKeyLen, 'b');
+    Blob key2(str1);
+    Blob value2("test_value2");
+    status = kvStore_->Put(key2, value2);
+    EXPECT_EQ(status, INVALID_ARGUMENT);
+
+    status = kvStore_->Put(key1, value1);
+    EXPECT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: PutBatch
+ * @tc.desc: put some key-value data to the kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, PutBatch, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> entries;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        entries.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetStoreId
+ * @tc.desc: test IsRebuild
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, IsRebuild, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->IsRebuild();
+    ASSERT_EQ(status, false);
+}
+
+/**
+ * @tc.name: PutBatch001
+ * @tc.desc: entry.value.Size() > MAX_VALUE_LENGTH
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, PutBatch001, TestSize.Level1)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    size_t totalLength = SingleStoreImpl::MAX_VALUE_LENGTH + 1; // create an out-of-limit large number
+    char fillChar = 'a';
+    std::string longString(totalLength, fillChar);
+    std::vector<Entry> entries;
+    Entry entry;
+    entry.key = "PutBatch001_test";
+    entry.value = longString;
+    entries.push_back(entry);
+    auto status = kvStore_->PutBatch(entries);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    entries.clear();
+    Entry entrys;
+    entrys.key = "";
+    entrys.value = "PutBatch001_test_value";
+    entries.push_back(entrys);
+    status = kvStore_->PutBatch(entries);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: Delete
+ * @tc.desc: delete the value of the key
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, Delete, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    Value value;
+    status = kvStore_->Get({ "Put Test" }, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(std::string("Put Value"), value.ToString());
+    status = kvStore_->Delete({ "Put Test" });
+    ASSERT_EQ(status, SUCCESS);
+    value = {};
+    status = kvStore_->Get({ "Put Test" }, value);
+    ASSERT_EQ(status, KEY_NOT_FOUND);
+    ASSERT_EQ(std::string(""), value.ToString());
+}
+
+/**
+ * @tc.name: DeleteBatch
+ * @tc.desc: delete the values of the keys
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DeleteBatch, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> entries;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        entries.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+    std::vector<Key> keys;
+    for (int i = 0; i < 10; ++i) {
+        Key key = std::to_string(i).append("_k");
+        keys.push_back(key);
+    }
+    status = kvStore_->DeleteBatch(keys);
+    ASSERT_EQ(status, SUCCESS);
+    for (int i = 0; i < 10; ++i) {
+        Value value;
+        status = kvStore_->Get(keys[i], value);
+        ASSERT_EQ(status, KEY_NOT_FOUND);
+        ASSERT_EQ(value.ToString(), std::string(""));
+    }
+}
+
+/**
+ * @tc.name: Transaction
+ * @tc.desc: do transaction
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, Transaction, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->StartTransaction();
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->Commit();
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore_->StartTransaction();
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->Rollback();
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: SubscribeKvStore
+ * @tc.desc: subscribe local
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto observer = std::make_shared<TestObserver>();
+    auto status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_CLOUD, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
+    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_CLOUD, observer);
+    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+    bool invalidValue = false;
+    observer->data_->Clear(invalidValue);
+    status = kvStore_->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_TRUE(observer->data_->GetValue());
+    ASSERT_EQ(observer->insert_.size(), 1);
+    ASSERT_EQ(observer->update_.size(), 0);
+    ASSERT_EQ(observer->delete_.size(), 0);
+    observer->data_->Clear(invalidValue);
+    status = kvStore_->Put({ "Put Test" }, { "Put Value1" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_TRUE(observer->data_->GetValue());
+    ASSERT_EQ(observer->insert_.size(), 0);
+    ASSERT_EQ(observer->update_.size(), 1);
+    ASSERT_EQ(observer->delete_.size(), 0);
+    observer->data_->Clear(invalidValue);
+    status = kvStore_->Delete({ "Put Test" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_TRUE(observer->data_->GetValue());
+    ASSERT_EQ(observer->insert_.size(), 0);
+    ASSERT_EQ(observer->update_.size(), 0);
+    ASSERT_EQ(observer->delete_.size(), 1);
+}
+
+/**
+ * @tc.name: SubscribeKvStore002
+ * @tc.desc: subscribe local
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::shared_ptr<TestObserver> subscribedObserver;
+    std::shared_ptr<TestObserver> unSubscribedObserver;
+    for (int i = 0; i < 15; ++i) {
+        auto observer = std::make_shared<TestObserver>();
+        auto status1 = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+        auto status2 = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
+        if (i < 8) {
+            ASSERT_EQ(status1, SUCCESS);
+            ASSERT_EQ(status2, SUCCESS);
+            subscribedObserver = observer;
+        } else {
+            ASSERT_EQ(status1, OVER_MAX_LIMITS);
+            ASSERT_EQ(status2, OVER_MAX_LIMITS);
+            unSubscribedObserver = observer;
+        }
+    }
+
+    auto status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, subscribedObserver);
+    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, {});
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, subscribedObserver);
+    ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
+
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, subscribedObserver);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, subscribedObserver);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, subscribedObserver);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_ALL, subscribedObserver);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, unSubscribedObserver);
+    ASSERT_EQ(status, SUCCESS);
+    subscribedObserver = unSubscribedObserver;
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, subscribedObserver);
+    ASSERT_EQ(status, SUCCESS);
+    auto observer = std::make_shared<TestObserver>();
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    ASSERT_EQ(status, SUCCESS);
+    observer = std::make_shared<TestObserver>();
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    ASSERT_EQ(status, OVER_MAX_LIMITS);
+}
+
+/**
+ * @tc.name: SubscribeKvStore003
+ * @tc.desc: isClientSync_
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SubscribeKvStore003, TestSize.Level0)
+{
+    auto observer = std::make_shared<TestObserver>();
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    kvStore->isClientSync_ = true;
+    auto status = kvStore->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: UnsubscribeKvStore
+ * @tc.desc: unsubscribe
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, UnsubscribeKvStore, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto observer = std::make_shared<TestObserver>();
+    auto status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_CLOUD, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_REMOTE, observer);
+    ASSERT_EQ(status, STORE_NOT_SUBSCRIBE);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, STORE_NOT_SUBSCRIBE);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    ASSERT_EQ(status, STORE_NOT_SUBSCRIBE);
+    status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_LOCAL, observer);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnSubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetEntries
+ * @tc.desc: get entries by prefix
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::vector<Entry> output;
+    status = kvStore_->GetEntries({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    std::sort(output.begin(), output.end(), [](const Entry &entry, const Entry &sentry) {
+        return entry.key.Data() < sentry.key.Data();
+    });
+    for (int i = 0; i < 10; ++i) {
+        ASSERT_TRUE(input[i].key == output[i].key);
+        ASSERT_TRUE(input[i].value == output[i].value);
+    }
+}
+
+/**
+ * @tc.name: GetEntries_Less_Prefix
+ * @tc.desc: get entries by prefix and the key size less than sizeof(uint32_t)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        input.push_back(entry);
+    }
+    auto status = kvStore->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::vector<Entry> output;
+    status = kvStore->GetEntries({ "1" }, output);
+    ASSERT_NE(output.empty(), true);
+    ASSERT_EQ(status, SUCCESS);
+
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::vector<Entry> output1;
+    status = kvStore_->GetEntries({ "1" }, output1);
+    ASSERT_NE(output1.empty(), true);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetEntries_Greater_Prefix
+ * @tc.desc: get entries by prefix and the key size is greater than  sizeof(uint32_t)
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    size_t keyLen = sizeof(uint32_t);
+    std::vector<Entry> input;
+    for (int i = 1; i < 10; ++i) {
+        Entry entry;
+        std::string str(keyLen, i + '0');
+        entry.key = str;
+        entry.value = std::to_string(i).append("_v");
+        input.push_back(entry);
+    }
+    auto status = kvStore->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::vector<Entry> output;
+    std::string str1(keyLen, '1');
+    status = kvStore->GetEntries(str1, output);
+    ASSERT_NE(output.empty(), true);
+    ASSERT_EQ(status, SUCCESS);
+
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::vector<Entry> output1;
+    status = kvStore_->GetEntries(str1, output1);
+    ASSERT_NE(output1.empty(), true);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetEntries
+ * @tc.desc: get entries by query
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    DataQuery query;
+    query.InKeys({ "0_k", "1_k" });
+    std::vector<Entry> output;
+    status = kvStore_->GetEntries(query, output);
+    ASSERT_EQ(status, SUCCESS);
+    std::sort(output.begin(), output.end(), [](const Entry &entry, const Entry &sentry) {
+        return entry.key.Data() < sentry.key.Data();
+    });
+    ASSERT_LE(output.size(), 2);
+    for (size_t i = 0; i < output.size(); ++i) {
+        ASSERT_TRUE(input[i].key == output[i].key);
+        ASSERT_TRUE(input[i].value == output[i].value);
+    }
+}
+
+/**
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set by prefix
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetResultSet_Prefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::shared_ptr<KvStoreResultSet> output;
+    status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_EQ(output->GetCount(), 10);
+    int count = 0;
+    while (output->MoveToNext()) {
+        count++;
+        Entry entry;
+        output->GetEntry(entry);
+        ASSERT_EQ(entry.value.Data(), dictionary[entry.key].Data());
+    }
+    ASSERT_EQ(count, output->GetCount());
+}
+
+/**
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set by query
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    DataQuery query;
+    query.InKeys({ "0_k", "1_k" });
+    std::shared_ptr<KvStoreResultSet> output;
+    status = kvStore_->GetResultSet(query, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_LE(output->GetCount(), 2);
+    int count = 0;
+    while (output->MoveToNext()) {
+        count++;
+        Entry entry;
+        output->GetEntry(entry);
+        ASSERT_EQ(entry.value.Data(), dictionary[entry.key].Data());
+    }
+    ASSERT_EQ(count, output->GetCount());
+}
+
+/**
+ * @tc.name: CloseResultSet
+ * @tc.desc: close the result set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    DataQuery query;
+    query.InKeys({ "0_k", "1_k" });
+    std::shared_ptr<KvStoreResultSet> output;
+    status = kvStore_->GetResultSet(query, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_LE(output->GetCount(), 2);
+    auto outputTmp = output;
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(output, nullptr);
+    ASSERT_EQ(outputTmp->GetCount(), KvStoreResultSet::INVALID_COUNT);
+    ASSERT_EQ(outputTmp->GetPosition(), KvStoreResultSet::INVALID_POSITION);
+    ASSERT_EQ(outputTmp->MoveToFirst(), false);
+    ASSERT_EQ(outputTmp->MoveToLast(), false);
+    ASSERT_EQ(outputTmp->MoveToNext(), false);
+    ASSERT_EQ(outputTmp->MoveToPrevious(), false);
+    ASSERT_EQ(outputTmp->Move(1), false);
+    ASSERT_EQ(outputTmp->MoveToPosition(1), false);
+    ASSERT_EQ(outputTmp->IsFirst(), false);
+    ASSERT_EQ(outputTmp->IsLast(), false);
+    ASSERT_EQ(outputTmp->IsBeforeFirst(), false);
+    ASSERT_EQ(outputTmp->IsAfterLast(), false);
+    Entry entry;
+    ASSERT_EQ(outputTmp->GetEntry(entry), ALREADY_CLOSED);
+}
+
+/**
+ * @tc.name: CloseResultSet001
+ * @tc.desc: output = nullptr;
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseResultSet001, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::shared_ptr<KvStoreResultSet> output;
+    output = nullptr;
+    auto status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: ResultSetMaxSizeTest
+ * @tc.desc: test if kv supports 8 resultSets at the same time
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Query, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = "k_" + std::to_string(i);
+        entry.value = "v_" + std::to_string(i);
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    DataQuery query;
+    query.KeyPrefix("k_");
+    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE + 1);
+    for (int i = 0; i < MAX_RESULTSET_SIZE; i++) {
+        std::shared_ptr<KvStoreResultSet> output;
+        status = kvStore_->GetResultSet(query, outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+    /**
+     * @tc.steps:step3. Get the resultset while resultset size is over the limit.
+     * @tc.expected: step3. Returns OVER_MAX_LIMITS.
+     */
+    status = kvStore_->GetResultSet(query, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, OVER_MAX_LIMITS);
+    /**
+     * @tc.steps:step4. Close the resultset and getting the resultset is retried
+     * @tc.expected: step4. Returns SUCCESS.
+     */
+    status = kvStore_->CloseResultSet(outputs[0]);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->GetResultSet(query, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, SUCCESS);
+
+    for (int i = 1; i <= MAX_RESULTSET_SIZE; i++) {
+        status = kvStore_->CloseResultSet(outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+}
+
+/**
+ * @tc.name: ResultSetMaxSizeTest
+ * @tc.desc: test if kv supports 8 resultSets at the same time
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = "k_" + std::to_string(i);
+        entry.value = "v_" + std::to_string(i);
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE + 1);
+    for (int i = 0; i < MAX_RESULTSET_SIZE; i++) {
+        std::shared_ptr<KvStoreResultSet> output;
+        status = kvStore_->GetResultSet({ "k_i" }, outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+    /**
+     * @tc.steps:step3. Get the resultset while resultset size is over the limit.
+     * @tc.expected: step3. Returns OVER_MAX_LIMITS.
+     */
+    status = kvStore_->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, OVER_MAX_LIMITS);
+    /**
+     * @tc.steps:step4. Close the resultset and getting the resultset is retried
+     * @tc.expected: step4. Returns SUCCESS.
+     */
+    status = kvStore_->CloseResultSet(outputs[0]);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, SUCCESS);
+
+    for (int i = 1; i <= MAX_RESULTSET_SIZE; i++) {
+        status = kvStore_->CloseResultSet(outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+}
+
+/**
+ * @tc.name: MaxLogSizeTest
+ * @tc.desc: test if the default max limit of wal is 200MB
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the random entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::string key;
+    std::vector<uint8_t> value = Random(4 * 1024 * 1024);
+    key = "test0";
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = "test1";
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = "test2";
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    std::shared_ptr<KvStoreResultSet> output;
+    auto status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_EQ(output->GetCount(), 3);
+    EXPECT_EQ(output->MoveToFirst(), true);
+    /**
+     * @tc.steps:step3. Put more data into the database.
+     * @tc.expected: step3. Returns SUCCESS.
+     */
+    for (int i = 0; i < 50; i++) {
+        key = "test_" + std::to_string(i);
+        EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    }
+    /**
+     * @tc.steps:step4. Put more data into the database while the log size is over the limit.
+     * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
+     */
+    key = "test3";
+    EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
+    /**
+     * @tc.steps:step5. Close the resultset and put again.
+     * @tc.expected: step4. Return SUCCESS.
+     */
+
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+}
+
+/**
+ * @tc.name: MaxTest002
+ * @tc.desc: test if the default max limit of wal is 200MB
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the random entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::string key;
+    std::vector<uint8_t> value = Random(4 * 1024 * 1024);
+    key = "test0";
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = "test1";
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = "test2";
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    std::shared_ptr<KvStoreResultSet> output;
+    auto status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_EQ(output->GetCount(), 3);
+    EXPECT_EQ(output->MoveToFirst(), true);
+    /**
+     * @tc.steps:step3. Put more data into the database.
+     * @tc.expected: step3. Returns SUCCESS.
+     */
+    for (int i = 0; i < 50; i++) {
+        key = "test_" + std::to_string(i);
+        EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    }
+    /**
+     * @tc.steps:step4. Put more data into the database while the log size is over the limit.
+     * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
+     */
+    key = "test3";
+    EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    /**
+     * @tc.steps:step5. Close the database and then open the database,put again.
+     * @tc.expected: step4. Return SUCCESS.
+     */
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStore" };
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.encrypt = false;
+    options.area = EL1;
+    options.backup = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    kvStore_ = nullptr;
+    kvStore_ = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    EXPECT_EQ(output->MoveToFirst(), true);
+
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: Move_Offset
+ * @tc.desc: Move the ResultSet Relative Distance
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, Move_Offset, TestSize.Level0)
+{
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+
+    Key prefix = "2";
+    std::shared_ptr<KvStoreResultSet> output;
+    status = kvStore_->GetResultSet(prefix, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+
+    auto outputTmp = output;
+    ASSERT_EQ(outputTmp->Move(1), true);
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(output, nullptr);
+
+    std::shared_ptr<SingleKvStore> kvStore;
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    status = kvStore->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    std::shared_ptr<KvStoreResultSet> output1;
+    status = kvStore->GetResultSet(prefix, output1);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output1, nullptr);
+    auto outputTmp1 = output1;
+    ASSERT_EQ(outputTmp1->Move(1), true);
+    status = kvStore->CloseResultSet(output1);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(output1, nullptr);
+
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetCount
+ * @tc.desc: close the result set
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    DataQuery query;
+    query.InKeys({ "0_k", "1_k" });
+    int count = 0;
+    status = kvStore_->GetCount(query, count);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(count, 2);
+    query.Reset();
+    status = kvStore_->GetCount(query, count);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(count, 10);
+}
+
+void ChangeOwnerToService(std::string baseDir, std::string hashId)
+{
+    static constexpr int ddmsId = 3012;
+    std::string path = baseDir;
+    chown(path.c_str(), ddmsId, ddmsId);
+    path = path + "/kvdb";
+    chown(path.c_str(), ddmsId, ddmsId);
+    path = path + "/" + hashId;
+    chown(path.c_str(), ddmsId, ddmsId);
+    path = path + "/single_ver";
+    chown(path.c_str(), ddmsId, ddmsId);
+    chown((path + "/meta").c_str(), ddmsId, ddmsId);
+    chown((path + "/cache").c_str(), ddmsId, ddmsId);
+    path = path + "/main";
+    chown(path.c_str(), ddmsId, ddmsId);
+    chown((path + "/gen_natural_store.db").c_str(), ddmsId, ddmsId);
+    chown((path + "/gen_natural_store.db-shm").c_str(), ddmsId, ddmsId);
+    chown((path + "/gen_natural_store.db-wal").c_str(), ddmsId, ddmsId);
+}
+
+/**
+ * @tc.name: RemoveDeviceData
+ * @tc.desc: remove local device data
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
+{
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
+    ASSERT_NE(store, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = store->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    int count = 0;
+    status = store->GetCount({}, count);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(count, 10);
+    ChangeOwnerToService("/data/service/el1/public/database/SingleStoreImplTest",
+        "703c6ec99aa7226bb9f6194cdd60e1873ea9ee52faebd55657ade9f5a5cc3cbd");
+    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
+    ASSERT_EQ(status, SUCCESS);
+    status = store->GetCount({}, count);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(count, 10);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "DeviceKVStore" }, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetSecurityLevel
+ * @tc.desc: get security level
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    SecurityLevel securityLevel = NO_LABEL;
+    auto status = kvStore_->GetSecurityLevel(securityLevel);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(securityLevel, S1);
+}
+
+/**
+ * @tc.name: RegisterSyncCallback
+ * @tc.desc: register the data sync callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    class TestSyncCallback : public KvStoreSyncCallback {
+    public:
+        void SyncCompleted(const map<std::string, Status> &results) override { }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override { }
+    };
+    auto callback = std::make_shared<TestSyncCallback>();
+    auto status = kvStore_->RegisterSyncCallback(callback);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: UnRegisterSyncCallback
+ * @tc.desc: unregister the data sync callback
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    class TestSyncCallback : public KvStoreSyncCallback {
+    public:
+        void SyncCompleted(const map<std::string, Status> &results) override { }
+        void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override { }
+    };
+    auto callback = std::make_shared<TestSyncCallback>();
+    auto status = kvStore_->RegisterSyncCallback(callback);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->UnRegisterSyncCallback();
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: disableBackup
+ * @tc.desc: Disable backup
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
+{
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreNoBackup" };
+    std::shared_ptr<SingleKvStore> kvStoreNoBackup;
+    kvStoreNoBackup = CreateKVStore(storeId, SINGLE_VERSION, true, false);
+    ASSERT_NE(kvStoreNoBackup, nullptr);
+    auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: PutOverMaxValue
+ * @tc.desc: put key-value data to the kv store and the value size  over the limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, PutOverMaxValue, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string value;
+    int maxsize = 1024 * 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        value += "test";
+    }
+    Value valuePut(value);
+    auto status = kvStore_->Put({ "Put Test" }, valuePut);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+/**
+ * @tc.name: DeleteOverMaxKey
+ * @tc.desc: delete the values of the keys and the key size  over the limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DeleteOverMaxKey, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string str;
+    int maxsize = 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        str += "key";
+    }
+    Key key(str);
+    auto status = kvStore_->Put(key, "Put Test");
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    Value value;
+    status = kvStore_->Get(key, value);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore_->Delete(key);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: GetEntriesOverMaxKey
+ * @tc.desc: get entries the by prefix and the prefix size  over the limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetEntriesOverMaxPrefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string str;
+    int maxsize = 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        str += "key";
+    }
+    const Key prefix(str);
+    std::vector<Entry> output;
+    auto status = kvStore_->GetEntries(prefix, output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: GetResultSetOverMaxPrefix
+ * @tc.desc: get result set the by prefix and the prefix size  over the limits
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetResultSetOverMaxPrefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string str;
+    int maxsize = 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        str += "key";
+    }
+    const Key prefix(str);
+    std::shared_ptr<KvStoreResultSet> output;
+    auto status = kvStore_->GetResultSet(prefix, output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: RemoveNullDeviceData
+ * @tc.desc: remove local device data and the device is null
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
+{
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
+    ASSERT_NE(store, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = store->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    int count = 0;
+    status = store->GetCount({}, count);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(count, 10);
+    const string device = { "" };
+    ChangeOwnerToService("/data/service/el1/public/database/SingleStoreImplTest",
+        "703c6ec99aa7226bb9f6194cdd60e1873ea9ee52faebd55657ade9f5a5cc3cbd");
+    status = store->RemoveDeviceData(device);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: CloseKVStoreWithInvalidAppId
+ * @tc.desc: close the kv store with invalid appid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidAppId, TestSize.Level0)
+{
+    AppId appId = { "" };
+    StoreId storeId = { "SingleKVStore" };
+    Status status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: CloseKVStoreWithInvalidStoreId
+ * @tc.desc: close the kv store with invalid store id
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidStoreId, TestSize.Level0)
+{
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "" };
+    Status status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: CloseAllKVStore
+ * @tc.desc: close all kv store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseAllKVStore, TestSize.Level0)
+{
+    AppId appId = { "SingleStoreImplTestCloseAll" };
+    std::vector<std::shared_ptr<SingleKvStore>> kvStores;
+    for (int i = 0; i < 5; i++) {
+        std::shared_ptr<SingleKvStore> kvStore;
+        Options options;
+        options.kvStoreType = SINGLE_VERSION;
+        options.securityLevel = S1;
+        options.area = EL1;
+        options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+        std::string sId = "SingleStoreImplTestCloseAll" + std::to_string(i);
+        StoreId storeId = { sId };
+        Status status;
+        kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+        ASSERT_NE(kvStore, nullptr);
+        kvStores.push_back(kvStore);
+        ASSERT_EQ(status, SUCCESS);
+        kvStore = nullptr;
+    }
+    Status status = StoreManager::GetInstance().CloseAllKVStore(appId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: CloseAllKVStoreWithInvalidAppId
+ * @tc.desc: close the kv store with invalid appid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, CloseAllKVStoreWithInvalidAppId, TestSize.Level0)
+{
+    AppId appId = { "" };
+    Status status = StoreManager::GetInstance().CloseAllKVStore(appId);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: DeleteWithInvalidAppId
+ * @tc.desc: delete the kv store with invalid appid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DeleteWithInvalidAppId, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "" };
+    StoreId storeId = { "SingleKVStore" };
+    Status status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: DeleteWithInvalidStoreId
+ * @tc.desc: delete the kv store with invalid storeid
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DeleteWithInvalidStoreId, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "" };
+    Status status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: GetKVStoreWithPersistentFalse
+ * @tc.desc: delete the kv store with the persistent is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStorePersistentFalse" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.persistent = false;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithInvalidType
+ * @tc.desc: delete the kv store with the KvStoreType is InvalidType
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithInvalidType, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImpStore";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreInvalidType" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = INVALID_TYPE;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithCreateIfMissingFalse
+ * @tc.desc: delete the kv store with the createIfMissing is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreCreateIfMissingFalse" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.createIfMissing = false;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithAutoSync
+ * @tc.desc: delete the kv store with the autoSync is false
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithAutoSync, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreAutoSync" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.autoSync = false;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetKVStoreWithAreaEL2
+ * @tc.desc: delete the kv store with the area is EL2
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithAreaEL2, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el2/100/SingleStoreImplTest";
+    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreAreaEL2" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S2;
+    options.area = EL2;
+    options.baseDir = "/data/service/el2/100/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetKVStoreWithRebuildTrue
+ * @tc.desc: delete the kv store with the rebuild is true
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreRebuildFalse" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: GetStaticStore
+ * @tc.desc: get static store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetStaticStore, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "StaticStoreTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_STATICS;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: StaticStoreAsyncGet
+ * @tc.desc: static store async get
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGet, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "StaticStoreAsyncGetTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_STATICS;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, Value &&)> result = [&blockData](Status status, Value &&value) {
+        ASSERT_EQ(status, Status::NOT_FOUND);
+        blockData.SetValue(true);
+    };
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    kvStore->Get({ "key" }, networkId, result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: StaticStoreAsyncGetEntries
+ * @tc.desc: static store async get entries
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, StaticStoreAsyncGetEntries, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "StaticStoreAsyncGetEntriesTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_STATICS;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, std::vector<Entry> &&)> result = [&blockData](
+                                                                    Status status, std::vector<Entry> &&value) {
+        ASSERT_EQ(status, Status::SUCCESS);
+        blockData.SetValue(true);
+    };
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    kvStore->GetEntries({ "key" }, networkId, result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DynamicStoreAsyncGet
+ * @tc.desc: dynamic store async get
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGet, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DynamicStoreAsyncGetTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, Value &&)> result = [&blockData](Status status, Value &&value) {
+        ASSERT_EQ(status, Status::SUCCESS);
+        ASSERT_EQ(value.ToString(), "Put Value");
+        blockData.SetValue(true);
+    };
+    kvStore->Get({ "Put Test" }, networkId, result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DynamicStoreAsyncGetEntries
+ * @tc.desc: dynamic store async get entries
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DynamicStoreAsyncGetEntries, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DynamicStoreAsyncGetEntriesTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    std::vector<Entry> entries;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = "key_" + std::to_string(i);
+        entry.value = std::to_string(i);
+        entries.push_back(entry);
+    }
+    status = kvStore->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+    auto networkId = DevManager::GetInstance().GetLocalDevice().networkId;
+    BlockData<bool> blockData { 1, false };
+    std::function<void(Status, std::vector<Entry> &&)> result = [entries, &blockData](
+                                                                    Status status, std::vector<Entry> &&value) {
+        ASSERT_EQ(status, Status::SUCCESS);
+        ASSERT_EQ(value.size(), entries.size());
+        blockData.SetValue(true);
+    };
+    kvStore->GetEntries({ "key_" }, networkId, result);
+    blockData.GetValue();
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: SetConfig
+ * @tc.desc: SetConfig
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SetConfigTest" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+    options.cloudConfig.enableCloud = false;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    StoreConfig storeConfig;
+    storeConfig.cloudConfig.enableCloud = true;
+    ASSERT_EQ(kvStore->SetConfig(storeConfig), Status::SUCCESS);
+}
+
+/**
+ * @tc.name: GetDeviceEntries001
+ * @tc.desc:
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
+{
+    std::string pkgNameEx = "_distributed_data";
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    std::vector<Entry> output;
+    std::string device = DevManager::GetInstance().GetUnEncryptedUuid();
+    std::string devices = "GetDeviceEntriestest";
+    auto status = kvStore->GetDeviceEntries("", output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore->GetDeviceEntries(device, output);
+    ASSERT_EQ(status, SUCCESS);
+    DevInfo devinfo;
+    std::string pkgName = std::to_string(getpid()) + pkgNameEx;
+    DistributedHardware::DeviceManager::GetInstance().GetLocalDeviceInfo(pkgName, devinfo);
+    ASSERT_NE(std::string(devinfo.deviceId), "");
+    status = kvStore->GetDeviceEntries(std::string(devinfo.deviceId), output);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    EXPECT_NE(kvStore, nullptr) << "kvStorePtr is null.";
+    std::string deviceId = "no_exist_device_id";
+    std::vector<std::string> deviceIds = { deviceId };
+    uint32_t allowedDelayMs = 200;
+    kvStore->isClientSync_ = false;
+    auto syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+    kvStore->isClientSync_ = true;
+    kvStore->syncObserver_ = nullptr;
+    syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should return error";
+}
+
+/**
+ * @tc.name: SetCapabilityEnabled001
+ * @tc.desc: enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, SetCapabilityEnabled001, TestSize.Level1)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->SetCapabilityEnabled(true);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->SetCapabilityEnabled(false);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: DoClientSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoClientSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.mode = SyncMode::PULL;
+    syncInfo.seqId = 10; // syncInfo seqId
+    syncInfo.devices = { "networkId" };
+    std::shared_ptr<SyncCallback> observer;
+    observer = nullptr;
+    auto status = kvStore->DoClientSync(syncInfo, observer);
+    ASSERT_EQ(status, DB_ERROR);
+}
+
+/**
+ * @tc.name: DoNotifyChange001
+ * @tc.desc: called within timeout
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoNotifyChange001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    EXPECT_NE(kvStore, nullptr) << "kvStorePtr is null.";
+    auto status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(kvStore->notifyExpiredTime_, 0);
+    kvStore->cloudAutoSync_ = true;
+    status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    auto notifyExpiredTime = kvStore->notifyExpiredTime_;
+    ASSERT_NE(notifyExpiredTime, 0);
+    status = kvStore->Put({ "Put Test1" }, { "Put Value1" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(notifyExpiredTime, kvStore->notifyExpiredTime_);
+    sleep(1);
+    status = kvStore->Put({ "Put Test2" }, { "Put Value2" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(notifyExpiredTime, kvStore->notifyExpiredTime_);
+}
+
+/**
+ * @tc.name: DoAutoSync001
+ * @tc.desc: observer = nullptr
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, DoAutoSync001, TestSize.Level1)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore(true);
+    ASSERT_NE(kvStore, nullptr);
+    kvStore->isApplication_ = true;
+    auto status = kvStore->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(!kvStore->autoSync_ || !kvStore->isApplication_, false);
+}
+
+/**
+ * @tc.name: IsRemoteChanged
+ * @tc.desc: is remote changed
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, IsRemoteChanged, TestSize.Level0)
+{
+    std::shared_ptr<SingleStoreImpl> kvStore;
+    kvStore = CreateKVStore();
+    ASSERT_NE(kvStore, nullptr);
+    bool ret = kvStore->IsRemoteChanged("");
+    ASSERT_TRUE(ret);
+}
+} // namespace OHOS::Test
