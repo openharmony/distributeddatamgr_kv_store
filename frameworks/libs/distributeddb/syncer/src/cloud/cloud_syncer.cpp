@@ -2055,21 +2055,19 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
 
 int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
 {
-    int ret = E_OK;
     if (IsCurrentTableResume(taskId, false)) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (resumeTaskInfos_[taskId].syncParam.tableName == currentContext_.tableName) {
             param = resumeTaskInfos_[taskId].syncParam;
             resumeTaskInfos_[taskId].syncParam = {};
-            ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
+            int ret = storageProxy_->GetCloudWaterMark(param.tableName, param.cloudWaterMark);
             if (ret != E_OK) {
-                LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data when table is resume: %d.", ret);
+                LOGW("[CloudSyncer] Cannot get cloud water level from cloud meta data when table is resume: %d.", ret);
             }
-            LOGD("[CloudSyncer] Get sync param from cache");
             return E_OK;
         }
     }
-    ret = GetCurrentTableName(param.tableName);
+    int ret = GetCurrentTableName(param.tableName);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Invalid table name for syncing: %d", ret);
         return ret;
@@ -2082,9 +2080,11 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         LOGE("[CloudSyncer] Cannot get primary column names: %d", ret);
         return ret;
     }
+    std::shared_ptr<ProcessNotifier> notifier = nullptr;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentContext_.assetFields[currentContext_.tableName] = assetFields;
+        notifier = currentContext_.notifier;
     }
     param.isSinglePrimaryKey = CloudSyncUtils::IsSinglePrimaryKey(param.pkColNames);
     if (!IsModeForcePull(taskId) && (!IsPriorityTask(taskId) || IsNeedProcessCloudCursor(taskId))) {
@@ -2096,7 +2096,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
             ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
         }
     }
-    currentContext_.notifier->GetDownloadInfoByTableName(param.info);
+    notifier->GetDownloadInfoByTableName(param.info);
     auto queryObject = GetQuerySyncObject(param.tableName);
     param.isAssetsOnly = queryObject.IsAssetsOnly();
     param.groupNum = queryObject.GetGroupNum();
@@ -2133,7 +2133,11 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isF
         param.cloudWaterMarkForAssetsOnly = param.cloudWaterMark;
     }
     int ret = QueryCloudData(taskId, param.info.tableName, param.cloudWaterMark, param.downloadData);
-    CloudSyncUtils::CheckQueryCloudData(cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        CloudSyncUtils::CheckQueryCloudData(
+            cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
+    }
     if (ret == -E_QUERY_END) {
         // Won't break here since downloadData may not be null
         param.isLastBatch = true;

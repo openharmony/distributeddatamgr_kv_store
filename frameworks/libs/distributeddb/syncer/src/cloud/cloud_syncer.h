@@ -554,6 +554,8 @@ protected:
 
     void ExecuteAsyncDownloadAssets(TaskId taskId);
 
+    bool IsCloudForcePush(TaskId taskId);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;
