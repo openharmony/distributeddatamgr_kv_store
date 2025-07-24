@@ -41,1555 +41,764 @@ napi_status InitConstProperties(napi_env env, napi_value exports);
  * limitations under the License.
  */
 
-#include "distributeddb_tools_unit_test.h"
-
-#include <codecvt>
-#include <cstdio>
-#include <cstring>
-#include <dirent.h>
-#include <fstream>
+#include <atomic>
 #include <gtest/gtest.h>
-#include <locale>
-#include <openssl/rand.h>
-#include <random>
-#include <set>
-#include <sys/types.h>
+#include <thread>
 
-#include "cloud/cloud_db_constant.h"
-#include "cloud/cloud_db_sync_utils_test.h"
-#include "cloud/cloud_db_types.h"
-#include "cloud/virtual_cloud_data_translate.h"
-#include "db_common.h"
-#include "db_constant.h"
-#include "generic_single_ver_kv_entry.h"
-#include "get_query_info.h"
+#include "db_errno.h"
+#include "distributeddb_tools_unit_test.h"
+#include "evloop/src/event_impl.h"
+#include "evloop/src/event_loop_epoll.h"
+#include "evloop/src/ievent.h"
+#include "evloop/src/ievent_loop.h"
+#include "log_print.h"
 #include "platform_specific.h"
-#include "res_finalizer.h"
-#include "runtime_config.h"
-#include "single_ver_data_packet.h"
-#include "sqlite_relational_utils.h"
-#include "store_observer.h"
-#include "time_helper.h"
-#include "value_hash_calc.h"
 
+using namespace testing::ext;
 using namespace DistributedDB;
 
-namespace DistributedDBUnitTest {
 namespace {
-    const std::string CREATE_LOCAL_TABLE_SQL =
-        "CREATE TABLE IF NOT EXISTS local_data(" \
-        "key BLOB PRIMARY KEY," \
-        "value BLOB," \
-        "timestamp INT," \
-        "hash_key BLOB);";
+    IEventLoop *g_loop = nullptr;
+    constexpr int MAX_RETRY_TIMES = 1000;
+    constexpr int RETRY_TIMES_5 = 5;
+    constexpr int EPOLL_INIT_REVENTS = 32;
+    constexpr int ET_READ = 0x01;
+    constexpr int ET_WRITE = 0x02;
+    constexpr int ET_TIMEOUT = 0x08;
+    constexpr EventTime TIME_INACCURACY = 100LL;
+    constexpr EventTime TIME_PIECE_1 = 1LL;
+    constexpr EventTime TIME_PIECE_10 = 10LL;
+    constexpr EventTime TIME_PIECE_50 = 50LL;
+    constexpr EventTime TIME_PIECE_100 = 100LL;
+    constexpr EventTime TIME_PIECE_1000 = 1000LL;
+    constexpr EventTime TIME_PIECE_10000 = 10000LL;
 
-    const std::string CREATE_META_TABLE_SQL =
-        "CREATE TABLE IF NOT EXISTS meta_data("  \
-        "key    BLOB PRIMARY KEY  NOT NULL," \
-        "value  BLOB);";
+class TimerTester {
+public:
+    static EventTime GetCurrentTime();
+};
 
-    const std::string CREATE_SYNC_TABLE_SQL =
-        "CREATE TABLE IF NOT EXISTS sync_data(" \
-        "key         BLOB NOT NULL," \
-        "value       BLOB," \
-        "timestamp   INT  NOT NULL," \
-        "flag        INT  NOT NULL," \
-        "device      BLOB," \
-        "ori_device  BLOB," \
-        "hash_key    BLOB PRIMARY KEY NOT NULL," \
-        "w_timestamp INT);";
-
-    const std::string CREATE_SYNC_TABLE_INDEX_SQL =
-        "CREATE INDEX IF NOT EXISTS key_index ON sync_data (key);";
-
-    const std::string CREATE_TABLE_SQL =
-        "CREATE TABLE IF NOT EXISTS version_data(key BLOB, value BLOB, oper_flag INTEGER, version INTEGER, " \
-        "timestamp INTEGER, ori_timestamp INTEGER, hash_key BLOB, " \
-        "PRIMARY key(hash_key, version));";
-
-    const std::string CREATE_SQL =
-        "CREATE TABLE IF NOT EXISTS data(key BLOB PRIMARY key, value BLOB);";
-
-    bool CompareEntry(const DistributedDB::Entry &a, const DistributedDB::Entry &b)
-    {
-        return (a.key < b.key);
-    }
-}
-
-// OpenDbProperties.uri do not need
-int DistributedDBToolsUnitTest::CreateMockSingleDb(DatabaseInfo &dbInfo, OpenDbProperties &properties)
+EventTime TimerTester::GetCurrentTime()
 {
-    std::string identifier = dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId;
-    std::string hashIdentifier = DBCommon::TransferHashString(identifier);
-    std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
-
-    if (OS::GetRealPath(dbInfo.dir, properties.uri) != E_OK) {
-        LOGE("Failed to canonicalize the path.");
-        return -E_INVALID_ARGS;
-    }
-
-    int errCode = DBCommon::CreateStoreDirectory(dbInfo.dir, identifierName, DBConstant::SINGLE_SUB_DIR, true);
+    uint64_t now;
+    int errCode = OS::GetCurrentSysTimeInMicrosecond(now);
     if (errCode != E_OK) {
-        return errCode;
+        LOGE("Get current time failed.");
+        return 0;
     }
-
-    properties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
-    if (properties.sqls.empty()) {
-        std::vector<std::string> defaultCreateTableSqls = {
-            CREATE_LOCAL_TABLE_SQL,
-            CREATE_META_TABLE_SQL,
-            CREATE_SYNC_TABLE_SQL,
-            CREATE_SYNC_TABLE_INDEX_SQL
-        };
-        properties.sqls = defaultCreateTableSqls;
-    }
-
-    sqlite3 *db = nullptr;
-    errCode = SQLiteUtils::OpenDatabase(properties, db);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = SQLiteUtils::SetUserVer(properties, dbInfo.dbUserVersion);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    (void)sqlite3_close_v2(db);
-    db = nullptr;
-    return errCode;
+    return now / 1000; // 1 ms equals to 1000 us
 }
 
-static int CreatMockMultiDb(OpenDbProperties &properties, DatabaseInfo &dbInfo)
+class DistributedDBEventLoopTimerTest : public testing::Test {
+public:
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
+    void SetUp();
+    void TearDown();
+};
+
+void DistributedDBEventLoopTimerTest::SetUpTestCase(void) {}
+
+void DistributedDBEventLoopTimerTest::TearDownTestCase(void) {}
+
+void DistributedDBEventLoopTimerTest::SetUp(void)
 {
-    sqlite3 *db = nullptr;
-    (void)SQLiteUtils::OpenDatabase(properties, db);
-    int errCode = SQLiteUtils::SetUserVer(properties, dbInfo.dbUserVersion);
-    (void)sqlite3_close_v2(db);
-    db = nullptr;
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return errCode;
-}
-
-int DistributedDBToolsUnitTest::OpenMockMultiDb(DatabaseInfo &dbInfo, OpenDbProperties &properties)
-{
-    std::string identifier = dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId;
-    std::string hashIdentifier = DBCommon::TransferHashString(identifier);
-    std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
-
-    OpenDbProperties commitProperties = properties;
-    commitProperties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
-        "/commit_logs" + DBConstant::DB_EXTENSION;
-
-    commitProperties.sqls = {CREATE_SQL};
-
-    OpenDbProperties kvStorageProperties = commitProperties;
-    kvStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::MULTI_SUB_DIR + "/value_storage" + DBConstant::DB_EXTENSION;
-    OpenDbProperties metaStorageProperties = commitProperties;
-    metaStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::MULTI_SUB_DIR + "/meta_storage" + DBConstant::DB_EXTENSION;
-
-    // test code, Don't needpay too much attention to exception handling
-    int errCode = CreatMockMultiDb(properties, dbInfo);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    errCode = CreatMockMultiDb(kvStorageProperties, dbInfo);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    errCode = CreatMockMultiDb(metaStorageProperties, dbInfo);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    return errCode;
-}
-
-// OpenDbProperties.uri do not need
-int DistributedDBToolsUnitTest::CreateMockMultiDb(DatabaseInfo &dbInfo, OpenDbProperties &properties)
-{
-    std::string identifier = dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId;
-    std::string hashIdentifier = DBCommon::TransferHashString(identifier);
-    std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
-
-    if (OS::GetRealPath(dbInfo.dir, properties.uri) != E_OK) {
-        LOGE("Failed to canonicalize the path.");
-        return -E_INVALID_ARGS;
-    }
-
-    int errCode = DBCommon::CreateStoreDirectory(dbInfo.dir, identifierName, DBConstant::MULTI_SUB_DIR, true);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    properties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
-        "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
-
-    if (properties.sqls.empty()) {
-        properties.sqls = {CREATE_TABLE_SQL};
-    }
-
-    OpenMockMultiDb(dbInfo, properties);
-
-    return errCode;
-}
-
-int DistributedDBToolsUnitTest::GetResourceDir(std::string& dir)
-{
-    int errCode = GetCurrentDir(dir);
-    if (errCode != E_OK) {
-        return -E_INVALID_PATH;
-    }
-#ifdef DB_DEBUG_ENV
-    dir = dir + "/resource/";
-#endif
-    return E_OK;
-}
-
-#ifndef OMIT_MULTI_VER
-void DistributedDBToolsUnitTest::KvStoreDelegateCallback(
-    DBStatus statusSrc, KvStoreDelegate *kvStoreSrc, DBStatus &statusDst, KvStoreDelegate *&kvStoreDst)
-{
-    statusDst = statusSrc;
-    kvStoreDst = kvStoreSrc;
-}
-
-void DistributedDBToolsUnitTest::SnapshotDelegateCallback(
-    DBStatus statusSrc, KvStoreSnapshotDelegate* snapshot, DBStatus &statusDst, KvStoreSnapshotDelegate *&snapshotDst)
-{
-    statusDst = statusSrc;
-    snapshotDst = snapshot;
-}
-#endif
-
-void DistributedDBToolsUnitTest::KvStoreNbDelegateCallback(
-    DBStatus statusSrc, KvStoreNbDelegate* kvStoreSrc, DBStatus &statusDst, KvStoreNbDelegate *&kvStoreDst)
-{
-    statusDst = statusSrc;
-    kvStoreDst = kvStoreSrc;
-}
-
-void DistributedDBToolsUnitTest::ValueCallback(
-    DBStatus statusSrc, const Value &valueSrc, DBStatus &statusDst, Value &valueDst)
-{
-    statusDst = statusSrc;
-    valueDst = valueSrc;
-}
-
-void DistributedDBToolsUnitTest::EntryVectorCallback(DBStatus statusSrc, const std::vector<Entry> &entrySrc,
-    DBStatus &statusDst, unsigned long &matchSize, std::vector<Entry> &entryDst)
-{
-    statusDst = statusSrc;
-    matchSize = static_cast<unsigned long>(entrySrc.size());
-    entryDst = entrySrc;
-}
-
-// size need bigger than prefixkey length
-std::vector<uint8_t> DistributedDBToolsUnitTest::GetRandPrefixKey(const std::vector<uint8_t> &prefixKey, uint32_t size)
-{
-    std::vector<uint8_t> value;
-    if (size <= prefixKey.size()) {
-        return value;
-    }
-    DistributedDBToolsUnitTest::GetRandomKeyValue(value, size - prefixKey.size());
-    std::vector<uint8_t> res(prefixKey);
-    res.insert(res.end(), value.begin(), value.end());
-    return res;
-}
-
-void DistributedDBToolsUnitTest::GetRandomKeyValue(std::vector<uint8_t> &value, uint32_t defaultSize)
-{
-    uint32_t randSize = 0;
-    if (defaultSize == 0) {
-        uint8_t simSize = 0;
-        RAND_bytes(&simSize, 1);
-        randSize = (simSize == 0) ? 1 : simSize;
-    } else {
-        randSize = defaultSize;
-    }
-
-    value.resize(randSize);
-    RAND_bytes(value.data(), randSize);
-}
-
-bool DistributedDBToolsUnitTest::IsValueEqual(const DistributedDB::Value &read, const DistributedDB::Value &origin)
-{
-    if (read != origin) {
-        DBCommon::PrintHexVector(read, __LINE__, "read");
-        DBCommon::PrintHexVector(origin, __LINE__, "origin");
-        return false;
-    }
-
-    return true;
-}
-
-bool DistributedDBToolsUnitTest::IsEntryEqual(const DistributedDB::Entry &entryOrg,
-    const DistributedDB::Entry &entryRet)
-{
-    if (entryOrg.key != entryRet.key) {
-        LOGD("key not equal, entryOrg key size is [%zu], entryRet key size is [%zu]", entryOrg.key.size(),
-            entryRet.key.size());
-        return false;
-    }
-
-    if (entryOrg.value != entryRet.value) {
-        LOGD("value not equal, entryOrg value size is [%zu], entryRet value size is [%zu]", entryOrg.value.size(),
-            entryRet.value.size());
-        return false;
-    }
-
-    return true;
-}
-
-bool DistributedDBToolsUnitTest::IsEntriesEqual(const std::vector<DistributedDB::Entry> &entriesOrg,
-    const std::vector<DistributedDB::Entry> &entriesRet, bool needSort)
-{
-    LOGD("entriesOrg size is [%zu], entriesRet size is [%zu]", entriesOrg.size(),
-        entriesRet.size());
-
-    if (entriesOrg.size() != entriesRet.size()) {
-        return false;
-    }
-    std::vector<DistributedDB::Entry> entries1 = entriesOrg;
-    std::vector<DistributedDB::Entry> entries2 = entriesRet;
-
-    if (needSort) {
-        sort(entries1.begin(), entries1.end(), CompareEntry);
-        sort(entries2.begin(), entries2.end(), CompareEntry);
-    }
-
-    for (size_t i = 0; i < entries1.size(); i++) {
-        if (entries1[i].key != entries2[i].key) {
-            LOGE("IsEntriesEqual failed, key of index[%zu] not match", i);
-            return false;
-        }
-        if (entries1[i].value != entries2[i].value) {
-            LOGE("IsEntriesEqual failed, value of index[%zu] not match", i);
-            return false;
+    DistributedDBUnitTest::DistributedDBToolsUnitTest::PrintTestCaseInfo();
+    /**
+     * @tc.setup: Create a loop object.
+     */
+    if (g_loop == nullptr) {
+        int errCode = E_OK;
+        g_loop = IEventLoop::CreateEventLoop(errCode);
+        if (g_loop == nullptr) {
+            LOGE("Prepare loop in SetUp() failed.");
         }
     }
-
-    return true;
 }
 
-bool DistributedDBToolsUnitTest::CheckObserverResult(const std::vector<DistributedDB::Entry> &orgEntries,
-    const std::list<DistributedDB::Entry> &resultLst)
+void DistributedDBEventLoopTimerTest::TearDown(void)
 {
-    LOGD("orgEntries.size() is [%zu], resultLst.size() is [%zu]", orgEntries.size(),
-        resultLst.size());
-
-    if (orgEntries.size() != resultLst.size()) {
-        return false;
+    /**
+     * @tc.teardown: Destroy the loop object.
+     */
+    if (g_loop != nullptr) {
+        g_loop->KillAndDecObjRef(g_loop);
+        g_loop = nullptr;
     }
-
-    int index = 0;
-    for (const auto &entry : resultLst) {
-        if (entry.key != orgEntries[index].key) {
-            LOGE("CheckObserverResult failed, key of index[%d] not match", index);
-            return false;
-        }
-        if (entry.value != orgEntries[index].value) {
-            LOGE("CheckObserverResult failed, value of index[%d] not match", index);
-            return false;
-        }
-        index++;
-    }
-
-    return true;
 }
 
-bool DistributedDBToolsUnitTest::IsEntryExist(const DistributedDB::Entry &entry,
-    const std::vector<DistributedDB::Entry> &entries)
+/**
+ * @tc.name: EventLoopTimerTest001
+ * @tc.desc: Create and destroy the event loop object.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest001, TestSize.Level0)
 {
-    std::set<std::vector<uint8_t>> sets;
-    for (const auto &iter : entries) {
-        sets.insert(iter.key);
-    }
+    /**
+     * @tc.steps: step1. create a loop.
+     * @tc.expected: step1. create successfully.
+     */
+    int errCode = E_OK;
+    IEventLoop *loop = IEventLoop::CreateEventLoop(errCode);
+    ASSERT_EQ(loop != nullptr, true);
 
-    if (entries.size() != sets.size()) {
-        return false;
+    /**
+     * @tc.steps: step2. destroy the loop.
+     * @tc.expected: step2. destroy successfully.
+     */
+    bool finalized = false;
+    loop->OnLastRef([&finalized]() { finalized = true; });
+    RefObject::DecObjRef(loop);
+    loop = nullptr;
+    EXPECT_EQ(finalized, true);
+}
+
+/**
+ * @tc.name: EventLoopTimerTest002
+ * @tc.desc: Start and stop the loop
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest002, TestSize.Level1)
+{
+    // ready data
+    ASSERT_EQ(g_loop != nullptr, true);
+
+    /**
+     * @tc.steps: step1. create a loop.
+     * @tc.expected: step1. create successfully.
+     */
+    std::atomic<bool> running(false);
+    EventTime delta = 0;
+    std::thread loopThread([&running, &delta]() {
+            running = true;
+            EventTime start = TimerTester::GetCurrentTime();
+            g_loop->Run();
+            EventTime end = TimerTester::GetCurrentTime();
+            delta = end - start;
+        });
+    while (!running) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_1));
     }
-    sets.clear();
-    bool isFound = false;
-    for (const auto &iter : entries) {
-        if (entry.key == iter.key) {
-            if (entry.value == iter.value) {
-                isFound = true;
-            }
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
+    g_loop->KillObj();
+    loopThread.join();
+    EXPECT_EQ(delta > TIME_PIECE_50, true);
+}
+
+/**
+ * @tc.name: EventLoopTimerTest003
+ * @tc.desc: Create and destroy a timer object.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest003, TestSize.Level0)
+{
+     /**
+     * @tc.steps: step1. create event(timer) object.
+     * @tc.expected: step1. create successfully.
+     */
+    int errCode = E_OK;
+    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_1, errCode);
+    ASSERT_EQ(timer != nullptr, true);
+
+    /**
+     * @tc.steps: step2. destroy the event object.
+     * @tc.expected: step2. destroy successfully.
+     */
+    bool finalized = false;
+    errCode = timer->SetAction([](EventsMask revents) -> int {
+            return E_OK;
+        }, [&finalized]() {
+            finalized = true;
+        });
+    EXPECT_EQ(errCode, E_OK);
+    timer->KillAndDecObjRef(timer);
+    timer = nullptr;
+    EXPECT_EQ(finalized, true);
+}
+
+/**
+ * @tc.name: EventLoopTimerTest004
+ * @tc.desc: Start a timer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest004, TestSize.Level1)
+{
+    // ready data
+    ASSERT_EQ(g_loop != nullptr, true);
+
+    /**
+     * @tc.steps: step1. start the loop.
+     * @tc.expected: step1. start successfully.
+     */
+    std::atomic<bool> running(false);
+    std::thread loopThread([&running]() {
+            running = true;
+            g_loop->Run();
+        });
+
+    int tryCounter = 0;
+    while (!running) {
+        tryCounter++;
+        if (tryCounter >= MAX_RETRY_TIMES) {
             break;
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_1));
     }
-    return isFound;
+    EXPECT_EQ(running, true);
+
+    /**
+     * @tc.steps: step2. create and start a timer.
+     * @tc.expected: step2. start successfully.
+     */
+    int errCode = E_OK;
+    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_10, errCode);
+    ASSERT_EQ(timer != nullptr, true);
+    std::atomic<int> counter(0);
+    errCode = timer->SetAction([&counter](EventsMask revents) -> int { ++counter; return E_OK; }, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = g_loop->Add(timer);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step3. wait and check.
+     * @tc.expected: step3. 'counter' increased by the timer.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
+    EXPECT_EQ(counter > 0, true);
+    g_loop->KillObj();
+    loopThread.join();
+    RefObject::DecObjRef(timer);
 }
 
-bool DistributedDBToolsUnitTest::IsItemValueExist(const DistributedDB::DataItem &item,
-    const std::vector<DistributedDB::DataItem> &items)
+/**
+ * @tc.name: EventLoopTimerTest005
+ * @tc.desc: Stop a timer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest005, TestSize.Level1)
 {
-    std::set<Key> sets;
-    for (const auto &iter : items) {
-        sets.insert(iter.key);
-    }
+    // ready data
+    ASSERT_EQ(g_loop != nullptr, true);
 
-    if (items.size() != sets.size()) {
-        return false;
+    /**
+     * @tc.steps: step1. start the loop.
+     * @tc.expected: step1. start successfully.
+     */
+    std::atomic<bool> running(false);
+    std::thread loopThread([&running]() {
+            running = true;
+            g_loop->Run();
+        });
+
+    int tryCounter = 1;
+    while (!running && tryCounter <= MAX_RETRY_TIMES) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        tryCounter++;
     }
-    sets.clear();
-    bool isFound = false;
-    for (const auto &iter : items) {
-        if (item.key == iter.key) {
-            if (item.value == iter.value) {
-                isFound = true;
+    EXPECT_EQ(running, true);
+
+    /**
+     * @tc.steps: step2. create and start a timer.
+     * @tc.expected: step2. start successfully.
+     */
+    int errCode = E_OK;
+    IEvent *timer = IEvent::CreateEvent(10, errCode);
+    ASSERT_EQ(timer != nullptr, true);
+    std::atomic<int> counter(0);
+    std::atomic<bool> finalize(false);
+    errCode = timer->SetAction(
+        [&counter](EventsMask revents) -> int {
+            ++counter;
+            return E_OK;
+        }, [&finalize]() { finalize = true; });
+    EXPECT_EQ(errCode, E_OK);
+    errCode = g_loop->Add(timer);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step3. wait and check.
+     * @tc.expected: step3. 'counter' increased by the timer and the timer object finalized.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
+    timer->KillAndDecObjRef(timer);
+    timer = nullptr;
+    g_loop->KillObj();
+    loopThread.join();
+    EXPECT_EQ(counter > 0, true);
+    EXPECT_EQ(finalize, true);
+}
+
+/**
+ * @tc.name: EventLoopTimerTest006
+ * @tc.desc: Stop a timer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest006, TestSize.Level1)
+{
+    // ready data
+    ASSERT_EQ(g_loop != nullptr, true);
+
+    /**
+     * @tc.steps: step1. start the loop.
+     * @tc.expected: step1. start successfully.
+     */
+    std::atomic<bool> running(false);
+    std::thread loopThread([&running]() {
+            running = true;
+            g_loop->Run();
+        });
+
+    int tryCounter = 1;
+    while (!running && tryCounter <= MAX_RETRY_TIMES) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_10));
+        tryCounter++;
+    }
+    EXPECT_EQ(running, true);
+
+    /**
+     * @tc.steps: step2. create and start a timer.
+     * @tc.expected: step2. start successfully.
+     */
+    int errCode = E_OK;
+    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_10, errCode);
+    ASSERT_EQ(timer != nullptr, true);
+    std::atomic<int> counter(0);
+    std::atomic<bool> finalize(false);
+    errCode = timer->SetAction([&counter](EventsMask revents) -> int { ++counter; return -E_STALE; },
+        [&finalize]() { finalize = true; });
+    EXPECT_EQ(errCode, E_OK);
+    errCode = g_loop->Add(timer);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step3. wait and check.
+     * @tc.expected: step3. 'counter' increased by the timer and the timer object finalized.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_100));
+    g_loop->KillObj();
+    loopThread.join();
+    RefObject::DecObjRef(timer);
+    timer = nullptr;
+    EXPECT_EQ(finalize, true);
+    EXPECT_EQ(counter > 0, true);
+}
+
+/**
+ * @tc.name: EventLoopTimerTest007
+ * @tc.desc: Modify a timer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: fangyi
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2)
+{
+    // ready data
+    ASSERT_EQ(g_loop != nullptr, true);
+
+    /**
+     * @tc.steps: step1. start the loop.
+     * @tc.expected: step1. start successfully.
+     */
+    std::atomic<bool> running(false);
+    std::thread loopThread([&running]() {
+            running = true;
+            g_loop->Run();
+        });
+
+    int tryCounter = 1;
+    while (!running && tryCounter <= MAX_RETRY_TIMES) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        tryCounter++;
+    }
+    EXPECT_EQ(running, true);
+
+    /**
+     * @tc.steps: step2. create and start a timer.
+     * @tc.expected: step2. start successfully.
+     */
+    int errCode = E_OK;
+    IEvent *timer = IEvent::CreateEvent(TIME_PIECE_1000, errCode);
+    ASSERT_EQ(timer != nullptr, true);
+    int counter = 1; // Interval: 1 * TIME_PIECE_100
+    EventTime lastTime = TimerTester::GetCurrentTime();
+    std::atomic<EventTime> total = 0;
+    errCode = timer->SetAction(
+        [timer, &counter, &lastTime, &total](EventsMask revents) -> int {
+            EventTime now = TimerTester::GetCurrentTime();
+            EventTime delta = now - lastTime;
+            delta -= counter * TIME_PIECE_1000;
+            total += delta;
+            if (++counter > RETRY_TIMES_5) {
+                return -E_STALE;
             }
-            break;
-        }
-    }
-    return isFound;
-}
-
-bool DistributedDBToolsUnitTest::IsKvEntryExist(const DistributedDB::Entry &entry,
-    const std::vector<DistributedDB::Entry> &entries)
-{
-    std::set<std::vector<uint8_t>> sets;
-    for (const auto &iter : entries) {
-        sets.insert(iter.key);
-    }
-
-    if (entries.size() != sets.size()) {
-        return false;
-    }
-    sets.clear();
-    bool isFound = false;
-    for (const auto &iter : entries) {
-        if (entry.key == iter.key) {
-            if (entry.value == iter.value) {
-                isFound = true;
+            lastTime = TimerTester::GetCurrentTime();
+            int ret = timer->SetTimeout(counter * TIME_PIECE_1000);
+            if (ret != -E_OBJ_IS_KILLED) {
+                EXPECT_EQ(ret, E_OK);
             }
-            break;
-        }
-    }
+            return E_OK;
+        }, nullptr);
+    EXPECT_LE(std::abs(total), TIME_INACCURACY * RETRY_TIMES_5);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = g_loop->Add(timer);
+    EXPECT_EQ(errCode, E_OK);
 
-    return isFound;
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_10000));
+    g_loop->KillObj();
+    loopThread.join();
+    RefObject::DecObjRef(timer);
 }
 
-int DistributedDBToolsUnitTest::ModifyDatabaseFile(const std::string &fileDir, uint64_t modifyPos,
-    uint32_t modifyCnt, uint32_t value)
+/**
+ * @tc.name: EventLoopTest001
+ * @tc.desc: Test Initialize twice
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest001, TestSize.Level0)
 {
-    LOGI("Modify database file:%s", fileDir.c_str());
-    std::fstream dataFile(fileDir, std::fstream::binary | std::fstream::out | std::fstream::in);
-    if (!dataFile.is_open()) {
-        LOGD("Open the database file failed");
-        return -E_UNEXPECTED_DATA;
-    }
+    EventLoopEpoll *loop = new (std::nothrow) EventLoopEpoll;
 
-    if (!dataFile.seekg(0, std::fstream::end)) {
-        return -E_UNEXPECTED_DATA;
-    }
+    EXPECT_EQ(loop->Initialize(), E_OK);
+    EXPECT_EQ(loop->Initialize(), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(loop);
+}
 
-    uint64_t fileSize;
-    std::ios::pos_type pos = dataFile.tellg();
-    if (pos < 0) {
-        return -E_UNEXPECTED_DATA;
-    } else {
-        fileSize = static_cast<uint64_t>(pos);
-        if (fileSize < 1024) { // the least page size is 1024 bytes.
-            LOGE("Invalid database file:%" PRIu64 ".", fileSize);
-            return -E_UNEXPECTED_DATA;
-        }
-    }
+/**
+ * @tc.name: EventLoopTest002
+ * @tc.desc: Test interface if args is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTest002, TestSize.Level0)
+{
+    // ready data
+    ASSERT_NE(g_loop, nullptr);
 
-    if (fileSize <= modifyPos) {
+    /**
+     * @tc.steps: step1. test the loop interface.
+     * @tc.expected: step1. return INVALID_AGRS.
+     */
+    EXPECT_EQ(g_loop->Add(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_loop->Remove(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_loop->Stop(), E_OK);
+
+    EventLoopImpl *loopImpl= static_cast<EventLoopImpl *>(g_loop);
+    EventsMask events = 1u;
+    EXPECT_EQ(loopImpl->Modify(nullptr, true, events), -E_INVALID_ARGS);
+    EXPECT_EQ(loopImpl->Modify(nullptr, 0), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: EventTest001
+ * @tc.desc: Test CreateEvent if args is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set EventTime = -1 and CreateEvent
+     * @tc.expected: step1. return INVALID_ARGS
+     */
+    EventTime eventTime = -1; // -1 is invalid arg
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step2. set EventsMask = 0 and CreateEvent
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    EventFd eventFd = EventFd();
+    EventsMask events = 0u;
+    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. set EventsMask = 4 and EventFd is invalid then CreateEvent
+     * @tc.expected: step3. return INVALID_ARGS
+     */
+    EventsMask eventsMask = 1u; // 1 is ET_READ
+    event = IEvent::CreateEvent(eventFd, eventsMask, eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step4. set EventsMask = 8 and CreateEvent
+     * @tc.expected: step4. return INVALID_ARGS
+     */
+    events |= ET_TIMEOUT;
+    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_EQ(event, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step5. set EventTime = 1 and CreateEvent
+     * @tc.expected: step5. return OK
+     */
+    eventTime = TIME_PIECE_1;
+    eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
+    event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
+}
+
+/**
+ * @tc.name: EventTest002
+ * @tc.desc: Test SetAction if action is nullptr
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. SetAction with nullptr
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    EXPECT_EQ(event->SetAction(nullptr), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
+}
+
+/**
+ * @tc.name: EventTest003
+ * @tc.desc: Test AddEvents and RemoveEvents with fd is invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. AddEvents and RemoveEvents with events is 0
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    EventsMask events = 0u;
+    EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
+    EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. AddEvents and RemoveEvents with fd is invalid
+     * @tc.expected: step3. return OK
+     */
+    events |= ET_READ;
+    EXPECT_EQ(event->AddEvents(events), -E_INVALID_ARGS);
+    EXPECT_EQ(event->RemoveEvents(events), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
+}
+
+/**
+ * @tc.name: EventTest004
+ * @tc.desc: Test AddEvents and RemoveEvents with fd is valid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    EventFd eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
+    EventsMask events = 1u; // 1 means ET_READ
+    int errCode = E_OK;
+    IEvent *event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. AddEvents and RemoveEvents with fd is valid
+     * @tc.expected: step2. return OK
+     */
+    events |= ET_WRITE;
+    EXPECT_EQ(event->AddEvents(events), E_OK);
+    EXPECT_EQ(event->RemoveEvents(events), E_OK);
+
+    /**
+     * @tc.steps:step3. AddEvents and RemoveEvents after set action
+     * @tc.expected: step3. return OK
+     */
+    ASSERT_EQ(g_loop->Add(event), -E_INVALID_ARGS);
+    ASSERT_EQ(event->SetAction([](EventsMask revents) -> int {
         return E_OK;
-    }
-
-    if (!dataFile.seekp(modifyPos)) {
-        return -E_UNEXPECTED_DATA;
-    }
-    for (uint32_t i = 0; i < modifyCnt; i++) {
-        if (!dataFile.write(reinterpret_cast<char *>(&value), sizeof(uint32_t))) {
-            return -E_UNEXPECTED_DATA;
-        }
-    }
-
-    dataFile.flush();
-    return E_OK;
+        }), E_OK);
+    ASSERT_EQ(g_loop->Add(event), E_OK);
+    EXPECT_EQ(event->AddEvents(events), E_OK);
+    EXPECT_EQ(event->RemoveEvents(events), E_OK);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
-int DistributedDBToolsUnitTest::GetSyncDataTest(const SyncInputArg &syncInputArg, SQLiteSingleVerNaturalStore *store,
-    std::vector<DataItem> &dataItems, ContinueToken &continueStmtToken)
+/**
+ * @tc.name: EventTest005
+ * @tc.desc: Test constructor method with timeout < 0
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest005, TestSize.Level0)
 {
-    std::vector<SingleVerKvEntry *> entries;
-    DataSizeSpecInfo syncDataSizeInfo = {syncInputArg.blockSize_, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
-    int errCode = store->GetSyncData(syncInputArg.begin_, syncInputArg.end_, entries,
-        continueStmtToken, syncDataSizeInfo);
+    /**
+     * @tc.steps:step1. instantiation event with eventTime
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = -1; // -1 is invalid arg
+    IEvent *event = new (std::nothrow) EventImpl(eventTime);
+    ASSERT_NE(event, nullptr);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 
-    ConvertSingleVerEntryToItems(entries, dataItems);
-    return errCode;
+    /**
+     * @tc.steps:step2. instantiation event with eventFd, events, eventTime
+     * @tc.expected: step2. return OK
+     */
+    EventFd eventFd = EventFd();
+    EventsMask events = 1u; // 1 means ET_READ
+    EventImpl *eventImpl = new (std::nothrow) EventImpl(eventFd, events, eventTime);
+    ASSERT_NE(eventImpl, nullptr);
+    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
 }
 
-int DistributedDBToolsUnitTest::GetSyncDataNextTest(SQLiteSingleVerNaturalStore *store, uint32_t blockSize,
-    std::vector<DataItem> &dataItems, ContinueToken &continueStmtToken)
+/**
+ * @tc.name: EventTest006
+ * @tc.desc: Test SetTimeout
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest006, TestSize.Level0)
 {
-    std::vector<SingleVerKvEntry *> entries;
-    DataSizeSpecInfo syncDataSizeInfo = {blockSize, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
-    int errCode = store->GetSyncDataNext(entries, continueStmtToken, syncDataSizeInfo);
-
-    ConvertSingleVerEntryToItems(entries, dataItems);
-    return errCode;
-}
-
-int DistributedDBToolsUnitTest::PutSyncDataTest(SQLiteSingleVerNaturalStore *store,
-    const std::vector<DataItem> &dataItems, const std::string &deviceName)
-{
-    QueryObject query(Query::Select());
-    return PutSyncDataTest(store, dataItems, deviceName, query);
-}
-
-int DistributedDBToolsUnitTest::PutSyncDataTest(SQLiteSingleVerNaturalStore *store,
-    const std::vector<DataItem> &dataItems, const std::string &deviceName, const QueryObject &query)
-{
-    std::vector<SingleVerKvEntry *> entries;
-    std::vector<DistributedDB::DataItem> items = dataItems;
-    for (auto &item : items) {
-        auto *entry = new (std::nothrow) GenericSingleVerKvEntry();
-        if (entry == nullptr) {
-            ReleaseSingleVerEntry(entries);
-            return -E_OUT_OF_MEMORY;
-        }
-        entry->SetEntryData(std::move(item));
-        entry->SetWriteTimestamp(entry->GetTimestamp());
-        entries.push_back(entry);
-    }
-
-    int errCode = store->PutSyncDataWithQuery(query, entries, deviceName);
-    ReleaseSingleVerEntry(entries);
-    return errCode;
-}
-
-int DistributedDBToolsUnitTest::ConvertItemsToSingleVerEntry(const std::vector<DistributedDB::DataItem> &dataItems,
-    std::vector<DistributedDB::SingleVerKvEntry *> &entries)
-{
-    std::vector<DistributedDB::DataItem> items = dataItems;
-    for (auto &item : items) {
-        GenericSingleVerKvEntry *entry = new (std::nothrow) GenericSingleVerKvEntry();
-        if (entry == nullptr) {
-            ReleaseSingleVerEntry(entries);
-            return -E_OUT_OF_MEMORY;
-        }
-        entry->SetEntryData(std::move(item));
-        entries.push_back(entry);
-    }
-    return E_OK;
-}
-
-void DistributedDBToolsUnitTest::ConvertSingleVerEntryToItems(std::vector<DistributedDB::SingleVerKvEntry *> &entries,
-    std::vector<DistributedDB::DataItem> &dataItems)
-{
-    for (auto &itemEntry : entries) {
-        GenericSingleVerKvEntry *entry = reinterpret_cast<GenericSingleVerKvEntry *>(itemEntry);
-        if (entry != nullptr) {
-            DataItem item;
-            item.origDev = entry->GetOrigDevice();
-            item.flag = entry->GetFlag();
-            item.timestamp = entry->GetTimestamp();
-            entry->GetKey(item.key);
-            entry->GetValue(item.value);
-            dataItems.push_back(item);
-            // clear vector entry
-            delete itemEntry;
-            itemEntry = nullptr;
-        }
-    }
-    entries.clear();
-}
-
-void DistributedDBToolsUnitTest::ReleaseSingleVerEntry(std::vector<DistributedDB::SingleVerKvEntry *> &entries)
-{
-    for (auto &item : entries) {
-        delete item;
-        item = nullptr;
-    }
-    entries.clear();
-}
-
-void DistributedDBToolsUnitTest::CalcHash(const std::vector<uint8_t> &value, std::vector<uint8_t> &hashValue)
-{
-    ValueHashCalc hashCalc;
-    hashCalc.Initialize();
-    hashCalc.Update(value);
-    hashCalc.GetResult(hashValue);
-}
-
-void DistributedDBToolsUnitTest::Dump()
-{
-    constexpr const char *rightDumpParam = "--database";
-    constexpr const char *ignoreDumpParam = "ignore-param";
-    const std::u16string u16DumpRightParam =
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(rightDumpParam);
-    const std::u16string u16DumpIgnoreParam =
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(ignoreDumpParam);
-    std::vector<std::u16string> params = {
-        u16DumpRightParam,
-        u16DumpIgnoreParam
-    };
-    // print to std::cout
-    RuntimeConfig::Dump(0, params);
-}
-
-std::string DistributedDBToolsUnitTest::GetKvNbStoreDirectory(const std::string &identifier,
-    const std::string &dbFilePath, const std::string &dbDir)
-{
-    std::string identifierName = DBCommon::TransferStringToHex(identifier);
-    return dbDir + "/" + identifierName + "/" + dbFilePath;
-}
-
-void DistributedDBToolsUnitTest::BlockSync(RelationalStoreDelegate &delegate, const Query &query,
-    DistributedDB::SyncMode syncMode, DistributedDB::DBStatus exceptStatus,
-    const std::vector<std::string> &devices)
-{
-    std::map<std::string, std::vector<TableStatus>> statusMap;
-    SyncStatusCallback callBack = [&statusMap](
-        const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
-        statusMap = devicesMap;
-    };
-    DBStatus callStatus = delegate.Sync(devices, syncMode, query, callBack, true);
-    EXPECT_EQ(callStatus, OK);
-    QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
-    std::vector<std::string> syncTables;
-    if (queryExpression.IsUseFromTables()) {
-        syncTables = queryExpression.GetTables();
-    } else {
-        syncTables = {queryExpression.GetTableName()};
-    }
-    for (const auto &tablesRes : statusMap) {
-        ASSERT_EQ(tablesRes.second.size(), syncTables.size());
-        for (uint32_t i = 0; i < syncTables.size(); i++) {
-            EXPECT_EQ(tablesRes.second[i].status, exceptStatus);
-            EXPECT_EQ(tablesRes.second[i].tableName, syncTables[i]);
-        }
-    }
-}
-
-KvStoreObserverUnitTest::KvStoreObserverUnitTest() : callCount_(0), isCleared_(false)
-{}
-
-void KvStoreObserverUnitTest::OnChange(const KvStoreChangedData& data)
-{
-    callCount_++;
-    inserted_ = data.GetEntriesInserted();
-    updated_ = data.GetEntriesUpdated();
-    deleted_ = data.GetEntriesDeleted();
-    isCleared_ = data.IsCleared();
-    LOGD("Onchangedata :%zu -- %zu -- %zu -- %d", inserted_.size(), updated_.size(), deleted_.size(), isCleared_);
-    LOGD("Onchange() called success!");
-}
-
-void KvStoreObserverUnitTest::OnChange(const DistributedDB::StoreChangedData &data)
-{
-    (void)data;
-    KvStoreObserver::OnChange(data);
-}
-
-void KvStoreObserverUnitTest::OnChange(DistributedDB::StoreObserver::StoreChangedInfo &&data)
-{
-    (void)data;
-    KvStoreObserver::OnChange(std::move(data));
-}
-
-void KvStoreObserverUnitTest::OnChange(DistributedDB::Origin origin, const std::string &originalId,
-    DistributedDB::ChangedData &&data)
-{
-    callCount_++;
-    changedData_[data.tableName] = data;
-    LOGD("data change when cloud sync, origin = %d, tableName = %s", origin, data.tableName.c_str());
-    KvStoreObserver::OnChange(origin, originalId, std::move(data));
-}
-
-void KvStoreObserverUnitTest::ResetToZero()
-{
-    callCount_ = 0;
-    isCleared_ = false;
-    inserted_.clear();
-    updated_.clear();
-    deleted_.clear();
-    changedData_.clear();
-}
-
-unsigned long KvStoreObserverUnitTest::GetCallCount() const
-{
-    return callCount_;
-}
-
-const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesInserted() const
-{
-    return inserted_;
-}
-
-const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesUpdated() const
-{
-    return updated_;
-}
-
-const std::list<Entry> &KvStoreObserverUnitTest::GetEntriesDeleted() const
-{
-    return deleted_;
-}
-
-bool KvStoreObserverUnitTest::IsCleared() const
-{
-    return isCleared_;
-}
-
-std::unordered_map<std::string, DistributedDB::ChangedData> KvStoreObserverUnitTest::GetChangedData() const
-{
-    return changedData_;
-}
-
-RelationalStoreObserverUnitTest::RelationalStoreObserverUnitTest() : callCount_(0)
-{
-}
-
-unsigned long RelationalStoreObserverUnitTest::GetCallCount() const
-{
-    return callCount_;
-}
-
-unsigned long RelationalStoreObserverUnitTest::GetCloudCallCount() const
-{
-    return cloudCallCount_;
-}
-
-void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData &data)
-{
-    callCount_++;
-    changeDevice_ = data.GetDataChangeDevice();
-    data.GetStoreProperty(storeProperty_);
-    LOGD("Onchangedata : %s", changeDevice_.c_str());
-    LOGD("Onchange() called success!");
-}
-
-void RelationalStoreObserverUnitTest::OnChange(
-    DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
-{
-    cloudCallCount_++;
-    savedChangedData_[data.tableName] = data;
-    lastOrigin_ = origin;
-    LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
-}
-
-uint32_t RelationalStoreObserverUnitTest::GetCallbackDetailsType() const
-{
-    return detailsType_;
-}
-
-void RelationalStoreObserverUnitTest::SetCallbackDetailsType(uint32_t type)
-{
-    detailsType_ = type;
-}
-
-void RelationalStoreObserverUnitTest::SetExpectedResult(const DistributedDB::ChangedData &changedData)
-{
-    expectedChangedData_[changedData.tableName] = changedData;
-}
-
-static bool IsPrimaryKeyEq(DistributedDB::Type &input, DistributedDB::Type &expected)
-{
-    if (input.index() != expected.index()) {
-        return false;
-    }
-    switch (expected.index()) {
-        case TYPE_INDEX<int64_t>:
-            if (std::get<int64_t>(input) != std::get<int64_t>(expected)) {
-                return false;
-            }
-            break;
-        case TYPE_INDEX<std::string>:
-            if (std::get<std::string>(input) != std::get<std::string>(expected)) {
-                return false;
-            }
-            break;
-        case TYPE_INDEX<bool>:
-            if (std::get<bool>(input) != std::get<bool>(expected)) {
-                return false;
-            }
-            break;
-        case TYPE_INDEX<double>:
-        case TYPE_INDEX<Bytes>:
-        case TYPE_INDEX<Asset>:
-        case TYPE_INDEX<Assets>:
-            LOGE("NOT HANDLE THIS SITUATION");
-            return false;
-        default: {
-            break;
-        }
-    }
-    return true;
-}
-
-static bool IsPrimaryDataEq(
-    uint64_t type, DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
-{
-    for (size_t m = 0; m < input.primaryData[type].size(); m++) {
-        if (m >= expected.primaryData[type].size()) {
-            LOGE("Actual primary data's size is more than the expected!");
-            return false;
-        }
-        if (input.primaryData[type][m].size() != expected.primaryData[type][m].size()) {
-            LOGE("Primary data fields' size is not equal!");
-            return false;
-        }
-        for (size_t k = 0; k < input.primaryData[type][m].size(); k++) {
-            if (!IsPrimaryKeyEq(input.primaryData[type][m][k], expected.primaryData[type][m][k])) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-static bool IsAllTypePrimaryDataEq(DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
-{
-    for (uint64_t type = ChangeType::OP_INSERT; type < ChangeType::OP_BUTT; ++type) {
-        if (!IsPrimaryDataEq(type, input, expected)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-static bool isChangedDataEq(DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
-{
-    if (input.tableName != expected.tableName) {
-        return false;
-    }
-    if (input.properties.isTrackedDataChange != expected.properties.isTrackedDataChange) {
-        return false;
-    }
-    if (input.field.size() != expected.field.size()) {
-        return false;
-    }
-    for (size_t i = 0; i < input.field.size(); i++) {
-        if (!DBCommon::CaseInsensitiveCompare(input.field[i], expected.field[i])) {
-            return false;
-        }
-    }
-    return IsAllTypePrimaryDataEq(input, expected);
-}
-
-bool RelationalStoreObserverUnitTest::IsAllChangedDataEq()
-{
-    for (auto iter = expectedChangedData_.begin(); iter != expectedChangedData_.end(); ++iter) {
-        auto iterInSavedChangedData = savedChangedData_.find(iter->first);
-        if (iterInSavedChangedData == savedChangedData_.end()) {
-            return false;
-        }
-        if (!isChangedDataEq(iterInSavedChangedData->second, iter->second)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void RelationalStoreObserverUnitTest::ClearChangedData()
-{
-    expectedChangedData_.clear();
-    savedChangedData_.clear();
-}
-
-void RelationalStoreObserverUnitTest::ResetToZero()
-{
-    callCount_ = 0;
-    changeDevice_.clear();
-    storeProperty_ = {};
-}
-
-void RelationalStoreObserverUnitTest::ResetCloudSyncToZero()
-{
-    cloudCallCount_ = 0u;
-    savedChangedData_.clear();
-}
-
-const std::string RelationalStoreObserverUnitTest::GetDataChangeDevice() const
-{
-    return changeDevice_;
-}
-
-DistributedDB::StoreProperty RelationalStoreObserverUnitTest::GetStoreProperty() const
-{
-    return storeProperty_;
-}
-
-std::unordered_map<std::string, DistributedDB::ChangedData> RelationalStoreObserverUnitTest::GetSavedChangedData() const
-{
-    return savedChangedData_;
-}
-
-DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
-    const std::vector<std::string>& devices, SyncMode mode,
-    std::map<std::string, DBStatus>& statuses, const Query &query)
-{
-    statuses.clear();
-    DBStatus callStatus = delegate->Sync(devices, mode,
-        [&statuses, this](const std::map<std::string, DBStatus>& statusMap) {
-            statuses = statusMap;
-            std::unique_lock<std::mutex> innerlock(this->syncLock_);
-            this->syncCondVar_.notify_one();
-        }, query, false);
-
-    std::unique_lock<std::mutex> lock(syncLock_);
-    syncCondVar_.wait(lock, [callStatus, &statuses]() {
-            if (callStatus != OK) {
-                return true;
-            }
-            return !statuses.empty();
-        });
-    return callStatus;
-}
-
-DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
-    const std::vector<std::string>& devices, SyncMode mode,
-    std::map<std::string, DBStatus>& statuses, bool wait)
-{
-    statuses.clear();
-    DBStatus callStatus = delegate->Sync(devices, mode,
-        [&statuses, this](const std::map<std::string, DBStatus>& statusMap) {
-            statuses = statusMap;
-            std::unique_lock<std::mutex> innerlock(this->syncLock_);
-            this->syncCondVar_.notify_one();
-        }, wait);
-    if (!wait) {
-        std::unique_lock<std::mutex> lock(syncLock_);
-        syncCondVar_.wait(lock, [callStatus, &statuses]() {
-                if (callStatus != OK) {
-                    return true;
-                }
-                if (statuses.size() != 0) {
-                    return true;
-                }
-                return false;
-            });
-        }
-    return callStatus;
-}
-
-static bool WaitUntilReady(DBStatus status, const std::map<std::string, DeviceSyncProcess> &syncProcessMap)
-{
-    if (status != OK) {
-        return true;
-    }
-    if (syncProcessMap.empty()) {
-        return false;
-    }
-    auto item = std::find_if(syncProcessMap.begin(), syncProcessMap.end(), [](const auto &entry) {
-        return entry.second.process < ProcessStatus::FINISHED;
-    });
-    if (item != syncProcessMap.end()) {
-        return false;
-    }
-    return true;
-}
-
-DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, DeviceSyncOption option,
-    std::map<std::string, DeviceSyncProcess> &syncProcessMap)
-{
-    syncProcessMap.clear();
-    DeviceSyncProcessCallback onProcess =
-        [&syncProcessMap, this](const std::map<std::string, DeviceSyncProcess> &processMap) {
-            syncProcessMap = processMap;
-            std::unique_lock<std::mutex> innerlock(this->syncLock_);
-            this->syncCondVar_.notify_one();
-        };
-    DBStatus status = delegate->Sync(option, onProcess);
-
-    if (!option.isWait) {
-        std::unique_lock<std::mutex> lock(this->syncLock_);
-        this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
-            return WaitUntilReady(status, syncProcessMap);
-        });
-    }
-    return status;
-}
-
-void KvStoreCorruptInfo::CorruptCallBack(const std::string &appId, const std::string &userId,
-    const std::string &storeId)
-{
-    DatabaseInfo databaseInfo;
-    databaseInfo.appId = appId;
-    databaseInfo.userId = userId;
-    databaseInfo.storeId = storeId;
-    LOGD("appId :%s, userId:%s, storeId:%s", appId.c_str(), userId.c_str(), storeId.c_str());
-    databaseInfoVect_.push_back(databaseInfo);
-}
-
-size_t KvStoreCorruptInfo::GetDatabaseInfoSize() const
-{
-    return databaseInfoVect_.size();
-}
-
-bool KvStoreCorruptInfo::IsDataBaseCorrupted(const std::string &appId, const std::string &userId,
-    const std::string &storeId) const
-{
-    for (const auto &item : databaseInfoVect_) {
-        if (item.appId == appId &&
-            item.userId == userId &&
-            item.storeId == storeId) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void KvStoreCorruptInfo::Reset()
-{
-    databaseInfoVect_.clear();
-}
-
-int DistributedDBToolsUnitTest::GetRandInt(const int randMin, const int randMax)
-{
-    std::random_device randDev;
-    std::mt19937 genRand(randDev());
-    std::uniform_int_distribution<int> disRand(randMin, randMax);
-    return disRand(genRand);
-}
-
-int64_t DistributedDBToolsUnitTest::GetRandInt64(const int64_t randMin, const int64_t randMax)
-{
-    std::random_device randDev;
-    std::mt19937_64 genRand(randDev());
-    std::uniform_int_distribution<int64_t> disRand(randMin, randMax);
-    return disRand(genRand);
-}
-
-void DistributedDBToolsUnitTest::PrintTestCaseInfo()
-{
-    testing::UnitTest *test = testing::UnitTest::GetInstance();
-    ASSERT_NE(test, nullptr);
-    const testing::TestInfo *testInfo = test->current_test_info();
-    ASSERT_NE(testInfo, nullptr);
-    LOGI("Start unit test: %s.%s", testInfo->test_case_name(), testInfo->name());
-}
-
-int DistributedDBToolsUnitTest::BuildMessage(const DataSyncMessageInfo &messageInfo,
-    DistributedDB::Message *&message)
-{
-    auto packet = new (std::nothrow) DataRequestPacket;
-    if (packet == nullptr) {
-        return -E_OUT_OF_MEMORY;
-    }
-    message = new (std::nothrow) Message(messageInfo.messageId_);
-    if (message == nullptr) {
-        delete packet;
-        packet = nullptr;
-        return -E_OUT_OF_MEMORY;
-    }
-    packet->SetBasicInfo(messageInfo.sendCode_, messageInfo.version_, messageInfo.mode_);
-    packet->SetWaterMark(messageInfo.localMark_, messageInfo.peerMark_, messageInfo.deleteMark_);
-    std::vector<uint64_t> reserved {messageInfo.packetId_};
-    packet->SetReserved(reserved);
-    message->SetMessageType(messageInfo.messageType_);
-    message->SetSessionId(messageInfo.sessionId_);
-    message->SetSequenceId(messageInfo.sequenceId_);
-    message->SetExternalObject(packet);
-    return E_OK;
-}
-
-void RelationalTestUtils::CreateDeviceTable(sqlite3 *db, const std::string &table, const std::string &device)
-{
-    ASSERT_NE(db, nullptr);
-    std::string deviceTable = DBCommon::GetDistributedTableName(device, table);
-    TableInfo baseTbl;
-    ASSERT_EQ(SQLiteUtils::AnalysisSchema(db, table, baseTbl), E_OK);
-    EXPECT_EQ(SQLiteUtils::CreateSameStuTable(db, baseTbl, deviceTable), E_OK);
-    EXPECT_EQ(SQLiteUtils::CloneIndexes(db, table, deviceTable), E_OK);
-}
-
-int RelationalTestUtils::CheckSqlResult(sqlite3 *db, const std::string &sql, bool &result)
-{
-    if (db == nullptr || sql.empty()) {
-        return -E_INVALID_ARGS;
-    }
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        result = true;
-        errCode = E_OK;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        result = false;
-        errCode = E_OK;
-    }
-END:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
-}
-
-int RelationalTestUtils::CheckTableRecords(sqlite3 *db, const std::string &table)
-{
-    if (db == nullptr || table.empty()) {
-        return -E_INVALID_ARGS;
-    }
-    int count = -1;
-    std::string sql = "select count(1) from " + table + ";";
-
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        count = sqlite3_column_int(stmt, 0);
-    }
-END:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return count;
-}
-
-int RelationalTestUtils::GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value)
-{
-    if (db == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-
-    std::string sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key = ?;";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        goto END;
-    }
-    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, value);
-    }
-END:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
-}
-
-int RelationalTestUtils::SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value)
-{
-    if (db == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-
-    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) +
-        "metadata VALUES (?, ?);";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        goto END;
-    }
-    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, key);
-    if (errCode != E_OK) {
-        goto END;
-    }
-    errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, value); // 2: bind index
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    }
-END:
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return SQLiteUtils::MapSQLiteErrno(errCode);
-}
-
-void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
-    DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect,
-    DistributedDB::DBStatus callbackExpect)
-{
-    DistributedDB::CloudSyncOption option;
-    option.devices = { "CLOUD" };
-    option.mode = SYNC_MODE_CLOUD_MERGE;
-    option.query = query;
-    option.waitTime = DBConstant::MAX_TIMEOUT;
-    CloudBlockSync(option, delegate, expect, callbackExpect);
-}
-
-void RelationalTestUtils::CloudBlockSync(const DistributedDB::CloudSyncOption &option,
-    DistributedDB::RelationalStoreDelegate *delegate,
-    DistributedDB::DBStatus expect, DistributedDB::DBStatus callbackExpect)
-{
-    ASSERT_NE(delegate, nullptr);
-    std::mutex dataMutex;
-    std::condition_variable cv;
-    bool finish = false;
-    auto callback = [callbackExpect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
-        for (const auto &item: process) {
-            if (item.second.process == DistributedDB::FINISHED) {
-                {
-                    std::lock_guard<std::mutex> autoLock(dataMutex);
-                    finish = true;
-                }
-                EXPECT_EQ(item.second.errCode, callbackExpect);
-                cv.notify_one();
-            }
-        }
-    };
-    ASSERT_EQ(delegate->Sync(option, callback), expect);
-    if (expect != DistributedDB::DBStatus::OK) {
-        return;
-    }
-    std::unique_lock<std::mutex> uniqueLock(dataMutex);
-    cv.wait(uniqueLock, [&finish]() {
-        return finish;
-    });
-}
-
-int RelationalTestUtils::SelectData(sqlite3 *db, const DistributedDB::TableSchema &schema,
-    std::vector<DistributedDB::VBucket> &data)
-{
-    LOGD("[RelationalTestUtils] Begin select data");
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
     int errCode = E_OK;
-    std::string selectSql = "SELECT ";
-    for (const auto &field : schema.fields) {
-        selectSql += field.colName + ",";
-    }
-    selectSql.pop_back();
-    selectSql += " FROM " + schema.name;
-    sqlite3_stmt *statement = nullptr;
-    errCode = SQLiteUtils::GetStatement(db, selectSql, statement);
-    if (errCode != E_OK) {
-        LOGE("[RelationalTestUtils] Prepare statement failed %d", errCode);
-        return errCode;
-    }
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, false);
-        errCode = (errCode == -SQLITE_ROW) ? E_OK :
-            (errCode == -SQLITE_DONE) ? -E_FINISHED : errCode;
-        if (errCode != E_OK) {
-            break;
-        }
-        VBucket rowData;
-        for (size_t index = 0; index < schema.fields.size(); ++index) {
-            Type colValue;
-            int ret = SQLiteRelationalUtils::GetCloudValueByType(statement, schema.fields[index].type, index, colValue);
-            if (ret != E_OK) {
-                LOGE("[RelationalTestUtils] Get col value failed %d", ret);
-                break;
-            }
-            rowData[schema.fields[index].colName] = colValue;
-        }
-        data.push_back(rowData);
-    } while (errCode == E_OK);
-    if (errCode == -E_FINISHED) {
-        errCode = E_OK;
-    }
-    int err = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, err);
-    LOGW("[RelationalTestUtils] Select data finished errCode %d", errCode);
-    return errCode != E_OK ? errCode : err;
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. SetTimeout
+     * @tc.expected: step2. return INVALID_ARGS
+     */
+    event->IgnoreFinalizer();
+    EXPECT_EQ(event->SetTimeout(eventTime), E_OK);
+    eventTime = -1; // -1 is invalid args
+    EXPECT_EQ(event->SetTimeout(eventTime), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(event);
 }
 
-DistributedDB::Assets RelationalTestUtils::GetAssets(const DistributedDB::Type &value,
-    const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate, bool isAsset)
+/**
+ * @tc.name: EventTest007
+ * @tc.desc: Test SetEvents and GetEvents
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest007, TestSize.Level0)
 {
-    DistributedDB::Assets assets;
-    if (value.index() == TYPE_INDEX<Assets>) {
-        auto tmp = std::get<Assets>(value);
-        assets.insert(assets.end(), tmp.begin(), tmp.end());
-    } else if (value.index() == TYPE_INDEX<Asset>) {
-        assets.push_back(std::get<Asset>(value));
-    } else if (value.index() == TYPE_INDEX<Bytes> && translate != nullptr) {
-        if (isAsset) {
-            auto tmpAsset = translate->BlobToAsset(std::get<Bytes>(value));
-            assets.push_back(tmpAsset);
-        } else {
-            auto tmpAssets = translate->BlobToAssets(std::get<Bytes>(value));
-            assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
-        }
-    }
-    return assets;
-}
-
-DistributedDB::DBStatus RelationalTestUtils::InsertCloudRecord(int64_t begin, int64_t count,
-    const std::string &tableName, const std::shared_ptr<DistributedDB::VirtualCloudDb> &cloudDbPtr, int32_t assetCount)
-{
-    if (cloudDbPtr == nullptr) {
-        LOGE("[RelationalTestUtils] Not support insert cloud with null");
-        return DistributedDB::DBStatus::DB_ERROR;
-    }
-    std::vector<VBucket> record;
-    std::vector<VBucket> extend;
-    Timestamp now = DistributedDB::TimeHelper::GetSysCurrentTime();
-    for (int64_t i = begin; i < (begin + count); ++i) {
-        VBucket data;
-        data.insert_or_assign("id", std::to_string(i));
-        data.insert_or_assign("name", "Cloud" + std::to_string(i));
-        Assets assets;
-        std::string assetNameBegin = "Phone" + std::to_string(i);
-        for (int j = 1; j <= assetCount; ++j) {
-            Asset asset;
-            asset.name = assetNameBegin + "_" + std::to_string(j);
-            asset.status = AssetStatus::INSERT;
-            asset.hash = "DEC";
-            asset.assetId = std::to_string(j);
-            assets.push_back(asset);
-        }
-        data.insert_or_assign("assets", assets);
-        record.push_back(data);
-        VBucket log;
-        log.insert_or_assign(DistributedDB::CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
-            now / DistributedDB::CloudDbConstant::TEN_THOUSAND));
-        log.insert_or_assign(DistributedDB::CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
-            now / DistributedDB::CloudDbConstant::TEN_THOUSAND));
-        log.insert_or_assign(DistributedDB::CloudDbConstant::DELETE_FIELD, false);
-        extend.push_back(log);
-    }
-    return cloudDbPtr->BatchInsert(tableName, std::move(record), extend);
-}
-
-std::vector<DistributedDB::Assets> RelationalTestUtils::GetAllAssets(sqlite3 *db,
-    const DistributedDB::TableSchema &schema, const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate)
-{
-    std::vector<DistributedDB::Assets> res;
-    if (db == nullptr || translate == nullptr) {
-        LOGW("[RelationalTestUtils] DB or translate is null");
-        return res;
-    }
-    std::vector<VBucket> allData;
-    EXPECT_EQ(RelationalTestUtils::SelectData(db, schema, allData), E_OK);
-    std::map<std::string, int32_t> assetFields;
-    for (const auto &field : schema.fields) {
-        if (field.type != TYPE_INDEX<Asset> && field.type != TYPE_INDEX<Assets>) {
-            continue;
-        }
-        assetFields[field.colName] = field.type;
-    }
-    for (const auto &oneRow : allData) {
-        Assets assets;
-        for (const auto &[col, data] : oneRow) {
-            if (assetFields.find(col) == assetFields.end()) {
-                continue;
-            }
-            auto tmpAssets = GetAssets(data, translate, (assetFields[col] == TYPE_INDEX<Asset>));
-            assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
-        }
-        res.push_back(assets);
-    }
-    return res;
-}
-
-int RelationalTestUtils::GetRecordLog(sqlite3 *db, const std::string &tableName,
-    std::vector<DistributedDB::VBucket> &records)
-{
-    DistributedDB::TableSchema schema;
-    schema.name = DBCommon::GetLogTableName(tableName);
-    Field field;
-    field.type = TYPE_INDEX<int64_t>;
-    field.colName = "data_key";
-    schema.fields.push_back(field);
-    field.colName = "flag";
-    schema.fields.push_back(field);
-    field.colName = "cursor";
-    schema.fields.push_back(field);
-    field.colName = "cloud_gid";
-    field.type = TYPE_INDEX<std::string>;
-    schema.fields.push_back(field);
-    return SelectData(db, schema, records);
-}
-
-int RelationalTestUtils::DeleteRecord(sqlite3 *db, const std::string &tableName,
-    const std::vector<std::map<std::string, std::string>> &conditions)
-{
-    if (db == nullptr || tableName.empty()) {
-        LOGE("[RelationalTestUtils] db is null or table is empty");
-        return -E_INVALID_ARGS;
-    }
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
+    EventFd eventFd = EventFd(epoll_create(EPOLL_INIT_REVENTS));
+    EventsMask events = 1u; // 1 means ET_READ
     int errCode = E_OK;
-    for (const auto &condition : conditions) {
-        std::string deleteSql = "DELETE FROM " + tableName + " WHERE ";
-        int count = 0;
-        for (const auto &[col, value] : condition) {
-            if (count > 0) {
-                deleteSql += " AND ";
-            }
-            deleteSql += col + "=" + value;
-            count++;
-        }
-        LOGD("[RelationalTestUtils] Sql is %s", deleteSql.c_str());
-        errCode = ExecSql(db, deleteSql);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-    }
-    return errCode;
+    IEvent *event = IEvent::CreateEvent(eventFd, events, eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step2. Test GetEventFd and GetEvents
+     * @tc.expected: step2. return OK
+     */
+    EventImpl *eventImpl = static_cast<EventImpl *>(event);
+    eventImpl->SetRevents(events);
+    EXPECT_EQ(eventImpl->GetEventFd(), eventFd);
+    EXPECT_EQ(eventImpl->GetEvents(), events);
+    events = 2u; // 2 means ET_WRITE
+    eventImpl->SetEvents(true, events);
+    EXPECT_EQ(eventImpl->GetEvents(), 3u); // 3 means ET_WRITE | ET_READ
+    eventImpl->SetEvents(false, events);
+    EXPECT_EQ(eventImpl->GetEvents(), 1u); // 1 means ET_READ
+    EXPECT_FALSE(eventImpl->GetTimeoutPoint(eventTime));
+    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
 }
 
-bool RelationalTestUtils::IsExistEmptyHashAsset(sqlite3 *db, const DistributedDB::TableSchema &schema)
+/**
+ * @tc.name: EventTest008
+ * @tc.desc: Test SetTimeoutPeriod and GetTimeoutPoint
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBEventLoopTimerTest, EventTest008, TestSize.Level0)
 {
-    if (db == nullptr) {
-        return false;
-    }
-    std::vector<Field> assetCol;
-    for (const auto &field : schema.fields) {
-        if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
-            assetCol.push_back(field);
-        }
-    }
-    if (assetCol.empty()) {
-        return false;
-    }
-    std::string sql = "SELECT ";
-    for (const auto &field : assetCol) {
-        sql += field.colName + ",";
-    }
-    sql.pop_back();
-    sql += " FROM " + schema.name;
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        return false;
-    }
-    ResFinalizer finalizer([stmt]() {
-        sqlite3_stmt *statement = stmt;
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, ret);
-    });
-    VirtualCloudDataTranslate translate;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        for (int index = 0; index < static_cast<int>(assetCol.size()); index++) {
-            Value value;
-            (void)SQLiteUtils::GetColumnBlobValue(stmt, index, value);
-            Assets assets;
-            if (assetCol[index].type == TYPE_INDEX<Asset>) {
-                assets.push_back(translate.BlobToAsset(value));
-            } else {
-                assets = translate.BlobToAssets(value);
-            }
-            if (IsExistEmptyHashAsset(assets)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool RelationalTestUtils::IsExistEmptyHashAsset(const DistributedDB::Assets &assets)
-{
-    return std::any_of(assets.begin(), assets.end(), [](const Asset &asset) {
-        return asset.hash.empty();
-    });
-}
-
-bool DBInfoHandleTest::IsSupport()
-{
-    std::lock_guard<std::mutex> autoLock(supportMutex_);
-    return localIsSupport_;
-}
-
-bool DBInfoHandleTest::IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
-    const DeviceInfos &devInfo)
-{
-    std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
-    return isNeedAutoSync_;
-}
-
-void DBInfoHandleTest::SetLocalIsSupport(bool isSupport)
-{
-    std::lock_guard<std::mutex> autoLock(supportMutex_);
-    localIsSupport_ = isSupport;
-}
-
-void DBInfoHandleTest::SetNeedAutoSync(bool needAutoSync)
-{
-    std::lock_guard<std::mutex> autoLock(autoSyncMutex_);
-    isNeedAutoSync_ = needAutoSync;
-}
-
-DistributedDB::ICloudSyncStorageHook *RelationalTestUtils::GetRDBStorageHook(const std::string &userId,
-    const std::string &appId, const std::string &storeId, const std::string &dbPath)
-{
-    RelationalDBProperties properties;
-    CloudDBSyncUtilsTest::InitStoreProp(dbPath, appId, userId, storeId, properties);
+    /**
+     * @tc.steps:step1. CreateEvent
+     * @tc.expected: step1. return OK
+     */
+    EventTime eventTime = TIME_PIECE_1;
     int errCode = E_OK;
-    auto store = RelationalStoreInstance::GetDataBase(properties, errCode);
-    if (store == nullptr) {
-        return nullptr;
-    }
-    auto engine = static_cast<SQLiteRelationalStore *>(store)->GetStorageEngine();
-    RefObject::DecObjRef(store);
-    return static_cast<ICloudSyncStorageHook *>(engine);
-}
+    IEvent *event = IEvent::CreateEvent(eventTime, errCode);
+    ASSERT_NE(event, nullptr);
+    EXPECT_EQ(errCode, E_OK);
 
-void RelationalTestUtils::CheckIndexCount(sqlite3 *db, const std::string &table, size_t expect)
-{
-    TableInfo info;
-    ASSERT_EQ(SQLiteUtils::AnalysisSchema(db, table, info), E_OK);
-    auto index = info.GetIndexDefine();
-    EXPECT_EQ(index.size(), expect);
-}
+    /**
+     * @tc.steps:step2. SetTimeoutPeriod and GetTimeoutPoint
+     * @tc.expected: step2. return OK
+     */
+    EventImpl *eventImpl = static_cast<EventImpl *>(event);
+    eventTime = -1; // -1 is invalid args
+    eventImpl->SetTimeoutPeriod(eventTime);
+    EXPECT_TRUE(eventImpl->GetTimeoutPoint(eventTime));
 
-bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) const
-{
-    auto changeData = savedChangedData_.find(table);
-    if (changeData == savedChangedData_.end()) {
-        return false;
-    }
-    return changeData->second.type == ChangedDataType::ASSET;
+    /**
+     * @tc.steps:step3. Dispatch
+     * @tc.expected: step3. return INVALID_ARGS
+     */
+    EXPECT_EQ(eventImpl->Dispatch(), -E_INVALID_ARGS);
+    DistributedDB::RefObject::KillAndDecObjRef(eventImpl);
 }
-
-DistributedDB::Origin RelationalStoreObserverUnitTest::GetLastOrigin() const
-{
-    return lastOrigin_;
 }
-
-void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,
-    DistributedDB::CloudSyncOption option, DistributedDB::DBStatus expectSyncResult)
-{
-    if (delegate == nullptr) {
-        return;
-    }
-    std::mutex dataMutex;
-    std::condition_variable cv;
-    bool finish = false;
-    SyncProcess last;
-    auto callback = [expectDBStatus, &last, &cv, &dataMutex, &finish, &option](const std::map<std::string,
-        SyncProcess> &process) {
-        size_t notifyCnt = 0;
-        for (const auto &item: process) {
-            LOGD("user = %s, status = %d, errCode = %d", item.first.c_str(), item.second.process, item.second.errCode);
-            if (item.second.process != DistributedDB::FINISHED) {
-                continue;
-            }
-            EXPECT_EQ(item.second.errCode, expectDBStatus);
-            {
-                std::lock_guard<std::mutex> autoLock(dataMutex);
-                notifyCnt++;
-                std::set<std::string> userSet(option.users.begin(), option.users.end());
-                if (notifyCnt == userSet.size()) {
-                    finish = true;
-                    last = item.second;
-                    cv.notify_one();
-                }
-            }
-        }
-    };
-    auto actualRet = delegate->Sync(option, callback);
-    EXPECT_EQ(actualRet, expectSyncResult);
-    if (actualRet == OK) {
-        std::unique_lock<std::mutex> uniqueLock(dataMutex);
-        cv.wait(uniqueLock, [&finish]() {
-            return finish;
-        });
-    }
-}
-} // namespace DistributedDBUnitTest
