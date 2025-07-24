@@ -2028,7 +2028,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysAndOther002, TestSize.L
   * @tc.name: WriteTimeSort001
   * @tc.desc: For prefixKey query with orderBy writeTime asc
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Level1)
@@ -2103,7 +2103,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Le
   * @tc.name: WriteTimeSort002
   * @tc.desc: For prefixKey query with orderBy writeTime asc
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Level1)
@@ -2168,7 +2168,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Le
   * @tc.name: WriteTimeSort003
   * @tc.desc: For prefixKey query with orderBy writeTime desc
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Level1)
@@ -2243,7 +2243,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Le
   * @tc.name: WriteTimeSort004
   * @tc.desc: For prefixKey query with orderBy writeTime asc
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Level1)
@@ -2320,7 +2320,7 @@ void CheckResultSize(KvStoreResultSet *resultSet, const std::vector<Key> &expect
   * @tc.name: WriteTimeSort005
   * @tc.desc: For inkeys query with orderBy writeTime asc
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Level1)
@@ -2393,7 +2393,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
   * @tc.name: WriteTimeSort006
   * @tc.desc: For inkeys query with orderBy writeTime desc
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Level1)
@@ -2466,7 +2466,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Le
   * @tc.name: WriteTimeSort007
   * @tc.desc: For unsupport query when getEntries
   * @tc.type: FUNC
-  * @tc.require: SR000H5U55
+  * @tc.require:
   * @tc.author: zhuwentao
   */
 HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort007, TestSize.Level0)

@@ -175,7 +175,7 @@ int GenericKvDBConnection::SetConflictNotifier(int conflictType, const KvDBConfl
     return -E_NOT_SUPPORT;
 }
 
-int GenericKvDBConnection::Close()
+int GenericKvDBConnection::Close(bool isCloseImmediately)
 {
     if (kvDB_ == nullptr) {
         return -E_INVALID_CONNECTION;
@@ -190,7 +190,7 @@ int GenericKvDBConnection::Close()
         return -E_BUSY;
     }
 
-    int errCode = PreClose();
+    int errCode = PreClose(isCloseImmediately);
     if (errCode != E_OK) {
         LOGE("Close connection  failed, err:'%d'.", errCode);
         return errCode;
@@ -214,9 +214,9 @@ int GenericKvDBConnection::Pragma(int cmd, void *parameter)
     return -E_NOT_SUPPORT;
 }
 
-int GenericKvDBConnection::PreClose()
+int GenericKvDBConnection::PreClose(bool isCloseImmediately)
 {
-    return E_OK;
+    return kvDB_->PreClose();
 }
 
 void GenericKvDBConnection::SetSafeDeleted()

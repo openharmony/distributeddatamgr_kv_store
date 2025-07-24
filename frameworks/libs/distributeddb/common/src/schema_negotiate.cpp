@@ -37,14 +37,23 @@ SyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const SchemaObject &localSchem
         LOGE("[Schema][Opinion] Remote-type=%" PRIu8 " unrecognized.", remoteSchemaType);
         return SyncOpinion{false, true, true};
     }
-    // 2. If local-type is KV(Here remote-type is within recognized), Always permit sync.
+    // 2. If local-type is KV(Here remote-type is within recognized), always permit sync unless remote is JSON.
     if (localType == SchemaType::NONE) {
         LOGI("[Schema][Opinion] Local-type KV.");
+        if (remoteType == SchemaType::JSON) {
+            LOGE("[Schema][Opinion] Not support sync between KV(local) and JSON(remote)");
+            return SyncOpinion{false, true, true};
+        }
         return SyncOpinion{true, false, false};
     }
-    // 3. If remote-type is KV(Here local-type can only be JSON or FLATBUFFER), Always permit sync but need check.
+    // 3. If remote-type is KV(Here local-type can only be JSON or FLATBUFFER),
+    // always permit sync unless remote is JSON, but need check.
     if (remoteType == SchemaType::NONE) {
         LOGI("[Schema][Opinion] Remote-type KV.");
+        if (localType == SchemaType::JSON) {
+            LOGE("[Schema][Opinion] Not support sync between KV(remote) and JSON(local)");
+            return SyncOpinion{false, true, true};
+        }
         return SyncOpinion{true, false, true};
     }
     // 4. If local-type differ with remote-type(Here both type can only be JSON or FLATBUFFER), Do not permit sync.

@@ -57,6 +57,8 @@ public:
 
     std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
 
+    bool ExchangeClosePending(bool expected) override;
+
 private:
     ICommunicator *mainComm_;
     mutable std::mutex devCommMapLock_;

@@ -135,11 +135,28 @@ int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const Knowl
     return SaveKnowledgeSourceSchema(db, knowledgeSchema);
 }
 
+int KnowledgeSourceUtils::RemoveKnowledgeTableSchema(sqlite3 *db, const std::string &tableName)
+{
+    int errCode = E_OK;
+    RelationalSchemaObject knowledgeSchema;
+    std::tie(errCode, knowledgeSchema) = GetKnowledgeSourceSchema(db);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    knowledgeSchema.RemoveRelationalTable(tableName);
+    return SaveKnowledgeSourceSchema(db, knowledgeSchema);
+}
+
 int KnowledgeSourceUtils::InitMeta(sqlite3 *db, const std::string &table)
 {
     int errCode = SQLiteRelationalUtils::CreateRelationalMetaTable(db);
     if (errCode != E_OK) {
         LOGE("Create relational store meta table failed. err=%d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteRelationalUtils::InitKnowledgeTableTypeToMeta(db, false, table);
+    if (errCode != E_OK) {
+        LOGE("Init table type to meta err:%d", errCode);
         return errCode;
     }
     return SQLiteRelationalUtils::InitCursorToMeta(db, false, table);

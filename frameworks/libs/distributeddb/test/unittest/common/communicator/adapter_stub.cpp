@@ -215,12 +215,16 @@ void AdapterStub::DeliverBytes(const std::string &srcTarget, const uint8_t *byte
         uint32_t headLength = 0;
         GetDataHeadInfo(bytes, headLength);
         std::vector<UserInfo> userInfos;
-        GetDataUserInfo(bytes, userInfos);
+        if (userInfo_.empty()) {
+            GetDataUserInfo(bytes, userInfos);
+        } else {
+            userInfos = userInfo_;
+        }
         std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator =
             std::make_shared<ProcessCommunicatorTestStub>();
         processCommunicator->SetDataUserInfo(userInfos);
         DataUserInfoProc userInfoProc = {bytes, length, processCommunicator};
-        ReceiveBytesInfo receiveBytesInfo = {bytes + headLength, srcTarget, length - headLength, headLength};
+        ReceiveBytesInfo receiveBytesInfo = {bytes + headLength, srcTarget, length - headLength, headLength != 0};
         onReceiveHandle_(receiveBytesInfo, userInfoProc);
     }
 }
@@ -457,4 +461,14 @@ void AdapterStub::ApplySendBitError(const uint8_t *bytes, uint32_t length)
         phyHeader->checkSum = HostToNet(CalculateXorSum(bytes + LENGTH_BEFORE_SUM_RANGE,
             length - LENGTH_BEFORE_SUM_RANGE));
     }
+}
+
+void AdapterStub::SetUserInfo(const std::vector<UserInfo> &userInfo)
+{
+    userInfo_ = userInfo;
+}
+
+std::vector<UserInfo> AdapterStub::GetUserInfo()
+{
+    return userInfo_;
 }

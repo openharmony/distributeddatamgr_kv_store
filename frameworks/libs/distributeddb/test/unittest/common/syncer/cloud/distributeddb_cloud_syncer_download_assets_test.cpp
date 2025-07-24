@@ -2574,7 +2574,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest003, TestS
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetTest004, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. init data
@@ -2939,6 +2939,27 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CompensatedSyncTest001, Tes
     std::this_thread::sleep_for(std::chrono::seconds(1));
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0u), nullptr), SQLITE_OK);
+}
+
+/**
+  * @tc.name: CloudCooperationTrackerTableSync001
+  * @tc.desc: test CLOUD_COOPERATION tracker table sync.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tankaisheng
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, CloudCooperationTrackerTableSync001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 120;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    TrackerSchema trackerSchema = {
+        .tableName = ASSETS_TABLE_NAME, .extendColNames = {"int_field1"}, .trackerColNames = {"int_field1"}};
+    g_delegate->SetTrackerTable(trackerSchema);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
 }
 
 /**

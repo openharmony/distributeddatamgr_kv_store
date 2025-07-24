@@ -19,7 +19,7 @@ namespace DistributedDB {
 using namespace testing::ext;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
- 
+
 class DistributedDBKVDataStatusTest : public KVGeneralUt {
 public:
     void SetUp() override;
@@ -29,7 +29,7 @@ protected:
     static constexpr const char *DEVICE_C = "DEVICE_C";
     static const uint32_t INVALID_DATA_OPERATOR = 0;
 };
- 
+
 void DistributedDBKVDataStatusTest::SetUp()
 {
     KVGeneralUt::SetUp();
@@ -38,7 +38,7 @@ void DistributedDBKVDataStatusTest::SetUp()
     auto storeInfo2 = GetStoreInfo2();
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo2, DEVICE_B), E_OK);
 }
- 
+
 /**
  * @tc.name: OperateDataStatus001
  * @tc.desc: Test sync from dev1 to dev2 after operate valid data status.
@@ -86,7 +86,7 @@ HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus001, TestSize.Level0)
     EXPECT_EQ(store2->Get({'k'}, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
 }
- 
+
 /**
  * @tc.name: OperateDataStatus002
  * @tc.desc: Test sync from dev1 to dev2 after operate invalid data status.
@@ -156,6 +156,49 @@ HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus003, TestSize.Level0)
     Value actualValue;
     EXPECT_EQ(store2->Get({'k'}, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
+    /**
+     * @tc.steps: step2. dev1 modify deviceId and operate data status RESET_UPLOAD_CLOUD
+     * @tc.expected: step2. OK.
+     */
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo1), E_OK);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, DEVICE_C), E_OK);
+    store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)), OK);
+    /**
+     * @tc.steps: step3. dev1 sync to dev2
+     * @tc.expected: step3. sync should return OK and dev2 get entries by device return NOT_FOUND.
+     */
+    BlockPush(storeInfo1, storeInfo2);
+    std::vector<Entry> entries;
+    EXPECT_EQ(KVGeneralUt::GetDeviceEntries(store2, std::string(DEVICE_C), false, entries), NOT_FOUND);
+    EXPECT_EQ(entries.size(), 0u); // 0 record
+}
+
+/**
+ * @tc.name: OperateDataStatus004
+ * @tc.desc: Test sync with delete data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k,v) and sync to dev2
+     * @tc.expected: step1. sync should return OK and dev2 exist (k,v).
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto storeInfo2 = GetStoreInfo2();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+    Value expectValue = {'v'};
+    EXPECT_EQ(store1->Put({'k'}, expectValue), OK);
+    BlockPush(storeInfo1, storeInfo2);
+    EXPECT_EQ(store1->Delete({'k'}), OK);
+    BlockPush(storeInfo1, storeInfo2);
     /**
      * @tc.steps: step2. dev1 modify deviceId and operate data status RESET_UPLOAD_CLOUD
      * @tc.expected: step2. OK.

@@ -63,7 +63,7 @@ public:
     static int GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTableMode mode, const DataItem &dataItem,
         LogInfo &logInfoGet);
 
-    static int OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables);
+    static int OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables, uint64_t virtualTime);
 
     static int GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset);
 
@@ -75,6 +75,7 @@ public:
     static int PutKvData(sqlite3 *db, bool isMemory, const Key &key, const Value &value);
 
     static int InitCursorToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
+    static int InitKnowledgeTableTypeToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
     static int SetLogTriggerStatus(sqlite3 *db, bool status);
 
     struct GenLogParam {
@@ -82,6 +83,9 @@ public:
         bool isMemory = false;
         bool isTrackerTable = false;
     };
+
+    static int GeneTimeStrForLog(const TableInfo &tableInfo, GenLogParam &param, std::string &timeStr);
+
     static int GeneLogInfoForExistedData(const std::string &identity, const TableInfo &tableInfo,
         std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param);
 

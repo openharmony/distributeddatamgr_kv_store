@@ -296,12 +296,8 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
         return errCode;
     }
 
-    errCode = communicator_->RegOnMessageCallback(
-        [this](const std::string &targetDev, Message *inMsg) { MessageReciveCallback(targetDev, inMsg); }, []() {});
+    errCode = RegCallbackOnInitComunicator(communicatorAggregator, syncInterface);
     if (errCode != E_OK) {
-        LOGE("[SyncEngine] SyncRequestCallback register failed! err = %d", errCode);
-        communicatorAggregator->ReleaseCommunicator(communicator_, GetUserId(syncInterface));
-        communicator_ = nullptr;
         return errCode;
     }
     {
@@ -322,12 +318,16 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
 
 int SyncEngine::AddSyncOperForContext(const std::string &deviceId, SyncOperation *operation)
 {
-    int errCode = E_OK;
+    if (syncInterface_ == nullptr) {
+        LOGE("[SyncEngine][AddSyncOperForContext] sync interface has not initialized");
+        return -E_INVALID_DB;
+    }
     bool isSyncDualTupleMode = syncInterface_->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
     std::string targetUserId = DBConstant::DEFAULT_USER;
     if (isSyncDualTupleMode) {
         targetUserId = GetTargetUserId(deviceId);
     }
+    int errCode = E_OK;
     ISyncTaskContext *context = nullptr;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
@@ -495,7 +495,7 @@ int SyncEngine::ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg)
     return errCode;
 }
 
-void SyncEngine::MessageReciveCallback(const std::string &targetDev, Message *inMsg)
+int SyncEngine::MessageReciveCallback(const std::string &targetDev, Message *inMsg)
 {
     IncExecTaskCount();
     int errCode = MessageReciveCallbackInner(targetDev, inMsg);
@@ -507,6 +507,7 @@ void SyncEngine::MessageReciveCallback(const std::string &targetDev, Message *in
         DecExecTaskCount();
         LOGE("[SyncEngine] MessageReciveCallback failed!");
     }
+    return errCode;
 }
 
 int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message *inMsg)
@@ -518,6 +519,9 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
     if (!isActive_) {
         LOGE("[SyncEngine] engine is closing, ignore msg");
         return -E_BUSY;
+    }
+    if (inMsg->GetMessageType() == TYPE_REQUEST && ExchangeClosePending(false)) {
+        return -E_FEEDBACK_DB_CLOSING;
     }
     if (inMsg->GetMessageId() == REMOTE_EXECUTE_MESSAGE) {
         return HandleRemoteExecutorMsg(targetDev, inMsg);
@@ -540,7 +544,7 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
             return -E_BUSY;
         }
 
-        if (execTaskCount_ > MAX_EXEC_NUM) {
+        if (GetExecTaskCount() > MAX_EXEC_NUM) {
             PutMsgIntoQueue(targetDev, inMsg, msgSize);
             // task dont exec here
             DecExecTaskCount();
@@ -629,12 +633,13 @@ std::vector<ISyncTaskContext *> SyncEngine::GetSyncTaskContextAndInc(const std::
             continue;
         }
         if (iter.second == nullptr) {
-            LOGI("[SyncEngine] dev=%s, context is null, no need to clear sync operation", STR_MASK(deviceId));
-            return {};
+            LOGI("[SyncEngine] dev=%s, user=%s, context is null, no need to clear sync operation", STR_MASK(deviceId),
+                iter.first.userId.c_str());
+            continue;
         }
         if (iter.second->IsKilled()) { // LCOV_EXCL_BR_LINE
             LOGI("[SyncEngine] context is killing");
-            return {};
+            continue;
         }
         RefObject::IncObjRef(iter.second);
         contexts.push_back(iter.second);
@@ -876,21 +881,20 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterfa
     DBInfo dbInfo;
     static_cast<SyncGenericInterface *>(storage)->GetDBInfo(dbInfo);
     RuntimeContext::GetInstance()->RemoveRemoteSubscribe(dbInfo, deviceId);
+    {
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        if (communicatorProxy_ == nullptr) {
+            return;
+        }
+        if (communicatorProxy_->IsDeviceOnline(deviceId)) { // LCOV_EXCL_BR_LINE
+            LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
+            return;
+        }
+    }
+    // means device is offline, clear local subscribe
     // get context and Inc context if context is not nullptr
     std::vector<ISyncTaskContext *> contexts = GetSyncTaskContextAndInc(deviceId);
     for (const auto &context : contexts) {
-        {
-            std::lock_guard<std::mutex> lock(communicatorProxyLock_);
-            if (communicatorProxy_ == nullptr) {
-                return;
-            }
-            if (communicatorProxy_->IsDeviceOnline(deviceId)) { // LCOV_EXCL_BR_LINE
-                LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
-                RefObject::DecObjRef(context);
-                return;
-            }
-        }
-        // means device is offline, clear local subscribe
         subManager_->ClearLocalSubscribeQuery(deviceId);
         // clear sync task
         if (context != nullptr) {
@@ -953,7 +957,9 @@ ICommunicator *SyncEngine::AllocCommunicator(const std::string &identifier, int 
     }
 
     errCode = communicator->RegOnMessageCallback(
-        [this](const std::string &targetDev, Message *inMsg) { MessageReciveCallback(targetDev, inMsg); }, []() {});
+        [this](const std::string &targetDev, Message *inMsg) {
+            return MessageReciveCallback(targetDev, inMsg);
+        }, []() {});
     if (errCode != E_OK) {
         LOGE("[SyncEngine] SyncRequestCallback register failed in SetEqualIdentifier! err = %d", errCode);
         communicatorAggregator->ReleaseCommunicator(communicator, userId);
@@ -1114,6 +1120,12 @@ void SyncEngine::DecExecTaskCount()
         execTaskCount_--;
     }
     execTaskCv_.notify_all();
+}
+
+uint32_t SyncEngine::GetExecTaskCount()
+{
+    std::lock_guard<std::mutex> autoLock(execTaskCountLock_);
+    return execTaskCount_;
 }
 
 void SyncEngine::Dump(int fd)
@@ -1423,6 +1435,22 @@ std::string SyncEngine::GetTargetUserId(const std::string &dev)
     return targetUserId;
 }
 
+int SyncEngine::RegCallbackOnInitComunicator(ICommunicatorAggregator *communicatorAggregator,
+    const ISyncInterface *syncInterface)
+{
+    int errCode = communicator_->RegOnMessageCallback(
+        [this](const std::string &targetDev, Message *inMsg) {
+            return MessageReciveCallback(targetDev, inMsg);
+        }, []() {});
+    if (errCode != E_OK) {
+        LOGE("[SyncEngine] SyncRequestCallback register failed! err = %d", errCode);
+        communicatorAggregator->ReleaseCommunicator(communicator_, GetUserId(syncInterface));
+        communicator_ = nullptr;
+        return errCode;
+    }
+    return E_OK;
+}
+
 int32_t SyncEngine::GetRemoteQueryTaskCount()
 {
     auto executor = GetAndIncRemoteExector();
@@ -1434,5 +1462,17 @@ int32_t SyncEngine::GetRemoteQueryTaskCount()
     auto count = executor->GetTaskCount();
     RefObject::DecObjRef(executor);
     return count;
+}
+
+bool SyncEngine::ExchangeClosePending(bool expected)
+{
+    if (communicator_ == nullptr) {
+        return false;
+    }
+    auto communicator = communicator_;
+    RefObject::IncObjRef(communicator);
+    int res = communicator->ExchangeClosePending(expected);
+    RefObject::DecObjRef(communicator);
+    return res;
 }
 } // namespace DistributedDB

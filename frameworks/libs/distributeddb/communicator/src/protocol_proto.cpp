@@ -360,12 +360,14 @@ int ProtocolProto::CombinePacketIntoFrame(SerialBuffer *inFrame, const uint8_t *
 {
     // inFrame is the destination, pktBytes and pktLength are the source, fragOffset and fragLength give the boundary
     // Firstly: Check the length relation of source, even this check is not supposed to fail
-    if (sizeof(CommPhyHeader) + sizeof(CommPhyOptHeader) + fragLength > pktLength) {
+    if (sizeof(CommPhyHeader) + sizeof(CommPhyOptHeader) + fragLength > pktLength ||
+        sizeof(CommPhyHeader) + static_cast<uint64_t>(fragOffset) + static_cast<uint64_t>(fragLength) > UINT32_MAX) {
         return -E_LENGTH_ERROR;
     }
     // Secondly: Check the length relation of destination, even this check is not supposed to fail
     auto frameByteLen = inFrame->GetWritableBytesForEntireFrame();
-    if (sizeof(CommPhyHeader) + fragOffset + fragLength > frameByteLen.second) {
+    if (frameByteLen.first == nullptr || sizeof(CommPhyHeader) + fragOffset + fragLength > frameByteLen.second ||
+        sizeof(CommPhyHeader) + fragOffset > frameByteLen.second) {
         return -E_LENGTH_ERROR;
     }
     // Finally: Do Combination!
@@ -715,7 +717,8 @@ bool ProtocolProto::IsSupportMessageVersion(uint16_t version)
 
 bool ProtocolProto::IsFeedbackErrorMessage(uint32_t errorNo)
 {
-    return (errorNo == E_FEEDBACK_UNKNOWN_MESSAGE || errorNo == E_FEEDBACK_COMMUNICATOR_NOT_FOUND);
+    return (errorNo == E_FEEDBACK_UNKNOWN_MESSAGE || errorNo == E_FEEDBACK_COMMUNICATOR_NOT_FOUND ||
+        errorNo == E_FEEDBACK_DB_CLOSING);
 }
 
 int ProtocolProto::ParseCommPhyHeaderCheckMagicAndVersion(const uint8_t *bytes, uint32_t length)

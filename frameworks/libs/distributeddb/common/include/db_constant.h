@@ -24,6 +24,7 @@ public:
     static constexpr const size_t MAX_KEY_SIZE = 1024;
     static constexpr const size_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // 4M
     static constexpr const size_t MAX_SET_VALUE_SIZE =  64 * 1024 * 1024; // 64M
+    static constexpr const size_t MAX_FIELD_NUM = 2000;
     static constexpr const size_t MAX_BATCH_SIZE = 128;
     static constexpr const size_t MAX_DEV_LENGTH = 128;
     static constexpr const size_t MAX_TRANSACTION_KEY_VALUE_LENS = 512 * 1024 * 1024; // 512M
@@ -62,30 +63,30 @@ public:
     static constexpr const uint64_t MAX_STORE_ID_LENGTH = 128;
     static constexpr const uint64_t MAX_SUB_USER_LENGTH = 128;
 
-    static const std::string MULTI_SUB_DIR;
-    static const std::string SINGLE_SUB_DIR;
-    static const std::string LOCAL_SUB_DIR;
+    static constexpr const char *MULTI_SUB_DIR = "multi_ver";
+    static constexpr const char *SINGLE_SUB_DIR = "single_ver";
+    static constexpr const char *LOCAL_SUB_DIR = "local";
 
-    static const std::string MAINDB_DIR;
-    static const std::string METADB_DIR;
-    static const std::string CACHEDB_DIR;
+    static constexpr const char *MAINDB_DIR = "main";
+    static constexpr const char *METADB_DIR = "meta";
+    static constexpr const char *CACHEDB_DIR = "cache";
 
     static constexpr const char *LOCAL_DATABASE_NAME = "local";
     static constexpr const char *MULTI_VER_DATA_STORE = "multi_ver_data";
     static constexpr const char *MULTI_VER_COMMIT_STORE = "commit_logs";
     static constexpr const char *MULTI_VER_VALUE_STORE = "value_storage";
     static constexpr const char *MULTI_VER_META_STORE = "meta_storage";
-    static const std::string SINGLE_VER_DATA_STORE;
-    static const std::string SINGLE_VER_META_STORE;
-    static const std::string SINGLE_VER_CACHE_STORE;
+    static constexpr const char *SINGLE_VER_DATA_STORE = "gen_natural_store";
+    static constexpr const char *SINGLE_VER_META_STORE = "meta";
+    static constexpr const char *SINGLE_VER_CACHE_STORE = "cache";
 
     static constexpr const char *SQLITE_URL_PRE = "file:";
     static constexpr const char *DB_EXTENSION = ".db";
     static constexpr const char *SQLITE_MEMDB_IDENTIFY = "?mode=memory&cache=shared";
 
     static constexpr const char *SCHEMA_KEY = "schemaKey";
-    static const std::string RELATIONAL_SCHEMA_KEY;
-    static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
+    static constexpr const char *RELATIONAL_SCHEMA_KEY = "relational_schema";
+    static constexpr const char *RELATIONAL_TRACKER_SCHEMA_KEY = "relational_tracker_schema";
     static constexpr const char *RDB_KNOWLEDGE_SCHEMA_KEY = "rdbKnowledgeSchemaKey";
 
     static constexpr const char *RD_KV_COLLECTION_MODE = "{\"mode\" : \"kv\"}";
@@ -116,7 +117,7 @@ public:
     static constexpr const char *TRIGGER_REFERENCES_NEW = "NEW.";
     static constexpr const char *TRIGGER_REFERENCES_OLD = "OLD.";
 
-    static const std::string UPDATE_META_FUNC;
+    static constexpr const char *UPDATE_META_FUNC = "update_meta_within_trigger";
 
     // Prefix Key in meta db
     static constexpr const char *DEVICEID_PREFIX_KEY = "deviceId";
@@ -156,12 +157,13 @@ public:
     static constexpr const int MAX_OBSERVER_COUNT = 8;
 
     // For relational
-    static const std::string SYSTEM_TABLE_PREFIX;
+    static constexpr const char *SYSTEM_TABLE_PREFIX = "naturalbase_rdb_";
     static constexpr const char *RELATIONAL_PREFIX = "naturalbase_rdb_aux_";
     static constexpr size_t RELATIONAL_PREFIX_SIZE = 20;
-    static const std::string TIMESTAMP_ALIAS;
+    static constexpr const char *TIMESTAMP_ALIAS = "naturalbase_rdb_aux_timestamp";
     static constexpr const char *LOG_POSTFIX = "_log";
     static constexpr const char *META_TABLE_POSTFIX = "metadata";
+    static constexpr const char *KNOWLEDGE_TABLE_TYPE = "knowledge";
 
     static constexpr const char *LOG_TABLE_VERSION_3 = "3.0";
     static constexpr const char *LOG_TABLE_VERSION_5_1 = "5.01";
@@ -172,7 +174,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5_10 = "5.10"; // retain downloading asset in update trigger
     static constexpr const char *LOG_TABLE_VERSION_CURRENT = LOG_TABLE_VERSION_5_10;
 
-    static const std::string LOG_TABLE_VERSION_KEY;
+    static constexpr const char *LOG_TABLE_VERSION_KEY = "log_table_version";
 
     static constexpr const char *REMOTE_DEVICE_SCHEMA_KEY_PREFIX = "remote_device_schema_";
 

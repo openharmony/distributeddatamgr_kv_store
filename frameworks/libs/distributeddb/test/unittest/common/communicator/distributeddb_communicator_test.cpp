@@ -631,6 +631,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.
     Message *recvMsgForBA = nullptr;
     commBA->RegOnMessageCallback([&recvMsgForBA](const std::string &srcTarget, Message *inMsg) {
         recvMsgForBA = inMsg;
+        return E_OK;
     }, nullptr);
     commBA->Activate(USER_ID_1);
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
@@ -674,6 +675,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReportCommunicatorNotFound001, TestSize.
         [&srcTargetFor##src##label, &recvMsgFor##src##label](const std::string &srcTarget, Message *inMsg) { \
         srcTargetFor##src##label = srcTarget; \
         recvMsgFor##src##label = inMsg; \
+        return E_OK; \
     }, nullptr);
 
 /**
@@ -815,6 +817,7 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage002, TestSize.Level1)
     std::vector<std::pair<std::string, Message *>> msgCallbackForBA;
     commBA->RegOnMessageCallback([&msgCallbackForBA](const std::string &srcTarget, Message *inMsg) {
         msgCallbackForBA.push_back({srcTarget, inMsg});
+        return E_OK;
     }, nullptr);
     commBA->Activate();
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
@@ -1444,5 +1447,6 @@ HWTEST_F(DistributedDBCommunicatorTest, AbnormalCommunicatorTest001, TestSize.Le
     auto communicator = std::make_shared<Communicator>(aggregator.get(), label);
     ASSERT_NE(communicator, nullptr);
     EXPECT_EQ(communicator->GetTargetUserId({}), DBConstant::DEFAULT_USER);
+    g_envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
 }
 }

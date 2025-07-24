@@ -88,6 +88,8 @@ public:
     void SetTargetUserId(const std::string &userId);
 
     uint64_t GetSendMsgSize() const;
+
+    bool ExchangeClosePending(bool expected) override;
 private:
     int TranslateMsg(const Message *inMsg, Message *&outMsg);
 

@@ -330,7 +330,7 @@ void DistributedDBStorageCommitStorageTest::TearDown(void)
   * @tc.name: MultiVerCommitStorage001
   * @tc.desc: Open a commit storage when it has been opened.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage001, TestSize.Level1)
@@ -348,7 +348,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage001, TestSi
   * @tc.name: MultiVerCommitStorage002
   * @tc.desc: Remove a commit storage database, then try to add, delete and query commit, set and get header.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage002, TestSize.Level1)
@@ -397,7 +397,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage002, TestSi
   * @tc.name: MultiVerCommitStorage003
   * @tc.desc: Insert a commit to commit storage, and get it.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage003, TestSize.Level1)
@@ -423,7 +423,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage003, TestSi
   * @tc.name: MultiVerCommitStorage004
   * @tc.desc: Set header of commit storage, and get it.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage004, TestSize.Level1)
@@ -455,7 +455,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage004, TestSi
   * @tc.name: MultiVerCommitStorage005
   * @tc.desc: Delete the header commit, test if it can be get, and get the new header.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage005, TestSize.Level1)
@@ -513,7 +513,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage005, TestSi
   * @tc.name: MultiVerCommitStorage006
   * @tc.desc: Add commit with empty commit ID, and it will not be added.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage006, TestSize.Level1)
@@ -532,7 +532,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage006, TestSi
   * @tc.name: MultiVerCommitStorage008
   * @tc.desc: Add commit with the same commit ID as its left parent, and it will not be added.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage008, TestSize.Level1)
@@ -565,7 +565,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage008, TestSi
   * @tc.name: MultiVerCommitStorage009
   * @tc.desc: Add commit with the same commit ID as its right parent, and it will not be added.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage009, TestSize.Level1)
@@ -598,7 +598,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage009, TestSi
   * @tc.name: MultiVerCommitStorage010
   * @tc.desc: Add commit whose left parent and right parent is the same, and it will not be added.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage010, TestSize.Level1)
@@ -637,7 +637,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage010, TestSi
   * @tc.name: MultiVerCommitStorage011
   * @tc.desc: Add commit with a non exist left parent, and it will not be added.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage011, TestSize.Level1)
@@ -662,7 +662,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage011, TestSi
   * @tc.name: MultiVerCommitStorage012
   * @tc.desc: Add commit with a non exist right parent, and it will not be added.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage012, TestSize.Level1)
@@ -687,7 +687,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage012, TestSi
   * @tc.name: MultiVerCommitStorage013
   * @tc.desc: Delete a commit which is not header, and it will not be deleted.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage013, TestSize.Level1)
@@ -732,7 +732,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage013, TestSi
   * @tc.name: MultiVerCommitStorage014
   * @tc.desc: Set unexist commit to header, and it will not success.
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage014, TestSize.Level1)
@@ -745,7 +745,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage014, TestSi
   * @tc.name: MultiVerCommitStorage015
   * @tc.desc: SDetermine whether commit exists
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage015, TestSize.Level1)
@@ -760,7 +760,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage015, TestSi
   * @tc.name: MultiVerCommitStorage016
   * @tc.desc: Get latest commit of each device from commit storage
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage016, TestSize.Level1)
@@ -790,7 +790,7 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage016, TestSi
   * @tc.name: MultiVerCommitStorage017
   * @tc.desc: Get commit tree from commit storage by latest commits
   * @tc.type: FUNC
-  * @tc.require: AR000C6TRV AR000CQDTM
+  * @tc.require:
   * @tc.author: liujialei
   */
 HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage017, TestSize.Level1)

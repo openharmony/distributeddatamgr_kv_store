@@ -290,6 +290,11 @@ const std::vector<FieldInfo> &TableInfo::GetFieldInfos() const
     if (!fieldInfos_.empty() && fieldInfos_.size() == fields_.size()) {
         return fieldInfos_;
     }
+    if (fields_.size() > DBConstant::MAX_FIELD_NUM) {
+        LOGE("The number of fields is too large: %zu.", fields_.size());
+        fieldInfos_.clear();
+        return fieldInfos_;
+    }
     fieldInfos_.resize(fields_.size());
     if (fieldInfos_.size() != fields_.size()) {
         LOGE("GetField error, alloc memory failed.");

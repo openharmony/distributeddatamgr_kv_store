@@ -147,6 +147,8 @@ public:
 
     int32_t GetResponseTaskCount() override;
 
+    bool IsNeedRetrySync(int errNo, uint16_t messageType);
+    void ResetResyncTimes();
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
@@ -167,7 +169,7 @@ private:
 
     ContinueToken token_;
     WaterMark endMark_;
-    volatile uint32_t responseSessionId_ = 0;
+    std::atomic<uint32_t> responseSessionId_ = 0;
 
     bool needClearRemoteStaleData_;
     mutable std::mutex securityOptionMutex_;
@@ -191,6 +193,8 @@ private:
     // Initial Water Mark when the sync task launched.
     WaterMark initWaterMark_ = 0;
     WaterMark initDeletedMark_ = 0;
+
+    std::atomic<uint32_t> resyncTimes_ = 0;
 };
 } // namespace DistributedDB
 

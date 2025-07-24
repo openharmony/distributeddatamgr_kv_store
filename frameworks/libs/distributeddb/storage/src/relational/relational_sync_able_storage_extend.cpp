@@ -326,7 +326,7 @@ bool RelationalSyncAbleStorage::IsSetDistributedSchema(const std::string &tableN
 
 int RelationalSyncAbleStorage::CommitForAsyncDownload()
 {
-    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    std::unique_lock<std::shared_mutex> lock(asyncDownloadtransactionMutex_);
     if (asyncDownloadTransactionHandle_ == nullptr) {
         LOGE("relation database is null or the transaction has not been started");
         return -E_INVALID_DB;
@@ -340,7 +340,7 @@ int RelationalSyncAbleStorage::CommitForAsyncDownload()
 
 int RelationalSyncAbleStorage::RollbackForAsyncDownload()
 {
-    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    std::unique_lock<std::shared_mutex> lock(asyncDownloadtransactionMutex_);
     if (asyncDownloadTransactionHandle_ == nullptr) {
         LOGE("Invalid handle for rollback or the transaction has not been started.");
         return -E_INVALID_DB;
@@ -377,7 +377,7 @@ int RelationalSyncAbleStorage::StartTransactionForAsyncDownload(TransactType typ
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
-    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    std::unique_lock<std::shared_mutex> lock(asyncDownloadtransactionMutex_);
     if (asyncDownloadTransactionHandle_ != nullptr) {
         LOGD("async download transaction started already.");
         return -E_TRANSACT_STATE;
@@ -627,8 +627,8 @@ int RelationalSyncAbleStorage::GetLocalDataCount(const std::string &tableName, i
 
 int RelationalSyncAbleStorage::GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const
 {
-    needCompressOnSync = GetDbProperties().GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
-    compressionRate = GetDbProperties().GetIntProp(DBProperties::COMPRESSION_RATE,
+    needCompressOnSync = storageEngine_->GetRelationalProperties().GetBoolProp(DBProperties::COMPRESS_ON_SYNC, false);
+    compressionRate = storageEngine_->GetRelationalProperties().GetIntProp(DBProperties::COMPRESSION_RATE,
         DBConstant::DEFAULT_COMPTRESS_RATE);
     return E_OK;
 }

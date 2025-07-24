@@ -75,7 +75,7 @@ public:
     int GetSubFieldPathAndType(const std::set<FieldPath> &inPath, std::map<FieldPath, FieldType> &outSubPathType) const;
 
     // If inPath not refer to an array, return error.
-    int GetArraySize(const FieldPath &inPath, uint32_t &outSize) const;
+    int GetArraySize(const FieldPath &inPath, size_t &outSize) const;
 
     // If inPath not refer to an array, return error. If not all members are string or array type, return error.
     // If array-type member is empty, ignore. If not all members of the array-type member are string, return error.

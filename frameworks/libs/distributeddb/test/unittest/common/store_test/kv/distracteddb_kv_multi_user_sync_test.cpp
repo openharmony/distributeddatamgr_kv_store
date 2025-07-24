@@ -14,6 +14,7 @@
  */
 
 #include "kv_general_ut.h"
+#include "process_communicator_test_stub.h"
 
 namespace DistributedDB {
 using namespace testing::ext;
@@ -31,6 +32,7 @@ protected:
     static constexpr const char *DEVICE_B = "DEVICE_B";
     static constexpr const char *USER_ID_1 = "USER_ID_1";
     static constexpr const char *USER_ID_2 = "USER_ID_2";
+    static constexpr const char *USER_ID_3 = "USER_ID_3";
 };
 
 void CheckData(KvStoreNbDelegate *delegate, const Key &key, const Value &expectValue)
@@ -187,6 +189,146 @@ HWTEST_F(DistributedDBKvMultiUserSyncTest, NormalSyncTest001, TestSize.Level1)
      * @tc.expected: step4. OK.
      */
     SyncStep3();
+}
+
+/**
+ * @tc.name: NormalSyncTest002
+ * @tc.desc: Test sync with low version target.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBKvMultiUserSyncTest, NormalSyncTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init process communicator
+     * @tc.expected: step1. OK.
+     */
+    KvStoreNbDelegate::Option option;
+    option.syncDualTupleMode = true;
+    SetOption(option);
+    std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator =
+        std::make_shared<ProcessCommunicatorTestStub>();
+    processCommunicator->SetDataHeadInfo({DBStatus::LOW_VERSION_TARGET, 0u});
+    SetProcessCommunicator(processCommunicator);
+
+    /**
+     * @tc.steps: step2. (devA, user1) put 1 record and sync to (devB, user2)
+     * @tc.expected: step2. OK.
+     */
+    StoreInfo storeInfo1 = {USER_ID_1, STORE_ID_1, APP_ID};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, DEVICE_A), E_OK);
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    EXPECT_EQ(store1->Put(KEY_1, VALUE_1), OK);
+
+    StoreInfo storeInfo2 = {USER_ID_2, STORE_ID_2, APP_ID};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo2, DEVICE_B), E_OK);
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+
+    SetTargetUserId(DEVICE_A, USER_ID_2);
+    SetTargetUserId(DEVICE_B, USER_ID_1);
+    UserInfo userInfo = {.receiveUser = USER_ID_2, .sendUser = USER_ID_1};
+    processCommunicator->SetDataUserInfo({{userInfo}});
+    BlockPush(storeInfo1, storeInfo2);
+
+    CheckData(store2, KEY_1, VALUE_1);
+
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo2), E_OK);
+
+    /**
+     * @tc.steps: step3. (devA, user1) put 1 record and sync to (devB, user3)
+     * @tc.expected: step3. OK.
+     */
+    StoreInfo storeInfo3 = {USER_ID_3, STORE_ID_2, APP_ID};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo3, DEVICE_B), E_OK);
+    auto store3 = GetDelegate(storeInfo3);
+    ASSERT_NE(store3, nullptr);
+
+    EXPECT_EQ(store1->Put(KEY_2, VALUE_2), OK);
+
+    SetTargetUserId(DEVICE_A, USER_ID_3);
+    SetTargetUserId(DEVICE_B, USER_ID_1);
+    userInfo = {.receiveUser = USER_ID_3, .sendUser = USER_ID_1};
+    processCommunicator->SetDataUserInfo({{userInfo}});
+    BlockPush(storeInfo1, storeInfo3);
+
+    CheckData(store3, KEY_2, VALUE_2);
+
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo1), E_OK);
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo3), E_OK);
+}
+
+/**
+ * @tc.name: NormalSyncTest003
+ * @tc.desc: deviceA:user1 put 2 records and sync to deviceB, deviceA:user1 delete 1 records, deviceA:user2 put
+ * 2 records and sync to deviceB, deviceA:user1 sync to deviceB.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBKvMultiUserSyncTest, NormalSyncTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set option
+     * @tc.expected: step1. OK.
+     */
+    KvStoreNbDelegate::Option option;
+    option.syncDualTupleMode = true;
+    option.conflictResolvePolicy = DEVICE_COLLABORATION;
+    SetOption(option);
+
+    /**
+     * @tc.steps: step2. deviceA:user1 put 10 records and sync to deviceB, deviceA:user1 delete 1 records
+     * @tc.expected: step2. OK.
+     */
+    StoreInfo storeInfo1 = {USER_ID_1, STORE_ID_1, APP_ID};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, DEVICE_A), E_OK);
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    EXPECT_EQ(store1->Put(KEY_1, VALUE_1), OK);
+    EXPECT_EQ(store1->Put(KEY_2, VALUE_2), OK);
+
+    StoreInfo storeInfo3 = {USER_ID_3, STORE_ID_2, APP_ID};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo3, DEVICE_B), E_OK);
+    auto store3 = GetDelegate(storeInfo3);
+    ASSERT_NE(store3, nullptr);
+
+    SetTargetUserId(DEVICE_A, USER_ID_3);
+    SetTargetUserId(DEVICE_B, USER_ID_1);
+    BlockPush(storeInfo1, storeInfo3);
+    EXPECT_EQ(store1->Delete(KEY_1), OK);
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo1), E_OK);
+
+    /**
+     * @tc.steps: step3. deviceA:user2 put 2 records and sync to deviceB
+     * @tc.expected: step3. OK.
+     */
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo1), E_OK);
+
+    StoreInfo storeInfo2 = {USER_ID_2, STORE_ID_1, APP_ID};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo2, DEVICE_A), E_OK);
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+    EXPECT_EQ(store2->Put(KEY_1, VALUE_1), OK);
+    EXPECT_EQ(store2->Put(KEY_2, VALUE_2), OK);
+
+    SetTargetUserId(DEVICE_A, USER_ID_3);
+    SetTargetUserId(DEVICE_B, USER_ID_2);
+    BlockPush(storeInfo2, storeInfo3);
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo2), E_OK);
+
+    /**
+     * @tc.steps: step4. deviceA:user1 sync to deviceB.
+     * @tc.expected: step4. OK.
+     */
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, DEVICE_A), E_OK);
+    BlockPush(storeInfo1, storeInfo3);
+    Value actualValue;
+    EXPECT_EQ(store3->Get(KEY_1, actualValue), NOT_FOUND);
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo1), E_OK);
+    ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo3), E_OK);
 }
 
 /**

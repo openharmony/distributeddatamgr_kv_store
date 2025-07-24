@@ -321,7 +321,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString004, TestSize.Level0)
     JsonObject object;
     std::vector<uint8_t> data(json.begin(), json.end());
     EXPECT_EQ(object.Parse(data), E_OK);
-    uint32_t size = 0u;
+    size_t size = 0u;
     EXPECT_EQ(object.GetArraySize({"field3"}, size), -E_NOT_SUPPORT);
     EXPECT_EQ(object.GetArraySize({"field1"}, size), E_OK);
     EXPECT_EQ(size, 1u);

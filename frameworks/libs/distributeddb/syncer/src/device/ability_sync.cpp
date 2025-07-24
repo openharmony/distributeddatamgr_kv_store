@@ -1401,6 +1401,15 @@ void AbilitySync::InitRemoteDBAbility(ISyncTaskContext &context)
     context.SetDbAbility(ability);
     auto version = static_cast<uint32_t>(metadata_->GetRemoteSoftwareVersion(context.GetDeviceId(),
         context.GetTargetUserId()));
+    // 111 trunk ver record schema version as software version
+    // should clear it and do ability sync again
+    if (version > SOFTWARE_VERSION_MAX) {
+        context.SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_9_0); // remote version is greater than 109
+        SetAbilitySyncFinishedStatus(false, context);
+        (void)metadata_->SetRemoteSoftwareVersion(deviceId_, context.GetTargetUserId(), SOFTWARE_VERSION_RELEASE_9_0);
+        LOGW("[AbilitySync] Remote schema version is invalid[% " PRIu32 "]", version);
+        return;
+    }
     if (version > 0) {
         context.SetRemoteSoftwareVersion(version);
     }

@@ -125,7 +125,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, SchemaRefTest001, TestSize.
 
 /**
  * @tc.name: FuncExceptionTest001
- * @tc.desc: Test the interception exception of the delegate interface when the store is empty.
+ * @tc.desc: Test the interception expection of the delegate interface when the store is empty.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: bty
@@ -180,7 +180,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
 
 /**
  * @tc.name: FuncExceptionTest002
- * @tc.desc: Test the interception exception of the delegate interface when the store is empty.
+ * @tc.desc: Test the interception expection of the delegate interface when the store is empty.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: bty
@@ -203,7 +203,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest002, TestS
     EXPECT_EQ(SQLiteRelationalUtils::GetCurrentVirtualTime(db).first, -E_INVALID_DB);
     int64_t tOffset;
     EXPECT_EQ(SQLiteRelationalUtils::GetMetaLocalTimeOffset(db, tOffset), -E_INVALID_DB);
-    EXPECT_EQ(SQLiteRelationalUtils::OperateDataStatus(db, {}), -E_INVALID_DB);
+    EXPECT_EQ(SQLiteRelationalUtils::OperateDataStatus(db, {}, 0), E_OK);
     uint64_t cursor;
     EXPECT_EQ(SQLiteRelationalUtils::GetCursor(db, {}, cursor), -E_INVALID_DB);
     int64_t count;

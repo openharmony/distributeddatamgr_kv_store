@@ -52,9 +52,9 @@ int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const Table
     return E_OK;
 }
 
-int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo &table)
+std::string SqliteLogTableManager::GetCreateRelationalLogTableSql(const TableInfo &table, const std::string &extendStr)
 {
-    const std::string tableName = GetLogTableName(table);
+    const std::string tableName = GetLogTableName(table) + extendStr;
     std::string primaryKey = GetPrimaryKeySql(table);
 
     std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
@@ -72,6 +72,12 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
         "sharing_resource TEXT DEFAULT ''," + \
         "status INT DEFAULT 0," + \
         primaryKey + ");";
+    return createTableSql;
+}
+
+int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo &table)
+{
+    std::string createTableSql = GetCreateRelationalLogTableSql(table);
     std::vector<std::string> logTableSchema;
     logTableSchema.emplace_back(createTableSql);
     GetIndexSql(table, logTableSchema);

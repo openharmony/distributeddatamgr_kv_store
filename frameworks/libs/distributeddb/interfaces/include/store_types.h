@@ -94,6 +94,7 @@ enum DBStatus {
     CLOUD_DISABLED, // the cloud switch has been turned off
     DISTRIBUTED_FIELD_DECREASE, // sync fewer specified columns than last time
     SKIP_ASSET, // workaround status for contact app assets download failure, need to ignore these failures
+    LOW_VERSION_TARGET, // The target device is a low version device
     BUTT_STATUS = 27394048 // end of status
 };
 

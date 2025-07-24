@@ -74,6 +74,7 @@ public:
 
     std::string GetTargetUserId(const ExtendInfo &paramInfo) const override;
 
+    bool ExchangeClosePending(bool expected) override;
 private:
     TimeSync *srcTimeSync_;
     TimeSync *dstTimeSync_;

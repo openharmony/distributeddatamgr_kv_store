@@ -199,4 +199,52 @@ HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge004, TestSize.Level0)
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(SetKnowledgeSourceSchema(db, GetKnowledgeSchema()), INVALID_ARGS);
 }
+
+/**
+ * @tc.name: SetKnowledge005
+ * @tc.desc: Test set knowledge schema and then drop table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set knowledge source schema and clean deleted data.
+     * @tc.expected: step1. Ok
+     */
+    auto db = GetSqliteHandle(info1_);
+    ASSERT_NE(db, nullptr);
+    KnowledgeSourceSchema schema;
+    schema.tableName = KNOWLEDGE_TABLE;
+    schema.extendColNames.insert("id");
+    schema.knowledgeColNames.insert("int_field1");
+    schema.knowledgeColNames.insert("int_field2");
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    /**
+     * @tc.steps: step2. Create inverted table.
+     * @tc.expected: step2. ok
+     */
+    std::string inverted = std::string(KNOWLEDGE_TABLE) + "_inverted";
+    std::string sql = "CREATE VIRTUAL TABLE IF NOT EXISTS " + inverted + " USING fts3(col1, col2);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    sql = "SELECT count(*) FROM " + inverted + ";";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    /**
+     * @tc.steps: step3. Drop knowledge table.
+     * @tc.expected: step3. ok
+     */
+    sql = "DROP TABLE IF EXISTS " + std::string(KNOWLEDGE_TABLE) + ";";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    /**
+     * @tc.steps: step4. Inverted table not exist.
+     * @tc.expected: step4. ok
+     */
+    sql = "SELECT count(*) FROM " + inverted + ";";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_ERROR);
+}
 }

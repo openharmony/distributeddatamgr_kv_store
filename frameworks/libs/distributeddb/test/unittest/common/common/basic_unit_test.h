@@ -35,6 +35,7 @@ protected:
     virtual int CloseDelegate(const StoreInfo &info) = 0;
     virtual void CloseAllDelegate() = 0;
     std::string GetDevice(const StoreInfo &info) const;
+    void SetProcessCommunicator(const std::shared_ptr<IProcessCommunicator> &processCommunicator);
     uint64_t GetAllSendMsgSize() const;
     void RegBeforeDispatch(const std::function<void(const std::string &, const Message *)> &beforeDispatch);
     static StoreInfo GetStoreInfo1();
@@ -43,6 +44,7 @@ protected:
     void SetDevice(const StoreInfo &info, const std::string &device);
     static std::string GetTestDir();
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
+    std::shared_ptr<IProcessCommunicator> processCommunicator_ = nullptr;
     mutable std::mutex deviceMutex_;
     std::map<StoreInfo, std::string> deviceMap_;
 };

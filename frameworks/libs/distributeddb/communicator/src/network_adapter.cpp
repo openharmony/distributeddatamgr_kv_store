@@ -104,7 +104,7 @@ int NetworkAdapter::StartAdapter()
 // so processCommunicator_ won't be null
 void NetworkAdapter::StopAdapter()
 {
-    LOGI("[NAdapt][Stop] Enter, ProcessLabel=%s.", processLabel_.c_str());
+    LOGI("[NAdapt][Stop] Enter.");
     processCommunicator_->RegOnSendAble(nullptr);
     DBStatus errCode = processCommunicator_->RegOnDeviceChange(nullptr);
     if (errCode != DBStatus::OK) {
@@ -294,8 +294,12 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
     DBStatus errCode = processCommunicator_->GetDataHeadInfo(dataHeadInfo, headLength);
     LOGI("[NAdapt][OnDataRecv] Enter, from=%s{private}, extendHeadLength=%u, totalLength=%u",
         srcDevInfo.identifier.c_str(), headLength, length);
+    bool isNeedGetUserInfo = headLength != 0;
     if (errCode != OK) {
-        LOGW("[NAdapt][OnDataRecv] get data head info err, drop packet, errCode=%d", errCode);
+        LOGW("[NAdapt][OnDataRecv] get data head info err, errCode=%d", errCode);
+        if (errCode == LOW_VERSION_TARGET) {
+            isNeedGetUserInfo = true;
+        }
     }
     if (headLength >= length) {
         LOGW("[NAdapt][OnDataRecv] head len is too big, drop packet");
@@ -308,7 +312,8 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
             return;
         }
         DataUserInfoProc userInfoProc = {data, length, processCommunicator_};
-        ReceiveBytesInfo receiveBytesInfo = {data + headLength, srcDevInfo.identifier, length - headLength, headLength};
+        ReceiveBytesInfo receiveBytesInfo = {data + headLength, srcDevInfo.identifier, length - headLength,
+            isNeedGetUserInfo};
         onReceiveHandle_(receiveBytesInfo, userInfoProc);
     }
     // These code is compensation for the probable defect of IProcessCommunicator implementation.

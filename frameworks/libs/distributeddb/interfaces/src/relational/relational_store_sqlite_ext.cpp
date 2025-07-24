@@ -79,7 +79,9 @@ constexpr int STR_TO_LL_BY_DEVALUE = 10;
 constexpr int BUSY_TIMEOUT = 2000;  // 2s.
 constexpr int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
 const std::string DEVICE_TYPE = "device";
+const std::string KNOWLEDGE_TYPE = "knowledge";
 const std::string SYNC_TABLE_TYPE = "sync_table_type_";
+const std::string KNOWLEDGE_CURSOR = "knowledge_cursor_";
 class ValueHashCalc {
 public:
     ValueHashCalc() {};
@@ -1322,6 +1324,75 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
     (void)sqlite3_finalize(statement);
 }
 
+bool ClearMetaField(sqlite3 *db, const std::string &fieldName)
+{
+    std::vector<uint8_t> key(fieldName.begin(), fieldName.end());
+    std::string sql = "DELETE FROM naturalbase_rdb_aux_metadata WHERE key = ?;";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
+    if (errCode != SQLITE_OK) {
+        (void)sqlite3_finalize(statement);
+        return false;
+    }
+
+    if (fieldName.rfind(KNOWLEDGE_CURSOR, 0) != std::string::npos) {
+        if (sqlite3_bind_text(statement, 1, fieldName.c_str(), fieldName.length(),
+            SQLITE_TRANSIENT) != SQLITE_OK) {
+            (void)sqlite3_finalize(statement);
+            return false;
+        }
+    } else {
+        if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
+            SQLITE_TRANSIENT) != SQLITE_OK) {
+            (void)sqlite3_finalize(statement);
+            return false;
+        }
+    }
+
+    int ret = sqlite3_step(statement);
+    (void)sqlite3_finalize(statement);
+    if (ret != SQLITE_DONE) {
+        LOGW("ClearMetaField step err: %d", ret);
+        return false;
+    }
+    return true;
+}
+
+void HandleDropKnowledgeTable(sqlite3 *db, const std::string &tableName)
+{
+    // drop inverted table
+    std::string sql = "DROP TABLE IF EXISTS " + tableName + "_inverted;";
+    (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+
+    // drop log table
+    std::string logTblName = std::string(DBConstant::RELATIONAL_PREFIX) + tableName + "_log";
+    sql = "DROP TABLE IF EXISTS " + logTblName + ";";
+    (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+
+    // remove knowledge cursor
+    std::string keyStr = KNOWLEDGE_CURSOR + tableName;
+    if (!ClearMetaField(db, keyStr)) {
+        LOGW("Remove knowledge cursor unsucc");
+    }
+
+    // remove data cursor
+    keyStr = std::string(DBConstant::RELATIONAL_PREFIX) + "cursor_" + tableName;
+    if (!ClearMetaField(db, keyStr)) {
+        LOGW("Remove data cursor unsucc");
+    }
+
+    // remove table type meta
+    keyStr = SYNC_TABLE_TYPE + tableName;
+    if (!ClearMetaField(db, keyStr)) {
+        LOGW("Remove table type unsucc");
+    }
+
+    int errCode = KnowledgeSourceUtils::RemoveKnowledgeTableSchema(db, tableName);
+    if (errCode != E_OK) {
+        LOGW("Remove knowledge table schema unsucc, err: %d", errCode);
+    }
+}
+
 int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
 {
     LOGI("DropLogicDeleteData on table:%s length:%d cursor:%" PRIu64,
@@ -1422,7 +1493,7 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
         if (tableType == DEVICE_TYPE) {
             RegisterGetSysTime(db);
             RegisterGetLastTime(db);
-            std::string targetFlag = "flag|0x01";
+            std::string targetFlag = "flag|0x03";
             std::string originalFlag = "flag&0x01=0x0";
             auto tableMode = DistributedTableMode::COLLABORATION;
             (void)GetTableModeFromMeta(db, tableMode);
@@ -1434,6 +1505,8 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
                 ", timestamp=get_sys_time(0) WHERE " + originalFlag +
                 " AND timestamp<" + std::to_string(dropTimeStamp);
             (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+        } else if (tableType == KNOWLEDGE_TYPE) {
+            HandleDropKnowledgeTable(db, tableStr);
         } else {
             HandleDropCloudSyncTable(db, tableStr);
         }
@@ -1562,11 +1635,40 @@ void PostHandle(bool isExists, sqlite3 *db)
     (void)ExecuteRawSQL(db, recursiveTrigger);
 }
 
+void GetFtsTableInfos(sqlite3 *db, std::set<std::string> &tableInfos)
+{
+    std::string sql = "SELECT name FROM main.sqlite_master WHERE type = 'table' AND sql LIKE 'CREATE VIRTUAL TABLE%'";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGW("Prepare get fts table statement failed. err=%d", errCode);
+        return;
+    }
+    while ((errCode = StepWithRetry(stmt)) != SQLITE_DONE) {
+        if (errCode != SQLITE_ROW) {
+            LOGW("Get fts table info failed. err=%d", errCode);
+            ResetStatement(stmt);
+            return;
+        }
+        std::string tableName;
+        GetColumnTextValue(stmt, 0, tableName);
+        tableInfos.insert(tableName);
+        tableInfos.insert(tableName + "_config");
+        tableInfos.insert(tableName + "_content");
+        tableInfos.insert(tableName + "_data");
+        tableInfos.insert(tableName + "_docsize");
+        tableInfos.insert(tableName + "_idx");
+    }
+    ResetStatement(stmt);
+}
+
 int GetTableInfos(sqlite3 *db, std::map<std::string, bool> &tableInfos)
 {
     if (db == nullptr) {
         return -E_ERROR;
     }
+    std::set<std::string> ftsTableInfos;
+    GetFtsTableInfos(db, ftsTableInfos);
     std::string sql = "SELECT name FROM main.sqlite_master WHERE type = 'table'";
     sqlite3_stmt *stmt = nullptr;
     int errCode = GetStatement(db, sql, stmt);
@@ -1582,7 +1684,8 @@ int GetTableInfos(sqlite3 *db, std::map<std::string, bool> &tableInfos)
         std::string tableName;
         GetColumnTextValue(stmt, 0, tableName);
         if (tableName.empty() || !ParamCheckUtils::CheckRelationalTableName(tableName) ||
-            tableName.find("sqlite_") == 0 || tableName.find("naturalbase_") == 0) {
+            tableName.find("sqlite_") == 0 || tableName.find("naturalbase_") == 0 ||
+            ftsTableInfos.find(tableName) != ftsTableInfos.end()) {
             continue;
         }
         tableInfos.insert(std::make_pair(tableName, true));

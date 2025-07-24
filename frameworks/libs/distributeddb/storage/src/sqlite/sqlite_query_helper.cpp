@@ -94,7 +94,9 @@ std::string GetSelectAndFromClauseForRDB(const std::string &tableName, const std
     std::string sql = "SELECT b.data_key,"
         "b.device,"
         "b.ori_device,"
-        "b.timestamp as " + DBConstant::TIMESTAMP_ALIAS + ","
+        "b.timestamp as ";
+    sql.append(DBConstant::TIMESTAMP_ALIAS);
+    sql += ","
         "b.wtimestamp,"
         "b.flag,"
         "b.hash_key,";
@@ -107,13 +109,13 @@ std::string GetSelectAndFromClauseForRDB(const std::string &tableName, const std
         sql.pop_back();
     }
     sql += " FROM '" + tableName + "' AS a INNER JOIN " + DBConstant::RELATIONAL_PREFIX + tableName + "_log AS b "
-        "ON a." + std::string(DBConstant::SQLITE_INNER_ROWID) + "=b.data_key ";
+        "ON a." + DBConstant::SQLITE_INNER_ROWID + "=b.data_key ";
     return sql;
 }
 
 std::string GetTimeRangeClauseForRDB()
 {
-    return " AND (" + DBConstant::TIMESTAMP_ALIAS + ">=? AND " + DBConstant::TIMESTAMP_ALIAS + "<?) ";
+    return " AND (" + std::string(DBConstant::TIMESTAMP_ALIAS) + ">=? AND " + DBConstant::TIMESTAMP_ALIAS + "<?) ";
 }
 
 std::string GetOuterQueryClauseForRDB(const std::string &subQueryClause)
@@ -238,7 +240,7 @@ int SqliteQueryHelper::ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias)
     // Order by time when no order by and no limit and no need order by key.
     if (!hasOrderBy_ && !hasLimit_ && !isNeedOrderbyKey_) {
         querySql_ += (useTimestampAlias ?
-            ("ORDER BY " + DBConstant::TIMESTAMP_ALIAS + " ASC") :
+            ("ORDER BY " + std::string(DBConstant::TIMESTAMP_ALIAS) + " ASC") :
             "ORDER BY timestamp ASC");
     }
 
@@ -938,7 +940,9 @@ int SqliteQueryHelper::GetRelationalMissQuerySql(const std::vector<std::string> 
     sql = GetSelectAndFromClauseForRDB(tableName_, fieldNames);
     sql += GetMissQueryFlagClauseForRDB();
     sql += GetTimeRangeClauseForRDB();
-    sql += "ORDER BY " + DBConstant::TIMESTAMP_ALIAS + " ASC;";
+    sql += "ORDER BY ";
+    sql.append(DBConstant::TIMESTAMP_ALIAS);
+    sql += " ASC;";
     return E_OK;
 }
 
@@ -999,7 +1003,9 @@ std::string GetRelationalSyncDataQueryHeader(const std::vector<std::string> &fie
     std::string sql = "SELECT b.data_key,"
         "b.device,"
         "b.ori_device,"
-        "b.timestamp as " + DBConstant::TIMESTAMP_ALIAS + ","
+        "b.timestamp as ";
+    sql.append(DBConstant::TIMESTAMP_ALIAS);
+    sql += ","
         "b.wtimestamp,"
         "b.flag,"
         "b.hash_key,";
@@ -1019,7 +1025,9 @@ std::string GetRelationalCloudSyncDataQueryHeader(const std::vector<Field> &fiel
     std::string sql = "SELECT b.data_key,"
         "b.device,"
         "b.ori_device,"
-        "b.timestamp as " + DBConstant::TIMESTAMP_ALIAS + ","
+        "b.timestamp as ";
+    sql.append(DBConstant::TIMESTAMP_ALIAS);
+    sql += ","
         "b.wtimestamp,"
         "b.flag,"
         "b.hash_key,"
@@ -1052,7 +1060,9 @@ int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithLimit(const std::vector<
     sql = GetRelationalSyncDataQueryHeader(fieldNames);
     sql += " FROM '" + tableName_ + "' AS a INNER JOIN ";
     sql += DBConstant::RELATIONAL_PREFIX + tableName_ + "_log";
-    sql += " AS b ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
+    sql += " AS b ON (a.";
+    sql.append(DBConstant::SQLITE_INNER_ROWID);
+    sql += " = b.data_key)";
     sql += " WHERE (b.flag&0x03=0x02)";
 
     querySql_.clear(); // clear local query sql format

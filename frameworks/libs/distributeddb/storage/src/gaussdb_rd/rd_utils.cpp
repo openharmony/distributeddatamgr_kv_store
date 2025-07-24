@@ -248,7 +248,6 @@ int RdKVBatchPushback(GRD_KVBatchT *batch, const Key &key, const Value &value)
         innerVal.data = (void *)&value[0];
         innerVal.dataLen = (uint32_t)value.size();
     }
-
     int ret = TransferGrdErrno(
         GRD_KVBatchPushback(innerKey.data, innerKey.dataLen, innerVal.data, innerVal.dataLen, batch));
     if (ret != E_OK) {

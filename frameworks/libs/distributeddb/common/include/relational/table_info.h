@@ -30,6 +30,8 @@ namespace DistributedDB {
 using CompositeFields = std::vector<FieldName>;
 class FieldInfo {
 public:
+    FieldInfo() = default;
+    ~FieldInfo() = default;
     const std::string &GetFieldName() const;
     void SetFieldName(const std::string &fileName);
     const std::string &GetDataType() const;
@@ -74,6 +76,8 @@ using FieldInfoMap = std::map<std::string, FieldInfo, CaseInsensitiveComparator>
 using IndexInfoMap = std::map<std::string, CompositeFields, CaseInsensitiveComparator>;
 class TableInfo {
 public:
+    TableInfo() = default;
+    ~TableInfo() = default;
     const std::string &GetTableName() const;
     const std::string &GetOriginTableName() const;
     bool GetSharedTableMark() const;

@@ -33,7 +33,7 @@ public:
         LEVEL_ERROR,
         LEVEL_FATAL
     };
-
+    Logger() = default;
     virtual ~Logger() {};
     static Logger *GetInstance();
     static void DeleteInstance();

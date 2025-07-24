@@ -199,6 +199,7 @@ void InitSchemaDb()
     g_schemaMgr.GetKvStore(SCHEMA_STORE_ID, option, g_schemaKvDelegateCallback);
     ASSERT_TRUE(g_schemaKvDelegateStatus == OK);
     ASSERT_TRUE(g_schemaKvDelegatePtr != nullptr);
+    g_deviceB->SetSchema(option.schema);
 }
 
 /**
@@ -1272,7 +1273,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteKeyWaterMark001, TestS
 
     /**
      * @tc.steps: step5. get receive and send watermark
-     * @tc.expected: step5. E_OK and get the w1
+     * @tc.expected: step5. E_OK and get the w2
      */
     EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark("D1", "", w), E_OK);
     EXPECT_EQ(w2, w);

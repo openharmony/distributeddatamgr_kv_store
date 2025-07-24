@@ -395,14 +395,14 @@ DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreDelegate *kvStore)
 #endif
 }
 
-DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreNbDelegate *kvStore)
+DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreNbDelegate *kvStore, bool isCloseImmediately)
 {
     if (kvStore == nullptr) {
         return INVALID_ARGS;
     }
 
     auto kvStoreImpl = static_cast<KvStoreNbDelegateImpl *>(kvStore);
-    DBStatus status = kvStoreImpl->Close();
+    DBStatus status = kvStoreImpl->Close(isCloseImmediately);
     if (status == BUSY) {
         LOGD("NbDelegateImpl is busy now.");
         return BUSY;

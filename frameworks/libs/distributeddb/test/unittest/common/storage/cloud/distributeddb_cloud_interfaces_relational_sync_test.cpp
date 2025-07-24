@@ -1501,7 +1501,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest011, TestS
     cv.wait(uniqueLock, [&syncFinish]() {
         return syncFinish;
     });
-    RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(callCount, 2); // 2 is onProcess count
     CloseDb();
 }

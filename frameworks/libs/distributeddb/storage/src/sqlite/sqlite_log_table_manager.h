@@ -37,6 +37,8 @@ public:
 
     void CheckAndCreateTrigger(sqlite3 *db, const TableInfo &table, const std::string &identity);
 
+    std::string GetCreateRelationalLogTableSql(const TableInfo &table, const std::string &extendStr = "");
+
     virtual std::string GetConflictPkSql(const TableInfo &table);
 protected:
     virtual void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema);

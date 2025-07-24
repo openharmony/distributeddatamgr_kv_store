@@ -370,10 +370,11 @@ int TimeSync::DeSerialization(const uint8_t *buffer, uint32_t length, Message *i
 int TimeSync::AckRecv(const Message *message, uint32_t targetSessionId)
 {
     // only check when sessionId is not 0, because old version timesync sessionId is 0.
-    if (message != nullptr && message->GetSessionId() != 0 &&
-        message->GetErrorNo() == E_FEEDBACK_COMMUNICATOR_NOT_FOUND && message->GetSessionId() == targetSessionId) {
-        LOGE("[AbilitySync][AckMsgCheck] Remote db is closed");
-        return -E_FEEDBACK_COMMUNICATOR_NOT_FOUND;
+    if (message != nullptr && message->GetSessionId() != 0 && message->GetSessionId() == targetSessionId) {
+        if (message->GetErrorNo() == E_FEEDBACK_COMMUNICATOR_NOT_FOUND) {
+            LOGE("[AbilitySync][AckMsgCheck] Remote db is closed");
+            return -E_FEEDBACK_COMMUNICATOR_NOT_FOUND;
+        }
     }
     if (!IsPacketValid(message, TYPE_RESPONSE)) {
         return -E_INVALID_ARGS;

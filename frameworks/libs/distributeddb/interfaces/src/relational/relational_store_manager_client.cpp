@@ -59,6 +59,7 @@ DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std
         }
         errCode = CloudStorageUtils::CalculateHashKeyForOneField(field, primaryKey, false, collateType, result);
         if (errCode != E_OK) {
+            // never happen
             LOGE("calc hash fail when there is one primary key errCode = %d", errCode);
         }
     } else {

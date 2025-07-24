@@ -17,46 +17,45 @@
 #define SCHEMA_CONSTANT_H
 
 #include <cstdint>
-#include <string>
 
 // This header is supposed to be included only in source files. Do not include it in any header files.
 namespace DistributedDB {
 class SchemaConstant final {
 public:
-    static const std::string KEYWORD_SCHEMA_VERSION;
-    static const std::string KEYWORD_SCHEMA_MODE;
-    static const std::string KEYWORD_SCHEMA_DEFINE;
-    static const std::string KEYWORD_SCHEMA_INDEXES;
-    static const std::string KEYWORD_SCHEMA_SKIPSIZE;
-    static const std::string KEYWORD_SCHEMA_TYPE;
-    static const std::string KEYWORD_SCHEMA_TABLE;
-    static const std::string KEYWORD_INDEX; // For FlatBuffer-Schema
-    static const std::string KEYWORD_TABLE_MODE;
+    static constexpr const char *KEYWORD_SCHEMA_VERSION = "SCHEMA_VERSION";
+    static constexpr const char *KEYWORD_SCHEMA_MODE = "SCHEMA_MODE";
+    static constexpr const char *KEYWORD_SCHEMA_DEFINE = "SCHEMA_DEFINE";
+    static constexpr const char *KEYWORD_SCHEMA_INDEXES = "SCHEMA_INDEXES";
+    static constexpr const char *KEYWORD_SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
+    static constexpr const char *KEYWORD_SCHEMA_TYPE = "SCHEMA_TYPE";
+    static constexpr const char *KEYWORD_SCHEMA_TABLE = "TABLES";
+    static constexpr const char *KEYWORD_INDEX = "INDEX"; // For FlatBuffer-Schema
+    static constexpr const char *KEYWORD_TABLE_MODE = "TABLE_MODE";
 
-    static const std::string KEYWORD_MODE_STRICT;
-    static const std::string KEYWORD_MODE_COMPATIBLE;
+    static constexpr const char *KEYWORD_MODE_STRICT = "STRICT";
+    static constexpr const char *KEYWORD_MODE_COMPATIBLE = "COMPATIBLE";
 
-    static const std::string KEYWORD_TYPE_BOOL;
-    static const std::string KEYWORD_TYPE_INTEGER;
-    static const std::string KEYWORD_TYPE_LONG;
-    static const std::string KEYWORD_TYPE_DOUBLE;
-    static const std::string KEYWORD_TYPE_STRING;
-    static const std::string KEYWORD_TYPE_BOOLEAN;
+    static constexpr const char *KEYWORD_TYPE_BOOL = "BOOL";
+    static constexpr const char *KEYWORD_TYPE_INTEGER = "INTEGER";
+    static constexpr const char *KEYWORD_TYPE_LONG = "LONG";
+    static constexpr const char *KEYWORD_TYPE_DOUBLE = "DOUBLE";
+    static constexpr const char *KEYWORD_TYPE_STRING = "STRING";
+    static constexpr const char *KEYWORD_TYPE_BOOLEAN = "BOOLEAN";
 
-    static const std::string KEYWORD_ATTR_NOT_NULL;
-    static const std::string KEYWORD_ATTR_DEFAULT;
-    static const std::string KEYWORD_ATTR_VALUE_NULL;
-    static const std::string KEYWORD_ATTR_VALUE_TRUE;
-    static const std::string KEYWORD_ATTR_VALUE_FALSE;
+    static constexpr const char *KEYWORD_ATTR_NOT_NULL = "NOT NULL";
+    static constexpr const char *KEYWORD_ATTR_DEFAULT = "DEFAULT";
+    static constexpr const char *KEYWORD_ATTR_VALUE_NULL = "null";
+    static constexpr const char *KEYWORD_ATTR_VALUE_TRUE = "true";
+    static constexpr const char *KEYWORD_ATTR_VALUE_FALSE = "false";
 
-    static const std::string KEYWORD_TABLE_SPLIT_DEVICE;
-    static const std::string KEYWORD_TABLE_COLLABORATION;
+    static constexpr const char *KEYWORD_TABLE_SPLIT_DEVICE = "SPLIT_BY_DEVICE";
+    static constexpr const char *KEYWORD_TABLE_COLLABORATION = "COLLABORATION";
 
-    static const std::string KEYWORD_TYPE_RELATIVE;
-    static const std::string SCHEMA_SUPPORT_VERSION;
-    static const std::string SCHEMA_SUPPORT_VERSION_V2;
-    static const std::string SCHEMA_SUPPORT_VERSION_V2_1;
-    static const std::string SCHEMA_CURRENT_VERSION;
+    static constexpr const char *KEYWORD_TYPE_RELATIVE = "RELATIVE";
+    static constexpr const char *SCHEMA_SUPPORT_VERSION = "1.0";
+    static constexpr const char *SCHEMA_SUPPORT_VERSION_V2 = "2.0";
+    static constexpr const char *SCHEMA_SUPPORT_VERSION_V2_1 = "2.1";
+    static constexpr const char *SCHEMA_CURRENT_VERSION = SCHEMA_SUPPORT_VERSION_V2_1;
 
     static constexpr const char *REFERENCE_PROPERTY = "REFERENCE_PROPERTY";
     static constexpr const char *SOURCE_TABLE_NAME = "SOURCE_TABLE_NAME";

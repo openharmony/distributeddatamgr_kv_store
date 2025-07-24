@@ -418,8 +418,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetOrInitTrackerSchemaFromMeta(Rel
     if (!schema.ToSchemaString().empty()) {
         return E_OK;
     }
-    const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
-        DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
+    const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY,
+        DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY + strlen(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY));
     Value schemaVal;
     int errCode = GetKvData(schemaKey, schemaVal); // save schema to meta_data
     if (errCode != E_OK) {
@@ -480,7 +480,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
     const std::vector<TableReferenceProperty> &tableReferenceProperty, const RelationalSchemaObject &schema,
     std::set<std::string> &clearWaterMarkTables)
 {
-    std::set<std::string> changeTables = schema.CompareReferenceProperty(tableReferenceProperty);
+    bool isRefNotSet = false;
+    std::set<std::string> changeTables = schema.CompareReferenceProperty(tableReferenceProperty, isRefNotSet);
     for (const auto &table : changeTables) {
         std::string logTableName = DBCommon::GetLogTableName(table);
         bool isExists = false;
@@ -505,8 +506,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetClearWaterMarkTables(
             clearWaterMarkTables.insert(table);
         }
     }
-    LOGI("[GetClearWaterMarkTables] clearWaterMarkTables size = %zu.", clearWaterMarkTables.size());
-    return E_OK;
+    LOGI("[GetClearWaterMarkTables] clearWaterMarkTables size = %zu, changeTables size = %zu, isFirst:%d.",
+        clearWaterMarkTables.size(), changeTables.size(), isRefNotSet);
+    // If reference set for the first time and has no data, or the reference has not changed, return E_OK.
+    return ((isRefNotSet && clearWaterMarkTables.empty()) || changeTables.empty()) ? E_OK : -E_TABLE_REFERENCE_CHANGED;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(const TableInfo &tableInfo, bool schemaChanged)
@@ -1830,6 +1833,10 @@ void SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsUploadFinished(const st
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, CloudStorageUtils::GetUpdateUploadFinishedSql(tableName,
         isExistAssetsDownload), stmt);
+    if (errCode != E_OK) {
+        LOGW("[Storage Executor] Get statement fail! errCode:%d", errCode);
+        return;
+    }
     int index = 1;
     errCode = SQLiteUtils::BindInt64ToStatement(stmt, index++, timestamp);
     if (errCode != E_OK) {

@@ -436,7 +436,8 @@ void CreateDistributedTableInvalidArgsTest(TableSyncType tableSyncType)
      * @tc.steps:step3. Create distributed table with invalid table name
      * @tc.expected: step3. Create distributed table failed.
      */
-    EXPECT_NE(delegate->CreateDistributedTable(DBConstant::SYSTEM_TABLE_PREFIX + "_tmp", tableSyncType), OK);
+    EXPECT_NE(delegate->CreateDistributedTable(std::string(DBConstant::SYSTEM_TABLE_PREFIX) + "_tmp", tableSyncType),
+        OK);
 
     EXPECT_EQ(delegate->CreateDistributedTable("Handle-J@^.", tableSyncType), INVALID_ARGS);
     EXPECT_EQ(delegate->CreateDistributedTable("sync_data",
@@ -2095,7 +2096,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, GetDbHandleConcurrentlyTest001, 
         for (int i = 0; i < executeTime; i++) {
             DistributedDB::SqlCondition sqlCondition;
             std::vector<VBucket> records = {};
-            sqlCondition.sql = "BEGIN;";
+            sqlCondition.sql = "BEGIN IMMEDIATE TRANSACTION;";
             EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);
             sqlCondition.sql = "DROP TABLE IF EXISTS " + DBCommon::GetLogTableName(tableName);
             EXPECT_EQ(delegate->ExecuteSql(sqlCondition, records), E_OK);

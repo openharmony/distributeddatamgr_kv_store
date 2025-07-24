@@ -139,6 +139,8 @@ public:
     int32_t GetResponseTaskCount() override;
 
     int32_t GetRemoteQueryTaskCount() override;
+
+    bool ExchangeClosePending(bool expected) override;
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) = 0;
@@ -183,7 +185,7 @@ private:
     void ScheduleTaskOut(ISyncTaskContext *context, const ICommunicator *communicator);
 
     // wrapper of MessageReciveCallbackTask
-    void MessageReciveCallback(const std::string &targetDev, Message *inMsg);
+    int MessageReciveCallback(const std::string &targetDev, Message *inMsg);
 
     // Sync Request Callback
     int MessageReciveCallbackInner(const std::string &targetDev, Message *inMsg);
@@ -219,6 +221,8 @@ private:
 
     void DecExecTaskCount();
 
+    uint32_t GetExecTaskCount();
+
     RemoteExecutor *GetAndIncRemoteExector();
 
     void SetRemoteExector(RemoteExecutor *executor);
@@ -238,6 +242,9 @@ private:
     std::string GetUserId(const ISyncInterface *syncInterface);
 
     uint32_t GetTimeout(const std::string &dev);
+
+    int RegCallbackOnInitComunicator(ICommunicatorAggregator *communicatorAggregator,
+        const ISyncInterface *syncInterface);
 
     std::string GetTargetUserId(const std::string &dev);
     ICommunicator *communicator_;

@@ -534,7 +534,10 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
 
     int errCode = E_OK;
     SecurityOption option;
-    (void)GetSecurityOption(option);
+    errCode = GetSecurityOption(option);
+    if (errCode != E_OK) {
+        LOGW("Get security option failed when get meta data: %d", errCode);
+    }
     bool isWrite = (option.securityLabel >= S3) && (option.securityFlag == SECE);
     // meta in S3 SECE open meta.db, should use write handle
     auto handle = GetHandle(isWrite, errCode);
@@ -560,7 +563,10 @@ int SQLiteSingleVerNaturalStore::GetMetaDataByPrefixKey(const Key &keyPrefix, st
 
     int errCode = E_OK;
     SecurityOption option;
-    (void)GetSecurityOption(option);
+    errCode = GetSecurityOption(option);
+    if (errCode != E_OK) {
+        LOGW("Get security option failed when get meta data by prefix key: %d", errCode);
+    }
     bool isWrite = (option.securityLabel >= S3) && (option.securityFlag == SECE);
     // meta in S3 SECE open meta.db, should use write handle
     auto handle = GetHandle(isWrite, errCode);
@@ -1893,7 +1899,7 @@ int SQLiteSingleVerNaturalStore::GetKvDBSize(const KvDBProperties &properties, u
     std::string storeIdentDir;
     GenericKvDB::GetStoreDirectory(properties, KvDBProperties::SINGLE_VER_TYPE_SQLITE, storeIdentDir,
         storeOnlyIdentDir);
-    const std::vector<std::pair<const std::string &, const std::string &>> dbDir {
+    const std::vector<std::pair<const std::string, const std::string>> dbDir {
         {DBConstant::MAINDB_DIR, DBConstant::SINGLE_VER_DATA_STORE},
         {DBConstant::METADB_DIR, DBConstant::SINGLE_VER_META_STORE},
         {DBConstant::CACHEDB_DIR, DBConstant::SINGLE_VER_CACHE_STORE}};

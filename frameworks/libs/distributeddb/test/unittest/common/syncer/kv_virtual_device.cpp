@@ -151,4 +151,10 @@ void KvVirtualDevice::SetPushNotifier(const std::function<void(const std::string
     auto *syncAble = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
     syncAble->SetPushNotifier(pushNotifier);
 }
+
+void KvVirtualDevice::SetSchema(const std::string &schema)
+{
+    auto *syncAble = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
+    syncAble->SetSchemaInfo(schema);
+}
 } // namespace DistributedDB

@@ -138,6 +138,7 @@ static void CheckRecvMessage(Message *recvMsg, bool isEmpty, uint32_t msgId, uin
         [&srcTargetFor##src##label, &recvMsgFor##src##label](const std::string &srcTarget, Message *inMsg) { \
         srcTargetFor##src##label = srcTarget; \
         recvMsgFor##src##label = inMsg; \
+        return E_OK; \
     }, nullptr);
 
 /**
@@ -533,6 +534,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck001, TestSize.Lev
             delete inMsg;
             inMsg = nullptr;
         }
+        return E_OK;
     }, nullptr);
     AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 
@@ -594,6 +596,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck002, TestSize.Lev
             delete inMsg;
             inMsg = nullptr;
         }
+        return E_OK;
     }, nullptr);
     AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 
@@ -786,7 +789,9 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead0
      */
     Message *msgForAA = BuildAppLayerFrameMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {false, true, 0, {"appId", "storeId", "userId", "DeviceB"}};
+    UserInfo userInfo = {"", "userId"};
+    g_envDeviceB.adapterHandle->SetUserInfo({userInfo});
+    SendConfig conf = {false, true, 0, {"appId", "storeId", "", "DeviceB"}};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms

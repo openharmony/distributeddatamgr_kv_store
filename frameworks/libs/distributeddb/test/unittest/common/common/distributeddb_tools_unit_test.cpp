@@ -1564,4 +1564,29 @@ void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, Distribu
         });
     }
 }
+
+std::pair<int, uint64_t> RelationalTestUtils::GetMaxTimestamp(sqlite3 *db, const std::string &oriTable)
+{
+    std::pair<int, uint64_t> res;
+    auto &[errCode, timestamp] = res;
+    std::string sql = "SELECT MAX(timestamp) FROM " + std::string(DistributedDB::DBConstant::RELATIONAL_PREFIX) +
+        oriTable + "_log";
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get max timestamp stmt failed %d", errCode);
+        return res;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        timestamp = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        errCode = E_OK;
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (errCode == E_OK) {
+        errCode = ret;
+    }
+    return res;
+}
 } // namespace DistributedDBUnitTest

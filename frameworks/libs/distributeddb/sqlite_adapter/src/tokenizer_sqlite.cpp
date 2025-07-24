@@ -166,20 +166,18 @@ void fts5_customtokenizer_xDelete(Fts5Tokenizer *tokenizer_ptr)
 ** If an error occurs, return NULL and leave an error in the database
 ** handle (accessible using sqlite3_errcode()/errmsg()).
 */
-static int fts5_api_from_db(sqlite3 *db, fts5_api **ppApi)
+static int get_fts5_api(sqlite3 *db, fts5_api **api)
 {
-    sqlite3_stmt *pStmt = 0;
-    int rc;
-
-    *ppApi = 0;
-    rc = sqlite3_prepare(db, "SELECT fts5(?1)", -1, &pStmt, 0);
-    if (rc == SQLITE_OK) {
-        sqlite3_bind_pointer(pStmt, 1, reinterpret_cast<void *>(ppApi), "fts5_api_ptr", 0);
-        (void)sqlite3_step(pStmt);
-        rc = sqlite3_finalize(pStmt);
+    sqlite3_stmt *stmt = nullptr;
+    *api = nullptr;
+    int ret = sqlite3_prepare(db, "SELECT fts5(?1)", -1, &stmt, 0);
+    if (ret != SQLITE_OK) {
+        sqlite3_log(ret, "sqlite3_prepare wrong");
+        return ret;
     }
-
-    return rc;
+    sqlite3_bind_pointer(stmt, 1, reinterpret_cast<void *>(api), "fts5_api_ptr", 0);
+    (void)sqlite3_step(stmt);
+    return sqlite3_finalize(stmt);
 }
 
 int sqlite3_customtokenizer_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi)
@@ -190,13 +188,13 @@ int sqlite3_customtokenizer_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api
 
     fts5_tokenizer tokenizer = {
         fts5_customtokenizer_xCreate, fts5_customtokenizer_xDelete, fts5_customtokenizer_xTokenize};
-    fts5_api *fts5api;
-    rc = fts5_api_from_db(db, &fts5api);
+    fts5_api *fts5api = nullptr;
+    rc = get_fts5_api(db, &fts5api);
     if (rc != SQLITE_OK) {
-        sqlite3_log(rc, "fts5_api_from_db wrong");
+        sqlite3_log(rc, "get_fts5_api wrong");
         return rc;
     }
-    if (fts5api == 0 || fts5api->iVersion < FTS5_MAX_VERSION) {
+    if (fts5api == nullptr || fts5api->iVersion < FTS5_MAX_VERSION) {
         sqlite3_log(SQLITE_ERROR, "sqlite3_customtokenizer_init wrong");
         return SQLITE_ERROR;
     }

@@ -59,7 +59,7 @@ public:
     // Close a KvStore, return OK if close success.
     DB_API DBStatus CloseKvStore(KvStoreDelegate *kvStore);
 
-    DB_API DBStatus CloseKvStore(KvStoreNbDelegate *kvStore);
+    DB_API DBStatus CloseKvStore(KvStoreNbDelegate *kvStore, bool isCloseImmediately = true);
 
     // Used to delete a KvStore, return OK if delete success.
     DB_API DBStatus DeleteKvStore(const std::string &storeId);

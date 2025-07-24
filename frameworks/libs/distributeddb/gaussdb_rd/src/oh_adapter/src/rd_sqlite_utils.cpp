@@ -232,7 +232,7 @@ int RDSQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql)
     char *errMsg = nullptr;
     int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
     if (errCode != SQLITE_OK && errMsg != nullptr) {
-        GLOGE("Execute sql failed. %d err: %s", errCode, errMsg);
+        GLOGE("Execute sql failed. %d", errCode);
     }
 
     sqlite3_free(errMsg);

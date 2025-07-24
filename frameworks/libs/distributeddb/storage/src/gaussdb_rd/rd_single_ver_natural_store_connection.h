@@ -90,7 +90,7 @@ public:
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
 
     // Called when Close and delete the connection.
-    int PreClose() override;
+    int PreClose(bool isCloseImmediately) override;
 
     int CheckIntegrity() const override;
 

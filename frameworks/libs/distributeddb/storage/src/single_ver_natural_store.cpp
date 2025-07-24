@@ -52,7 +52,7 @@ int SingleVerNaturalStore::RemoveKvDB(const KvDBProperties &properties)
     std::string storeDir;
     GenericKvDB::GetStoreDirectory(properties, KvDBProperties::SINGLE_VER_TYPE_SQLITE, storeDir, storeOnlyDir);
 
-    const std::vector<std::pair<const std::string &, const std::string &>> dbDir {
+    const std::vector<std::pair<const std::string, const std::string>> dbDir {
         { DBConstant::MAINDB_DIR, DBConstant::SINGLE_VER_DATA_STORE },
         { DBConstant::METADB_DIR, DBConstant::SINGLE_VER_META_STORE },
         { DBConstant::CACHEDB_DIR, DBConstant::SINGLE_VER_CACHE_STORE }

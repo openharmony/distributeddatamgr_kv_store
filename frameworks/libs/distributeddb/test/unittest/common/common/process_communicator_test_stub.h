@@ -86,6 +86,12 @@ public:
         isCommErr = commErr;
     }
 
+    DBStatus GetDataHeadInfo(DataHeadInfo dataHeadInfo, uint32_t &headLength) override
+    {
+        headLength = dataHeadInfo_.second;
+        return dataHeadInfo_.first;
+    }
+
     DBStatus GetDataUserInfo(DataUserInfo dataUserInfo, std::vector<UserInfo> &userInfos) override
     {
         userInfos = userInfos_;
@@ -96,9 +102,15 @@ public:
     {
         userInfos_ = userInfos;
     }
+
+    void SetDataHeadInfo(std::pair<DBStatus, uint32_t> dataHeadInfo)
+    {
+        dataHeadInfo_ = dataHeadInfo;
+    }
 private:
     bool isCommErr = false;
     std::vector<UserInfo> userInfos_;
+    std::pair<DBStatus, uint32_t> dataHeadInfo_;
 };
 } // namespace DistributedDB
 

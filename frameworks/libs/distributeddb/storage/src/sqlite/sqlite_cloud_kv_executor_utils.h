@@ -157,7 +157,7 @@ private:
 
     static Timestamp GetMaxTimeStamp(const std::vector<VBucket> &dataExtend);
 
-    static bool UpdateBeginTimeForMemoryDB(SQLiteSingleVerContinueToken &token, const CloudSyncData &data);
+    static void UpdateBeginTime(SQLiteSingleVerContinueToken &token, const CloudSyncData &data);
 
     static int BindFillGidLogStmt(sqlite3_stmt *logStmt, const std::string &user,
         const DataItem &dataItem, const VBucket &uploadExtend, const CloudWaterType &type);

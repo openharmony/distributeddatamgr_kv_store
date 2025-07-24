@@ -149,11 +149,13 @@ void DistributedDBSingleVerP2PSubscribeSyncTest::SetUp(void)
     ASSERT_TRUE(g_deviceB != nullptr);
     VirtualSingleVerSyncDBInterface *syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(syncInterfaceB != nullptr);
+    syncInterfaceB->SetSchemaInfo(SCHEMA_STRING);
     ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
     g_deviceC = new (std::nothrow) KvVirtualDevice(DEVICE_C);
     ASSERT_TRUE(g_deviceC != nullptr);
     VirtualSingleVerSyncDBInterface *syncInterfaceC = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(syncInterfaceC != nullptr);
+    syncInterfaceC->SetSchemaInfo(SCHEMA_STRING);
     ASSERT_EQ(g_deviceC->Initialize(g_communicatorAggregator, syncInterfaceC), E_OK);
 }
 
@@ -1134,6 +1136,7 @@ KvVirtualDevice *CreateKvVirtualDevice(const std::string &deviceName)
             device = nullptr;
             break;
         }
+        interface->SetSchemaInfo(SCHEMA_STRING);
         EXPECT_EQ(device->Initialize(g_communicatorAggregator, interface), E_OK);
     } while (false);
     return device;

@@ -409,7 +409,7 @@ HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalSqliteCloudKvExecutorUtilsTest001
 
     data.isCloudVersionRecord = false;
     int ret = cloudKvObj.FillCloudLog({db, true}, OpType::INSERT, data, "", recorder);
-    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(ret, -1); // -1 for table not exist
 
     std::vector<VBucket> dataVector;
     ret = cloudKvObj.GetWaitCompensatedSyncDataPk(db, true, dataVector);

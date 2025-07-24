@@ -105,8 +105,6 @@ int RemoteExecutor::ReceiveMessage(const std::string &targetDev, Message *inMsg)
     }
     if (closed_) {
         LOGD("[RemoteExecutor][ReceiveMessageInner] db is closing ignore msg");
-        delete inMsg;
-        inMsg = nullptr;
         return -E_BUSY;
     }
     RefObject::IncObjRef(this);

@@ -494,7 +494,7 @@ int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskConte
     }
     int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(param, flag);
     if (errCode != E_OK) {
-        LOGE("[DataSync][RunPermissionCheck] check failed flag=%" PRIu8 ",Label=%s,dev=%s", flag, label.c_str(),
+        LOGE("[DataSync][RunPermissionCheck] check failed flag=%" PRIu8 ",dev=%s", flag,
             STR_MASK(context->GetDeviceId()));
     }
     return errCode;

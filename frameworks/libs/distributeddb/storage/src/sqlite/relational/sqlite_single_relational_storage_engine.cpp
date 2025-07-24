@@ -151,7 +151,8 @@ const std::string SYNC_TABLE_TYPE = "sync_table_type_";
 
 int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, const RelationalSchemaObject &schema)
 {
-    const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY.begin(), DBConstant::RELATIONAL_SCHEMA_KEY.end());
+    const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY,
+        DBConstant::RELATIONAL_SCHEMA_KEY + strlen(DBConstant::RELATIONAL_SCHEMA_KEY));
     Value schemaVal;
     auto schemaStr = schema.ToSchemaString();
     if (schemaStr.size() > SchemaConstant::SCHEMA_STRING_SIZE_LIMIT) {
@@ -169,8 +170,8 @@ int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, cons
 int SaveTrackerSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle,
     const RelationalSchemaObject &schema)
 {
-    const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
-        DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
+    const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY,
+        DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY + strlen(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY));
     Value schemaVal;
     DBCommon::StringToVector(schema.ToSchemaString(), schemaVal);
     int errCode = handle->PutKvData(schemaKey, schemaVal); // save schema to meta_data
@@ -623,10 +624,9 @@ int SQLiteSingleRelationalStorageEngine::SetReference(const std::vector<TableRef
         LOGE("check reference failed, errCode = %d.", errCode);
         return errCode;
     }
-
-    errCode = handle->GetClearWaterMarkTables(tableReferenceProperty, schema, clearWaterMarkTables);
-    if (errCode != E_OK) {
-        return errCode;
+    int res = handle->GetClearWaterMarkTables(tableReferenceProperty, schema, clearWaterMarkTables);
+    if (res != E_OK && res != -E_TABLE_REFERENCE_CHANGED) {
+        return res;
     }
     schema.SetReferenceProperty(tableReferenceProperty);
     errCode = SaveSchemaToMetaTable(handle, schema);
@@ -646,7 +646,7 @@ int SQLiteSingleRelationalStorageEngine::SetReference(const std::vector<TableRef
             return errCode;
         }
     }
-    return clearWaterMarkTables.empty() ? E_OK : -E_TABLE_REFERENCE_CHANGED;
+    return res;
 }
 
 RelationalSchemaObject SQLiteSingleRelationalStorageEngine::GetTrackerSchema() const
@@ -1144,40 +1144,54 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInner(RelationalSch
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = SQLiteRelationalUtils::CheckDistributedSchemaValid(schemaObj, schema, isForceUpgrade, handle);
+    errCode = SetDistributedSchemaInTraction(schemaObj, schema, localIdentity, isForceUpgrade, *handle);
     if (errCode != E_OK) {
         (void)handle->Rollback();
         return errCode;
     }
+    return handle->Commit();
+}
+
+int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInTraction(RelationalSchemaObject &schemaObj,
+    const DistributedSchema &schema, const std::string &localIdentity, bool isForceUpgrade,
+    SQLiteSingleVerRelationalStorageExecutor &handle)
+{
+    int errCode = SQLiteRelationalUtils::CheckDistributedSchemaValid(schemaObj, schema, isForceUpgrade, &handle);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    auto changeStatus = schemaObj.GetTableChangeStatus(schema);
     schemaObj.SetDistributedSchema(schema);
     for (const auto &table : schema.tables) {
+        if (!changeStatus[table.tableName]) {
+            continue;
+        }
         TableInfo tableInfo = schemaObj.GetTable(table.tableName);
         tableInfo.SetTrackerTable(GetTrackerSchema().GetTrackerTable(table.tableName));
         if (tableInfo.Empty()) {
             continue;
         }
         tableInfo.SetDistributedTable(schemaObj.GetDistributedTable(table.tableName));
-        errCode = handle->RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType(),
+        errCode = handle.RenewTableTrigger(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType(),
             localIdentity);
         if (errCode != E_OK) {
-            LOGE("Failed to refresh trigger while setting up distributed schema: %d", errCode);
-            (void)handle->Rollback();
+            LOGE("Failed to refresh %s:%zu trigger while setting up distributed schema: %d",
+                DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size(), errCode);
             return errCode;
         }
-        errCode = handle->UpdateHashKey(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType());
+        errCode = handle.UpdateHashKey(schemaObj.GetTableMode(), tableInfo, tableInfo.GetTableSyncType(),
+            localIdentity);
         if (errCode != E_OK) {
-            LOGE("Failed to update hash_key while setting up distributed schema: %d", errCode);
-            (void)handle->Rollback();
+            LOGE("Failed to update %s:%zu hash_key while setting up distributed schema: %d",
+                DBCommon::StringMiddleMasking(table.tableName).c_str(), table.tableName.size(), errCode);
             return errCode;
         }
     }
-    errCode = SaveSchemaToMetaTable(handle, schemaObj);
+    errCode = SaveSchemaToMetaTable(&handle, schemaObj);
     if (errCode != E_OK) {
         LOGE("Save schema to meta table for set distributed schema failed. %d", errCode);
-        (void)handle->Rollback();
-        return errCode;
     }
-    return handle->Commit();
+    return errCode;
 }
 }
 #endif

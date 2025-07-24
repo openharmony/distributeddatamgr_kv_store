@@ -41,7 +41,7 @@ public:
         bool isNeedIfOpened = true);
 
     // used to close the connection.
-    static int ReleaseDatabaseConnection(IKvDBConnection *connection);
+    static int ReleaseDatabaseConnection(IKvDBConnection *connection, bool isCloseImmediately = true);
 
     // used to delete a kvdb with the given property.
     static int RemoveDatabase(const KvDBProperties &property);

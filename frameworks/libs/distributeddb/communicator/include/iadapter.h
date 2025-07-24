@@ -33,7 +33,7 @@ struct ReceiveBytesInfo {
     const uint8_t *bytes = nullptr;
     const std::string srcTarget;
     uint32_t length = 0;
-    uint32_t headLength = 0;
+    bool isNeedGetUserInfo = true;
 };
 
 // SendableCallback only notify when status changed from unsendable to sendable

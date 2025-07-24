@@ -228,6 +228,7 @@ int CloudSyncer::DoSync(TaskId taskId)
     }
     bool needUpload = true;
     bool isNeedFirstDownload = false;
+    bool isLockAction = IsLockInDownload();
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (currentContext_.strategy != nullptr) {
@@ -235,13 +236,13 @@ int CloudSyncer::DoSync(TaskId taskId)
         }
         // 1. if the locker is already exist, directly reuse the lock, no need do the first download
         // 2. if the task(resume task) is already be tagged need upload data, no need do the first download
-        isNeedFirstDownload = (currentContext_.locker == nullptr) && (!currentContext_.isNeedUpload);
+        isNeedFirstDownload = (currentContext_.locker == nullptr) && (!currentContext_.isNeedUpload) &&
+            isLockAction;
     }
-    int errCode = E_OK;
     bool isFirstDownload = true;
     if (isNeedFirstDownload) {
         // do first download
-        errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+        int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
         SetTaskFailed(taskId, errCode);
         if (errCode != E_OK) {
             SyncMachineDoFinished();
@@ -265,8 +266,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         currentContext_.isFirstDownload = isFirstDownload;
         currentContext_.isRealNeedUpload = needUpload;
     }
-    errCode = DoSyncInner(taskInfo);
-    return errCode;
+    return DoSyncInner(taskInfo);
 }
 
 int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
@@ -1397,11 +1397,11 @@ int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &p
             if (!std::get<2>(fieldIndex)) { // 2 is index of mandatory flag
                 continue;
             }
-            LOGE("[CloudSyncer] Cloud data do not contain expected field: %s.", std::get<0>(fieldIndex).c_str());
+            LOGE("[CloudSyncer] Cloud data do not contain expected field.");
             return -E_CLOUD_ERROR;
         }
         if (datum[std::get<0>(fieldIndex)].index() != static_cast<size_t>(std::get<1>(fieldIndex))) {
-            LOGE("[CloudSyncer] Cloud data's field: %s, doesn't has expected type.", std::get<0>(fieldIndex).c_str());
+            LOGE("[CloudSyncer] Cloud data's field, doesn't has expected type.");
             return -E_CLOUD_ERROR;
         }
     }

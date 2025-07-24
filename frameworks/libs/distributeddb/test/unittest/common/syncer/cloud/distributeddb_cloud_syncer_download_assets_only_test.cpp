@@ -988,7 +988,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly006, 
      * @tc.steps:step2. Download assets which cloud no found
      * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
-    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};;
+    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "10"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).And().AssetsOnly(assets);
@@ -1077,7 +1077,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly008, 
      * @tc.steps:step2. Download assets which local no found
      * @tc.expected: step2. return ASSET_NOT_FOUND_FOR_DOWN_ONLY.
      */
-    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};;
+    std::vector<int64_t> inValue = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     std::map<std::string, std::set<std::string>> assets;
     assets["assets"] = {ASSET_COPY.name + "0"};
     std::map<std::string, std::set<std::string>> assets1;
@@ -1684,6 +1684,61 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly023, 
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
         EndGroup().And().BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets1).EndGroup();
     PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+}
+
+/**
+  * @tc.name: DownloadAssetsOnly024
+  * @tc.desc: test download task stop after the reference is set
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly024, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    /**
+     * @tc.steps:step2. Set reference
+     * @tc.expected: step2. return OK.
+     */
+    TableReferenceProperty tableReferenceProperty;
+    tableReferenceProperty.sourceTableName = NO_PRIMARY_TABLE;
+    tableReferenceProperty.targetTableName = COMPOUND_PRIMARY_TABLE;
+    std::map<std::string, std::string> columns;
+    columns[COL_ID] = COL_ID;
+    tableReferenceProperty.columns = columns;
+    EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), OK);
+    columns[COL_NAME] = COL_NAME;
+    tableReferenceProperty.columns = columns;
+    int cnt = 0;
+    int downCnt = 2;
+    /**
+     * @tc.steps:step3. fork download, set reference during downloading
+     * @tc.expected: step3. return OK.
+     */
+    g_virtualAssetLoader->ForkDownload([&cnt, &tableReferenceProperty, downCnt](
+        const std::string &tableName, std::map<std::string, Assets> &) {
+        cnt++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (cnt != downCnt) {
+            return;
+        }
+        std::thread t1([&tableReferenceProperty]() {
+            EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
+        });
+        t1.detach();
+    });
+    /**
+     * @tc.steps:step4. sync and check download count
+     * @tc.expected: step4. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    EXPECT_NE(cnt, 0);
+    EXPECT_NE(cnt, dataCount);
 }
 } // namespace
 #endif // RELATIONAL_STORE

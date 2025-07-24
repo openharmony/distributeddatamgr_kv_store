@@ -28,7 +28,6 @@ distributeddb_src = [
   "${distributeddb_path}/common/src/db_common.cpp",
   "${distributeddb_path}/common/src/db_common_client.cpp",
   "${distributeddb_path}/common/src/db_base64_utils.cpp",
-  "${distributeddb_path}/common/src/db_constant.cpp",
   "${distributeddb_path}/common/src/db_dfx_adapter.cpp",
   "${distributeddb_path}/common/src/db_dump_helper.cpp",
   "${distributeddb_path}/common/src/evloop/src/event_impl.cpp",
@@ -100,8 +99,6 @@ distributeddb_src = [
   "${distributeddb_path}/interfaces/src/relational/relational_store_delegate_impl.cpp",
   "${distributeddb_path}/interfaces/src/relational/relational_store_manager.cpp",
   "${distributeddb_path}/interfaces/src/relational/relational_store_manager_client.cpp",
-  "${distributeddb_path}/interfaces/src/relational/relational_store_sqlite_ext.cpp",
-  "${distributeddb_path}/interfaces/src/relational/knowledge_source_utils.cpp",
   "${distributeddb_path}/interfaces/src/runtime_config.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_meta_data.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_storage_utils.cpp",
@@ -260,6 +257,7 @@ distributeddb_src = [
   "${distributeddb_path}/syncer/src/sync_config.cpp",
   "${distributeddb_path}/syncer/src/sync_operation.cpp",
   "${distributeddb_path}/syncer/src/time_helper.cpp",
+  "${distributeddb_path}/syncer/src/time_helper_client.cpp",
 ]
 
 distributeddb_cloud_src = [
@@ -310,10 +308,9 @@ distributeddb_src_rd = [
   "${distributeddb_path}/gaussdb_rd/src/oh_adapter/src/rd_sqlite_utils.cpp",
 ]
 
-distributeddb_client_src = [
+distributeddb_base_src = [
   "${distributeddb_path}/common/src/concurrent_adapter.cpp",
   "${distributeddb_path}/common/src/db_common_client.cpp",
-  "${distributeddb_path}/common/src/db_constant.cpp",
   "${distributeddb_path}/common/src/json_object.cpp",
   "${distributeddb_path}/common/src/log_print.cpp",
   "${distributeddb_path}/common/src/param_check_utils_client.cpp",
@@ -323,9 +320,7 @@ distributeddb_client_src = [
   "${distributeddb_path}/common/src/relational/tracker_table.cpp",
   "${distributeddb_path}/common/src/schema_constant.cpp",
   "${distributeddb_path}/common/src/schema_utils_client.cpp",
-  "${distributeddb_path}/interfaces/src/relational/knowledge_source_utils.cpp",
   "${distributeddb_path}/interfaces/src/relational/relational_store_manager_client.cpp",
-  "${distributeddb_path}/interfaces/src/relational/relational_store_sqlite_ext.cpp",
   "${distributeddb_path}/interfaces/src/kv_store_errno.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_storage_utils_client.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/cloud_sync_log_table_manager.cpp",
@@ -334,4 +329,10 @@ distributeddb_client_src = [
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_utils_client.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_utils_client.cpp",
+  "${distributeddb_path}/syncer/src/time_helper_client.cpp",
+]
+
+distributeddb_client_src = [
+  "${distributeddb_path}/interfaces/src/relational/knowledge_source_utils.cpp",
+  "${distributeddb_path}/interfaces/src/relational/relational_store_sqlite_ext.cpp",
 ]

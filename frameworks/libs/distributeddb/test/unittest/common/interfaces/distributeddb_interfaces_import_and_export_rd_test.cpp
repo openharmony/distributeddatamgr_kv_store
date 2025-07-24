@@ -122,6 +122,8 @@ void DistributedDBInterfacesImportAndExportRdTest::TearDownTestCase(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAdapter(nullptr);
     RuntimeContext::GetInstance()->StopTaskPool(); // wait for all thread exit
 }
 

@@ -96,8 +96,8 @@ HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet001, TestSize.Level0)
     EXPECT_EQ(store3->Get({'k'}, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
     /**
-     * @tc.steps: step2. with transaction, set whitelist appId, put (k,v)
-     * @tc.expected: step2. get (k,v) result.
+     * @tc.steps: step2. with transaction, set whitelist appId, put (k2,v)
+     * @tc.expected: step2. get (k2,v) result.
      */
     store3->StartTransaction();
     EXPECT_EQ(store3->Put({'k', '2'}, expectValue), OK);

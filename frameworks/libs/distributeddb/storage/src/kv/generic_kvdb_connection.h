@@ -44,7 +44,7 @@ public:
     int SetConflictNotifier(int conflictType, const KvDBConflictAction &action) override;
 
     // Close and release the connection.
-    int Close() final;
+    int Close(bool isCloseImmediately = true) final override;
 
     std::string GetIdentifier() const override;
 
@@ -135,7 +135,7 @@ protected:
     bool IsObserverEmpty();
 
     // Called in Close(), overriding of Close() is forbidden.
-    virtual int PreClose();
+    virtual int PreClose(bool isCloseImmediately);
 
     GenericKvDB *kvDB_;
     std::atomic<bool> isExclusive_;

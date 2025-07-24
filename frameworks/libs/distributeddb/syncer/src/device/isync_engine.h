@@ -106,6 +106,8 @@ public:
     virtual int32_t GetResponseTaskCount() = 0;
 
     virtual int32_t GetRemoteQueryTaskCount() = 0;
+
+    virtual bool ExchangeClosePending(bool expected) = 0;
 protected:
     ~ISyncEngine() override {};
 };

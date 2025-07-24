@@ -2406,6 +2406,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt007, TestSize.Level1)
     CipherPassword passwd;
     EXPECT_EQ(g_kvDelegatePtr->Export(singleExportFileName, passwd), OK);
     EXPECT_EQ(g_kvDelegatePtr->Import(singleExportFileName, passwd), OK);
+    // Wait until all the packets arrive.
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     /**
      * @tc.steps: step4. reopen kv store and sync again
      * @tc.expected: step4. reopen OK and sync success, no negotiation packet.
@@ -2495,6 +2497,164 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVTimeChange001, TestSize.Level
     messageCount = 0;
     EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
     EXPECT_EQ(messageCount, 0);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: KVSyncOpt009
+ * @tc.desc: check resync when message return E_FEEDBACK_DB_CLOSING
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. ack message return E_FEEDBACK_DB_CLOSING once
+     */
+    std::atomic<int> messageCount = 0;
+    bool isResync = false;
+    g_communicatorAggregator->RegOnDispatch([&isResync, &messageCount](const std::string &dev, Message *msg) {
+        if (dev != DEVICE_B && msg->GetMessageType() == TYPE_RESPONSE && !isResync) {
+            msg->SetErrorNo(E_FEEDBACK_DB_CLOSING);
+            isResync = true;
+        }
+        messageCount++;
+    });
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    Sync(devices, OK);
+    int pkCnt = 8;
+    EXPECT_EQ(messageCount, pkCnt);
+    EXPECT_TRUE(isResync);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: KVSyncOpt010
+ * @tc.desc: check resync limit exceeded
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt010, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. ack message always return E_FEEDBACK_DB_CLOSING
+     */
+    std::atomic<int> messageCount = 0;
+    g_communicatorAggregator->RegOnDispatch([&messageCount](const std::string &dev, Message *msg) {
+        if (dev != DEVICE_B && msg->GetMessageType() == TYPE_RESPONSE) {
+            msg->SetErrorNo(E_FEEDBACK_DB_CLOSING);
+        }
+        messageCount++;
+    });
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should ignore E_FEEDBACK_DB_CLOSING when exceeded resync limit
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    Sync(devices, OK);
+    int pkCnt = 8;
+    EXPECT_EQ(messageCount, pkCnt);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: KVSyncOpt011
+ * @tc.desc: check close db return busy
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt011, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. deviceA call sync and wait on RegOnDispatch
+     * @tc.expected: step1. sync should return OK.
+     */
+    std::atomic<int> messageCount = 0;
+    std::atomic<int> signo = 0;
+    std::mutex mutex;
+    std::condition_variable cv;
+    int waitTime = 2;
+    g_communicatorAggregator->RegOnDispatch([&messageCount, &signo, &mutex, &cv, waitTime](
+        const std::string &dev, Message *msg) {
+        messageCount++;
+        if (messageCount.load() == 1) { // 1 is onDispatch times
+            std::unique_lock<std::mutex> lock(mutex);
+            signo++;
+            cv.notify_one();
+            cv.wait_for(lock, std::chrono::seconds(waitTime), [&signo]() {
+                return signo == 2; // 2 is notify times
+            });
+        }
+    });
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::thread t1([&devices]() {
+        Sync(devices, OK);
+    });
+
+    /**
+     * @tc.steps: step2. close db
+     * @tc.expected: step2. return BUSY.
+     */
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        cv.wait_for(lock, std::chrono::seconds(waitTime), [&signo]() {
+            return signo == 1; // 1 is notify times
+        });
+    }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr, false), BUSY);
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        signo++;
+        cv.notify_one();
+    }
+    t1.join();
+    /**
+     * @tc.steps: step3. wait task count to 0, close db
+     * @tc.expected: step3. return OK.
+     */
+    std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr, false), OK);
+    g_kvDelegatePtr = nullptr;
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+}
+
+/**
+ * @tc.name: KVSyncOpt012
+ * @tc.desc: check message errcode always E_FEEDBACK_DB_CLOSING
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. message always return E_FEEDBACK_DB_CLOSING
+     */
+    std::atomic<int> messageCount = 0;
+    g_communicatorAggregator->RegOnDispatch([&messageCount](const std::string &dev, Message *msg) {
+        msg->SetErrorNo(E_FEEDBACK_DB_CLOSING);
+        messageCount++;
+    });
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should ignore E_FEEDBACK_DB_CLOSING when exceeded resync limit
+     */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    Sync(devices, OK);
+    int pkCnt = 8;
+    EXPECT_EQ(messageCount, pkCnt);
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
 

@@ -26,7 +26,7 @@
 
 namespace DistributedDB {
 // inMsg is heap memory, its ownership transfers by calling OnMessageCallback
-using OnMessageCallback = std::function<void(const std::string &srcTarget, Message *inMsg)>;
+using OnMessageCallback = std::function<int(const std::string &srcTarget, Message *inMsg)>;
 constexpr uint32_t SEND_TIME_OUT = 3000; // 3s
 
 struct SendConfig {
@@ -85,6 +85,8 @@ public:
         const OnSendEnd &onEnd) = 0; // HW Code Regulation do not allow to use default parameters on virtual function
 
     virtual std::string GetTargetUserId(const ExtendInfo &paramInfo) const = 0;
+    
+    virtual bool ExchangeClosePending(bool expected) = 0;
 
     virtual ~ICommunicator() {};
 };

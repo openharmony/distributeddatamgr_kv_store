@@ -111,33 +111,30 @@ int PreparedStmt::DeSerialize(Parcel &parcel)
         return -E_PARSE_FAIL;
     }
 
-    // VERSION 1
-    if (version >= VERSION_1) {
-        // opcode
-        int opCode = 0;
-        (void)parcel.ReadInt(opCode);
-        if (parcel.IsError() || opCode <= MIN_LIMIT || opCode >= MAX_LIMIT) {
+    // opcode
+    int opCode = 0;
+    (void)parcel.ReadInt(opCode);
+    if (parcel.IsError() || opCode <= MIN_LIMIT || opCode >= MAX_LIMIT) {
+        return -E_PARSE_FAIL;
+    }
+    opCode_ = static_cast<ExecutorOperation>(opCode);
+
+    // sql
+    (void)parcel.ReadString(sql_);
+
+    // bindArgs
+    int argsCount = 0;
+    (void)parcel.ReadInt(argsCount);
+    if (parcel.IsError() || argsCount < 0 || argsCount > static_cast<int>(DBConstant::MAX_SQL_ARGS_COUNT)) {
+        return -E_PARSE_FAIL;
+    }
+    for (int i = 0; i < argsCount; ++i) {
+        std::string bindArg;
+        (void)parcel.ReadString(bindArg);
+        if (parcel.IsError()) {
             return -E_PARSE_FAIL;
         }
-        opCode_ = static_cast<ExecutorOperation>(opCode);
-
-        // sql
-        (void)parcel.ReadString(sql_);
-
-        // bindArgs
-        int argsCount = 0;
-        (void)parcel.ReadInt(argsCount);
-        if (parcel.IsError() || argsCount < 0 || argsCount > static_cast<int>(DBConstant::MAX_SQL_ARGS_COUNT)) {
-            return -E_PARSE_FAIL;
-        }
-        for (int i = 0; i < argsCount; ++i) {
-            std::string bindArg;
-            (void)parcel.ReadString(bindArg);
-            if (parcel.IsError()) {
-                return -E_PARSE_FAIL;
-            }
-            bindArgs_.emplace_back(std::move(bindArg));
-        }
+        bindArgs_.emplace_back(std::move(bindArg));
     }
 
     parcel.EightByteAlign();

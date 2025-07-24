@@ -20,7 +20,7 @@
 
 namespace DistributedDB {
 Communicator::Communicator(CommunicatorAggregator *inCommAggregator, const LabelType &inLabel)
-    : commAggrHandle_(inCommAggregator), commLabel_(inLabel)
+    : commAggrHandle_(inCommAggregator), commLabel_(inLabel), dbClosePending_(false)
 {
     RefObject::IncObjRef(commAggrHandle_); // Rely on CommunicatorAggregator, hold its reference.
 }
@@ -146,7 +146,7 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
     return errCode;
 }
 
-void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf,
+int Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf,
     const std::string &sendUser)
 {
     std::lock_guard<std::mutex> messageHandleLockGuard(messageHandleMutex_);
@@ -154,23 +154,35 @@ void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuf
         int error = E_OK;
         // if error is not E_OK, null pointer will be returned
         Message *message = ProtocolProto::ToMessage(inBuf, error);
-        delete inBuf;
-        inBuf = nullptr;
         // message is not nullptr if error is E_OK or error is E_NOT_REGISTER.
         // for the former case the message will be handled and release by sync module.
         // for the latter case the message is released in TriggerUnknownMessageFeedback.
         if (error != E_OK) {
             LOGE("[Comm][Receive] ToMessage fail, label=%.3s, error=%d.", VEC_TO_STR(commLabel_), error);
+            delete inBuf;
+            inBuf = nullptr;
             if (error == -E_VERSION_NOT_SUPPORT) {
                 TriggerVersionNegotiation(srcTarget);
             } else if (error == -E_NOT_REGISTER) {
                 TriggerUnknownMessageFeedback(srcTarget, message);
             }
-            return;
+            return E_OK;
         }
-        LOGI("[Comm][Receive] label=%.3s, srcTarget=%s{private}.", VEC_TO_STR(commLabel_), srcTarget.c_str());
+        if (message->GetMessageType() == TYPE_REQUEST && ExchangeClosePending(false)) {
+            delete message;
+            message = nullptr;
+            LOGW("[Comm][Receive] db closing label=%.3s", VEC_TO_STR(commLabel_));
+            return -E_FEEDBACK_DB_CLOSING;
+        }
         message->SetSenderUserId(sendUser);
-        onMessageHandle_(srcTarget, message);
+        LOGI("[Comm][Receive] label=%.3s, srcTarget=%s{private}.", VEC_TO_STR(commLabel_), srcTarget.c_str());
+        error = onMessageHandle_(srcTarget, message);
+        if (error == -E_FEEDBACK_DB_CLOSING) {
+            return -E_FEEDBACK_DB_CLOSING;
+        }
+        delete inBuf;
+        inBuf = nullptr;
+        return E_OK;
     } else {
         LOGE("[Comm][Receive] label=%.3s, src.size=%zu or buf or handle invalid.", VEC_TO_STR(commLabel_),
             srcTarget.size());
@@ -179,6 +191,7 @@ void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuf
             inBuf = nullptr;
         }
     }
+    return E_OK;
 }
 
 void Communicator::OnConnectChange(const std::string &target, bool isConnect)
@@ -282,5 +295,10 @@ std::string Communicator::GetTargetUserId(const ExtendInfo &paramInfo) const
     return extendHandle->GetTargetUserId();
 }
 
+bool Communicator::ExchangeClosePending(bool expected)
+{
+    bool curVal = !expected;
+    return dbClosePending_.compare_exchange_strong(curVal, expected);
+}
 DEFINE_OBJECT_TAG_FACILITIES(Communicator)
 } // namespace DistributedDB

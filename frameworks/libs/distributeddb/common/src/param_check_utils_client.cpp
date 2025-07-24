@@ -23,6 +23,6 @@ bool ParamCheckUtils::CheckRelationalTableName(const std::string &tableName)
     if (!DBCommon::CheckIsAlnumOrUnderscore(tableName)) {
         return false;
     }
-    return tableName.compare(0, DBConstant::SYSTEM_TABLE_PREFIX.size(), DBConstant::SYSTEM_TABLE_PREFIX) != 0;
+    return tableName.compare(0, strlen(DBConstant::SYSTEM_TABLE_PREFIX), DBConstant::SYSTEM_TABLE_PREFIX) != 0;
 }
 } // namespace DistributedDB

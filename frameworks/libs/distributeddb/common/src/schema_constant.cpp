@@ -16,41 +16,6 @@
 #include "schema_constant.h"
 
 namespace DistributedDB {
-const std::string SchemaConstant::KEYWORD_SCHEMA_VERSION = "SCHEMA_VERSION";
-const std::string SchemaConstant::KEYWORD_SCHEMA_MODE = "SCHEMA_MODE";
-const std::string SchemaConstant::KEYWORD_SCHEMA_DEFINE = "SCHEMA_DEFINE";
-const std::string SchemaConstant::KEYWORD_SCHEMA_INDEXES = "SCHEMA_INDEXES";
-const std::string SchemaConstant::KEYWORD_SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
-const std::string SchemaConstant::KEYWORD_SCHEMA_TYPE = "SCHEMA_TYPE";
-const std::string SchemaConstant::KEYWORD_SCHEMA_TABLE = "TABLES";
-const std::string SchemaConstant::KEYWORD_INDEX = "INDEX"; // For FlatBuffer-Schema
-const std::string SchemaConstant::KEYWORD_TABLE_MODE = "TABLE_MODE";
-
-const std::string SchemaConstant::KEYWORD_MODE_STRICT = "STRICT";
-const std::string SchemaConstant::KEYWORD_MODE_COMPATIBLE = "COMPATIBLE";
-
-const std::string SchemaConstant::KEYWORD_TYPE_BOOL = "BOOL";
-const std::string SchemaConstant::KEYWORD_TYPE_INTEGER = "INTEGER";
-const std::string SchemaConstant::KEYWORD_TYPE_LONG = "LONG";
-const std::string SchemaConstant::KEYWORD_TYPE_DOUBLE = "DOUBLE";
-const std::string SchemaConstant::KEYWORD_TYPE_STRING = "STRING";
-const std::string SchemaConstant::KEYWORD_TYPE_BOOLEAN = "BOOLEAN";
-
-const std::string SchemaConstant::KEYWORD_ATTR_NOT_NULL = "NOT NULL";
-const std::string SchemaConstant::KEYWORD_ATTR_DEFAULT = "DEFAULT";
-const std::string SchemaConstant::KEYWORD_ATTR_VALUE_NULL = "null";
-const std::string SchemaConstant::KEYWORD_ATTR_VALUE_TRUE = "true";
-const std::string SchemaConstant::KEYWORD_ATTR_VALUE_FALSE = "false";
-
-const std::string SchemaConstant::KEYWORD_TABLE_SPLIT_DEVICE = "SPLIT_BY_DEVICE";
-const std::string SchemaConstant::KEYWORD_TABLE_COLLABORATION = "COLLABORATION";
-
-const std::string SchemaConstant::KEYWORD_TYPE_RELATIVE = "RELATIVE";
-const std::string SchemaConstant::SCHEMA_SUPPORT_VERSION = "1.0";
-const std::string SchemaConstant::SCHEMA_SUPPORT_VERSION_V2 = "2.0";
-const std::string SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1 = "2.1";
-const std::string SchemaConstant::SCHEMA_CURRENT_VERSION = SCHEMA_SUPPORT_VERSION_V2_1;
-
 const uint32_t SchemaConstant::SCHEMA_META_FEILD_COUNT_MAX = 5;
 const uint32_t SchemaConstant::SCHEMA_META_FEILD_COUNT_MIN = 3;
 const uint32_t SchemaConstant::SCHEMA_FEILD_NAME_LENGTH_MAX = 64;

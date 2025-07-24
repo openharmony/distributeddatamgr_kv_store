@@ -548,11 +548,7 @@ namespace {
          * @tc.expected: step3. Return OK or PROPERTY_CHANGED.
          */
         tableReferenceProperty.targetTableName = "t3";
-        if (isTableEmpty) {
-            EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), OK);
-        } else {
-            EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
-        }
+        EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
 
         /**
          * @tc.steps:step4. set reference again with different column reference
@@ -560,11 +556,7 @@ namespace {
          */
         columns["id"] = "value";
         tableReferenceProperty.columns = columns;
-        if (isTableEmpty) {
-            EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), OK);
-        } else {
-            EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
-        }
+        EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
 
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
@@ -850,7 +842,7 @@ namespace {
          */
         tableReferenceProperty.sourceTableName = "t2";
         tableReferenceProperty.targetTableName = "t3";
-        EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), OK);
+        EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
     }
 
     /**
@@ -894,7 +886,7 @@ namespace {
 
     /**
      * @tc.name: FuncExceptionTest001
-     * @tc.desc: Test the interception exception of the delegate interface when the conn is empty.
+     * @tc.desc: Test the interception expection of the delegate interface when the conn is empty.
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: bty

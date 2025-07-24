@@ -1207,7 +1207,7 @@ int GenericSyncer::GetWatermarkInfo(const std::string &device, WatermarkInfo &in
     } else {
         dev = device;
     }
-    return metadata->GetWaterMarkInfoFromDB(dev, "", devNeedHash, info);
+    return metadata->GetWaterMarkInfoFromDB(dev, DBConstant::DEFAULT_USER, devNeedHash, info);
 }
 
 int GenericSyncer::UpgradeSchemaVerInMeta()
@@ -1297,5 +1297,21 @@ int32_t GenericSyncer::GetTaskCount()
     count += syncEngine->GetResponseTaskCount();
     RefObject::DecObjRef(syncEngine);
     return count;
+}
+
+bool GenericSyncer::ExchangeClosePending(bool expected)
+{
+    ISyncEngine *syncEngine = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (syncEngine_ == nullptr) {
+            return false;
+        }
+        syncEngine = syncEngine_;
+        RefObject::IncObjRef(syncEngine);
+    }
+    bool res = syncEngine->ExchangeClosePending(expected);
+    RefObject::DecObjRef(syncEngine);
+    return res;
 }
 } // namespace DistributedDB

@@ -100,7 +100,7 @@ public:
     virtual int SetConflictNotifier(int conflictType, const KvDBConflictAction &action) = 0;
 
     // Close and release the connection.
-    virtual int Close() = 0;
+    virtual int Close(bool isCloseImmediately = true) = 0;
 
     virtual std::string GetIdentifier() const = 0;
 

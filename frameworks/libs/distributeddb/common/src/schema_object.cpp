@@ -605,7 +605,7 @@ int SchemaObject::CheckSchemaDefineItemDecideAttribute(const JsonObject& inJsonO
         // The ParseAndCheckSchemaAttribute do not cope with isIndexable field. Need to set it true here
         outAttr.isIndexable = true;
     } else if (inType == FieldType::LEAF_FIELD_ARRAY) {
-        uint32_t arraySize = 0;
+        size_t arraySize = 0;
         errCode = inJsonObject.GetArraySize(inPath, arraySize);
         if (errCode != E_OK) {
             LOGE("[Schema][CheckItemDecideAttr] Internal Error: GetArraySize Fail.");

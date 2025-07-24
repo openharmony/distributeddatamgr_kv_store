@@ -23,6 +23,9 @@
 namespace DistributedDB {
 class ParseResult {
 public:
+    ParseResult() = default;
+    ~ParseResult() = default;
+
     void SetFrameId(uint32_t inFrameId)
     {
         frameId_ = inFrameId;

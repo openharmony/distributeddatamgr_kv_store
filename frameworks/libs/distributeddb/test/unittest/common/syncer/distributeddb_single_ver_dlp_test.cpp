@@ -329,6 +329,36 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SandboxDelegateSync002
+ * @tc.desc: Test dlp delegate sync active if callback return true.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync002, TestSize.Level1)
+{
+    KvStoreDelegateManager mgr1(APP_ID, USER_ID, INSTANCE_ID_1);
+    RuntimeConfig::SetSyncActivationCheckCallback([](const ActivationCheckParam &param) {
+        if (param.userId == USER_ID && param.appId == APP_ID && param.storeId == STORE_ID_1 &&
+            param.instanceId == INSTANCE_ID_1) {
+            return true;
+        }
+        return false;
+    });
+
+    KvStoreNbDelegate *delegatePtr1 = nullptr;
+    EXPECT_EQ(OpenDelegate("/dlp1", delegatePtr1, mgr1, true), OK);
+    ASSERT_NE(delegatePtr1, nullptr);
+
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(delegatePtr1, { DEVICE_B }, SYNC_MODE_PUSH_ONLY, result);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(result[DEVICE_B], OK);
+
+    CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
+}
+
+/**
  * @tc.name: SingleVerUtilsTest001
  * @tc.desc: Test single verification utils function.
  * @tc.type: FUNC
@@ -426,34 +456,4 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SingleVerUtilsTest002, TestSize.Level0)
     kvEnv->SetEntryData(std::move(dataItem));
     SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(inData, 100, 100, isUpdate);
     delete kvEnv;
-}
-
-/**
- * @tc.name: SandboxDelegateSync002
- * @tc.desc: Test dlp delegate sync active if callback return true.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync002, TestSize.Level1)
-{
-    KvStoreDelegateManager mgr1(APP_ID, USER_ID, INSTANCE_ID_1);
-    RuntimeConfig::SetSyncActivationCheckCallback([](const ActivationCheckParam &param) {
-        if (param.userId == USER_ID && param.appId == APP_ID && param.storeId == STORE_ID_1 &&
-            param.instanceId == INSTANCE_ID_1) {
-            return true;
-        }
-        return false;
-    });
-
-    KvStoreNbDelegate *delegatePtr1 = nullptr;
-    EXPECT_EQ(OpenDelegate("/dlp1", delegatePtr1, mgr1, true), OK);
-    ASSERT_NE(delegatePtr1, nullptr);
-
-    std::map<std::string, DBStatus> result;
-    DBStatus status = g_tool.SyncTest(delegatePtr1, { DEVICE_B }, SYNC_MODE_PUSH_ONLY, result);
-    EXPECT_EQ(status, OK);
-    EXPECT_EQ(result[DEVICE_B], OK);
-
-    CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }

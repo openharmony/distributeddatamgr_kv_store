@@ -376,7 +376,7 @@ namespace DistributedDB {
     constexpr const char *UPDATE_TIMESTAMP = "UPDATE sync_data SET timestamp=?, modify_time=? WHERE hash_key=?";
 
     constexpr const char *SELECT_SYNC_ENTRIES_BY_DEVICE_SQL =
-        "SELECT key,value FROM sync_data WHERE device=? AND flag&0x200=0";
+        "SELECT key,value FROM sync_data WHERE device=? AND flag&0x200=0 AND flag&0x01=0";
 
     constexpr const char *SELECT_COMPENSATE_SYNC_KEY_SQL =
         "SELECT key FROM sync_data left join naturalbase_kv_aux_sync_data_log as log_table on sync_data.hash_key"

@@ -645,4 +645,19 @@ int32_t SingleVerSyncTaskContext::GetResponseTaskCount()
     }
     return taskCount;
 }
+
+bool SingleVerSyncTaskContext::IsNeedRetrySync(int errNo, uint16_t messageType)
+{
+    if (errNo != E_FEEDBACK_DB_CLOSING || messageType != TYPE_RESPONSE) {
+        return false;
+    }
+    uint32_t cur = ++resyncTimes_;
+    LOGI("[IsNeedRetrySync]%u", cur);
+    return cur <= MANUAL_RETRY_TIMES;
+}
+
+void SingleVerSyncTaskContext::ResetResyncTimes()
+{
+    resyncTimes_ = 0;
+}
 } // namespace DistributedDB

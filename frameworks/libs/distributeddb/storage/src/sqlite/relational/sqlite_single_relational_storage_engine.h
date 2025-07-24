@@ -128,6 +128,9 @@ private:
     int SetDistributedSchemaInner(RelationalSchemaObject &schemaObj, const DistributedSchema &schema,
         const std::string &localIdentity, bool isForceUpgrade);
 
+    int SetDistributedSchemaInTraction(RelationalSchemaObject &schemaObj, const DistributedSchema &schema,
+        const std::string &localIdentity, bool isForceUpgrade, SQLiteSingleVerRelationalStorageExecutor &handle);
+
     RelationalSchemaObject schema_;
     RelationalSchemaObject trackerSchema_;
     mutable std::mutex schemaMutex_;

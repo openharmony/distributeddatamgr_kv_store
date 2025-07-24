@@ -76,8 +76,7 @@ int DistributedDBToolsUnitTest::RemoveTestDbFiles(const std::string &dir)
         LOGE("opendir error!");
         return -E_INVALID_PATH;
     }
-    direntPtr = readdir(dirPtr);
-    while (direntPtr != nullptr) {
+    while (true) {
         direntPtr = readdir(dirPtr);
         // condition to exit the loop
         if (direntPtr == nullptr) {

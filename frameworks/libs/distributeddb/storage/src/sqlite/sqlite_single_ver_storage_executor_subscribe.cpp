@@ -162,9 +162,10 @@ int SQLiteSingleVerStorageExecutor::AddSubscribeTrigger(QueryObject &query, cons
     }
     // check if sqlite function is registered or not
     sqlite3_stmt *stmt = nullptr;
-    errCode = SQLiteUtils::GetStatement(dbHandle_, "SELECT " + DBConstant::UPDATE_META_FUNC + "('K', 0);", stmt);
+    errCode = SQLiteUtils::GetStatement(dbHandle_,
+        "SELECT " + std::string(DBConstant::UPDATE_META_FUNC) + "('K', 0);", stmt);
     if (errCode != E_OK) {
-        LOGE("sqlite function %s has not been created.", DBConstant::UPDATE_META_FUNC.c_str());
+        LOGE("sqlite function update_meta_within_trigger has not been created.");
         return -E_NOT_SUPPORT;
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -201,7 +202,7 @@ int SQLiteSingleVerStorageExecutor::RemoveSubscribeTrigger(const std::vector<std
             }
         }
         if (errCode != E_OK) {
-            LOGE("remove subscribe trigger for id %s failed. %d", id.c_str(), errCode);
+            LOGE("remove subscribe trigger failed. %d", errCode);
             break;
         }
     }

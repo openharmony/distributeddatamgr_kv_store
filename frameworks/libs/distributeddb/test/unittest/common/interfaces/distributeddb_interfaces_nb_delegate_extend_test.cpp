@@ -1164,22 +1164,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest003, Te
     EXPECT_EQ(kvStoreObj.GetCompensatedSyncQuery(syncQuery, users, true), E_OK);
 
     /**
-     * @tc.steps: step2. Call interfaces when class para is null.
+     * @tc.steps: step2. Get and set Schema with different para when class para is null.
      * @tc.expected: step2. return failInfo.
-     */
-    DataInfoWithLog log;
-    EXPECT_EQ(kvStoreObj.GetInfoByPrimaryKeyOrGid(tableName, vBucket, log, vBucket), -E_INTERNAL_ERROR);
-    DownloadData downloadData;
-    EXPECT_EQ(kvStoreObj.PutCloudSyncData(tableName, downloadData), -E_INTERNAL_ERROR);
-    Timestamp timestamp = 0;
-    int64_t count = 0;
-    EXPECT_EQ(kvStoreObj.GetUploadCount(query, timestamp, true, true, count), -E_INTERNAL_ERROR);
-    std::vector<Timestamp> timestampVec;
-    EXPECT_EQ(kvStoreObj.GetAllUploadCount(query, timestampVec, true, true, count), -E_INTERNAL_ERROR);
-
-    /**
-     * @tc.steps: step3. Get and set Schema with different para when class para is null.
-     * @tc.expected: step3. return failInfo.
      */
     TableSchema tableSchema;
     EXPECT_EQ(kvStoreObj.GetCloudTableSchema(tableName, tableSchema), -E_NOT_FOUND);

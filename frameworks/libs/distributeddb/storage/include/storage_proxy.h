@@ -33,7 +33,7 @@ namespace DistributedDB {
 class StorageProxy {
 public:
     StorageProxy(ICloudSyncStorageInterface *iCloud);
-    virtual ~StorageProxy() {};
+    ~StorageProxy() {};
 
     static std::shared_ptr<StorageProxy> GetCloudDb(ICloudSyncStorageInterface *iCloud);
 

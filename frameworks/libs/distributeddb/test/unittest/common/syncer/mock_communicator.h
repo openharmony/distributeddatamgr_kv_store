@@ -36,6 +36,7 @@ public:
     MOCK_METHOD1(Activate, void(const std::string &));
     MOCK_CONST_METHOD1(IsDeviceOnline, bool(const std::string &));
     MOCK_CONST_METHOD1(GetTargetUserId, std::string(const ExtendInfo &));
+    MOCK_METHOD1(ExchangeClosePending, bool(bool));
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_COMMUNICATOR_H
