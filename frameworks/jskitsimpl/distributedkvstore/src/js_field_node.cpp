@@ -22,12 +22,16 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedKVStore {
-static std::string FIELD_NAME = "FIELD_NAME";
-static std::string VALUE_TYPE = "VALUE_TYPE";
-static std::string DEFAULT_VALUE = "DEFAULT_VALUE";
-static std::string IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
-static std::string IS_NULLABLE = "IS_NULLABLE";
-static std::string CHILDREN = "CHILDREN";
+static constexpr const char* FIELD_NAME = "FIELD_NAME";
+static constexpr const char* VALUE_TYPE = "VALUE_TYPE";
+static constexpr const char* DEFAULT_VALUE = "DEFAULT_VALUE";
+static constexpr const char* IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
+static constexpr const char* IS_NULLABLE = "IS_NULLABLE";
+static constexpr const char* CHILDREN = "CHILDREN";
+static constexpr const char* SPLIT = ",";
+static constexpr const char* NOT_NULL = ", NOT NULL,";
+static constexpr const char* DEFAULT = " DEFAULT ";
+static constexpr const char* MARK = "'";
 
 std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
     { JSUtil::STRING, std::string("STRING") },
@@ -61,12 +65,11 @@ std::string JsFieldNode::GetFieldName()
 JsFieldNode::json JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
+        std::string jsonDesc = ToString(valueType_) + (isNullable_ ? SPLIT : NOT_NULL) + DEFAULT;
         if (valueType_ == JSUtil::STRING) {
-            return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
-                " DEFAULT '" + ToString(defaultValue_) + "'";
+            return jsonDesc += MARK + ToString(defaultValue_) + MARK;
         }
-        return ToString(valueType_) + ToString(isNullable_ ? "," : ", NOT NULL,") +
-            " DEFAULT " + ToString(defaultValue_);
+        return jsonDesc += ToString(defaultValue_);
     }
 
     json jsFields;
