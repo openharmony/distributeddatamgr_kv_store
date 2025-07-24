@@ -26,8 +26,8 @@
 #include "concurrent_map.h"
 #include "hisysevent_c.h"
 #include "log_print.h"
-#include "types.h"
 #include "store_util.h"
+#include "types.h"
 
 namespace OHOS::DistributedKv {
 static constexpr int MAX_TIME_BUF_LEN = 32;
