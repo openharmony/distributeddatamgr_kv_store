@@ -107,8 +107,7 @@ int CloudSyncer::FillDownloadExtend(TaskId taskId, const std::string &tableName,
 int CloudSyncer::GetCloudGid(TaskId taskId, const std::string &tableName, QuerySyncObject &obj)
 {
     std::vector<std::string> cloudGid;
-    bool isCloudForcePush = cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH;
-    int errCode = storageProxy_->GetCloudGid(obj, isCloudForcePush, IsCompensatedTask(taskId), cloudGid);
+    int errCode = storageProxy_->GetCloudGid(obj, IsCloudForcePush(taskId), IsCompensatedTask(taskId), cloudGid);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to get cloud gid, %d.", errCode);
     } else if (!cloudGid.empty()) {
@@ -121,8 +120,7 @@ int CloudSyncer::GetCloudGid(TaskId taskId, const std::string &tableName, QueryS
 int CloudSyncer::GetCloudGid(
     TaskId taskId, const std::string &tableName, QuerySyncObject &obj, std::vector<std::string> &cloudGid)
 {
-    bool isCloudForcePush = cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH;
-    int errCode = storageProxy_->GetCloudGid(obj, isCloudForcePush, IsCompensatedTask(taskId), cloudGid);
+    int errCode = storageProxy_->GetCloudGid(obj, IsCloudForcePush(taskId), IsCompensatedTask(taskId), cloudGid);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to get cloud gid, taskid:%" PRIu64 ", table name: %s, length: %zu, %d.",
             taskId, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), errCode);
@@ -2141,5 +2139,11 @@ int CloudSyncer::ClearCloudWatermark(std::function<int(void)> &clearFunc)
 {
     std::lock_guard<std::mutex> lock(syncMutex_);
     return clearFunc();
+}
+
+bool CloudSyncer::IsCloudForcePush(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return cloudTaskInfos_[taskId].mode == SYNC_MODE_CLOUD_FORCE_PUSH;
 }
 }
