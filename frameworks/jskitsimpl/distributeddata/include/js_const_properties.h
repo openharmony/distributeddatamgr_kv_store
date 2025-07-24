@@ -16,8 +16,8 @@
 #ifndef OHOS_JS_CONST_PROPERTIES_H
 #define OHOS_JS_CONST_PROPERTIES_H
 
-#include "napi/native_common.h"
 #include "napi/native_api.h"
+#include "napi/native_common.h"
 #include "napi/native_node_api.h"
 
 namespace OHOS::DistributedData {
