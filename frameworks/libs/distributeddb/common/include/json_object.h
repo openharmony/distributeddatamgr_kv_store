@@ -121,12 +121,8 @@ private:
     // create if path not exist
     int MoveToPath(const FieldPath &inPath, Json::Value *&exact, Json::Value *&nearest);
 
-    int ReaderParseInner(Json::Reader &reader, const std::string &inString, bool collectComments);
-
     int JsonReaderParseInner(const std::unique_ptr<Json::CharReader> &jsonReader, const char *begin, const char *end,
         JSONCPP_STRING &errs);
-
-    bool IsReaderParseValid(const uint8_t *dataBegin, const uint8_t *dataEnd);
 
     static uint32_t maxNestDepth_;
 

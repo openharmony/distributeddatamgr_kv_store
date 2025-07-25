@@ -122,15 +122,6 @@ int JsonObject::JsonReaderParseInner(const std::unique_ptr<Json::CharReader> &js
     return E_OK;
 }
 
-int JsonObject::ReaderParseInner(Json::Reader &reader, const std::string &inString, bool collectComments)
-{
-    if (!reader.parse(inString, value_, collectComments)) {
-        value_ = Json::Value();
-        return -E_JSON_PARSE_FAIL;
-    }
-    return E_OK;
-}
-
 int JsonObject::Parse(const std::string &inString)
 {
     // The jsoncpp lib parser in strict mode will still regard root type jsonarray as valid, but we require jsonobject
@@ -145,7 +136,6 @@ int JsonObject::Parse(const std::string &inString)
             errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
-#ifdef JSONCPP_USE_BUILDER
     JSONCPP_STRING errs;
     Json::CharReaderBuilder builder;
     Json::CharReaderBuilder::strictMode(&builder.settings_);
@@ -160,14 +150,6 @@ int JsonObject::Parse(const std::string &inString)
         LOGE("[Json][Parse] Parse string to JsonValue fail");
         return errCode;
     }
-#else
-    Json::Reader reader(Json::Features::strictMode());
-    errCode = ReaderParseInner(reader, inString, false);
-    if (errCode != E_OK) {
-        LOGE("[Json][Parse] Parse string to JsonValue fail");
-        return errCode;
-    }
-#endif
     // The jsoncpp lib parser in strict mode will still regard root type jsonarray as valid, but we require jsonobject
     if (value_.type() != Json::ValueType::objectValue) {
         value_ = Json::Value();
@@ -186,20 +168,6 @@ int JsonObject::Parse(const std::vector<uint8_t> &inData)
     return Parse(inData.data(), inData.data() + inData.size());
 }
 
-bool JsonObject::IsReaderParseValid(const uint8_t *dataBegin, const uint8_t *dataEnd)
-{
-    Json::Reader reader(Json::Features::strictMode());
-    auto begin = reinterpret_cast<const std::string::value_type *>(dataBegin);
-    auto end = reinterpret_cast<const std::string::value_type *>(dataEnd);
-    // The endDoc parameter of reader::parse refer to the byte after the string itself
-    if (!reader.parse(begin, end, value_, false)) {
-        value_ = Json::Value();
-        LOGE("[Json][Parse] Parse dataRange to JsonValue by reader fail");
-        return false;
-    }
-    return true;
-}
-
 int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
 {
     if (isValid_) {
@@ -216,7 +184,6 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
             errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
-#ifdef JSONCPP_USE_BUILDER
     std::string jsonStr(dataBegin, dataEnd);
     auto begin = jsonStr.c_str();
     auto end = jsonStr.c_str() + jsonStr.size();
@@ -233,11 +200,6 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
         LOGE("[Json][Parse] Parse dataRange to JsonValue fail");
         return errCode;
     }
-#else
-    if (!IsReaderParseValid(dataBegin, dataEnd)) {
-        return -E_JSON_PARSE_FAIL;
-    }
-#endif
     // The jsoncpp lib parser in strict mode will still regard root type jsonarray as valid, but we require jsonobject
     if (value_.type() != Json::ValueType::objectValue) {
         value_ = Json::Value();

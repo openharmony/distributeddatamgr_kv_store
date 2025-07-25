@@ -114,6 +114,10 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString001, TestSize.Level1
     LOGI("ori json is %s", JSON_STRING1.c_str());
     int stepTwo = tempObj.Parse(JSON_STRING1);
     EXPECT_TRUE(stepTwo != E_OK);
+    std::string json = R"([{"field1":"123"}])";
+    std::vector<uint8_t> data(json.begin(), json.end());
+    EXPECT_EQ(tempObj.Parse(data), -E_JSON_PARSE_FAIL);
+    EXPECT_EQ(tempObj.Parse(json), -E_JSON_PARSE_FAIL);
 }
 
 /**
@@ -405,5 +409,48 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj002, TestSize.Level0)
     EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_STRING, val, true), E_OK);
     EXPECT_EQ(obj.InsertField({"array_field"}, FieldType::LEAF_FIELD_STRING, val), E_OK);
     LOGI("json is %s", obj.ToString().c_str());
+}
+
+/**
+ * @tc.name: BuildObj003
+ * @tc.desc: Build json obj by insert invalid obj.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj003, TestSize.Level0)
+{
+    JsonObject invalidOriObj;
+    JsonObject invalidInsertObj;
+    EXPECT_EQ(invalidOriObj.InsertField({}, invalidInsertObj), -E_INVALID_ARGS);
+    JsonObject validInsertObj;
+    std::string json = R"({"field1":"field1Val"})";
+    validInsertObj.Parse(json);
+    EXPECT_EQ(invalidOriObj.InsertField({}, validInsertObj), -E_INVALID_ARGS);
+    FieldPath invalidPath;
+    invalidPath.resize(101); // 101 is invalid depth
+    EXPECT_EQ(invalidOriObj.InsertField(invalidPath, invalidInsertObj), -E_INVALID_ARGS);
+    EXPECT_EQ(invalidOriObj.InsertField(invalidPath, validInsertObj), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: BuildObj004
+ * @tc.desc: Build json valid obj by insert valid obj.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj004, TestSize.Level0)
+{
+    JsonObject validOriObj;
+    std::string json = R"({"field1":"field1Val", "array":[]})";
+    validOriObj.Parse(json);
+    JsonObject insertVal;
+    insertVal.Parse(json);
+    EXPECT_EQ(validOriObj.InsertField({"field2"}, insertVal), E_OK);
+    JsonObject inValidOriObj;
+    EXPECT_EQ(inValidOriObj.InsertField({"field2"}, insertVal), E_OK);
+    EXPECT_EQ(validOriObj.InsertField({"array"}, insertVal), E_OK);
+    EXPECT_EQ(validOriObj.InsertField({"array"}, insertVal, false), E_OK);
+    EXPECT_EQ(validOriObj.InsertField({"field3"}, insertVal, false), E_OK);
+    EXPECT_EQ(validOriObj.InsertField({"field1"}, insertVal), -E_JSON_INSERT_PATH_EXIST);
 }
 #endif
