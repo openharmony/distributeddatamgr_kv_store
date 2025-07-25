@@ -15,9 +15,8 @@
 
 #include "security_manager.h"
 
-#include <gtest/gtest.h>
-
 #include <chrono>
+#include <gtest/gtest.h>
 
 #include "block_data.h"
 #include "file_ex.h"
