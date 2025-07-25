@@ -111,6 +111,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString001, TestSize.Level1
      * @tc.expected: step2. Parsing result failed.
      */
     JsonObject tempObj;
+    LOGI("ori json is %s", JSON_STRING1.c_str());
     int stepTwo = tempObj.Parse(JSON_STRING1);
     EXPECT_TRUE(stepTwo != E_OK);
 }
@@ -138,6 +139,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseValidString002, TestSize.Level1
      * @tc.expected: step2. Parsing result success.
      */
     JsonObject tempObj;
+    LOGI("ori json is %s", JSON_STRING3.c_str());
     int stepTwo = tempObj.Parse(JSON_STRING3);
     EXPECT_TRUE(stepTwo == E_OK);
 }
@@ -156,6 +158,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString001, TestSize.Leve
      * @tc.expected: step1. Parsing result failed.
      */
     JsonObject tempObj;
+    LOGI("ori json is %s", JSON_STRING2.c_str());
     int stepOne = tempObj.Parse(JSON_STRING2);
     EXPECT_TRUE(stepOne != E_OK);
 }
@@ -174,6 +177,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString002, TestSize.Leve
      * @tc.expected: step1. Parsing result failed.
      */
     JsonObject tempObj;
+    LOGI("ori json is %s", JSON_STRING4.c_str());
     int stepOne = tempObj.Parse(JSON_STRING4);
     EXPECT_TRUE(stepOne != E_OK);
 }
@@ -192,6 +196,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseInvalidString003, TestSize.Leve
      * @tc.expected: step1. return value > 10.
      */
     int errCode = E_OK;
+    LOGI("ori json is %s", JSON_STRING5.c_str());
     int stepOne = static_cast<int>(JsonObject::CalculateNestDepth(JSON_STRING5, errCode));
     EXPECT_TRUE(errCode == E_OK);
     EXPECT_TRUE(stepOne > MAX_DEPTH_FOR_TEST);
@@ -219,6 +224,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseDuplicativeString001, TestSize.
      * @tc.expected: step1. return ok.
      */
     std::string json = R"({"field1":"123", "field2": true, "field1": 123})";
+    LOGI("ori json is %s", json.c_str());
     JsonObject object;
     EXPECT_EQ(object.JsonObject::Parse(json), E_OK);
     /**
@@ -242,6 +248,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseDuplicativeString001, TestSize.
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString001, TestSize.Level0)
 {
     std::string nonJson = R"("field1":123)";
+    LOGI("ori json is %s", nonJson.c_str());
     JsonObject object;
     std::vector<uint8_t> data(nonJson.begin(), nonJson.end());
     EXPECT_EQ(object.Parse(data), -E_JSON_PARSE_FAIL);
@@ -258,6 +265,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString001, TestSize.Level0)
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString002, TestSize.Level0)
 {
     std::string json = R"({"field1":429496729500, "field2":11.1})";
+    LOGI("ori json is %s", json.c_str());
     JsonObject object;
     std::vector<uint8_t> data(json.begin(), json.end());
     EXPECT_EQ(object.Parse(data), E_OK);
@@ -278,6 +286,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString002, TestSize.Level0)
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString003, TestSize.Level0)
 {
     std::string json = R"({"field1":42949672950, "field2":{"field3":123}})";
+    LOGI("ori json is %s", json.c_str());
     JsonObject object;
     std::vector<uint8_t> data(json.begin(), json.end());
     EXPECT_EQ(object.Parse(data), E_OK);
@@ -304,6 +313,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString003, TestSize.Level0)
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString004, TestSize.Level0)
 {
     std::string json = R"({"field1":["123"], "field3":"field3"})";
+    LOGI("ori json is %s", json.c_str());
     JsonObject object;
     std::vector<uint8_t> data(json.begin(), json.end());
     EXPECT_EQ(object.Parse(data), E_OK);
@@ -330,6 +340,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString004, TestSize.Level0)
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString005, TestSize.Level0)
 {
     std::string json = R"({"field1":["123", null, ["456", 789]], "field3":"field3"})";
+    LOGI("ori json is %s", json.c_str());
     JsonObject object;
     EXPECT_EQ(object.Parse(json), E_OK);
     std::vector<std::vector<std::string>> content;
@@ -351,6 +362,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, ParseString005, TestSize.Level0)
  */
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj001, TestSize.Level0)
 {
+    LOGI("ori json is empty");
     JsonObject obj;
     FieldValue val;
     val.boolValue = true;
@@ -383,6 +395,7 @@ HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj001, TestSize.Level0)
 HWTEST_F(DistributedDBJsonPrecheckUnitTest, BuildObj002, TestSize.Level0)
 {
     std::string json = R"({"array_field":[]})";
+    LOGI("ori json is %s", json.c_str());
     JsonObject obj;
     EXPECT_EQ(obj.Parse(json), E_OK);
     FieldValue val;
