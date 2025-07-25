@@ -14,20 +14,21 @@
  */
 #ifndef OHOS_FIELD_NODE_H
 #define OHOS_FIELD_NODE_H
+#include <nlohmann/json.hpp>
 #include <list>
 #include "js_util.h"
 #include "napi_queue.h"
 
-struct cJSON;
 namespace OHOS::DistributedKVStore {
 class JsFieldNode {
 public:
+    using json = nlohmann::json;
     explicit JsFieldNode(const std::string& fName, napi_env env);
     ~JsFieldNode();
 
     std::string GetFieldName();
     std::string Dump();
-    cJSON* GetValueForJson();
+    json GetValueForJson();
 
     static napi_value Constructor(napi_env env);
 

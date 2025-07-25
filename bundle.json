@@ -73,6 +73,7 @@
         "hitrace",
         "huks",
         "ipc",
+        "json",
         "napi",
         "safwk",
         "samgr",
