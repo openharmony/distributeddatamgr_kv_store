@@ -772,7 +772,7 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
     auto status = BackupManager::GetInstance().Backup(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
-            StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
+            StoreUtil::Anonymous(storeId_).c_str(), StoreUtil::Anonymous(file).c_str());
     }
     return status;
 }
@@ -789,7 +789,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     auto status = BackupManager::GetInstance().Restore(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
-            StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
+            StoreUtil::Anonymous(storeId_).c_str(), StoreUtil::Anonymous(file).c_str());
     }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };

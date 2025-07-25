@@ -110,6 +110,7 @@ Status KVDBServiceClient::GetStoreIds(const AppId &appId, int32_t subUser, std::
                               reply, appId, StoreId(), subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+        return static_cast<Status>(status);
     }
     ITypesUtil::Unmarshal(reply, storeIds);
     return static_cast<Status>(status);
@@ -203,6 +204,10 @@ Status KVDBServiceClient::NotifyDataChange(const AppId &appId, const StoreId &st
 Status KVDBServiceClient::RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier)
 {
     MessageParcel reply;
+    if (notifier == nullptr) {
+        ZLOGE("kvdb notifier is nullptr");
+        return Status::INVALID_ARGUMENT
+    }
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_REGISTER_NOTIFIER), reply,
                               appId, StoreId(), notifier->AsObject().GetRefPtr());
     if (status != SUCCESS) {
@@ -245,7 +250,7 @@ Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeI
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
-        return SUCCESS;
+        return static_cast<Status>(status);
     }
     ITypesUtil::Unmarshal(reply, syncParam.allowedDelayMs);
     return static_cast<Status>(status);
@@ -319,6 +324,10 @@ Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &st
 Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
     sptr<IKvStoreObserver> observer)
 {
+    if (observer == nullptr) {
+        ZLOGE("kvdb observer is nullptr");
+        return Status::INVALID_ARGUMENT
+    }
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SUB),
                               reply, appId, storeId, observer->AsObject(), subUser);
@@ -333,6 +342,10 @@ Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, 
 Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
     sptr<IKvStoreObserver> observer)
 {
+    if (observer == nullptr) {
+        ZLOGE("kvdb observer is nullptr");
+        return Status::INVALID_ARGUMENT
+    }
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_UNSUB),
                               reply, appId, storeId, observer->AsObject().GetRefPtr(), subUser);
