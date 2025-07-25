@@ -206,7 +206,7 @@ Status KVDBServiceClient::RegServiceNotifier(const AppId &appId, sptr<IKVDBNotif
     MessageParcel reply;
     if (notifier == nullptr) {
         ZLOGE("kvdb notifier is nullptr");
-        return Status::INVALID_ARGUMENT
+        return Status::INVALID_ARGUMENT;
     }
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_REGISTER_NOTIFIER), reply,
                               appId, StoreId(), notifier->AsObject().GetRefPtr());
@@ -326,7 +326,7 @@ Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, 
 {
     if (observer == nullptr) {
         ZLOGE("kvdb observer is nullptr");
-        return Status::INVALID_ARGUMENT
+        return Status::INVALID_ARGUMENT;
     }
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_SUB),
@@ -344,7 +344,7 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
 {
     if (observer == nullptr) {
         ZLOGE("kvdb observer is nullptr");
-        return Status::INVALID_ARGUMENT
+        return Status::INVALID_ARGUMENT;
     }
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_UNSUB),
