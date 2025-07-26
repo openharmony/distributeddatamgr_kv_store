@@ -120,12 +120,12 @@ ohos_shared_library("distributeddb") {
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+    "jsoncpp:jsoncpp",
     "zlib:shared_libz",
   ]
 
@@ -269,10 +269,10 @@ ohos_shared_library("distributeddb_client") {
   ]
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",
+    "jsoncpp:jsoncpp",
   ]
 
   public_external_deps = [

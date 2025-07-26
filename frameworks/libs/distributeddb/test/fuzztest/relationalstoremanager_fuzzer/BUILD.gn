@@ -108,9 +108,9 @@ ohos_fuzztest("RelationalstoremanagerFuzzTest") {
   deps = [ "../../../../distributeddb:distributeddb" ]
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "hilog:libhilog",
+    "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:shared_libz",

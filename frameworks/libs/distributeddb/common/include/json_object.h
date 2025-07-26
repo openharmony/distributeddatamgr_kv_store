@@ -20,7 +20,9 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "cjson_object.h"
+#ifndef OMIT_JSON
+#include <json/json.h>
+#endif
 #include "db_types.h"
 
 namespace DistributedDB {
@@ -41,7 +43,7 @@ public:
     JsonObject(const JsonObject &);
     JsonObject& operator=(const JsonObject &);
 
-    explicit JsonObject(const CJsonObject &value);
+    explicit JsonObject(const Json::Value &value);
 
     // Should be called on an invalid JsonObject, create new JsonObject if need to reparse
     // Require the type of the root to be JsonObject, otherwise parse fail
@@ -89,23 +91,23 @@ public:
     // isAppend: when it's true, append inValue as path is an arrayObject if path not exist.
     int InsertField(const FieldPath &inPath, FieldType inType, const FieldValue &inValue, bool isAppend = false);
 
+    // Add json object to an array field. should be called on an valid JsonObject. Never turn into invalid after call.
+    // If inPath not refer to an array, return error.
+    int InsertField(const FieldPath &inPath, const JsonObject &inValue, bool isAppend = false);
+
     // Should be called on an valid JsonObject. Never turn into invalid after call. An empty inPath is not allowed.
     // If inPath not exist, returns -E_JSON_DELETE_PATH_NOT_FOUND. Otherwise, delete field from its parent returns E_OK;
     int DeleteField(const FieldPath &inPath);
-
-    // create if path not exist, exact contain {field, nearest}
-    int MoveToPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest);
-#ifndef OMIT_JSON
-    // Auxiliary Method: If inPath not refer to an array, return error. If not all members are string, return error.
-    int GetStringArrayContentByCJsonValue(const CJsonObject &value, std::vector<std::string> &outStringArray) const;
-
-    // Common Type Judgement Logic
-    int GetFieldTypeByCJsonValue(const CJsonObject &value, FieldType &outType) const;
-#endif
 private:
 #ifndef OMIT_JSON
+    // Auxiliary Method: If inPath not refer to an array, return error. If not all members are string, return error.
+    int GetStringArrayContentByJsonValue(const Json::Value &value, std::vector<std::string> &outStringArray) const;
+
+    // Common Type Judgement Logic
+    int GetFieldTypeByJsonValue(const Json::Value &value, FieldType &outType) const;
+
     // Return E_OK if JsonValueNode found at exact the path, otherwise not E_OK
-    CJsonObject GetCJsonValueByFieldPath(const FieldPath &inPath, int &errCode) const;
+    const Json::Value &GetJsonValueByFieldPath(const FieldPath &inPath, int &errCode) const;
 
     // REQUIRE: JsonObject is valid(Root value is object type).
     // If inPath empty(means root), set exact and nearest to root value and nearDepth to 0, then ret E_OK;
@@ -113,13 +115,19 @@ private:
     // to the depth of this parent JsonValue, then ret E_OK;
     // If exact path no exist, set exact to nullptr, set nearest to nearest JsonValue that can be found, set nearDepth
     // to the depth of this nearest JsonValue, then ret -E_NOT_FOUND;
-    int LocateCJsonValueByFieldPath(const FieldPath &inPath, CJsonObject &exact, CJsonObject &nearest,
-        uint32_t &nearDepth);
+    int LocateJsonValueByFieldPath(const FieldPath &inPath, Json::Value *&exact,
+        Json::Value *&nearest, uint32_t &nearDepth);
+
+    // create if path not exist
+    int MoveToPath(const FieldPath &inPath, Json::Value *&exact, Json::Value *&nearest);
+
+    int JsonReaderParseInner(const std::unique_ptr<Json::CharReader> &jsonReader, const char *begin, const char *end,
+        JSONCPP_STRING &errs);
 
     static uint32_t maxNestDepth_;
 
     bool isValid_ = false;
-    CJsonObject cjson_;
+    Json::Value value_;
 #endif
 };
 } // namespace DistributedDB

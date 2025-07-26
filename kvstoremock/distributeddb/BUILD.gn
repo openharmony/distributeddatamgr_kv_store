@@ -122,7 +122,7 @@ ohos_shared_library("distributeddb_mock") {
   ldflags = [ "-v" ]
   deps = [
     "//third_party/bounds_checking_function:libsec_static",
-    "//third_party/cJSON:cjson",
+    "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/openssl:libcrypto_static",
     "//third_party/sqlite:sqlite_sdk",
     "//third_party/zlib:shared_libz",
