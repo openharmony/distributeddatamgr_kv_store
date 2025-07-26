@@ -436,4 +436,21 @@ HWTEST_F(DistributedDBRelationalResultSetTest, ResultSetTest002, TestSize.Level0
 
     delete resultSet;
 }
+
+#ifdef USE_RD_KERNEL
+/**
+ * @tc.name: BinlogSupportTest001
+ * @tc.desc: Test binlog support API return values as expected
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: hongyangliu
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, BinlogSupportTest001, TestSize.Level0)
+{
+    EXPECT_EQ(sqlite3_is_support_binlog(nullptr), SQLITE_ERROR);
+    EXPECT_EQ(sqlite3_is_support_binlog(""), SQLITE_ERROR);
+    EXPECT_EQ(sqlite3_is_support_binlog(" "), SQLITE_ERROR);
+    EXPECT_EQ(sqlite3_is_support_binlog("advisor"), SQLITE_OK);
+}
+#endif
 #endif

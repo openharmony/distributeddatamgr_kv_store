@@ -29,6 +29,7 @@ struct sqlite3_api_routines_relational {
     int (*open)(const char *, sqlite3 **);
     int (*open16)(const void *, sqlite3 **);
     int (*open_v2)(const char *, sqlite3 **, int, const char *);
+    int (*is_support_binlog)(const char*);
 };
 
 extern const struct sqlite3_api_routines_relational *sqlite3_export_relational_symbols;
@@ -36,15 +37,20 @@ extern const struct sqlite3_api_routines_relational *sqlite3_export_relational_s
 #ifdef sqlite3_open
 #undef sqlite3_open
 #endif
-#define sqlite3_open            sqlite3_export_relational_symbols->open
+#define sqlite3_open                 sqlite3_export_relational_symbols->open
 
 #ifdef sqlite3_open16
 #undef sqlite3_open16
 #endif
-#define sqlite3_open16          sqlite3_export_relational_symbols->open16
+#define sqlite3_open16               sqlite3_export_relational_symbols->open16
 
 #ifdef sqlite3_open_v2
 #undef sqlite3_open_v2
 #endif
-#define sqlite3_open_v2         sqlite3_export_relational_symbols->open_v2
+#define sqlite3_open_v2               sqlite3_export_relational_symbols->open_v2
+
+#ifdef sqlite3_is_support_binlog
+#undef sqlite3_is_support_binlog
+#endif
+#define sqlite3_is_support_binlog     sqlite3_export_relational_symbols->is_support_binlog
 #endif // RELATIONAL_STORE_EXT_H
