@@ -33,7 +33,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     const Options &options, Status &status)
 {
     std::string path = options.GetDatabaseDir();
-    ZLOGD("appId:%{public}s, storeId is %{public}s type:%{public}d area:%{public}d dir:%{public}s", appId.appId.c_str(),
+    ZLOGD("appId:%{public}s, storeId:%{public}s type:%{public}d area:%{public}d dir:%{public}s", appId.appId.c_str(),
         StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area,
         StoreUtil::Anonymous(path).c_str());
     status = ILLEGAL_STATE;
