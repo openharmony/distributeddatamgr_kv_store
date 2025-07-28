@@ -110,6 +110,7 @@ Status KVDBServiceClient::GetStoreIds(const AppId &appId, int32_t subUser, std::
                               reply, appId, StoreId(), subUser);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
+        return static_cast<Status>(status);
     }
     ITypesUtil::Unmarshal(reply, storeIds);
     return static_cast<Status>(status);
@@ -245,7 +246,7 @@ Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeI
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());
-        return SUCCESS;
+        return static_cast<Status>(status);
     }
     ITypesUtil::Unmarshal(reply, syncParam.allowedDelayMs);
     return static_cast<Status>(status);
