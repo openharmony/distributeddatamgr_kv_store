@@ -16,6 +16,8 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "access_token.h"
+#include "accesstoken_kit.h"
 #include "block_data.h"
 #include "dev_manager.h"
 #include "device_manager.h"
@@ -23,14 +25,17 @@
 #include "dm_device_info.h"
 #include "file_ex.h"
 #include "kv_store_nb_delegate.h"
+#include "nativetoken_kit.h"
 #include "single_store_impl.h"
 #include "store_factory.h"
 #include "store_manager.h"
 #include "sys/stat.h"
+#include "token_setproc.h"
 #include "types.h"
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
+using namespace OHOS::Security::AccessToken;
 using DBStatus = DistributedDB::DBStatus;
 using DBStore = DistributedDB::KvStoreNbDelegate;
 using SyncCallback = KvStoreSyncCallback;
@@ -73,6 +78,7 @@ public:
     void SetUp();
     void TearDown();
 
+    void SetNativeTokenId();
     std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
     std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false);
     std::shared_ptr<SingleKvStore> kvStore_;
@@ -163,6 +169,28 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosyn
             kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
         });
     return kvStore;
+}
+
+void SingleStoreImplTest::SetNativeTokenId()
+{
+    std::string dumpInfo;
+    AtmToolsParamInfo info;
+    info.processName = "distributeddata";
+    AccessTokenKit::DumpTokenInfo(info, dumpInfo);
+    size_t pos = dumpInfo.find("\"tokenID\": ");
+    if (pos == std::string::npos) {
+        return;
+    }
+    pos += std::string("\"tokenID\": ").length();
+    std::string numStr;
+    while (pos < dumpInfo.length() && std::isdigit(dumpInfo[pos])) {
+        numStr += dumpInfo[pos];
+        ++pos;
+    }
+    std::istringstream iss(numStr);
+    AccessTokenID tokenID;
+    iss >> tokenID;
+    SetSelfTokenID(tokenID);
 }
 
 /**
@@ -1828,6 +1856,7 @@ HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
 {
+    SetNativeTokenId();
     std::string pkgNameEx = "_distributed_data";
     std::shared_ptr<SingleStoreImpl> kvStore;
     kvStore = CreateKVStore();
