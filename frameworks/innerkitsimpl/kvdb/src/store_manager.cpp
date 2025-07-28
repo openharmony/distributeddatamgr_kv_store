@@ -156,9 +156,8 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
         service->Delete(appId, storeId, subUser);
     }
     auto status = StoreFactory::GetInstance().Delete(appId, storeId, path, subUser);
-    ReportInfo reportInfo = { .options = { .baseDir = path }, .errorCode = status,
-        .systemErrorNo = errno, .appId = appId.appId, .storeId = storeId.storeId,
-        .functionName = std::string(__FUNCTION__) };
+    ReportInfo reportInfo = { .options = { .baseDir = path }, .errorCode = status, .systemErrorNo = errno,
+        .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     if (status != SUCCESS) {
         KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
     } else {
