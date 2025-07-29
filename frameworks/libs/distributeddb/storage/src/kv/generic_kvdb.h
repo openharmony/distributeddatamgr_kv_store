@@ -134,6 +134,8 @@ public:
     virtual void ResetSyncStatus();
 
     void MarkRebuild() override;
+
+    virtual int PreClose();
 protected:
     // Create a connection object, no DB ref increased.
     virtual GenericKvDBConnection *NewConnection(int &errCode) = 0;

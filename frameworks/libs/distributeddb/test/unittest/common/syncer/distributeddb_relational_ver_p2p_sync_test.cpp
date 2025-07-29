@@ -2849,6 +2849,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, Te
     std::this_thread::sleep_for(std::chrono::minutes(1));
     sqlite3_close(db);
     db = nullptr;
+    g_mgr.SetAutoLaunchRequestCallback(nullptr);
 }
 
 /**

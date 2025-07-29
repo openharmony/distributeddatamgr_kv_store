@@ -49,6 +49,7 @@ namespace {
         {State::TIME_SYNC, Event::TIME_SYNC_FINISHED_EVENT, State::ABILITY_SYNC},
         {State::TIME_SYNC, Event::TIME_OUT_EVENT, State::SYNC_TIME_OUT},
         {State::TIME_SYNC, Event::INNER_ERR_EVENT, State::INNER_ERR},
+        {State::TIME_SYNC, Event::NEED_RESYNC_EVENT, State::TIME_SYNC},
 
         // In ABILITY_SYNC state, compare version num and schema
         {State::ABILITY_SYNC, Event::VERSION_NOT_SUPPOR_EVENT, State::INNER_ERR},
@@ -56,6 +57,7 @@ namespace {
         {State::ABILITY_SYNC, Event::TIME_OUT_EVENT, State::SYNC_TIME_OUT},
         {State::ABILITY_SYNC, Event::INNER_ERR_EVENT, State::INNER_ERR},
         {State::ABILITY_SYNC, Event::CONTROL_CMD_EVENT, State::SYNC_CONTROL_CMD},
+        {State::ABILITY_SYNC, Event::NEED_RESYNC_EVENT, State::ABILITY_SYNC},
 
         // In START_INITIACTIVE_DATA_SYNC state, send a sync request, and send first packt of data sync
         {State::START_INITIACTIVE_DATA_SYNC, Event::NEED_ABILITY_SYNC_EVENT, State::ABILITY_SYNC},
@@ -64,6 +66,7 @@ namespace {
         {State::START_INITIACTIVE_DATA_SYNC, Event::SEND_FINISHED_EVENT, State::START_PASSIVE_DATA_SYNC},
         {State::START_INITIACTIVE_DATA_SYNC, Event::RE_SEND_DATA_EVENT, State::START_INITIACTIVE_DATA_SYNC},
         {State::START_INITIACTIVE_DATA_SYNC, Event::NEED_TIME_SYNC_EVENT, State::TIME_SYNC},
+        {State::START_INITIACTIVE_DATA_SYNC, Event::NEED_RESYNC_EVENT, State::START_INITIACTIVE_DATA_SYNC},
 
         // In START_PASSIVE_DATA_SYNC state, do response pull request, and send first packt of data sync
         {State::START_PASSIVE_DATA_SYNC, Event::SEND_FINISHED_EVENT, State::START_PASSIVE_DATA_SYNC},
@@ -73,6 +76,7 @@ namespace {
         {State::START_PASSIVE_DATA_SYNC, Event::NEED_ABILITY_SYNC_EVENT, State::ABILITY_SYNC},
         {State::START_PASSIVE_DATA_SYNC, Event::RE_SEND_DATA_EVENT, State::START_PASSIVE_DATA_SYNC},
         {State::START_PASSIVE_DATA_SYNC, Event::NEED_TIME_SYNC_EVENT, State::TIME_SYNC},
+        {State::START_PASSIVE_DATA_SYNC, Event::NEED_RESYNC_EVENT, State::START_PASSIVE_DATA_SYNC},
 
         // In WAIT_FOR_RECEIVE_DATA_FINISH,
         {State::WAIT_FOR_RECEIVE_DATA_FINISH, Event::RECV_FINISHED_EVENT, State::SYNC_TASK_FINISHED},
@@ -80,11 +84,13 @@ namespace {
         {State::WAIT_FOR_RECEIVE_DATA_FINISH, Event::TIME_OUT_EVENT, State::SYNC_TIME_OUT},
         {State::WAIT_FOR_RECEIVE_DATA_FINISH, Event::INNER_ERR_EVENT, State::INNER_ERR},
         {State::WAIT_FOR_RECEIVE_DATA_FINISH, Event::NEED_ABILITY_SYNC_EVENT, State::ABILITY_SYNC},
+        {State::WAIT_FOR_RECEIVE_DATA_FINISH, Event::NEED_RESYNC_EVENT, State::START_PASSIVE_DATA_SYNC},
 
         {State::SYNC_CONTROL_CMD, Event::SEND_FINISHED_EVENT, State::SYNC_TASK_FINISHED},
         {State::SYNC_CONTROL_CMD, Event::TIME_OUT_EVENT, State::SYNC_TIME_OUT},
         {State::SYNC_CONTROL_CMD, Event::INNER_ERR_EVENT, State::INNER_ERR},
         {State::SYNC_CONTROL_CMD, Event::NEED_ABILITY_SYNC_EVENT, State::ABILITY_SYNC},
+        {State::SYNC_CONTROL_CMD, Event::NEED_RESYNC_EVENT, State::SYNC_CONTROL_CMD},
 
         // In SYNC_TASK_FINISHED,
         {State::SYNC_TASK_FINISHED, Event::ALL_TASK_FINISHED_EVENT, State::IDLE},
@@ -184,6 +190,10 @@ int SingleVerSyncStateMachine::ReceiveMessageCallback(Message *inMsg)
     if (errCode != E_OK) {
         LOGE("[StateMachine] message pre check failed");
         return errCode;
+    }
+    if (context_->IsNeedRetrySync(inMsg->GetErrorNo(), inMsg->GetMessageType())) {
+        SwitchStateAndStep(NEED_RESYNC_EVENT);
+        return E_OK;
     }
     switch (inMsg->GetMessageId()) {
         case TIME_SYNC_MESSAGE:
@@ -538,6 +548,7 @@ Event SingleVerSyncStateMachine::GetEventAfterTimeSync(int mode) const
 Event SingleVerSyncStateMachine::DoSyncTaskFinished()
 {
     StopWatchDog();
+    context_->ResetResyncTimes();
     if (dataSync_ == nullptr || communicator_ == nullptr || syncContext_ == nullptr) {
         LOGE("[SingleVerSyncStateMachine] [DoSyncTaskFinished] dataSync_ or communicator_ or syncContext_ is nullptr.");
         return TransformErrCodeToEvent(-E_OUT_OF_MEMORY);
@@ -883,7 +894,8 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_DENIED_SQL,                      SyncOperation::OP_DENIED_SQL },
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
         { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED },
-        { -E_DISTRIBUTED_SCHEMA_NOT_FOUND,    SyncOperation::OP_SCHEMA_INCOMPATIBLE }
+        { -E_DISTRIBUTED_SCHEMA_NOT_FOUND,    SyncOperation::OP_SCHEMA_INCOMPATIBLE },
+        { -E_FEEDBACK_DB_CLOSING,             SyncOperation::OP_DB_CLOSING },
     };
     const auto &result = std::find_if(std::begin(stateNodes), std::end(stateNodes), [errCode](const auto &node) {
         return node.errCode == errCode;

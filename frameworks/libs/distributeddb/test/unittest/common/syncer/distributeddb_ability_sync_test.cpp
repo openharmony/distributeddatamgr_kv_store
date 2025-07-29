@@ -534,9 +534,9 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest001, TestSize.Level0)
      * @tc.expected: step5. AckRecv return ok GetRemoteSoftwareVersion is SOFTWARE_VERSION_CURRENT
      *     IsSchemaCompatible true;
      */
-    EXPECT_EQ(async.AckRecv(&msg1, context), E_OK);
+    EXPECT_EQ(async.AckRecv(&msg1, context), -E_SCHEMA_MISMATCH);
     EXPECT_TRUE(context->GetRemoteSoftwareVersion() == SOFTWARE_VERSION_CURRENT);
-    EXPECT_TRUE(context->GetTaskErrCode() != -E_SCHEMA_MISMATCH);
+    EXPECT_TRUE(context->GetTaskErrCode() == -E_SCHEMA_MISMATCH);
 
     /**
      * @tc.steps: step6. call RequestRecv, SetSchema ""
@@ -544,7 +544,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest001, TestSize.Level0)
      */
     packet1.SetSchema("");
     msg1.SetCopiedObject(packet1);
-    EXPECT_EQ(async.AckRecv(&msg1, context), E_OK);
+    EXPECT_EQ(async.AckRecv(&msg1, context), -E_SCHEMA_MISMATCH);
 
     /**
      * @tc.steps: step7. call AckRecv, set inMsg sendCode -E_VERSION_NOT_SUPPORT

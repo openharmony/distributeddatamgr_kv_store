@@ -31,7 +31,7 @@ using SendDataItem = SingleVerKvEntry *;
 class DataRequestPacket {
 public:
     DataRequestPacket() {};
-    virtual ~DataRequestPacket();
+    ~DataRequestPacket();
 
     void SetData(std::vector<SendDataItem> &data);
 
@@ -159,7 +159,7 @@ protected:
 class DataAckPacket {
 public:
     DataAckPacket() {};
-    virtual ~DataAckPacket() {};
+    ~DataAckPacket() {};
 
     void SetData(const uint64_t data);
 
@@ -229,7 +229,7 @@ private:
 class ControlAckPacket {
 public:
     ControlAckPacket() {};
-    virtual ~ControlAckPacket() {};
+    ~ControlAckPacket() {};
     void SetPacketHead(int recvCode, uint32_t version, int32_t controlCmd, uint32_t flag);
     int32_t GetRecvCode() const;
     uint32_t GetVersion() const;

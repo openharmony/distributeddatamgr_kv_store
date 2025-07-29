@@ -1910,7 +1910,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
 
 /**
  * @tc.name: FuncExceptionTest001
- * @tc.desc: Test the interception exception of the interface
+ * @tc.desc: Test the interception expection of the interface
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: bty
@@ -1929,7 +1929,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FuncExceptionTest001, Te
     std::map<std::string, CollateType> ctMap1 = {{"fielddInt", CollateType::COLLATE_BUTT}};
     std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(pkMap1, ctMap1);
     EXPECT_TRUE(result.empty());
-
+    
     std::map<std::string, Type> pkMap2 = {{"FIELDINT", 0L}, {"FIELDSTR", std::string("FIELDSTR")}};
     std::map<std::string, CollateType> ctMap2;
     ctMap2.insert_or_assign("fieldint", CollateType::COLLATE_BUTT);
@@ -1964,5 +1964,31 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest001, TestSize.L
     loggerInstance = nullptr;
     Logger *newLoggerInstance = Logger::GetInstance();
     ASSERT_NE(newLoggerInstance, nullptr);
+}
+
+/**
+ * @tc.name: CreateTempTriggerTest001
+ * @tc.desc: Test create data change temp trigger.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create db and fts table.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    std::string tableName = "table1";
+    std::string sql = "CREATE VIRTUAL TABLE IF NOT EXISTS " + tableName + " USING fts4(content);";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    /**
+     * @tc.steps: step2. create temp trigger on table.
+     * @tc.expected: step2. return ok.
+     */
+    EXPECT_EQ(CreateDataChangeTempTrigger(db), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 }

@@ -283,7 +283,7 @@ void MultiVerVacuum::VacuumTaskExecutor()
             }
         }
         // No thread will remove entry from dbMapVacuumTask_, so here is concurrency safe.
-        LOGI("[Vacuum][Executor] Execute vacuum task for database=%s.", nextDatabase.c_str());
+        LOGI("[Vacuum][Executor] Execute vacuum task for database.");
         ExecuteSpecificVacuumTask(dbMapVacuumTask_[nextDatabase]);
         // Awake foreground thread at this task switch point
         vacuumTaskCv_.notify_all();

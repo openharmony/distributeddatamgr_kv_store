@@ -26,6 +26,8 @@ namespace DistributedDB {
  */
 class CombineStatus {
 public:
+    CombineStatus() = default;
+    ~CombineStatus() = default;
     void UpdateProgressId(uint64_t inProgressId);
     uint64_t GetProgressId() const;
     bool CheckProgress();

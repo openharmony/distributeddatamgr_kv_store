@@ -111,6 +111,7 @@ public:
 
     virtual CloudSyncConfig GetCloudSyncConfig() const = 0;
 
+    int PreClose() override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
@@ -157,6 +158,7 @@ protected:
 protected:
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 
+    bool ExchangeClosePending(bool expected);
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual bool CheckSchemaSupportForCloudSync() const;
 #endif

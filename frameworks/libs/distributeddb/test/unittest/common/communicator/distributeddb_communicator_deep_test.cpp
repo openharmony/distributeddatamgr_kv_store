@@ -56,12 +56,12 @@ void DistributedDBCommunicatorDeepTest::SetUpTestCase(void)
      * @tc.setup: Create and init CommunicatorAggregator and AdapterStub
      */
     LOGI("[UT][DeepTest][SetUpTestCase] Enter.");
-    bool errCode = SetUpEnv(g_envDeviceA, DEVICE_NAME_A);
-    ASSERT_EQ(errCode, true);
-    errCode = SetUpEnv(g_envDeviceB, DEVICE_NAME_B);
-    ASSERT_EQ(errCode, true);
-    errCode = SetUpEnv(g_envDeviceC, DEVICE_NAME_C);
-    ASSERT_EQ(errCode, true);
+    bool isSuccess = SetUpEnv(g_envDeviceA, DEVICE_NAME_A);
+    ASSERT_EQ(isSuccess, true);
+    isSuccess = SetUpEnv(g_envDeviceB, DEVICE_NAME_B);
+    ASSERT_EQ(isSuccess, true);
+    isSuccess = SetUpEnv(g_envDeviceC, DEVICE_NAME_C);
+    ASSERT_EQ(isSuccess, true);
     DoRegTransformFunction();
     CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
 }
@@ -129,6 +129,9 @@ void DistributedDBCommunicatorDeepTest::TearDown()
      * @tc.teardown: Release communicator AA, AB, BB, BC, CC, CA
      */
     ReleaseAllCommunicator();
+    g_envDeviceA.commAggrHandle->ResetRetryCount();
+    g_envDeviceB.commAggrHandle->ResetRetryCount();
+    g_envDeviceC.commAggrHandle->ResetRetryCount();
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure all thread quiet
 }
 
@@ -145,10 +148,12 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2
     Message *msgForBB = nullptr;
     g_commBB->RegOnMessageCallback([&msgForBB](const std::string &srcTarget, Message *inMsg) {
         msgForBB = inMsg;
+        return E_OK;
     }, nullptr);
     Message *msgForCA = nullptr;
     g_commCA->RegOnMessageCallback([&msgForCA](const std::string &srcTarget, Message *inMsg) {
         msgForCA = inMsg;
+        return E_OK;
     }, nullptr);
 
     /**
@@ -195,6 +200,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2
 
     // CleanUp
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
 }
 
 static int CreateBufferThenAddIntoScheduler(SendTaskScheduler &scheduler, const std::string &dstTarget, Priority inPrio)
@@ -331,6 +337,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment001, TestSize.Level2)
     Message *recvMsgForBB = nullptr;
     g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
         recvMsgForBB = inMsg;
+        return E_OK;
     }, nullptr);
 
     /**
@@ -386,6 +393,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment002, TestSize.Level2)
     Message *recvMsgForCC = nullptr;
     g_commCC->RegOnMessageCallback([&recvMsgForCC](const std::string &srcTarget, Message *inMsg) {
         recvMsgForCC = inMsg;
+        return E_OK;
     }, nullptr);
 
     /**
@@ -454,6 +462,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
         delete inMsg;
         inMsg = nullptr;
         count.fetch_add(1, std::memory_order_seq_cst);
+        return E_OK;
     };
     g_commBB->RegOnMessageCallback(callback, nullptr);
     g_commBC->RegOnMessageCallback(callback, nullptr);
@@ -518,6 +527,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
     Message *recvMsgForBB = nullptr;
     g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
         recvMsgForBB = inMsg;
+        return E_OK;
     }, nullptr);
     AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
     std::atomic<int> count = 0;
@@ -959,14 +969,14 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
     int callByteReceiveCount = 0;
     int res = adapter->RegBytesReceiveCallback([&callByteReceiveCount](const ReceiveBytesInfo &,
         const DataUserInfoProc &) {
-            printf("callByteReceiveCount++;");
+            LOGD("callByteReceiveCount++;");
         callByteReceiveCount++;
     }, nullptr);
     EXPECT_EQ(res, E_OK);
     std::vector<uint8_t> data = { 1u };
     DeviceInfos deviceInfos;
     onDataReceive(deviceInfos, data.data(), 1u);
-    printf("callByteReceiveCount++%d;", callByteReceiveCount);
+    LOGD("callByteReceiveCount++%d;", callByteReceiveCount);
     EXPECT_EQ(callByteReceiveCount, 0);
 }
 

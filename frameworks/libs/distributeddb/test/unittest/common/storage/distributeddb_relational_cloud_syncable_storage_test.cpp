@@ -472,6 +472,50 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest002, TestS
 }
 
 /**
+ * @tc.name: MetaDataTest003
+ * @tc.desc: The GetMetaData concurrent execute
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tankaisheng
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. put data
+     * @tc.expected: OK.
+     */
+    const std::string str(DBConstant::MAX_KEY_SIZE, 'k');
+    const Key key(str.begin(), str.end());
+    EXPECT_EQ(g_cloudStore->PutMetaData(key, VALUE_2), E_OK);
+
+    /**
+     * @tc.steps: step2. concurrent execute get data
+     * @tc.expected: OK.
+     */
+    const int threadCount = 10;
+    std::vector<std::thread> threads;
+    std::vector<Value> results(threadCount);
+
+    auto worker = [](ICloudSyncStorageInterface* cloudStore, const Key& key, std::vector<Value>& results, int index) {
+        Value value;
+        EXPECT_EQ(cloudStore->GetMetaData(key, value), E_OK);
+        results[index] = value;
+    };
+
+    for (int i = 0; i < threadCount; ++i) {
+        threads.emplace_back(worker, g_cloudStore, key, std::ref(results), i);
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    for (const auto& value : results) {
+        EXPECT_EQ(value, VALUE_2);
+    }
+}
+
+/**
  * @tc.name: TransactionTest001
  * @tc.desc: No write transaction in the current store, meta interface can called
  * @tc.type: FUNC
@@ -903,6 +947,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestS
         EXPECT_EQ(asserts->second.index(), static_cast<size_t>(TYPE_INDEX<Nil>));
     }
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+    EXPECT_EQ(g_storageProxy->ReleaseContinueToken(token), E_OK);
 }
 
 /**
@@ -933,6 +978,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestS
      * @tc.expected: return -E_INVALID_DB.
      */
     ASSERT_EQ(g_cloudStore->GetCloudDataNext(token, cloudSyncData), -E_UNFINISHED);
+    EXPECT_EQ(g_storageProxy->ReleaseContinueToken(token), E_OK);
 }
 
 /**
@@ -967,6 +1013,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
     ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_CLOUD_ERROR);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
+    EXPECT_EQ(g_storageProxy->ReleaseContinueToken(token), E_OK);
 }
 
 /**
@@ -1024,6 +1071,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData008, TestS
     std::vector<std::string> cloudGid;
     EXPECT_EQ(g_storageProxy->GetCloudGid(obj, false, false, cloudGid), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+    EXPECT_EQ(g_storageProxy->ReleaseContinueToken(token), E_OK);
 }
 
 /**
@@ -1108,6 +1156,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, T
     CloudSyncData cloudSyncData;
     ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, 0L, token, cloudSyncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+    EXPECT_EQ(g_storageProxy->ReleaseContinueToken(token), E_OK);
 }
 
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, TestSize.Level1)

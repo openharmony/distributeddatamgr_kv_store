@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "basic_unit_test.h"
+#include "platform_specific.h"
 
 namespace DistributedDB {
 using namespace testing::ext;
@@ -35,6 +36,11 @@ void BasicUnitTest::TearDownTestCase()
 
 void BasicUnitTest::SetUp()
 {
+    if (OS::CheckPathExistence(g_testDir)) {  // if test dir exist, delete it and printf log
+        DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+        LOGE("[BasicUnitTest] The previous test case not clean db files.");
+    }
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     ASSERT_EQ(communicatorAggregator_, nullptr);
     communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
@@ -48,7 +54,10 @@ void BasicUnitTest::TearDown()
         LOGE("[BasicUnitTest] Rm test db files error.");
     }
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAdapter(nullptr);
     communicatorAggregator_ = nullptr;
+    RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
+    RuntimeContext::GetInstance()->SetTimeChanged(false);
 }
 
 int BasicUnitTest::InitDelegate(const StoreInfo &info, const std::string &deviceId)
@@ -77,8 +86,10 @@ std::string BasicUnitTest::GetDevice(const StoreInfo &info) const
     std::lock_guard<std::mutex> autoLock(deviceMutex_);
     auto iter = deviceMap_.find(info);
     if (iter == deviceMap_.end()) {
-        LOGW("[BasicUnitTest] Not exist device app %s store %s user %s", info.appId.c_str(),
-            info.storeId.c_str(), info.userId.c_str());
+        LOGW("[BasicUnitTest] Not exist device app %s store %s user %s",
+            info.appId.c_str(),
+            info.storeId.c_str(),
+            info.userId.c_str());
         return "";
     }
     return iter->second;
@@ -88,8 +99,11 @@ void BasicUnitTest::SetDevice(const StoreInfo &info, const std::string &device)
 {
     std::lock_guard<std::mutex> autoLock(deviceMutex_);
     deviceMap_[info] = device;
-    LOGW("[BasicUnitTest] Set device app %s store %s user %s device %s", info.appId.c_str(),
-        info.storeId.c_str(), info.userId.c_str(), device.c_str());
+    LOGW("[BasicUnitTest] Set device app %s store %s user %s device %s",
+        info.appId.c_str(),
+        info.storeId.c_str(),
+        info.userId.c_str(),
+        device.c_str());
 }
 
 StoreInfo BasicUnitTest::GetStoreInfo1()
@@ -119,6 +133,11 @@ StoreInfo BasicUnitTest::GetStoreInfo3()
     return info;
 }
 
+void BasicUnitTest::SetProcessCommunicator(const std::shared_ptr<IProcessCommunicator> &processCommunicator)
+{
+    processCommunicator_ = processCommunicator;
+}
+
 uint64_t BasicUnitTest::GetAllSendMsgSize() const
 {
     if (communicatorAggregator_ == nullptr) {
@@ -132,4 +151,4 @@ void BasicUnitTest::RegBeforeDispatch(const std::function<void(const std::string
     ASSERT_NE(communicatorAggregator_, nullptr);
     communicatorAggregator_->RegBeforeDispatch(beforeDispatch);
 }
-} // namespace DistributedDB
+}  // namespace DistributedDB

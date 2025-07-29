@@ -16,6 +16,7 @@
 
 #include <ctime>
 #include <cstdio>
+#include <cinttypes>
 
 #include "doc_errno.h"
 #include "rd_log_print.h"
@@ -31,11 +32,18 @@ static int InitDocIdFromOid(DocKey &docKey)
     if (nowTime < 0) {
         return -E_INNER_ERROR;
     }
-    uint32_t now = (uint32_t)nowTime;
-    uint16_t iv = g_oIdIncNum++;
+    uint64_t nowTemp = static_cast<uint64_t>(nowTime);
+    if (nowTemp > UINT32_MAX) {
+        GLOGE("Time overflows 32-bit range. nowTemp = %" PRIu64, nowTemp);
+        return -E_INNER_ERROR;
+    }
+    uint32_t now = static_cast<uint32_t>(nowTemp);
+    uint16_t iv = g_oIdIncNum;
     // The maximum number of autoincrements is 65535, and if it is exceeded, it becomes 0.
-    if (g_oIdIncNum > MAX_NUMBER_OF_AUTOINCREMENTS) {
+    if (g_oIdIncNum == MAX_NUMBER_OF_AUTOINCREMENTS) {
         g_oIdIncNum = UINT_ZERO;
+    } else {
+        g_oIdIncNum++;
     }
     char *idTemp = new char[GRD_DOC_OID_HEX_SIZE + 1];
     if (sprintf_s(idTemp, GRD_DOC_OID_HEX_SIZE + 1, "%08x%04x", now, iv) < 0) {

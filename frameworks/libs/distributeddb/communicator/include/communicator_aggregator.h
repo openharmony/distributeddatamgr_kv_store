@@ -94,6 +94,8 @@ public:
     std::shared_ptr<ExtendHeaderHandle> GetExtendHeaderHandle(const ExtendInfo &paramInfo);
 
     void ClearOnlineLabel() override;
+
+    void ResetRetryCount();
 private:
     // Working in a dedicated thread
     void SendDataRoutine();
@@ -119,8 +121,8 @@ private:
         const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
 
     // Function with suffix NoMutex should be called with mutex in the caller
-    int TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget, SerialBuffer *&inFrameBuffer,
-        const LabelType &toLabel, const UserInfo &userInfo);
+    int TryDeliverAppLayerFrameToCommunicatorNoMutex(const DataUserInfoProc &userInfoProc,
+        const std::string &srcTarget, SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo);
 
     // Auxiliary function for cutting short primary function
     int RegCallbackToAdapter();
@@ -131,8 +133,9 @@ private:
     // Feedback related functions
     void TriggerVersionNegotiation(const std::string &dstTarget);
     void TryToFeedbackWhenCommunicatorNotFound(const std::string &dstTarget, const LabelType &dstLabel,
-        const SerialBuffer *inOriFrame);
-    void TriggerCommunicatorNotFoundFeedback(const std::string &dstTarget, const LabelType &dstLabel, Message* &oriMsg);
+        const SerialBuffer *inOriFrame, int inErrCode);
+    void TriggerCommunicatorNotFoundFeedback(const std::string &dstTarget, const LabelType &dstLabel, Message* &oriMsg,
+        int sendErrNo);
 
     // Record the protocol version of remote target.
     void SetRemoteCommunicatorVersion(const std::string &target, uint16_t version);
@@ -165,6 +168,10 @@ private:
 
     int GetDataUserId(const ParseResult &inResult, const LabelType &toLabel, const DataUserInfoProc &userInfoProc,
         const std::string &device, UserInfo &userInfo);
+
+    int ReTryDeliverAppLayerFrameOnCommunicatorNotFound(const ReceiveBytesInfo &receiveBytesInfo,
+        SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc,
+        const UserInfo &userInfo);
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 

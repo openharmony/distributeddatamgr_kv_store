@@ -289,4 +289,12 @@ int32_t SyncerProxy::GetTaskCount()
     }
     return syncer_->GetTaskCount();
 }
+
+bool SyncerProxy::ExchangeClosePending(bool expected)
+{
+    if (syncer_ == nullptr) {
+        return false;
+    }
+    return syncer_->ExchangeClosePending(expected);
+}
 } // namespace DistributedDB

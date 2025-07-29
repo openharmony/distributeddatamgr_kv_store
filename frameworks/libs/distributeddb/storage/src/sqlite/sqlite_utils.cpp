@@ -1265,11 +1265,11 @@ END:
 
 int SQLiteUtils::RegisterMetaDataUpdateFunction(sqlite3 *db)
 {
-    int errCode = sqlite3_create_function_v2(db, DBConstant::UPDATE_META_FUNC.c_str(),
+    int errCode = sqlite3_create_function_v2(db, DBConstant::UPDATE_META_FUNC,
         2, // 2: argc for register function
         SQLITE_UTF8 | SQLITE_DETERMINISTIC, db, &SQLiteUtils::UpdateMetaDataWithinTrigger, nullptr, nullptr, nullptr);
     if (errCode != SQLITE_OK) {
-        LOGE("sqlite3_create_function_v2 about %s returned %d", DBConstant::UPDATE_META_FUNC.c_str(), errCode);
+        LOGE("sqlite3_create_function_v2 about update_meta_within_trigger returned %d", errCode);
     }
     return SQLiteUtils::MapSQLiteErrno(errCode);
 }

@@ -156,4 +156,9 @@ std::string VirtualTimeSyncCommunicator::GetTargetUserId(const ExtendInfo &param
 {
     return "";
 }
+
+bool VirtualTimeSyncCommunicator::ExchangeClosePending(bool expected)
+{
+    return false;
+}
 } // namespace DistributedDB

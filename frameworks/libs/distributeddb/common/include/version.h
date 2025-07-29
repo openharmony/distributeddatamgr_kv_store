@@ -52,6 +52,7 @@ constexpr const uint32_t SOFTWARE_VERSION_RELEASE_10_0 = SOFTWARE_VERSION_BASE +
 constexpr const uint32_t SOFTWARE_VERSION_RELEASE_11_0 = SOFTWARE_VERSION_BASE + 11; // 11 for tenth released version
 constexpr const uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
 constexpr const uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_11_0;
+constexpr const uint32_t SOFTWARE_VERSION_MAX = UINT16_MAX;
 constexpr const int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version

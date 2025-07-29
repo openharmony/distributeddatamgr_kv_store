@@ -775,3 +775,38 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest008, TestSize.Level
     EXPECT_EQ(g_store->RemoveSubscribe(subs), -1);
     storageEngine->Release();
 }
+
+/**
+  * @tc.name: StorageEngineTest009
+  * @tc.desc: Test pragma
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Remove device data with null db
+     * @tc.expected: step1. Return -E_INVALID_DB
+     */
+    PragmaData input = nullptr;
+    auto con = std::make_shared<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    EXPECT_EQ(con->Pragma(RM_DEVICE_DATA, input), -E_INVALID_DB);
+    /**
+     * @tc.steps: step2. Remove device data with null
+     * @tc.expected: step2. Return DB_ERROR
+     */
+    auto store = new(std::nothrow) SQLiteSingleVerNaturalStore();
+    con->SetSafeDeleted();
+    con = std::make_shared<SQLiteSingleVerNaturalStoreConnection>(store);
+    EXPECT_EQ(con->Pragma(RM_DEVICE_DATA, input), -E_INVALID_DB);
+    /**
+     * @tc.steps: step3. Remove device data with dev
+     * @tc.expected: step3. Return -E_NOT_INIT
+     */
+    std::string dev = "dev";
+    input = static_cast<PragmaData>(&dev);
+    EXPECT_EQ(con->Pragma(RM_DEVICE_DATA, input), -E_NOT_INIT);
+    con = nullptr;
+    RefObject::KillAndDecObjRef(store);
+}

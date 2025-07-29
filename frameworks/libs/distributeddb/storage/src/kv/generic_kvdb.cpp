@@ -422,4 +422,13 @@ void GenericKvDB::MarkRebuild()
 {
     isRebuild_ = true;
 }
+
+int GenericKvDB::PreClose()
+{
+    if (connectionCount_.load() == 1) {
+        return E_OK;
+    }
+    // it will not cause busy when close db, only to verify the last conn
+    return -E_BUSY;
+}
 } // namespace DistributedDB

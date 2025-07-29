@@ -139,6 +139,8 @@ public:
     virtual int64_t GetLocalTimeOffset() = 0;
 
     virtual int32_t GetTaskCount() = 0;
+
+    virtual bool ExchangeClosePending(bool expected) = 0;
 };
 } // namespace DistributedDB
 

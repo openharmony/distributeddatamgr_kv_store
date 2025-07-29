@@ -54,17 +54,17 @@ int SchemaUtils::ExtractJsonObj(const JsonObject &inJsonObject, const std::strin
     auto fieldPath = FieldPath {field};
     int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
     if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s fieldType failed: %d.", field.c_str(), errCode);
+        LOGE("[SchemaUtils][ExtractJsonObj] Get schema fieldType failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
     if (FieldType::INTERNAL_FIELD_OBJECT != fieldType) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Expect %s Object but %s.", field.c_str(),
+        LOGE("[SchemaUtils][ExtractJsonObj] Expect Object but %s.",
             SchemaUtils::FieldTypeString(fieldType).c_str());
         return -E_SCHEMA_PARSE_FAIL;
     }
     errCode = inJsonObject.GetObjectByFieldPath(fieldPath, out);
     if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s value failed: %d.", field.c_str(), errCode);
+        LOGE("[SchemaUtils][ExtractJsonObj] Get schema value failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
     return E_OK;
@@ -77,17 +77,17 @@ int SchemaUtils::ExtractJsonObjArray(const JsonObject &inJsonObject, const std::
     auto fieldPath = FieldPath {field};
     int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
     if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s fieldType failed: %d.", field.c_str(), errCode);
+        LOGE("[SchemaUtils][ExtractJsonObjArray] Get schema fieldType failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
     if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Expect %s Object but %s.", field.c_str(),
+        LOGE("[SchemaUtils][ExtractJsonObjArray] Expect Array but %s.",
             SchemaUtils::FieldTypeString(fieldType).c_str());
         return -E_SCHEMA_PARSE_FAIL;
     }
     errCode = inJsonObject.GetObjectArrayByFieldPath(fieldPath, out);
     if (errCode != E_OK) {
-        LOGE("[SchemaUtils][ExtractJsonObj] Get schema %s value failed: %d.", field.c_str(), errCode);
+        LOGE("[SchemaUtils][ExtractJsonObjArray] Get schema value failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
     return E_OK;

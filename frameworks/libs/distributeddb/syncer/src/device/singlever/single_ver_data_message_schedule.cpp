@@ -93,8 +93,8 @@ void SingleVerDataMessageSchedule::ScheduleInfoHandle(bool isNeedHandleStatus, b
                 ClearMsgMapWithNoLock();
                 expectedSequenceId_ = 1;
             } else {
-                LOGI("[DataMsgSchedule] DealMsg seqId=%" PRIu32 " finishedPacketId=%" PRIu64 " ok,label=%s,dev=%s",
-                    expectedSequenceId_, finishedPacketId_, label_.c_str(), STR_MASK(deviceId_));
+                LOGI("[DataMsgSchedule] DealMsg seqId=%" PRIu32 " finishedPacketId=%" PRIu64 " ok, dev=%s",
+                    expectedSequenceId_, finishedPacketId_, STR_MASK(deviceId_));
                 expectedSequenceId_++;
             }
         }

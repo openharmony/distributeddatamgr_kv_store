@@ -24,6 +24,8 @@ class KnowledgeSourceUtils {
 public:
     static int SetKnowledgeSourceSchema(sqlite3 *db, const KnowledgeSourceSchema &schema);
 
+    static int RemoveKnowledgeTableSchema(sqlite3 *db, const std::string &tableName);
+
     static int CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 protected:
     static int SetKnowledgeSourceSchemaInner(sqlite3 *db, const KnowledgeSourceSchema &schema);

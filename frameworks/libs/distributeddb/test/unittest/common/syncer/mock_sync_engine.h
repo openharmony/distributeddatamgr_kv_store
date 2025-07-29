@@ -29,9 +29,14 @@ public:
         subManager_ = std::make_shared<SubscribeManager>();
     }
 
-    ISyncTaskContext * CallGetSyncTaskContext(const DeviceSyncTarget &target, int &errCode)
+    ISyncTaskContext *CallGetSyncTaskContext(const DeviceSyncTarget &target, int &errCode)
     {
         return SyncEngine::GetSyncTaskContext(target, errCode);
+    }
+
+    ISyncTaskContext *CallFindSyncTaskContext(const DeviceSyncTarget &target)
+    {
+        return SyncEngine::FindSyncTaskContext(target);
     }
 };
 } // namespace DistributedDB

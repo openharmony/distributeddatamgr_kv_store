@@ -377,6 +377,7 @@ private:
     SQLiteSingleVerRelationalStorageExecutor *transactionHandle_ = nullptr;
     SQLiteSingleVerRelationalStorageExecutor *asyncDownloadTransactionHandle_ = nullptr;
     mutable std::shared_mutex transactionMutex_; // used for transaction
+    mutable std::shared_mutex asyncDownloadtransactionMutex_; // used for async download transaction
 
     SchemaMgr schemaMgr_;
     mutable std::shared_mutex schemaMgrMutex_;

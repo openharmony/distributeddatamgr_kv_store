@@ -17,7 +17,6 @@
 #define CLOUD_DB_CONSTANT_H
 
 #include "cloud/cloud_store_types.h"
-#include <string>
 
 namespace DistributedDB {
 class CloudDbConstant {

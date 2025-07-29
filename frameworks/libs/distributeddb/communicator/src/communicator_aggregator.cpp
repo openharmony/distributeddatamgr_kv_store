@@ -679,9 +679,9 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
 {
     LabelType toLabel = inResult.GetCommLabel();
     UserInfo userInfo = { .sendUser = DBConstant::DEFAULT_USER };
-    if (receiveBytesInfo.headLength != 0) {
+    if (receiveBytesInfo.isNeedGetUserInfo) {
         int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userInfo);
-        if (ret != E_OK || userInfo.receiveUser.empty() || userInfo.sendUser.empty()) {
+        if (ret != E_OK || userInfo.sendUser.empty()) {
             LOGE("[CommAggr][AppReceive] get data user id err, ret=%d, empty receiveUser=%d, empty sendUser=%d", ret,
                 userInfo.receiveUser.empty(), userInfo.sendUser.empty());
             delete inFrameBuffer;
@@ -691,43 +691,21 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     }
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(receiveBytesInfo.srcTarget, inFrameBuffer, toLabel,
-            userInfo);
+        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(userInfoProc, receiveBytesInfo.srcTarget,
+            inFrameBuffer, toLabel, userInfo);
         if (errCode == E_OK) { // Attention: Here is equal to E_OK
             return E_OK;
+        } else if (errCode == -E_FEEDBACK_DB_CLOSING) {
+            TryToFeedbackWhenCommunicatorNotFound(receiveBytesInfo.srcTarget, toLabel, inFrameBuffer,
+                E_FEEDBACK_DB_CLOSING);
+            delete inFrameBuffer;
+            inFrameBuffer = nullptr;
+            return errCode; // The caller will display errCode in log
         }
     }
     LOGI("[CommAggr][AppReceive] Communicator of %.3s not found or nonactivated.", VEC_TO_STR(toLabel));
-    int errCode = -E_NOT_FOUND;
-    {
-        std::lock_guard<std::mutex> onCommLackLockGuard(onCommLackMutex_);
-        if (onCommLackHandle_) {
-            errCode = onCommLackHandle_(toLabel, userInfo.receiveUser);
-            LOGI("[CommAggr][AppReceive] On CommLack End."); // Log in case callback block this thread
-        } else {
-            LOGI("[CommAggr][AppReceive] CommLackHandle invalid currently.");
-        }
-    }
-    // Here we have to lock commMapMutex_ and search communicator again.
-    std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(receiveBytesInfo.srcTarget, inFrameBuffer, toLabel,
+    return ReTryDeliverAppLayerFrameOnCommunicatorNotFound(receiveBytesInfo, inFrameBuffer, inResult, userInfoProc,
         userInfo);
-    if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
-        LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
-        return E_OK;
-    }
-    // Here, communicator is still not found, retain or discard according to the result of onCommLackHandle_
-    if (errCode != E_OK) {
-        TryToFeedbackWhenCommunicatorNotFound(receiveBytesInfo.srcTarget, toLabel, inFrameBuffer);
-        delete inFrameBuffer;
-        inFrameBuffer = nullptr;
-        return errCode; // The caller will display errCode in log
-    }
-    // Do Retention, the retainer is responsible to deal with the frame
-    retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, userInfo.sendUser, toLabel,
-        inResult.GetFrameId()});
-    inFrameBuffer = nullptr;
-    return E_OK;
 }
 
 int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const LabelType &toLabel,
@@ -754,17 +732,19 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     return E_OK;
 }
 
-int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const std::string &srcTarget,
-    SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo)
+int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const DataUserInfoProc &userInfoProc,
+    const std::string &srcTarget, SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo)
 {
     // Ignore nonactivated communicator, which is regarded as inexistent
     const std::string &sendUser = userInfo.sendUser;
     const std::string &receiveUser = userInfo.receiveUser;
     if (commMap_[receiveUser].count(toLabel) != 0 && commMap_[receiveUser].at(toLabel).second) {
-        commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
+        int ret = commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
         // Frame handed over to communicator who is responsible to delete it. The frame is deleted here after return.
-        inFrameBuffer = nullptr;
-        return E_OK;
+        if (ret == E_OK) {
+            inFrameBuffer = nullptr;
+        }
+        return ret;
     }
     Communicator *communicator = nullptr;
     bool isEmpty = false;
@@ -783,9 +763,11 @@ int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const s
         }
     }
     if (communicator != nullptr && (receiveUser.empty() || isEmpty)) {
-        communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
-        inFrameBuffer = nullptr;
-        return E_OK;
+        int ret = communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
+        if (ret == E_OK) {
+            inFrameBuffer = nullptr;
+        }
+        return ret;
     }
     LOGE("[CommAggr][TryDeliver] Communicator not found");
     return -E_NOT_FOUND;
@@ -884,7 +866,7 @@ void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTar
 }
 
 void CommunicatorAggregator::TryToFeedbackWhenCommunicatorNotFound(const std::string &dstTarget,
-    const LabelType &dstLabel, const SerialBuffer *inOriFrame)
+    const LabelType &dstLabel, const SerialBuffer *inOriFrame, int inErrCode)
 {
     if (!isCommunicatorNotFoundFeedbackEnable_ || dstTarget.empty() || inOriFrame == nullptr) {
         return;
@@ -898,11 +880,11 @@ void CommunicatorAggregator::TryToFeedbackWhenCommunicatorNotFound(const std::st
         return;
     }
     // Message is release in TriggerCommunicatorNotFoundFeedback
-    TriggerCommunicatorNotFoundFeedback(dstTarget, dstLabel, message);
+    TriggerCommunicatorNotFoundFeedback(dstTarget, dstLabel, message, inErrCode);
 }
 
 void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::string &dstTarget,
-    const LabelType &dstLabel, Message* &oriMsg)
+    const LabelType &dstLabel, Message* &oriMsg, int sendErrNo)
 {
     if (oriMsg == nullptr || oriMsg->GetMessageType() != TYPE_REQUEST) {
         LOGI("[CommAggr][TrigNotFound] Do nothing for message with type not request.");
@@ -914,7 +896,7 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
 
     LOGI("[CommAggr][TrigNotFound] Do communicator not found feedback with target=%s{private}.", dstTarget.c_str());
     oriMsg->SetMessageType(TYPE_RESPONSE);
-    oriMsg->SetErrorNo(E_FEEDBACK_COMMUNICATOR_NOT_FOUND);
+    oriMsg->SetErrorNo(sendErrNo);
 
     int errCode = E_OK;
     SerialBuffer *buffer = ProtocolProto::BuildFeedbackMessageFrame(oriMsg, dstLabel, errCode);
@@ -1180,6 +1162,52 @@ void CommunicatorAggregator::ClearOnlineLabel()
         return;
     }
     commLinker_->ClearOnlineLabel();
+}
+
+int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(const ReceiveBytesInfo &receiveBytesInfo,
+    SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc,
+    const UserInfo &userInfo)
+{
+    LabelType toLabel = inResult.GetCommLabel();
+    int errCode = -E_NOT_FOUND;
+    {
+        std::lock_guard<std::mutex> onCommLackLockGuard(onCommLackMutex_);
+        if (onCommLackHandle_) {
+            errCode = onCommLackHandle_(toLabel, userInfo.receiveUser);
+            LOGI("[CommAggr][AppReceive] On CommLack End."); // Log in case callback block this thread
+        } else {
+            LOGI("[CommAggr][AppReceive] CommLackHandle invalid currently.");
+        }
+    }
+    // Here we have to lock commMapMutex_ and search communicator again.
+    std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
+    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(userInfoProc, receiveBytesInfo.srcTarget,
+        inFrameBuffer, toLabel, userInfo);
+    if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
+        LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
+        return E_OK;
+    }
+    // Here, communicator is still not found, retain or discard according to the result of onCommLackHandle_
+    if (errCode != E_OK || errCodeAgain == -E_FEEDBACK_DB_CLOSING) {
+        TryToFeedbackWhenCommunicatorNotFound(receiveBytesInfo.srcTarget, toLabel, inFrameBuffer,
+            errCodeAgain == -E_FEEDBACK_DB_CLOSING ? E_FEEDBACK_DB_CLOSING : E_FEEDBACK_COMMUNICATOR_NOT_FOUND);
+        if (inFrameBuffer != nullptr) {
+            delete inFrameBuffer;
+            inFrameBuffer = nullptr;
+        }
+        return errCode == E_OK ? errCodeAgain : errCode; // The caller will display errCode in log
+    }
+    // Do Retention, the retainer is responsible to deal with the frame
+    retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, userInfo.sendUser, toLabel,
+        inResult.GetFrameId()});
+    inFrameBuffer = nullptr;
+    return E_OK;
+}
+
+void CommunicatorAggregator::ResetRetryCount()
+{
+    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+    retryCount_.clear();
 }
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB

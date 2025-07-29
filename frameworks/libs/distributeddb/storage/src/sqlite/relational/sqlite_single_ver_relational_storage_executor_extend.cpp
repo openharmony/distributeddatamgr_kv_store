@@ -719,8 +719,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetStatusForAssetOnly(
     sqlite3_stmt *stmt = nullptr;
     errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
     if (errCode != E_OK) {
-        LOGE("can not get assetsField from tableSchema:%s err:%d when download assets only.",
-            tableSchema.name.c_str(), errCode);
+        LOGE("can not get assetsField from tableSchema err:%d when download assets only.", errCode);
         return errCode;
     }
     return ExecuteFillDownloadAssetStatement(stmt, assetsField.size() + 1, cloudGid);

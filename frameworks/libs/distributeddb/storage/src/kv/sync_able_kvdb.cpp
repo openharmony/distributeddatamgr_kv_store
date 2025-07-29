@@ -599,6 +599,30 @@ CloudSyncer *SyncAbleKvDB::GetAndIncCloudSyncer()
     return cloudSyncer_;
 }
 
+bool SyncAbleKvDB::ExchangeClosePending(bool expected)
+{
+    return syncer_.ExchangeClosePending(expected);
+}
+
+int SyncAbleKvDB::PreClose()
+{
+    if (GenericKvDB::PreClose() == E_OK) {
+        int32_t taskCount = GetTaskCount();
+        if (taskCount > 0) {
+            LOGI("[PreClose] task count:%d", taskCount);
+            return -E_BUSY;
+        }
+        ExchangeClosePending(true);
+        taskCount = GetTaskCount();
+        if (taskCount > 0) {
+            LOGI("[PreClose] task count:%d.", taskCount);
+            ExchangeClosePending(false);
+            return -E_BUSY;
+        }
+    }
+    return E_OK;
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)

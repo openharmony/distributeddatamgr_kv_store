@@ -364,7 +364,7 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
     return connection;
 }
 
-int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection)
+int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection, bool isCloseImmediately)
 {
     if (connection == nullptr) {
         return -E_INVALID_DB;
@@ -376,7 +376,7 @@ int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection)
         return -E_OUT_OF_MEMORY;
     }
     manager->EnterDBOpenCloseProcess(identifier);
-    int errCode = connection->Close();
+    int errCode = connection->Close(isCloseImmediately);
     manager->ExitDBOpenCloseProcess(identifier);
 
     if (errCode != E_OK) {

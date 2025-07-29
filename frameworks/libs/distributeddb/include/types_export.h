@@ -247,12 +247,7 @@ struct StoreInfo {
 
     bool operator<(const StoreInfo &other) const
     {
-        if (userId == other.userId && appId == other.appId) {
-            return storeId < other.storeId;
-        } else if (userId == other.userId) {
-            return appId < other.appId;
-        }
-        return userId < other.userId;
+        return std::tie(userId, appId, storeId) < std::tie(other.userId, other.appId, other.storeId);
     }
 };
 using TranslateToDeviceIdCallback = std::function<std::string (const std::string &oriDevId, const StoreInfo &info)>;

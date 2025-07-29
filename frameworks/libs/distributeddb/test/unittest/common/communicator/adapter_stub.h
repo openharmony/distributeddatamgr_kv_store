@@ -87,6 +87,9 @@ public:
     void SimulateSendBitErrorInPaddingLenField(bool doFlag, uint8_t inPaddingLen);
     void SimulateSendBitErrorInMessageIdField(bool doFlag, uint32_t inMessageId);
     void ForkSendBytes(const OnSendBytes &onSendBytes);
+
+    void SetUserInfo(const std::vector<UserInfo> &userInfo);
+    std::vector<UserInfo> GetUserInfo();
 private:
     void Connect(AdapterStub *inStub);
     void Disconnect(AdapterStub *inStub);
@@ -139,6 +142,8 @@ private:
 
     std::mutex sendBytesMutex_;
     OnSendBytes onSendBytes_;
+
+    std::vector<UserInfo> userInfo_;
 };
 }
 

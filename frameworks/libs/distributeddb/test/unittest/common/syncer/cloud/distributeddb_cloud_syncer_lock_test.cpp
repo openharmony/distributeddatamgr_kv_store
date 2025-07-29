@@ -77,6 +77,7 @@ std::shared_ptr<VirtualCloudDb> g_virtualCloudDb;
 std::shared_ptr<VirtualAssetLoader> g_virtualAssetLoader;
 std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
 SyncProcess g_syncProcess;
+std::vector<std::map<std::string, SyncProcess>> g_allSyncProcess;
 std::condition_variable g_processCondition;
 std::mutex g_processMutex;
 IRelationalStore *g_store = nullptr;
@@ -187,6 +188,7 @@ void DistributedDBCloudSyncerLockTest::Init()
     g_virtualCloudDb = make_shared<VirtualCloudDb>();
     g_virtualAssetLoader = make_shared<VirtualAssetLoader>();
     g_syncProcess = {};
+    g_allSyncProcess = {};
     ASSERT_EQ(g_delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
     ASSERT_EQ(g_delegate->SetIAssetLoader(g_virtualAssetLoader), DBStatus::OK);
     DataBaseSchema dataBaseSchema;
@@ -324,6 +326,7 @@ void DistributedDBCloudSyncerLockTest::CallSync(const CloudSyncOption &option, D
     bool finish = false;
     SyncProcess last;
     auto callback = [&last, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        g_allSyncProcess.push_back(process);
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 {
@@ -471,8 +474,13 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level
     int localCount = 10;
     InsertLocalData(0, cloudCount, ASSETS_TABLE_NAME, true);
     InsertCloudDBData(0, localCount, 0, ASSETS_TABLE_NAME);
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([&queryIdx](const std::string &, VBucket &) {
+        queryIdx++;
+    });
     CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::NONE);
     CallSync(option);
+    EXPECT_EQ(queryIdx, 1L);
 
     /**
      * @tc.steps:step2. insert or replace, check version
@@ -484,6 +492,48 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync001, TestSize.Level
         " where version != '' and version is not null;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+}
+
+/**
+ * @tc.name: RDBUnlockCloudSync002
+ * @tc.desc: Test sync with multi table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data and sync with none lock
+     * @tc.expected: step1. return ok.
+     */
+    std::string tableName = "tea";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "CREATE TABLE IF NOT EXISTS tea(" + COL_ID + " INTEGER PRIMARY KEY," +
+        COL_NAME + " TEXT ," + COL_ASSET + " ASSET," + COL_ASSETS + " ASSETS" + ");"), SQLITE_OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(tableName, CLOUD_COOPERATION), DBStatus::OK);
+    DataBaseSchema dataBaseSchema;
+    GetCloudDbSchema(dataBaseSchema);
+    TableSchema teaSchema = {.name = tableName, .sharedTableName = tableName + "_shared",
+        .fields = CLOUD_FIELDS};
+    dataBaseSchema.tables.push_back(teaSchema);
+    ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    InsertCloudDBData(0, cloudCount, 0, tableName);
+    int queryIdx = 0;
+    g_virtualCloudDb->ForkQuery([&queryIdx](const std::string &, VBucket &) {
+        queryIdx++;
+    });
+
+    /**
+     * @tc.steps:step2. sync and check process count
+     * @tc.expected: step2. return ok.
+     */
+    CloudSyncOption option =
+        PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME, tableName }), LockAction::NONE);
+    CallSync(option);
+    EXPECT_EQ(queryIdx, 2L);
+    EXPECT_EQ(g_allSyncProcess.size(), 4u);
 }
 
 /**

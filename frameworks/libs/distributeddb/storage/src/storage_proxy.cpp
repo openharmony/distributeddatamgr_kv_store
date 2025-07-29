@@ -125,7 +125,7 @@ int StorageProxy::StartTransaction(TransactType type, bool isAsyncDownload)
         return -E_INVALID_DB;
     }
     int errCode = store_->StartTransaction(type, isAsyncDownload);
-    if (errCode == E_OK) {
+    if (errCode == E_OK && !isAsyncDownload) {
         transactionExeFlag_.store(true);
         isWrite_.store(type == TransactType::IMMEDIATE);
     }
@@ -139,7 +139,7 @@ int StorageProxy::Commit(bool isAsyncDownload)
         return -E_INVALID_DB;
     }
     int errCode = store_->Commit(isAsyncDownload);
-    if (errCode == E_OK) {
+    if (errCode == E_OK && !isAsyncDownload) {
         transactionExeFlag_.store(false);
     }
     return errCode;
@@ -152,7 +152,7 @@ int StorageProxy::Rollback(bool isAsyncDownload)
         return -E_INVALID_DB;
     }
     int errCode = store_->Rollback(isAsyncDownload);
-    if (errCode == E_OK) {
+    if (errCode == E_OK && !isAsyncDownload) {
         transactionExeFlag_.store(false);
     }
     return errCode;

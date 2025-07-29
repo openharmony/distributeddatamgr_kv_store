@@ -223,8 +223,8 @@ namespace {
          * @tc.steps:step3. check tracker schema
          * @tc.expected: step3. Return OK.
          */
-        const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
-            DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
+        const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY,
+            DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY + strlen(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY));
         sql = "SELECT value FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata WHERE key=?;";
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, sql, stmt), E_OK);
@@ -321,7 +321,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest001,
      * @tc.steps:step3. table name is illegal table name
      * @tc.expected: step3. Return INVALID_ARGS.
      */
-    schema.tableName = DBConstant::SYSTEM_TABLE_PREFIX + "_1";
+    schema.tableName = std::string(DBConstant::SYSTEM_TABLE_PREFIX) + "_1";
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), INVALID_ARGS);
     CloseStore();
 }

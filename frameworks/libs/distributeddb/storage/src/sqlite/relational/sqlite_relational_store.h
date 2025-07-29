@@ -207,7 +207,7 @@ private:
     int CheckCloudSchema(const DataBaseSchema &schema);
 #endif
 
-    int OperateDataStatusInner(const std::vector<std::string> &tables) const;
+    int OperateDataStatusInner(const std::vector<std::string> &tables, uint64_t virtualTime) const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

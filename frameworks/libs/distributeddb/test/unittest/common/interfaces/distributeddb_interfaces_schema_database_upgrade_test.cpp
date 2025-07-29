@@ -80,18 +80,20 @@ namespace {
     std::string SchemaSwitchMode(const std::string &oriSchemaStr)
     {
         std::string resStr = oriSchemaStr;
-        auto iterStrict = std::search(resStr.begin(), resStr.end(), SchemaConstant::KEYWORD_MODE_STRICT.begin(),
-            SchemaConstant::KEYWORD_MODE_STRICT.end());
-        auto iterCompatible = std::search(resStr.begin(), resStr.end(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(),
-            SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
+        auto iterStrict = std::search(resStr.begin(), resStr.end(), SchemaConstant::KEYWORD_MODE_STRICT,
+            SchemaConstant::KEYWORD_MODE_STRICT + strlen(SchemaConstant::KEYWORD_MODE_STRICT));
+        auto iterCompatible = std::search(resStr.begin(), resStr.end(), SchemaConstant::KEYWORD_MODE_COMPATIBLE,
+            SchemaConstant::KEYWORD_MODE_COMPATIBLE + strlen(SchemaConstant::KEYWORD_MODE_COMPATIBLE));
         if (iterStrict != resStr.end()) {
-            resStr.replace(iterStrict, iterStrict + SchemaConstant::KEYWORD_MODE_STRICT.size(),
-                SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
+            resStr.replace(iterStrict, iterStrict + strlen(SchemaConstant::KEYWORD_MODE_STRICT),
+                SchemaConstant::KEYWORD_MODE_COMPATIBLE,
+                SchemaConstant::KEYWORD_MODE_COMPATIBLE + strlen(SchemaConstant::KEYWORD_MODE_COMPATIBLE));
             return resStr;
         }
         if (iterCompatible != resStr.end()) {
-            resStr.replace(iterCompatible, iterCompatible + SchemaConstant::KEYWORD_MODE_COMPATIBLE.size(),
-                SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
+            resStr.replace(iterCompatible, iterCompatible + strlen(SchemaConstant::KEYWORD_MODE_COMPATIBLE),
+                SchemaConstant::KEYWORD_MODE_STRICT,
+                SchemaConstant::KEYWORD_MODE_STRICT + strlen(SchemaConstant::KEYWORD_MODE_STRICT));
             return resStr;
         }
         return oriSchemaStr;

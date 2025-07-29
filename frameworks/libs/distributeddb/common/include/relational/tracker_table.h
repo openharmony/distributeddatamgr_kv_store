@@ -30,7 +30,7 @@ enum class TriggerModeEnum;
 class TrackerTable {
 public:
     TrackerTable() = default;
-    virtual ~TrackerTable() {};
+    ~TrackerTable() {};
 
     std::string GetTableName() const;
     const std::set<std::string> &GetTrackerColNames() const;

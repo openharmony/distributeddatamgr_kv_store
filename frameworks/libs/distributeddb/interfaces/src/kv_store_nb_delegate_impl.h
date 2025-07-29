@@ -124,7 +124,7 @@ public:
 
     void SetReleaseFlag(bool flag);
 
-    DBStatus Close();
+    DBStatus Close(bool isCloseImmediately = true);
 
     // Sync function interface, if wait set true, this function will be blocked until sync finished.
     // Param query used to filter the records to be synchronized.

@@ -46,6 +46,7 @@ int UserChangeMonitor::Start()
 
 void UserChangeMonitor::Stop()
 {
+    std::shared_lock<std::shared_mutex> lockGuard(userChangeMonitorLock_);
     if (!isStarted_) {
         return;
     }

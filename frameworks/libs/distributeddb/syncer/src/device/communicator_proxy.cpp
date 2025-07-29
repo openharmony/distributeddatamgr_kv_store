@@ -295,4 +295,12 @@ std::string CommunicatorProxy::GetTargetUserId(const ExtendInfo &paramInfo) cons
 
     return "";
 }
+
+bool CommunicatorProxy::ExchangeClosePending(bool expected)
+{
+    if (mainComm_ != nullptr) {
+        return mainComm_->ExchangeClosePending(expected);
+    }
+    return false;
+}
 } // namespace DistributedDB

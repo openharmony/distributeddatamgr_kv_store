@@ -15,6 +15,7 @@
 
 #include "sqlite_relational_utils.h"
 #include "db_common.h"
+#include "time_helper.h"
 
 namespace DistributedDB {
 int SQLiteRelationalUtils::CreateRelationalMetaTable(sqlite3 *db)
@@ -105,6 +106,27 @@ int SQLiteRelationalUtils::InitCursorToMeta(sqlite3 *db, bool isMemory, const st
     return errCode;
 }
 
+int SQLiteRelationalUtils::InitKnowledgeTableTypeToMeta(sqlite3 *db, bool isMemory, const std::string &tableName)
+{
+    std::string tableTypeKey = "sync_table_type_" + tableName;
+    Value key;
+    DBCommon::StringToVector(tableTypeKey, key);
+    Value value;
+    int errCode = GetKvData(db, isMemory, key, value);
+    if (errCode == -E_NOT_FOUND) {
+        DBCommon::StringToVector(DBConstant::KNOWLEDGE_TABLE_TYPE, value);
+        errCode = PutKvData(db, isMemory, key, value);
+        if (errCode != E_OK) {
+            LOGE("Init table type to meta table failed. %d", errCode);
+            return errCode;
+        }
+    }
+    if (errCode != E_OK) {
+        LOGE("Get table type from meta table failed. %d", errCode);
+    }
+    return errCode;
+}
+
 int SQLiteRelationalUtils::SetLogTriggerStatus(sqlite3 *db, bool status)
 {
     const std::string key = "log_trigger_switch";
@@ -122,8 +144,8 @@ int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity
     std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param)
 {
     std::string tableName = tableInfo.GetTableName();
-    int64_t timeOffset = 0;
-    int errCode = GetExistedDataTimeOffset(param.db, tableName, param.isMemory, timeOffset);
+    std::string timeStr;
+    int errCode = GeneTimeStrForLog(tableInfo, param, timeStr);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -131,7 +153,6 @@ int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity
     if (errCode != E_OK) {
         return errCode;
     }
-    std::string timeOffsetStr = std::to_string(timeOffset);
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
     std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
@@ -140,9 +161,8 @@ int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity
     trackerTable.SetTableName(tableName);
     const std::string prefix = "a.";
     std::string calPrimaryKeyHash = logMgrPtr->CalcPrimaryKeyHash(prefix, tableInfo, identity);
-    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid +
-        ", '', '', " + timeOffsetStr + " + " + rowid + ", " +
-        timeOffsetStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
+    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid + ", '', '', " + timeStr + " + " +
+                          rowid + ", " + timeStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
     sql += GetExtendValue(tableInfo.GetTrackerTable());
     sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a ";
     if (param.isTrackerTable) {
@@ -244,5 +264,69 @@ int SQLiteRelationalUtils::AnalysisTrackerTable(sqlite3 *db, const TrackerTable 
         LOGE("check tracker table schema failed %d.", errCode);
     }
     return errCode;
+}
+
+int SQLiteRelationalUtils::GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset)
+{
+    std::string sql = "SELECT value FROM " + DBCommon::GetMetaTableName() + " WHERE key=x'" +
+        DBCommon::TransferStringToHex(std::string(DBConstant::LOCALTIME_OFFSET_KEY)) + "';";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int ret = E_OK;
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        if (timeOffset < 0) {
+            LOGE("[SQLiteRDBUtils] TimeOffset %" PRId64 "is invalid.", timeOffset);
+            SQLiteUtils::ResetStatement(stmt, true, ret);
+            return -E_INTERNAL_ERROR;
+        }
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        timeOffset  = 0;
+        errCode = E_OK;
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
+}
+
+std::pair<int, std::string> SQLiteRelationalUtils::GetCurrentVirtualTime(sqlite3 *db)
+{
+    int64_t localTimeOffset = 0;
+    std::pair<int, std::string> res;
+    auto &[errCode, time] = res;
+    errCode = GetMetaLocalTimeOffset(db, localTimeOffset);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Failed to get local timeOffset.%d", errCode);
+        return res;
+    }
+    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
+    Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(localTimeOffset);
+    time = std::to_string(currentLocalTime);
+    return res;
+}
+
+int SQLiteRelationalUtils::GeneTimeStrForLog(const TableInfo &tableInfo, GenLogParam &param, std::string &timeStr)
+{
+    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        auto [errCode, time] = GetCurrentVirtualTime(param.db);
+        if (errCode != E_OK) {
+            LOGE("Failed to get current virtual time.%d", errCode);
+            return errCode;
+        }
+        timeStr = time;
+    } else {
+        int64_t timeOffset = 0;
+        std::string tableName = tableInfo.GetTableName();
+        int errCode = GetExistedDataTimeOffset(param.db, tableName, param.isMemory, timeOffset);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        timeStr = std::to_string(timeOffset);
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

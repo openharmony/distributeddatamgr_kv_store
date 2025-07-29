@@ -117,10 +117,8 @@ int MakeDBDirectory(const std::string &directory)
 {
     int errCode = mkdir(directory.c_str());
     if (errCode < 0) {
-        // 3 means one-third
-        std::string str = directory.length() == 0 ? "empty directory path" :
-            directory.substr(0, directory.length() / 3) + "*****" + directory.substr((2 * directory.length()) / 3);
-        LOGE("[MakeDir] Make directory fail:%d, directory path: %s", errno, str.c_str());
+        LOGE("[MakeDir] Make directory fail:%d, %s", errno,
+            directory.empty() ? "empty directory path" : "directory path error");
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;
@@ -129,10 +127,10 @@ int MakeDBDirectory(const std::string &directory)
 int RemoveDBDirectory(const std::string &directory)
 {
 #ifdef DB_DEBUG_ENV
-    LOGD("---> remove db directory: %s", directory.c_str());
+    LOGD("---> remove db directory");
 #endif
     int ret = rmdir(directory.c_str());
-    LOGI("CheckPathExistence %s ret:%d error %d", directory.c_str(), ret, errno);
+    LOGI("CheckPathExistence ret:%d error %d", ret, errno);
     return ret;
 }
 
@@ -239,13 +237,12 @@ static int GetFilePathAttr(const std::string &topPath, const std::string &relati
     std::string findPath = std::string(topPath) + "\\*.*";
     intptr_t handle = _findfirst(findPath.c_str(), &file);
     if (handle < 0) {
-        LOGE("Open dir error:%s %d.", topPath.c_str(), errno);
+        LOGE("Open dir error: %d.", errno);
         return -E_INVALID_PATH;
     }
     int errCode = E_OK;
     std::string fileAbsName;
     struct _stat64 fileStat;
-    LOGE("find first file %s  %s relativePath %s", topPath.c_str(), file.name, relativePath.c_str());
 
     FileAttr fileAttr;
     do {
@@ -260,7 +257,7 @@ static int GetFilePathAttr(const std::string &topPath, const std::string &relati
         fileAbsName = topPath + "/" + file.name;
         errCode = _stat64(fileAbsName.c_str(), &fileStat);
         if (errCode != 0) {
-            LOGE("[GetFileAttr]Get file stat failed, %s error = %d.", fileAbsName.c_str(), errno);
+            LOGE("[GetFileAttr]Get file stat failed, error = %d.", errCode);
             errCode = -E_INVALID_PATH;
             break;
         }
@@ -269,20 +266,15 @@ static int GetFilePathAttr(const std::string &topPath, const std::string &relati
         }
         fileAttr.fileLen = static_cast<uint64_t>(fileStat.st_size);
         files.push_back(fileAttr);
-        LOGE("find fileAbsName file %s %s %d relativePath %s", topPath.c_str(), file.name,
-             file.attrib, relativePath.c_str());
         if (fileAttr.fileType == PATH) {
             errCode = GetFilePathAttr(fileAbsName, relativePath + file.name + "/", files, isNeedAllPath);
             if (errCode != E_OK) {
-                LOGE("[GetFileAttr]GetFilePathAttr finish, %s error = %d.", topPath.c_str(), errCode);
-                printf("GetFilePathAttr the finish %s error:%d\n", topPath.c_str(), errCode);
+                LOGE("[GetFileAttr]GetFilePathAttr failed, error = %d.", errCode);
                 break;
             }
         }
     } while (_findnext(handle, &file) == 0);
     _findclose(handle);
-    LOGE("[GetFileAttr]GetFilePathAttr finish, %s error = %d.", topPath.c_str(), errCode);
-    printf("GetFilePathAttr the finish end %s error:%d\n", topPath.c_str(), errCode);
     return errCode;
 }
 
@@ -437,10 +429,8 @@ int MakeDBDirectory(const std::string &directory)
 {
     int errCode = mkdir(directory.c_str(), (S_IRWXU | S_IRWXG)); // The permission is 770 for linux based os
     if (errCode < 0) {
-        // 3 means one-third
-        std::string str = directory.length() == 0 ? "empty directory path" :
-            directory.substr(0, directory.length() / 3) + "*****" + directory.substr((2 * directory.length()) / 3);
-        LOGE("[MakeDir] Make directory fail:%d, directory path: %s", errno, str.c_str());
+        LOGE("[MakeDir] Make directory fail:%d, %s", errno,
+            directory.empty() ? "empty directory path" : "directory path error");
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;

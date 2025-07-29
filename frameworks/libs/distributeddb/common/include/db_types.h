@@ -183,5 +183,6 @@ struct DeviceTimeInfo {
 
 using ObserverAction =
     std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
+
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

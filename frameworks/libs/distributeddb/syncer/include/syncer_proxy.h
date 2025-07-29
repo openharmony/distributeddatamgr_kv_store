@@ -121,6 +121,8 @@ public:
     int64_t GetLocalTimeOffset() override;
 
     int32_t GetTaskCount() override;
+
+    bool ExchangeClosePending(bool expected) override;
 private:
     std::mutex syncerLock_;
     std::shared_ptr<ISyncer> syncer_;

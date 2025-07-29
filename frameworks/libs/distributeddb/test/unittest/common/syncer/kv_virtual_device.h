@@ -45,6 +45,8 @@ public:
     void EraseWaterMark(const std::string &dev);
 
     void SetPushNotifier(const std::function<void(const std::string &)> &pushNotifier);
+
+    void SetSchema(const std::string &schema);
 };
 } // namespace DistributedDB
 

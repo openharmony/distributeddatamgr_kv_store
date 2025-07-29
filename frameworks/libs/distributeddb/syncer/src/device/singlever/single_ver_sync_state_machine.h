@@ -67,6 +67,7 @@ public:
         RE_SEND_DATA_EVENT,
         CONTROL_CMD_EVENT,
         NEED_TIME_SYNC_EVENT,
+        NEED_RESYNC_EVENT,
         ANY_EVENT
     };
     SingleVerSyncStateMachine();

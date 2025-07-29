@@ -63,7 +63,8 @@ public:
     void SetReferenceProperty(const std::vector<TableReferenceProperty> &referenceProperty);
     const std::vector<TableReferenceProperty> &GetReferenceProperty() const;
     std::set<std::string> GetSharedTableForChangeTable(std::set<std::string> &changeTables) const;
-    std::set<std::string> CompareReferenceProperty(const std::vector<TableReferenceProperty> &others) const;
+    std::set<std::string> CompareReferenceProperty(const std::vector<TableReferenceProperty> &others,
+        bool &isRefNotSet) const;
     std::map<std::string, std::map<std::string, bool>> GetReachableRef();
     std::map<std::string, int> GetTableWeight();
 
@@ -77,6 +78,8 @@ public:
     std::vector<FieldInfo> GetSyncFieldInfo(const std::string &tableName, bool ignoreTableNonExist = true) const;
 
     DistributedTable GetDistributedTable(const std::string &table) const;
+
+    std::map<std::string, bool> GetTableChangeStatus(const DistributedSchema &schema);
 private:
     int CompareAgainstSchemaObject(const std::string &inSchemaString, std::map<std::string, int> &cmpRst) const;
 
@@ -136,7 +139,7 @@ private:
     bool isValid_ = false; // set to true after parse success from string or add at least one relational table
     SchemaType schemaType_ = SchemaType::RELATIVE; // Default RELATIVE
     std::string schemaString_; // The minified and valid schemaString
-    std::string schemaVersion_ = SchemaConstant::SCHEMA_SUPPORT_VERSION_V2; // Default version 2.0
+    std::string schemaVersion_ = std::string(SchemaConstant::SCHEMA_SUPPORT_VERSION_V2); // Default version 2.0
     TableInfoMap tables_;
     TableInfoMap trackerTables_;
     std::vector<TableReferenceProperty> referenceProperty_;

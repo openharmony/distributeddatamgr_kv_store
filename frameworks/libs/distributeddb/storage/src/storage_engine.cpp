@@ -217,8 +217,8 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
         std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
         std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
         if (waitTime <= 0) { // non-blocking.
-            if (readIdleList.empty() &&
-                readIdleList.size() + readUsingList.size() + pendingCount == engineAttr_.maxReadNum) {
+            auto pending = static_cast<size_t>(pendingCount.load());
+            if (readIdleList.empty() && readUsingList.size() + pending == engineAttr_.maxReadNum) {
                 return nullptr;
             }
         } else {

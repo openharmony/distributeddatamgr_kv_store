@@ -27,6 +27,7 @@
 #include "virtual_communicator_aggregator.h"
 #include "virtual_cloud_db.h"
 #include "sqlite_utils.h"
+#include "time_helper.h"
 using namespace testing::ext;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
@@ -105,6 +106,8 @@ void DistributedDBCloudKvStoreTest::TearDownTestCase()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+    g_CloudSyncoption.users.clear();
+    g_CloudSyncoption.devices.clear();
 }
 
 void DistributedDBCloudKvStoreTest::SetUp()
@@ -1448,7 +1451,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest013, TestSize.Level0)
     */
     Key k1 = {'k', '1'};
     Value v1 = {'v', '1'};
-    deviceB_->PutData(k1, v1, 1u, 0); // 1 is current timestamp
+    deviceB_->PutData(k1, v1, TimeHelper::GetSysCurrentTime() + TimeHelper::BASE_OFFSET, 0);
     /**
      * @tc.steps: step2. sync between devices
      * * @tc.expected: step2. insert successfully
@@ -1889,7 +1892,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest002, TestSize.Leve
     Value actualValue;
     EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK) ;
     EXPECT_EQ(actualValue, v1);
-
+    std::this_thread::sleep_for(std::chrono::milliseconds(1)); // sleep for 1ms
     Key k2 = {'k', '2'};
     Value v2 = {'v', '2'};
     ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v2), OK);

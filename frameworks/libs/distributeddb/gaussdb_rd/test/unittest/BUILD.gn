@@ -12,7 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 
-module_output_path = "kv_store/kv_store/gaussdb_rd"
+module_output_path = "kv_store/gaussdb_rd"
 
 ###############################################################################
 config("module_private_config") {

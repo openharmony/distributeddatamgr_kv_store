@@ -283,8 +283,8 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
                 typeVal = static_cast<int64_t>(sqlite3_column_int64(stmt, cid));
                 break;
             }
-            if (strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOL.c_str()) == 0 ||
-                strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOLEAN.c_str()) == 0) { // LCOV_EXCL_BR_LINE
+            if (strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOL) == 0 ||
+                strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOLEAN) == 0) { // LCOV_EXCL_BR_LINE
                 typeVal = static_cast<bool>(sqlite3_column_int(stmt, cid));
                 break;
             }
@@ -777,13 +777,11 @@ int SQLiteRelationalUtils::GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTab
     return errCode;
 }
 
-int SQLiteRelationalUtils::OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables)
+int SQLiteRelationalUtils::OperateDataStatus(sqlite3 *db, const std::vector<std::string> &tables, uint64_t virtualTime)
 {
-    auto [errCode, time] = GetCurrentVirtualTime(db);
-    if (errCode != E_OK) {
-        return errCode;
-    }
+    auto time = std::to_string(virtualTime);
     LOGI("[SQLiteRDBUtils] %zu tables wait for update time to %s", tables.size(), time.c_str());
+    int errCode = E_OK;
     for (const auto &table : tables) {
         errCode = UpdateLocalDataModifyTime(db, table, time);
         if (errCode != E_OK) {
@@ -821,45 +819,5 @@ int SQLiteRelationalUtils::UpdateLocalDataModifyTime(sqlite3 *db, const std::str
             table.size(), errCode);
     }
     return errCode;
-}
-
-int SQLiteRelationalUtils::GetMetaLocalTimeOffset(sqlite3 *db, int64_t &timeOffset)
-{
-    std::string sql = "SELECT value FROM " + DBCommon::GetMetaTableName() + " WHERE key=x'" +
-        DBCommon::TransferStringToHex(std::string(DBConstant::LOCALTIME_OFFSET_KEY)) + "';";
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int ret = E_OK;
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        timeOffset = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-        if (timeOffset < 0) {
-            LOGE("[SQLiteRDBUtils] TimeOffset %" PRId64 "is invalid.", timeOffset);
-            SQLiteUtils::ResetStatement(stmt, true, ret);
-            return -E_INTERNAL_ERROR;
-        }
-        errCode = E_OK;
-    }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
-}
-
-std::pair<int, std::string> SQLiteRelationalUtils::GetCurrentVirtualTime(sqlite3 *db)
-{
-    int64_t localTimeOffset = 0;
-    std::pair<int, std::string> res;
-    auto &[errCode, time] = res;
-    errCode = GetMetaLocalTimeOffset(db, localTimeOffset);
-    if (errCode != E_OK) {
-        LOGE("[SQLiteRDBUtils] Failed to get local timeOffset.%d", errCode);
-        return res;
-    }
-    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-    Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(localTimeOffset);
-    time = std::to_string(currentLocalTime);
-    return res;
 }
 } // namespace DistributedDB

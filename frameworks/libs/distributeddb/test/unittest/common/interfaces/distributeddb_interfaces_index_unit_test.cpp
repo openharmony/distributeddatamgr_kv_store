@@ -53,13 +53,13 @@ namespace {
         string identifierName = DBCommon::TransferStringToHex(hashIdentifierName);
         string filePath = g_testDir + "/" + identifierName + "/";
         if (databaseType == DBConstant::DB_TYPE_LOCAL) { // local
-            filePath += (DBConstant::LOCAL_SUB_DIR + "/" + DBConstant::LOCAL_DATABASE_NAME +
+            filePath += (std::string(DBConstant::LOCAL_SUB_DIR) + "/" + DBConstant::LOCAL_DATABASE_NAME +
                 DBConstant::DB_EXTENSION);
         } else if (databaseType == DBConstant::DB_TYPE_SINGLE_VER) { // single ver
-            filePath += (DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR + "/" +
+            filePath += (std::string(DBConstant::SINGLE_SUB_DIR) + "/" + DBConstant::MAINDB_DIR + "/" +
                 DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION);
         } else if (databaseType == DBConstant::DB_TYPE_MULTI_VER) { // multi ver
-            filePath += (DBConstant::MULTI_SUB_DIR + "/" + DBConstant::MULTI_VER_DATA_STORE +
+            filePath += (std::string(DBConstant::MULTI_SUB_DIR) + "/" + DBConstant::MULTI_VER_DATA_STORE +
                 DBConstant::DB_EXTENSION);
         } else {
             filePath = "";

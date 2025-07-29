@@ -40,6 +40,8 @@ protected:
         const std::string &user);
     std::pair<DBStatus, uint64_t> GetRemoteSchemaVersion(const StoreInfo &info, const std::string &dev,
         const std::string &user);
+    DBStatus SetRemoteSoftwareVersion(const StoreInfo &info, const std::string &dev,
+        const std::string &user, uint64_t version);
     std::pair<DBStatus, uint64_t> GetLocalSchemaVersion(const StoreInfo &info);
     int QueryMetaValue(const StoreInfo &info, const std::string &dev, const std::string &user,
         const std::function<int(const std::shared_ptr<Metadata> &, const std::string &,

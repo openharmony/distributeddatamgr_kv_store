@@ -50,11 +50,8 @@ int SqliteCloudKvExecutorUtils::GetCloudData(const CloudSyncConfig &config, cons
     } while (errCode == E_OK);
     LOGI("[SqliteCloudKvExecutorUtils] Get cloud sync data, insData:%u, upData:%u, delLog:%u errCode:%d total:%" PRIu32,
          data.insData.record.size(), data.updData.record.size(), data.delData.extend.size(), errCode, totalSize);
-    if (errCode != -E_UNFINISHED) {
-        token.ReleaseCloudQueryStmt();
-    } else if (isMemory && UpdateBeginTimeForMemoryDB(token, data)) {
-        token.ReleaseCloudQueryStmt();
-    }
+    UpdateBeginTime(token, data);
+    token.ReleaseCloudQueryStmt();
     return errCode;
 }
 
@@ -73,7 +70,7 @@ Timestamp SqliteCloudKvExecutorUtils::GetMaxTimeStamp(const std::vector<VBucket>
     return maxTimeStamp;
 }
 
-bool SqliteCloudKvExecutorUtils::UpdateBeginTimeForMemoryDB(SQLiteSingleVerContinueToken &token,
+void SqliteCloudKvExecutorUtils::UpdateBeginTime(SQLiteSingleVerContinueToken &token,
     const CloudSyncData &data)
 {
     Timestamp maxTimeStamp = 0;
@@ -93,10 +90,9 @@ bool SqliteCloudKvExecutorUtils::UpdateBeginTimeForMemoryDB(SQLiteSingleVerConti
     }
     if (maxTimeStamp > token.GetQueryBeginTime()) {
         token.SetNextBeginTime("", maxTimeStamp);
-        return true;
+        return;
     }
-    LOGW("[SqliteCloudKvExecutorUtils] The start time of the in memory database has not been updated.");
-    return false;
+    LOGW("[SqliteCloudKvExecutorUtils] The start time of the database has not been updated.");
 }
 
 int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &config, const CloudUploadRecorder &recorder,
@@ -936,6 +932,9 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const Cl
     auto [db, ignoreEmptyGid] = param;
     sqlite3_stmt *logStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, GetOperateLogSql(TransToOpType(type)), logStmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     ResFinalizer finalizerData([logStmt]() {
         sqlite3_stmt *statement = logStmt;
         int ret = E_OK;
@@ -974,10 +973,9 @@ int SqliteCloudKvExecutorUtils::FillCloudGid(const FillGidParam &param, const Cl
         SQLiteUtils::ResetStatement(logStmt, false, errCode);
         MarkUploadSuccess(param, data, user, i);
         // ignored version record
-        if (i >= data.timestamp.size()) {
-            continue;
+        if (i < data.timestamp.size()) {
+            recorder.RecordUploadRecord(CloudDbConstant::CLOUD_KV_TABLE_NAME, data.hashKey[i], type, data.timestamp[i]);
         }
-        recorder.RecordUploadRecord(CloudDbConstant::CLOUD_KV_TABLE_NAME, data.hashKey[i], type, data.timestamp[i]);
     }
     return E_OK;
 }

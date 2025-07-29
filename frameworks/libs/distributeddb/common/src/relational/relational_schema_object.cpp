@@ -279,9 +279,10 @@ std::set<std::string> RelationalSchemaObject::GetSharedTableForChangeTable(std::
 }
 
 std::set<std::string> RelationalSchemaObject::CompareReferenceProperty(
-    const std::vector<TableReferenceProperty> &others) const
+    const std::vector<TableReferenceProperty> &others, bool &isRefNotSet) const
 {
     std::set<std::string> changeTables;
+    isRefNotSet = referenceProperty_.empty();
     PropertyCompare(referenceProperty_, others, changeTables);
     PropertyCompare(others, referenceProperty_, changeTables);
     if (!changeTables.empty()) { // get shared tables
@@ -366,7 +367,7 @@ int GetMemberFromJsonObject(const JsonObject &inJsonObject, const std::string &f
 {
     if (!inJsonObject.IsFieldPathExist(FieldPath {fieldName})) {
         if (isNecessary) {
-            LOGE("[RelationalSchema][Parse] Get schema %s not exist. isNecessary: %d", fieldName.c_str(), isNecessary);
+            LOGE("[RelationalSchema][Parse] Get schema not exist. isNecessary: %d", isNecessary);
             return -E_SCHEMA_PARSE_FAIL;
         }
         return -E_NOT_FOUND;
@@ -375,19 +376,19 @@ int GetMemberFromJsonObject(const JsonObject &inJsonObject, const std::string &f
     FieldType fieldType;
     int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {fieldName}, fieldType);
     if (errCode != E_OK) {
-        LOGE("[RelationalSchema][Parse] Get schema %s fieldType failed: %d.", fieldName.c_str(), errCode);
+        LOGE("[RelationalSchema][Parse] Get schema fieldType failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
 
     if (fieldType != expectType) {
-        LOGE("[RelationalSchema][Parse] Expect %s fieldType %d but: %d.", fieldName.c_str(),
+        LOGE("[RelationalSchema][Parse] Expect fieldType %d but: %d.",
             static_cast<int>(expectType), static_cast<int>(fieldType));
         return -E_SCHEMA_PARSE_FAIL;
     }
 
     errCode = inJsonObject.GetFieldValueByFieldPath(FieldPath {fieldName}, fieldValue);
     if (errCode != E_OK) {
-        LOGE("[RelationalSchema][Parse] Get schema %s value failed: %d.", fieldName.c_str(), errCode);
+        LOGE("[RelationalSchema][Parse] Get schema value failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
     return E_OK;
@@ -1519,6 +1520,26 @@ DistributedTable RelationalSchemaObject::GetDistributedTable(const std::string &
         return {};
     }
     return *match;
+}
+
+std::map<std::string, bool> RelationalSchemaObject::GetTableChangeStatus(const DistributedSchema &schema)
+{
+    std::map<std::string, bool> res;
+    std::map<std::string, std::vector<DistributedField>, CaseInsensitiveComparator> tableSchema;
+    for (const auto &table : dbSchema_.tables) {
+        tableSchema[table.tableName] = table.fields;
+    }
+    for (const auto &table : schema.tables) {
+        if (tableSchema.find(table.tableName) == tableSchema.end()) {
+            res[table.tableName] = true;
+            continue;
+        }
+        if (CheckDistributedFieldChange(tableSchema[table.tableName], table.fields)) {
+            res[table.tableName] = true;
+            continue;
+        }
+    }
+    return res;
 }
 }
 #endif

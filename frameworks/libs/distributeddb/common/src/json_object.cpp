@@ -379,7 +379,7 @@ int JsonObject::GetSubFieldPathAndType(const std::set<FieldPath> &inPath,
     return E_OK;
 }
 
-int JsonObject::GetArraySize(const FieldPath &inPath, uint32_t &outSize) const
+int JsonObject::GetArraySize(const FieldPath &inPath, size_t &outSize) const
 {
     if (!isValid_) {
         LOGE("[Json][GetArraySize] Not Valid Yet.");

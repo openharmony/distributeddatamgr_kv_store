@@ -319,6 +319,10 @@ void SyncLifeTest003()
 {
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
     ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    bool isAlloc = false;
+    virtualCommunicatorAggregator->SetAllocCommunicatorCallback([&isAlloc](const std::string &userId) {
+        isAlloc = true;
+    });
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
     TestInterface *syncDBInterface = new TestInterface();
     ASSERT_NE(syncDBInterface, nullptr);
@@ -333,11 +337,13 @@ void SyncLifeTest003()
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
     syncDBInterface->TestLocalChange();
     virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
+    virtualCommunicatorAggregator->SetAllocCommunicatorCallback(nullptr);
     EXPECT_EQ(syncDBInterface->Close(), E_OK);
     RefObject::KillAndDecObjRef(syncDBInterface);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     RuntimeContext::GetInstance()->StopTaskPool();
+    EXPECT_TRUE(isAlloc);
 }
 
 void MockRemoteQuery002()
@@ -820,7 +826,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck004, TestSize.Level1)
 }
 
 /**
- * @tc.name: DataSyncCheck005
+ * @tc.name: DataSyncCheck004
  * @tc.desc: Test dataSync do ability sync.
  * @tc.type: FUNC
  * @tc.require:
@@ -1464,6 +1470,53 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest005, TestSize.Level0)
     virtualCommunicatorAggregator->SetReleaseCommunicatorCallback(nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     virtualCommunicatorAggregator = nullptr;
+}
+
+/**
+ * @tc.name: SyncEngineTest006
+ * @tc.desc: Test find context with default user.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init engine.
+     * @tc.expected: step1. ok
+     */
+    std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
+    MockKvSyncInterface syncDBInterface;
+    KvDBProperties kvDBProperties;
+    std::string userId = "user_1";
+    kvDBProperties.SetStringProp(DBProperties::USER_ID, userId);
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface.SetIdentifier(identifier);
+    syncDBInterface.SetDbProperties(kvDBProperties);
+    std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    metaData->Initialize(&syncDBInterface);
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    enginePtr->Initialize(&syncDBInterface, metaData, param);
+    /**
+     * @tc.steps: step2. Insert context with userId.
+     * @tc.expected: step2. ok
+     */
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
+        .WillRepeatedly(Return(new (std::nothrow) SingleVerKvSyncTaskContext()));
+    int errCode = E_OK;
+    std::string deviceId = "deviceB";
+    auto *context1 = enginePtr->CallGetSyncTaskContext({deviceId, userId}, errCode);
+    ASSERT_NE(context1, nullptr);
+    /**
+     * @tc.steps: step3. Find context with default user.
+     * @tc.expected: step3. ok
+     */
+    auto context2 = enginePtr->CallFindSyncTaskContext({deviceId, DBConstant::DEFAULT_USER});
+    EXPECT_EQ(context1, context2);
+    enginePtr->Close();
 }
 
 /**

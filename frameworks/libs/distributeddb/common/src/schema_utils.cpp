@@ -62,13 +62,13 @@ int SchemaUtils::MakeTrans(const std::string &oriContent, size_t &pos)
 {
     if (isspace(oriContent[pos])) {
         return COLUMN_BLANK;
-    } else if (oriContent.compare(pos, SchemaConstant::KEYWORD_ATTR_NOT_NULL.size(),
+    } else if (oriContent.compare(pos, strlen(SchemaConstant::KEYWORD_ATTR_NOT_NULL),
         SchemaConstant::KEYWORD_ATTR_NOT_NULL) == 0) {
-        pos = pos + SchemaConstant::KEYWORD_ATTR_NOT_NULL.size() - 1;
+        pos = pos + strlen(SchemaConstant::KEYWORD_ATTR_NOT_NULL) - 1;
         return COLUMN_NOT_NULL;
-    } else if (oriContent.compare(pos, SchemaConstant::KEYWORD_ATTR_DEFAULT.size(),
+    } else if (oriContent.compare(pos, strlen(SchemaConstant::KEYWORD_ATTR_DEFAULT),
         SchemaConstant::KEYWORD_ATTR_DEFAULT) == 0) {
-        pos = pos + SchemaConstant::KEYWORD_ATTR_DEFAULT.size() - 1;
+        pos = pos + strlen(SchemaConstant::KEYWORD_ATTR_DEFAULT) - 1;
         return COLUMN_DEFAULT;
     } else if (std::isalnum(oriContent[pos]) || oriContent[pos] == '\'' ||
         oriContent[pos] == '+' || oriContent[pos] == '-') {

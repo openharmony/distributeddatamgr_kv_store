@@ -273,6 +273,7 @@ int RdSingleVerResultSet::MoveTo(int position) const
 
 int RdSingleVerResultSet::MoveToFirst()
 {
+    std::lock_guard<std::mutex> lockGuard(mutex_);
     if (!isMovedBefore_) {
         return MoveToNext();
     }
@@ -299,6 +300,7 @@ int RdSingleVerResultSet::MoveToFirst()
 
 int RdSingleVerResultSet::MoveToLast()
 {
+    std::lock_guard<std::mutex> lockGuard(mutex_);
     int errCode = E_OK;
     do {
         errCode = MoveToNext();

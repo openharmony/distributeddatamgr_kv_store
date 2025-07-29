@@ -251,4 +251,9 @@ uint64_t VirtualCommunicator::GetSendMsgSize() const
 {
     return sendMsgSize_;
 }
+
+bool VirtualCommunicator::ExchangeClosePending(bool expected)
+{
+    return false;
+}
 } // namespace DistributedDB

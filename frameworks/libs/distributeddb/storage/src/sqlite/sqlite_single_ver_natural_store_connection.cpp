@@ -102,13 +102,15 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     bool isInWhitelist = IsInWhitelist();
     // need to check if the transaction started
     if (!isInWhitelist || (isInWhitelist && transactionExeFlag_.load())) {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
-        if (writeHandle_ != nullptr) {
-            LOGD("Transaction started already.");
-            Timestamp recordTimestamp;
-            errCode = writeHandle_->GetKvData(dataType, key, value, recordTimestamp);
-            DBDfxAdapter::FinishTracing();
-            return errCode;
+        {
+            std::lock_guard<std::mutex> lock(transactionMutex_);
+            if (writeHandle_ != nullptr) {
+                LOGD("Transaction started already.");
+                Timestamp recordTimestamp;
+                errCode = writeHandle_->GetKvData(dataType, key, value, recordTimestamp);
+                DBDfxAdapter::FinishTracing();
+                return errCode;
+            }
         }
     }
 
@@ -325,13 +327,7 @@ int SQLiteSingleVerNaturalStoreConnection::Pragma(int cmd, void *parameter)
     int errCode = E_OK;
     switch (cmd) {
         case PRAGMA_RM_DEVICE_DATA: {
-            SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
-            if (naturalStore == nullptr) {
-                return -E_INVALID_DB;
-            }
-            auto deviceName = static_cast<std::string *>(parameter);
-            errCode = naturalStore->RemoveDeviceData(*deviceName, false, false);
-            break;
+            return RemoveDeviceDataByCmd(parameter);
         }
         case PRAGMA_GET_IDENTIFIER_OF_DEVICE: {
             if (parameter == nullptr) {
@@ -665,7 +661,7 @@ int SQLiteSingleVerNaturalStoreConnection::RegisterLifeCycleCallback(const Datab
     return static_cast<SQLiteSingleVerNaturalStore *>(kvDB_)->RegisterLifeCycleCallback(notifier);
 }
 
-int SQLiteSingleVerNaturalStoreConnection::PreClose()
+int SQLiteSingleVerNaturalStoreConnection::PreClose(bool isCloseImmediately)
 {
     // check if result set closed
     {
@@ -673,6 +669,14 @@ int SQLiteSingleVerNaturalStoreConnection::PreClose()
         if (kvDbResultSets_.size() > 0) {
             LOGE("The connection have [%zu] active result set, can not close.", kvDbResultSets_.size());
             return -E_BUSY;
+        }
+    }
+
+    // check if sync task finish
+    if (!isCloseImmediately) {
+        int ret = kvDB_->PreClose();
+        if (ret != E_OK) {
+            return ret;
         }
     }
 
@@ -2072,6 +2076,16 @@ int SQLiteSingleVerNaturalStoreConnection::OperateDataStatus(uint32_t dataOperat
         return -E_INVALID_DB;
     }
     return naturalStore->OperateDataStatus(dataOperator);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceDataByCmd(void *parameter)
+{
+    auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr || parameter == nullptr) {
+        return -E_INVALID_DB;
+    }
+    auto deviceName = static_cast<std::string *>(parameter);
+    return naturalStore->RemoveDeviceData(*deviceName, false, false);
 }
 
 bool SQLiteSingleVerNaturalStoreConnection::IsInWhitelist() const

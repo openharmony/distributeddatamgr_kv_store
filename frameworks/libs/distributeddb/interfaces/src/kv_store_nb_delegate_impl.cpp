@@ -429,7 +429,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
         mode, key,
         [observer, storeId](const KvDBCommitNotifyData &notifyData) {
             KvStoreChangedDataImpl data(&notifyData);
-            LOGD("[KvStoreNbDelegate][RegisterDeviceObserver] Trigger [%s] on change", storeId.c_str());
+            LOGD("[KvStoreNbDelegate][RegisterDeviceObserver] Trigger on change");
             observer->OnChange(data);
         },
         errCode);
@@ -471,7 +471,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned i
     ObserverAction action = [observer, storeId](
                                 const std::string &device, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData) {
-            LOGD("[KvStoreNbDelegate][RegisterCloudObserver] Trigger [%s] on change", storeId.c_str());
+            LOGD("[KvStoreNbDelegate][RegisterCloudObserver] Trigger on change");
             observer->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
         }
     };
@@ -509,7 +509,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const KvStoreObserver *
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = observerMap_.find(observer);
     if (iter == observerMap_.end()) {
-        LOGE("[KvStoreNbDelegate] [%s] Observer has not been registered!", storeId_.c_str());
+        LOGE("[KvStoreNbDelegate] Observer has not been registered!");
         return NOT_FOUND;
     }
 
@@ -528,7 +528,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(const KvStoreObserver *o
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = cloudObserverMap_.find(observer);
     if (iter == cloudObserverMap_.end()) {
-        LOGW("[KvStoreNbDelegate] [%s] CloudObserver has not been registered!", storeId_.c_str());
+        LOGW("[KvStoreNbDelegate] CloudObserver has not been registered!");
         return NOT_FOUND;
     }
     int errCode = conn_->UnRegisterObserverAction(observer);
@@ -898,10 +898,10 @@ void KvStoreNbDelegateImpl::SetReleaseFlag(bool flag)
     releaseFlag_ = flag;
 }
 
-DBStatus KvStoreNbDelegateImpl::Close()
+DBStatus KvStoreNbDelegateImpl::Close(bool isCloseImmediately)
 {
     if (conn_ != nullptr) {
-        int errCode = KvDBManager::ReleaseDatabaseConnection(conn_);
+        int errCode = KvDBManager::ReleaseDatabaseConnection(conn_, isCloseImmediately);
         if (errCode == -E_BUSY) {
             LOGI("[KvStoreNbDelegate] Busy for close");
             return BUSY;
@@ -958,7 +958,7 @@ DBStatus KvStoreNbDelegateImpl::GetInner(const IOption &option, const Key &key, 
     }
 
     if (errCode != -E_NOT_FOUND) {
-        LOGE("[KvStoreNbDelegate] [%s] Get the data failed:%d", storeId_.c_str(), errCode);
+        LOGE("[KvStoreNbDelegate] Get the data failed:%d", errCode);
     }
     return TransferDBErrno(errCode);
 }

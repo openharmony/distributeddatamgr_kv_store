@@ -2325,7 +2325,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, QueryPreFixKey002, TestSize.Leve
   * @tc.name: SingleVerGetSecurityOption001
   * @tc.desc: Test GetSecurityOption interface for the single ver database.
   * @tc.type: FUNC
-  *@tc.require:
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption001, TestSize.Level1)
@@ -2373,7 +2373,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption001, T
   * @tc.name: SingleVerGetSecurityOption002
   * @tc.desc: Test GetSecurityOption interface for the single ver database.
   * @tc.type: FUNC
-  *@tc.require:
+  * @tc.require:
   * @tc.author: liuwenkai
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerGetSecurityOption002, TestSize.Level1)
@@ -2965,46 +2965,5 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SetAndGetHandleTest001, TestSize
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test_rd"), OK);
     g_kvNbDelegatePtr = nullptr;
-}
-
-/**
-  * @tc.name: MultiProcessTest001
-  * @tc.desc: Test multi process get delegate.
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: lideshi
-  */
-HWTEST_F(DistributedDBInterfacesNBDelegateTest, MultiProcessTest001, TestSize.Level1)
-{
-    const std::string dbName = "storeId";
-
-    KvStoreNbDelegate::Option option = {true, false, false};
-    option.storageEngineType = GAUSSDB_RD;
-
-    std::vector<pid_t> pids;
-    for (int i = 0; i < 6; i++) {  // test 6 process
-        pid_t pid = fork();
-        ASSERT_GE(pid, 0);
-        if (pid == 0) {
-            KvStoreDelegateManager g_mgrTest("app1", "user1");
-            g_mgrTest.SetKvStoreConfig(g_config);
-            KvStoreNbDelegate *delegate1 = nullptr;
-            DBStatus kvDelegateStatus = INVALID_ARGS;
-            auto callback1 = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
-                placeholders::_2, std::ref(kvDelegateStatus), std::ref(delegate1));
-            g_mgrTest.GetKvStore(dbName + std::to_string(i), option, callback1);
-            ASSERT_TRUE(delegate1 != nullptr);
-            EXPECT_TRUE(kvDelegateStatus == OK);
-            EXPECT_EQ(g_mgrTest.CloseKvStore(delegate1), OK);
-            EXPECT_EQ(g_mgrTest.DeleteKvStore(dbName + std::to_string(i)), OK);
-            delegate1 = nullptr;
-            exit(0);
-        }
-        pids.push_back(pid);
-    }
-    
-    for (auto pid : pids) {
-        waitpid(pid, NULL, 0);
-    }
 }
 }

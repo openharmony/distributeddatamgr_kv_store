@@ -97,7 +97,8 @@ void DistributedDBRDBKnowledgeClientTest::SaveSchemaToMetaTable(sqlite3 *db, con
     schema.RemoveRelationalTable(tableName);
     schema.AddRelationalTable(tableInfo);
 
-    const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY.begin(), DBConstant::RELATIONAL_SCHEMA_KEY.end());
+    const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY,
+        DBConstant::RELATIONAL_SCHEMA_KEY + strlen(DBConstant::RELATIONAL_SCHEMA_KEY));
     Value schemaVal;
     auto schemaStr = schema.ToSchemaString();
     EXPECT_FALSE(schemaStr.size() > SchemaConstant::SCHEMA_STRING_SIZE_LIMIT);

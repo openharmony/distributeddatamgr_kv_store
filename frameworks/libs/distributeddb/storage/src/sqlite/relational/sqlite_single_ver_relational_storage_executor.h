@@ -263,7 +263,8 @@ public:
 
     int CompareSchemaTableColumns(const std::string &tableName);
 
-    int UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType);
+    int UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
+        const std::string &localIdentity);
 
     void SetTableMode(DistributedTableMode mode);
 
@@ -271,6 +272,9 @@ public:
 
     void ClearLogOfMismatchedData(const std::string &tableName);
 private:
+    int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
+        const std::string &localIdentity);
+
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
     int DoCleanLogAndData(const std::vector<std::string> &tableNameList,

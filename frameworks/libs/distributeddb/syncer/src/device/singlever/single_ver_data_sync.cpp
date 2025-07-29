@@ -1620,16 +1620,16 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     WaterMark localMark = 0;
     GetLocalWaterMark(curType, packet->GetQueryId(), context, localMark);
     ackPacket.SetRecvCode(recvCode);
-    UpdateWaterMark isUpdateWaterMark;
-    SyncTimeRange dataTime = SingleVerDataSyncUtils::GetRecvDataTimeRange(
-        SyncOperation::GetSyncType(packet->GetMode()), packet->GetData(), isUpdateWaterMark);
+    WaterMark mark = 0;
+    GetPeerWaterMark(curType, packet->GetQueryId(), context->GetDeviceId(), context->GetTargetUserId(), mark);
+    WaterMark deletedPeerMark = 0;
+    GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(), deletedPeerMark);
+    SyncTimeRange dataTime = {.endTime = mark, .deleteEndTime = deletedPeerMark};
     bool isPacketWaterLower = false;
     // send ack packet
     if ((recvCode == E_OK) && (maxSendDataTime != 0)) {
         ackPacket.SetData(maxSendDataTime + 1); // + 1 to next start
     } else if (recvCode != WATER_MARK_INVALID) {
-        WaterMark mark = 0;
-        GetPeerWaterMark(curType, packet->GetQueryId(), context->GetDeviceId(), context->GetTargetUserId(), mark);
         if (recvCode == -E_NEED_ABILITY_SYNC && packet->GetLocalWaterMark() < mark) {
             LOGI("[DataSync][SetAckPacket] packetLocalMark=%" PRIu64 ",lockMark=%" PRIu64, packet->GetLocalWaterMark(),
                 mark);
@@ -1650,8 +1650,6 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     }
     // while recv is not E_OK, data is peerMark, reserve[2] is deletedPeerMark value
     if (curType == SyncType::QUERY_SYNC_TYPE && recvCode != WATER_MARK_INVALID) {
-        WaterMark deletedPeerMark;
-        GetPeerDeleteSyncWaterMark(context->GetDeleteSyncId(), context->GetTargetUserId(), deletedPeerMark);
         if (recvCode == -E_NEED_ABILITY_SYNC && packet->GetDeletedWaterMark() < deletedPeerMark) {
             LOGI("[DataSync][SetAckPacket] packetDeletedMark=%" PRIu64 ",deletedMark=%" PRIu64,
                 packet->GetDeletedWaterMark(), deletedPeerMark);
@@ -1663,6 +1661,7 @@ void SingleVerDataSync::SetAckPacket(DataAckPacket &ackPacket, SingleVerSyncTask
     }
     ackPacket.SetReserved(reserved);
     ackPacket.SetVersion(version);
+    UpdateWaterMark isUpdateWaterMark = {true, true};
     if (isPacketWaterLower) {
         UpdatePeerWaterMarkInner(*packet, dataTime, isUpdateWaterMark, context);
     }

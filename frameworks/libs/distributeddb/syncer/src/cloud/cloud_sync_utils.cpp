@@ -477,7 +477,7 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, con
             }
             auto extendIt = data.extend[i].find(col);
             if (extendIt == data.extend[i].end()) {
-                LOGI("[CloudSyncUtils] Asset field name can not find in extend. key is:%s.", col.c_str());
+                LOGI("[CloudSyncUtils] Asset field name can not find in extend.");
                 it = data.assets[i].erase(it);
                 continue;
             }
@@ -669,7 +669,9 @@ void CloudSyncUtils::CheckQueryCloudData(std::string &traceId, DownloadData &dow
         }
         std::string gid;
         (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
-        if (!isVersionExist || !isContainAllPk) {
+        bool isDelete = true;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::DELETE_FIELD, data, isDelete);
+        if (!isDelete && (!isVersionExist || !isContainAllPk)) {
             LOGE("[CloudSyncer] Invalid data from cloud, no version[%d], lost primary key[%d], gid[%s], traceId[%s]",
                 static_cast<int>(!isVersionExist), static_cast<int>(!isContainAllPk), gid.c_str(), traceId.c_str());
         }

@@ -116,6 +116,7 @@ ohos_shared_library("distributeddb") {
     "-fvisibility=hidden",
     "-Os",
     "-D_FORTIFY_SOURCE=2",
+    "-flto",
   ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 
@@ -176,6 +177,7 @@ ohos_shared_library("customtokenizer") {
   cflags_cc = [
     "-fvisibility=hidden",
     "-Os",
+    "-D_FORTIFY_SOURCE=2",
   ]
 
   external_deps = [
@@ -214,6 +216,7 @@ config("distributeddb_client_config") {
     "storage/src/sqlite",
     "storage/src",
     "storage/src/kv",
+    "syncer/src",
     "syncer/src/device",
     "storage/src/sqlite/relational",
     "storage/src/relational",
@@ -259,6 +262,7 @@ ohos_shared_library("distributeddb_client") {
   }
 
   sources = distributeddb_client_src
+  sources += distributeddb_base_src
   configs = [ ":distributeddb_client_config" ]
   public_configs = [ ":distributeddb_client_public_config" ]
 
@@ -266,9 +270,11 @@ ohos_shared_library("distributeddb_client") {
     "-fvisibility=hidden",
     "-Os",
     "-D_FORTIFY_SOURCE=2",
+    "-flto",
   ]
 
   external_deps = [
+    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
     "hilog:libhilog",

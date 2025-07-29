@@ -13,7 +13,7 @@
 import("//build/test.gni")
 import("../distributeddb.gni")
 
-module_output_path = "kv_store/kv_store/distributeddb"
+module_output_path = "kv_store/distributeddb"
 
 ###############################################################################
 config("gaussdb_rd_config") {
@@ -126,6 +126,7 @@ ohos_source_set("src_file") {
 
   sources = distributeddb_src
   sources += distributeddb_cloud_src
+  sources += distributeddb_client_src
   sources += [
     "unittest/common/common/basic_unit_test.cpp",
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
@@ -881,6 +882,12 @@ distributeddb_unittest("DistributedDBKvMultiUserSyncTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBRDBMultiUserSyncTest") {
+  sources = [
+    "unittest/common/store_test/rdb/distracteddb_rdb_multi_user_sync_test.cpp",
+  ]
+}
+
 distributeddb_unittest("DistributedDBBasicRDBTest") {
   sources =
       [ "unittest/common/store_test/rdb/distributeddb_basic_rdb_test.cpp" ]
@@ -895,6 +902,12 @@ distributeddb_unittest("DistributedDBRDBDataStatusTest") {
 distributeddb_unittest("DistributedDBKVCompressTest") {
   sources =
       [ "unittest/common/store_test/kv/distributeddb_kv_compress_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBAbnormalKVSyncTest") {
+  sources = [
+    "unittest/common/store_test/kv/distributeddb_abnormal_kv_sync_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBRDBCompressTest") {
@@ -934,7 +947,6 @@ ohos_unittest("tokenizer_test") {
   cflags_cc = []
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
     "googletest:gmock_main",
@@ -942,6 +954,7 @@ ohos_unittest("tokenizer_test") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
+    "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:libz",
@@ -983,7 +996,7 @@ config("distributeddb_client_module_private_config") {
     "../syncer/src",
     "../syncer/src/cloud",
     "../syncer/src/device",
-    "../gaussdb_rd/include"
+    "../gaussdb_rd/include",
   ]
 
   defines = [
@@ -1013,6 +1026,7 @@ ohos_source_set("distributeddb_client_src_file") {
   testonly = true
 
   sources = distributeddb_client_src
+  sources += distributeddb_base_src
   sources += [
     "unittest/common/common/distributeddb_tools_unit_client_test.cpp",
     "unittest/common/common/rdb_data_generator_client.cpp",
@@ -1037,7 +1051,6 @@ ohos_source_set("distributeddb_client_src_file") {
   public_configs = [ ":gaussdb_rd_public_config" ]
 
   external_deps = [
-    "cJSON:cjson",
     "c_utils:utils",
     "ffrt:libffrt",
     "googletest:gmock_main",
@@ -1073,7 +1086,6 @@ template("distributeddb_client_unittest") {
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
 
     external_deps = [
-      "cJSON:cjson",
       "c_utils:utils",
       "ffrt:libffrt",
       "googletest:gmock_main",
@@ -1081,11 +1093,16 @@ template("distributeddb_client_unittest") {
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
+      "jsoncpp:jsoncpp",
       "openssl:libcrypto_shared",
       "sqlite:sqlite",
       "zlib:libz",
     ]
   }
+}
+
+distributeddb_client_unittest("DistributedDBRDBKnowledgeClientTest") {
+  sources = [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_client_test.cpp" ]
 }
 
 ###############################################################################
@@ -1094,6 +1111,7 @@ group("unittest") {
   deps = []
   deps += [
     ":DistributedDBAbilitySyncTest",
+    ":DistributedDBAbnormalKVSyncTest",
     ":DistributedDBAutoLaunchUnitTest",
     ":DistributedDBBasicKVTest",
     ":DistributedDBBasicRDBTest",
@@ -1176,7 +1194,9 @@ group("unittest") {
     ":DistributedDBRDBCollaborationTest",
     ":DistributedDBRDBCompressTest",
     ":DistributedDBRDBDataStatusTest",
+    ":DistributedDBRDBKnowledgeClientTest",
     ":DistributedDBRDBKnowledgeTest",
+    ":DistributedDBRDBMultiUserSyncTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",

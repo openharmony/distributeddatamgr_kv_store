@@ -386,6 +386,7 @@ public:
     static DistributedDB::ICloudSyncStorageHook *GetRDBStorageHook(const std::string &userId,
         const std::string &appId, const std::string &storeId, const std::string &dbPath);
     static void CheckIndexCount(sqlite3 *db, const std::string &table, size_t expect);
+    static std::pair<int, uint64_t> GetMaxTimestamp(sqlite3 *db, const std::string &oriTable);
 };
 
 class DBInfoHandleTest : public DistributedDB::DBInfoHandle {

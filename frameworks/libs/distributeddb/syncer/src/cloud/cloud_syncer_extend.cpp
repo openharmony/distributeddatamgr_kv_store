@@ -769,11 +769,12 @@ void CloudSyncer::DoNotifyInNeed(const CloudSyncer::TaskId &taskId, const std::v
     const bool isFirstDownload)
 {
     bool isNeedNotify = false;
+    bool isLockAction = IsLockInDownload();
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         // only when the first download and the task no need upload actually, notify the process, otherwise,
         // the process will notify in the upload procedure, which can guarantee the notify order of the tables
-        isNeedNotify = isFirstDownload && !currentContext_.isNeedUpload;
+        isNeedNotify = isFirstDownload && !currentContext_.isNeedUpload && isLockAction;
     }
     if (!isNeedNotify) {
         return;
@@ -1418,7 +1419,7 @@ int CloudSyncer::StopSyncTask(std::function<int(void)> &removeFunc)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentTask = currentContext_.currentTaskId;
     }
-    if (currentTask != INVALID_TASK_ID) {
+    if (currentTask != INVALID_TASK_ID || asyncTaskId_ != INVALID_TASK_ID) {
         StopAllTasks(-E_CLOUD_ERROR);
     }
     int errCode = E_OK;
@@ -1676,8 +1677,9 @@ void CloudSyncer::TriggerAsyncDownloadAssetsInTaskIfNeed(bool isFirstDownload)
         }
     }
     if (isFirstDownload) {
+        bool isLockAction = IsLockInDownload();
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (currentContext_.isNeedUpload) {
+        if (currentContext_.isNeedUpload && isLockAction) {
             return;
         }
     }

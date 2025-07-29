@@ -900,7 +900,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest002, TestSiz
 
     /**
      * @tc.steps: step2. open db and Call FillCloudLog.
-     * @tc.expected: step2. return E_OK.
+     * @tc.expected: step2. return -SQLITE_ERROR, because the table is not exist.
      */
     uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     std::string fileUrl = g_testDir + "/test.db";
@@ -909,9 +909,9 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, AbnormalCloudKvExecutorTest002, TestSiz
 
     data.isCloudVersionRecord = true;
     ret = cloudKvObj.FillCloudLog({db, true}, OpType::INSERT, data, "", recorder);
-    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(ret, -SQLITE_ERROR);
     ret = cloudKvObj.FillCloudLog({db, true}, OpType::DELETE, data, "", recorder);
-    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(ret, -SQLITE_ERROR);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
@@ -1137,5 +1137,32 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, ClearCloudWatermarkTest001, TestSize.Le
     option.type = ClearKvMetaOpType::CLEAN_CLOUD_WATERMARK;
     EXPECT_EQ(kvDelegatePtrS1_->ClearMetaData(option), OK);
     EXPECT_EQ(kvDelegatePtrS2_->ClearMetaData(option), OK);
+}
+
+/**
+ * @tc.name: UploadBlockTest001.
+ * @tc.desc: Test upload block and put get data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudKvSyncerTest, UploadBlockTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. put (k1, v1)
+     * @tc.expected: step1. return ok.
+     */
+    EXPECT_EQ(kvDelegatePtrS1_->Put(KEY_1, VALUE_1), OK);
+    /**
+     * @tc.steps: step2. fork upload and sync
+     * @tc.expected: step2. return ok.
+     */
+    virtualCloudDb_->ForkUpload([this](const std::string &, VBucket &) {
+        EXPECT_EQ(kvDelegatePtrS1_->Put(KEY_2, VALUE_2), OK);
+        Value value;
+        EXPECT_EQ(kvDelegatePtrS1_->Get(KEY_2, value), OK);
+        EXPECT_EQ(value, VALUE_2);
+    });
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
 }
 }

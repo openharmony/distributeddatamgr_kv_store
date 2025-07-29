@@ -224,7 +224,8 @@ int SQLiteRelationalStore::SaveTableModeToMeta(DistributedTableMode mode)
 int SQLiteRelationalStore::SaveLogTableVersionToMeta()
 {
     LOGD("save log table version to meta table, version: %s", DBConstant::LOG_TABLE_VERSION_CURRENT);
-    const Key logVersionKey(DBConstant::LOG_TABLE_VERSION_KEY.begin(), DBConstant::LOG_TABLE_VERSION_KEY.end());
+    const Key logVersionKey(DBConstant::LOG_TABLE_VERSION_KEY,
+        DBConstant::LOG_TABLE_VERSION_KEY + strlen(DBConstant::LOG_TABLE_VERSION_KEY));
     Value logVersion;
     int errCode = storageEngine_->GetMetaData(logVersionKey, logVersion);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
@@ -1527,15 +1528,18 @@ int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty
         LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", errCode);
         return errCode;
     }
+    std::function<int(void)> clearWaterMarkFunc = [] { return E_OK; };
     if (!clearWaterMarkTables.empty()) {
-        auto clearWaterMarkFunc = CleanWaterMark(clearWaterMarkTables);
+        clearWaterMarkFunc = CleanWaterMark(clearWaterMarkTables);
+    }
+    if (errCode == -E_TABLE_REFERENCE_CHANGED) {
         int ret = E_OK;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
         ret = cloudSyncer_->StopSyncTask(clearWaterMarkFunc);
 #endif
         return ret != E_OK ? ret : errCode;
     }
-    return errCode;
+    return E_OK;
 }
 
 int SQLiteRelationalStore::InitTrackerSchemaFromMeta()
@@ -1864,6 +1868,11 @@ int SQLiteRelationalStore::OperateDataStatus(uint32_t dataOperator)
         LOGE("[RelationalStore] sqliteStorageEngine was not initialized when operate data status");
         return -E_INVALID_DB;
     }
+    if (syncAbleEngine_ == nullptr) {
+        LOGE("[RelationalStore] syncAbleEngine was not initialized when operate data status");
+        return -E_INVALID_DB;
+    }
+    auto virtualTime = syncAbleEngine_->GetTimestamp();
     auto schema = sqliteStorageEngine_->GetSchema();
     std::vector<std::string> operateTables;
     for (const auto &tableMap : schema.GetTables()) {
@@ -1871,10 +1880,10 @@ int SQLiteRelationalStore::OperateDataStatus(uint32_t dataOperator)
             operateTables.push_back(tableMap.second.GetTableName());
         }
     }
-    return OperateDataStatusInner(operateTables);
+    return OperateDataStatusInner(operateTables, virtualTime);
 }
 
-int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string> &tables) const
+int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string> &tables, uint64_t virtualTime) const
 {
     int errCode = E_OK;
     SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode);
@@ -1896,7 +1905,7 @@ int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string>
         ReleaseHandle(handle);
         return errCode;
     }
-    errCode = SQLiteRelationalUtils::OperateDataStatus(db, tables);
+    errCode = SQLiteRelationalUtils::OperateDataStatus(db, tables, virtualTime);
     if (errCode == E_OK) {
         errCode = handle->Commit();
         if (errCode != E_OK) {

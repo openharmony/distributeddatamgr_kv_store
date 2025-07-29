@@ -23,7 +23,7 @@ namespace DistributedDB {
 class RelationalRowDataSet {
 public:
     RelationalRowDataSet();
-    virtual ~RelationalRowDataSet();
+    ~RelationalRowDataSet();
 
     RelationalRowDataSet(const RelationalRowDataSet &) = delete;
     RelationalRowDataSet &operator=(const RelationalRowDataSet &) = delete;

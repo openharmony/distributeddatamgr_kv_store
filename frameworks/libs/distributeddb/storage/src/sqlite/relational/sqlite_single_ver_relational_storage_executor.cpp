@@ -895,10 +895,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const Da
         isDefeated = false; // no need to solve conflict except miss query data
         return E_OK;
     }
-    if (!isExist || dataItem.dev != logInfoGet.device) {
-        // defeated if item timestamp is earlier than raw data
-        isDefeated = (dataItem.timestamp <= logInfoGet.timestamp);
-    }
+    // defeated if item timestamp is earlier than raw data
+    isDefeated = (dataItem.timestamp < logInfoGet.timestamp);
     return E_OK;
 }
 
@@ -1903,19 +1901,67 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::stri
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo,
-    TableSyncType syncType)
+    TableSyncType syncType, const std::string &localIdentity)
 {
+    if (tableInfo.GetIdentifyKey().size() == 1u && tableInfo.GetIdentifyKey().at(0) == "rowid") {
+        return UpdateHashKeyWithOutPk(mode, tableInfo, syncType, localIdentity);
+    }
     auto tableManager = LogTableManagerFactory::GetTableManager(tableInfo, mode, syncType);
     auto logName = DBCommon::GetLogTableName(tableInfo.GetTableName());
     std::string sql = "UPDATE OR REPLACE " + logName + " SET hash_key = hash_key || '_old' where data_key in " +
-        "(select _rowid_ from '" + tableInfo.GetTableName() + "');";
+        "(select _rowid_ from '" + tableInfo.GetTableName() + "') AND device = '';";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         return errCode;
     }
     sql = "UPDATE OR REPLACE " + logName + " SET hash_key = data.hash_value FROM (SELECT _rowid_, " +
         tableManager->CalcPrimaryKeyHash("dataTable.", tableInfo, "") + " AS hash_value " +
-        "FROM '" + tableInfo.GetTableName() + "' AS dataTable) AS data WHERE data._rowid_ = " + logName + ".data_key;";
+        "FROM '" + tableInfo.GetTableName() + "' AS dataTable) AS data WHERE data._rowid_ = " + logName +
+        ".data_key AND device = '';";
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKeyWithOutPk(
+    DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType, const std::string &localIdentity)
+{
+    auto tableManager = LogTableManagerFactory::GetTableManager(tableInfo, mode, syncType);
+    auto logName = DBCommon::GetLogTableName(tableInfo.GetTableName());
+    std::string extendStr = "_tmp";
+    std::string tmpTable = logName + extendStr;
+    std::string sql = tableManager->GetCreateRelationalLogTableSql(tableInfo, extendStr);
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    sql = "INSERT OR REPLACE INTO " + tmpTable + " SELECT * FROM " + logName + " WHERE data_key != -1;";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    sql = "UPDATE " + logName + " SET flag = flag | 0x01, data_key = -1 WHERE data_key IN " + "(SELECT _rowid_ FROM '" +
+          tableInfo.GetTableName() + "');";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    sql = "UPDATE " + tmpTable + " SET hash_key = data.hash_value FROM (SELECT _rowid_, " +
+          tableManager->CalcPrimaryKeyHash("dataTable.", tableInfo, localIdentity) + " AS hash_value " + "FROM '" +
+          tableInfo.GetTableName() + "' AS dataTable) AS data WHERE data._rowid_ = " + tmpTable +
+          ".data_key AND device = '';";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    sql = "INSERT OR REPLACE INTO " + logName + " SELECT * FROM " + tmpTable + ";";
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    sql = "DROP TABLE " + tmpTable + ";";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
 }
 

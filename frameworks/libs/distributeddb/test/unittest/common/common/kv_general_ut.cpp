@@ -22,6 +22,7 @@ namespace DistributedDB {
 void KVGeneralUt::SetUp()
 {
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
+    CloseAllDelegate();
     BasicUnitTest::SetUp();
 }
 
@@ -50,6 +51,9 @@ int KVGeneralUt::InitDelegate(const StoreInfo &info)
     if (status != DBStatus::OK) {
         LOGE("[KVGeneralUt] Init delegate failed %d", static_cast<int>(status));
         return -E_INTERNAL_ERROR;
+    }
+    if (processCommunicator_ != nullptr) {
+        manager.SetProcessCommunicator(processCommunicator_);
     }
     stores_[info] = store;
     LOGI("[KVGeneralUt] Init delegate app %s store %s user %s success", info.appId.c_str(),
@@ -215,6 +219,17 @@ std::pair<DBStatus, uint64_t> KVGeneralUt::GetRemoteSchemaVersion(const StoreInf
         return E_OK;
     });
     return {TransferDBErrno(errCode), version};
+}
+
+DBStatus KVGeneralUt::SetRemoteSoftwareVersion(const StoreInfo &info, const std::string &dev, const std::string &user,
+    uint64_t version)
+{
+    int errCode = QueryMetaValue(info, dev, user,
+        [version](const std::shared_ptr<Metadata> &metadata, const std::string &device,
+        const std::string &userId) {
+        return metadata->SetRemoteSoftwareVersion(device, userId, version);
+    });
+    return TransferDBErrno(errCode);
 }
 
 std::pair<DBStatus, uint64_t> KVGeneralUt::GetLocalSchemaVersion(const DistributedDB::StoreInfo &info)

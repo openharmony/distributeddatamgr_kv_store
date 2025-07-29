@@ -74,6 +74,7 @@ ohos_fuzztest("StorageFuzzTest") {
 
   sources = distributeddb_src
   sources += distributeddb_cloud_src
+  sources += distributeddb_client_src
   sources += [
     "../../../test/fuzztest/common/distributeddb_tools_test.cpp",
     "../../../test/fuzztest/common/fuzzer_data.cpp",

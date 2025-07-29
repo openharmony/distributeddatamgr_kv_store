@@ -383,17 +383,21 @@ std::string SchemaSwitchMode(const std::string &oriSchemaStr)
 {
     std::string resultSchemaStr = oriSchemaStr;
     auto iterForStrict = std::search(resultSchemaStr.begin(), resultSchemaStr.end(),
-        SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
+        SchemaConstant::KEYWORD_MODE_STRICT,
+        SchemaConstant::KEYWORD_MODE_STRICT + strlen(SchemaConstant::KEYWORD_MODE_STRICT));
     auto iterForCompatible = std::search(resultSchemaStr.begin(), resultSchemaStr.end(),
-        SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
+        SchemaConstant::KEYWORD_MODE_COMPATIBLE,
+        SchemaConstant::KEYWORD_MODE_COMPATIBLE + strlen(SchemaConstant::KEYWORD_MODE_COMPATIBLE));
     if (iterForStrict != resultSchemaStr.end()) {
-        resultSchemaStr.replace(iterForStrict, iterForStrict + SchemaConstant::KEYWORD_MODE_STRICT.size(),
-            SchemaConstant::KEYWORD_MODE_COMPATIBLE.begin(), SchemaConstant::KEYWORD_MODE_COMPATIBLE.end());
+        resultSchemaStr.replace(iterForStrict, iterForStrict + strlen(SchemaConstant::KEYWORD_MODE_STRICT),
+            SchemaConstant::KEYWORD_MODE_COMPATIBLE,
+            SchemaConstant::KEYWORD_MODE_COMPATIBLE + strlen(SchemaConstant::KEYWORD_MODE_COMPATIBLE));
         return resultSchemaStr;
     }
     if (iterForCompatible != resultSchemaStr.end()) {
-        resultSchemaStr.replace(iterForCompatible, iterForCompatible + SchemaConstant::KEYWORD_MODE_COMPATIBLE.size(),
-            SchemaConstant::KEYWORD_MODE_STRICT.begin(), SchemaConstant::KEYWORD_MODE_STRICT.end());
+        resultSchemaStr.replace(iterForCompatible, iterForCompatible + strlen(SchemaConstant::KEYWORD_MODE_COMPATIBLE),
+            SchemaConstant::KEYWORD_MODE_STRICT,
+            SchemaConstant::KEYWORD_MODE_STRICT + strlen(SchemaConstant::KEYWORD_MODE_STRICT));
         return resultSchemaStr;
     }
     return oriSchemaStr;

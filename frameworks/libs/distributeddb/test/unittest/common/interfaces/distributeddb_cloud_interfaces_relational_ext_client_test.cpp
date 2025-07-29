@@ -233,7 +233,8 @@ static void SaveTrackerSchemaToMetaTable(sqlite3 *db, const std::string tableNam
     tracker.SetTableMode(DistributedDB::DistributedTableMode::SPLIT_BY_DEVICE);
     tracker.RemoveRelationalTable(tableName);
     tracker.AddRelationalTable(tableInfo);
-    const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY.begin(), DBConstant::RELATIONAL_SCHEMA_KEY.end());
+    const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY,
+        DBConstant::RELATIONAL_SCHEMA_KEY + strlen(DBConstant::RELATIONAL_SCHEMA_KEY));
     Value schemaVal;
     auto schemaStr = tracker.ToSchemaString();
     EXPECT_FALSE(schemaStr.size() > SchemaConstant::SCHEMA_STRING_SIZE_LIMIT);
@@ -576,8 +577,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtClientTest, TriggerObserverTes
      */
     triggeredCount_ = 0;
     ClientObserver clientObserver2 =
-        std::bind(&DistributedDBCloudInterfacesRelationalExtClientTest::ClientObserverFunc2,
-        this, std::placeholders::_1);
+        std::bind(&DistributedDBCloudInterfacesRelationalExtClientTest::ClientObserverFunc2, this,
+        std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver2), OK);
     RegisterDbHook(db);
     sql = "update " + tableName + " set name = 'lisi2' where id = 2;";
