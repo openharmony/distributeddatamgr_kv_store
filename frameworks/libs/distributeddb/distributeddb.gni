@@ -22,7 +22,6 @@ distributeddb_src = [
   "${distributeddb_path}/common/src/auto_launch.cpp",
   "${distributeddb_path}/common/src/cloud/asset_operation_utils.cpp",
   "${distributeddb_path}/common/src/cloud/assets_download_manager.cpp",
-  "${distributeddb_path}/common/src/concurrent_adapter.cpp",
   "${distributeddb_path}/common/src/data_compression.cpp",
   "${distributeddb_path}/common/src/data_value.cpp",
   "${distributeddb_path}/common/src/db_common.cpp",
@@ -68,6 +67,7 @@ distributeddb_src = [
   "${distributeddb_path}/common/src/task_pool.cpp",
   "${distributeddb_path}/common/src/task_pool_impl.cpp",
   "${distributeddb_path}/common/src/task_queue.cpp",
+  "${distributeddb_path}/common/src/thread_pool_stub.cpp",
   "${distributeddb_path}/common/src/time_tick_monitor.cpp",
   "${distributeddb_path}/common/src/types_export.cpp",
   "${distributeddb_path}/common/src/user_change_monitor.cpp",
@@ -309,7 +309,6 @@ distributeddb_src_rd = [
 ]
 
 distributeddb_base_src = [
-  "${distributeddb_path}/common/src/concurrent_adapter.cpp",
   "${distributeddb_path}/common/src/db_common_client.cpp",
   "${distributeddb_path}/common/src/json_object.cpp",
   "${distributeddb_path}/common/src/log_print.cpp",
@@ -320,6 +319,10 @@ distributeddb_base_src = [
   "${distributeddb_path}/common/src/relational/tracker_table.cpp",
   "${distributeddb_path}/common/src/schema_constant.cpp",
   "${distributeddb_path}/common/src/schema_utils_client.cpp",
+  "${distributeddb_path}/common/src/task_pool.cpp",
+  "${distributeddb_path}/common/src/task_pool_impl.cpp",
+  "${distributeddb_path}/common/src/task_queue.cpp",
+  "${distributeddb_path}/common/src/thread_pool_stub.cpp",
   "${distributeddb_path}/interfaces/src/relational/relational_store_manager_client.cpp",
   "${distributeddb_path}/interfaces/src/kv_store_errno.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_storage_utils_client.cpp",

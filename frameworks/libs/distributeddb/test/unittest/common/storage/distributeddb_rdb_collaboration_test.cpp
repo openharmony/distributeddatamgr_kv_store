@@ -56,7 +56,6 @@ protected:
     static constexpr const char *DEVICE_SYNC_TABLE_AUTOINCREMENT = "DEVICE_SYNC_TABLE_AUTOINCREMENT";
     static constexpr const char *CLOUD_SYNC_TABLE = "CLOUD_SYNC_TABLE";
     static constexpr const char *BIG_COLUMNS_TABLE = "BIG_COLUMNS_TABLE";
-    static constexpr const char *INVALID_TABLE = "INVALID_TABLE";
 };
 
 void DistributedDBRDBCollaborationTest::SetUpTestCase()

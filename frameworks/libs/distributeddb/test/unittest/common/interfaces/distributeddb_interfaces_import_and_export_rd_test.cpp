@@ -880,60 +880,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ExceptionFileImport003, T
 }
 #endif // OMIT_MULTI_VER
 
-static void TryDbForPasswordIndependence001()
-{
-    std::string singleStoreIdNoPasswd = "distributed_DbForPasswordIndependence_001";
-    std::string singleStoreId = "distributed_DbForPasswordIndependence_001";
-
-    /**
-     * @tc.steps: step4. Run the p3 command to open the database db1.
-     * @tc.expected: step4. Return ERROR.
-     */
-    KvStoreNbDelegate::Option option = {true, false, true, CipherType::DEFAULT, g_passwd3};
-    option.storageEngineType = DistributedDB::GAUSSDB_RD;
-    option.rdconfig.type = HASH;
-    g_mgr.GetKvStore(singleStoreIdNoPasswd, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
-    EXPECT_NE(g_kvDelegateStatus, OK);
-
-    /**
-     * @tc.steps: step5. Run the p4 command to open the database db2.
-     * @tc.expected: step5. Return ERROR.
-     */
-    option = {true, false, true, CipherType::DEFAULT, g_passwd4};
-    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus != OK);
-
-    /**
-     * @tc.steps: step6. Open the db1 directly.
-     * @tc.expected: step6. Return OK.
-     */
-    option = {true, false, false, CipherType::DEFAULT, g_passwd3};
-    g_mgr.GetKvStore(singleStoreIdNoPasswd, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-    g_kvNbDelegatePtrWithoutPasswd = g_kvNbDelegatePtr;
-
-    /**
-     * @tc.steps: step7. Open the db1 directly
-     * @tc.expected: step7. Return ERROR.
-     */
-    option = {true, false, false, CipherType::DEFAULT, g_passwd3};
-    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus != OK);
-
-    /**
-     * @tc.steps: step8. Run the p2 command to open the db2 file.
-     * @tc.expected: step8. Return ERROR.
-     */
-    option = {true, false, true, CipherType::DEFAULT, g_passwd2};
-    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvDelegateStatus == OK);
-}
-
 /**
   * @tc.name: PasswordIndependence001
   * @tc.desc: The data of the current version of the board is exported and the package file is single.

@@ -223,61 +223,12 @@ void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &a
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
-void DeleteLocalRecord(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName)
-{
-    ASSERT_NE(db, nullptr);
-    for (int64_t i = begin; i < begin + count; i++) {
-        string sql = "DELETE FROM " + tableName + " WHERE id ='" + std::to_string(i) + "';";
-        ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
-    }
-}
-
 void DeleteCloudDBData(int64_t begin, int64_t count, const std::string &tableName)
 {
     for (int64_t i = begin; i < begin + count; i++) {
         VBucket idMap;
         idMap.insert_or_assign("#_gid", std::to_string(i));
         ASSERT_EQ(g_virtualCloudDb->DeleteByGid(tableName, idMap), DBStatus::OK);
-    }
-}
-
-void UpdateCloudDBData(int64_t begin, int64_t count, int64_t gidStart, int64_t versionStart,
-    const std::string &tableName)
-{
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    std::vector<VBucket> record;
-    std::vector<VBucket> extend;
-    GenerateDataRecords(begin, count, gidStart, record, extend);
-    for (auto &entry: extend) {
-        entry[CloudDbConstant::VERSION_FIELD] = std::to_string(versionStart++);
-    }
-    ASSERT_EQ(g_virtualCloudDb->BatchUpdate(tableName, std::move(record), extend), DBStatus::OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-}
-
-int QueryStatusCallback(void *data, int count, char **colValue, char **colName)
-{
-    auto status = static_cast<std::vector<int64_t> *>(data);
-    const int decimal = 10;
-    for (int i = 0; i < count; i++) {
-        status->push_back(strtol(colValue[0], nullptr, decimal));
-    }
-    return 0;
-}
-
-void CheckLockStatus(sqlite3 *db, int startId, int endId, LockStatus lockStatus)
-{
-    std::string logName = DBCommon::GetLogTableName(ASSETS_TABLE_NAME);
-    std::string sql = "select status from " + logName + " where data_key >=" + std::to_string(startId) +
-        " and data_key <=" +  std::to_string(endId) + ";";
-    std::vector<int64_t> status;
-    char *str = NULL;
-    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryStatusCallback, static_cast<void *>(&status), &str),
-        SQLITE_OK);
-    ASSERT_EQ(static_cast<size_t>(endId - startId + 1), status.size());
-
-    for (auto stat : status) {
-        ASSERT_EQ(static_cast<int64_t>(lockStatus), stat);
     }
 }
 
@@ -330,71 +281,9 @@ void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatu
     }
 }
 
-void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
-{
-    for (auto &item : assets) {
-        for (auto &asset : item.second) {
-            EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::INSERT));
-            if (index < 4) { // 1-4 is inserted
-                EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::INSERT));
-            }
-            LOGD("asset [name]:%s, [status]:%u, [flag]:%u, [index]:%d", asset.name.c_str(), asset.status, asset.flag,
-                index);
-        }
-    }
-}
-
-void CheckDownloadFailedForTest002(sqlite3 *&db)
-{
-    std::string sql = "SELECT assets from " + ASSETS_TABLE_NAME;
-    sqlite3_stmt *stmt = nullptr;
-    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
-        Type cloudValue;
-        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
-        std::vector<uint8_t> assetsBlob;
-        Assets assets;
-        ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetsBlob), E_OK);
-        ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
-        ASSERT_EQ(assets.size(), 2u); // 2 is asset num
-        for (size_t i = 0; i < assets.size(); ++i) {
-            EXPECT_EQ(assets[i].status, AssetStatus::ABNORMAL);
-        }
-    }
-    int errCode;
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-}
-
-void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
-{
-    Assets assets;
-    Asset asset = ASSET_COPY;
-    asset.name = ASSET_COPY.name + std::to_string(id);
-    asset.status = status;
-    assets.emplace_back(asset);
-    asset.name = ASSET_COPY.name + std::to_string(id) + "_copy";
-    assets.emplace_back(asset);
-    int errCode;
-    std::vector<uint8_t> assetBlob;
-    const string sql = "update " + ASSETS_TABLE_NAME + " set assets=? where id = " + std::to_string(id);
-    sqlite3_stmt *stmt = nullptr;
-    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
-    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-}
-
 void CheckConsistentCount(sqlite3 *db, int64_t expectCount)
 {
     EXPECT_EQ(sqlite3_exec(db, QUERY_CONSISTENT_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
-}
-
-void CheckCompensatedCount(sqlite3 *db, int64_t expectCount)
-{
-    EXPECT_EQ(sqlite3_exec(db, QUERY_COMPENSATED_SQL.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 

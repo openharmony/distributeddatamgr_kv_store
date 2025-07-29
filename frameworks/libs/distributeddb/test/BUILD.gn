@@ -115,9 +115,6 @@ config("module_private_config") {
     "OPENSSL_SUPPRESS_DEPRECATED",
     "USE_DISTRIBUTEDDB_CLOUD",
   ]
-  if (is_ohos) {
-    defines += [ "USE_FFRT" ]
-  }
 }
 
 ###############################################################################
@@ -168,7 +165,6 @@ ohos_source_set("src_file") {
 
   external_deps = [
     "c_utils:utils",
-    "ffrt:libffrt",
     "googletest:gmock_main",
     "googletest:gtest_main",
     "hilog:libhilog",
@@ -203,7 +199,6 @@ template("distributeddb_unittest") {
 
     external_deps = [
       "c_utils:utils",
-      "ffrt:libffrt",
       "googletest:gmock_main",
       "googletest:gtest_main",
       "hilog:libhilog",
@@ -964,7 +959,6 @@ ohos_unittest("tokenizer_test") {
 
   external_deps = [
     "c_utils:utils",
-    "ffrt:libffrt",
     "googletest:gmock_main",
     "googletest:gtest_main",
     "hilog:libhilog",
@@ -1033,7 +1027,6 @@ config("distributeddb_client_module_private_config") {
     "OPENSSL_SUPPRESS_DEPRECATED",
   ]
   if (is_ohos) {
-    defines += [ "USE_FFRT" ]
     defines += [ "RDB_CLIENT" ]
   }
 }
@@ -1068,7 +1061,6 @@ ohos_source_set("distributeddb_client_src_file") {
 
   external_deps = [
     "c_utils:utils",
-    "ffrt:libffrt",
     "googletest:gmock_main",
     "googletest:gtest_main",
     "hilog:libhilog",
@@ -1103,7 +1095,6 @@ template("distributeddb_client_unittest") {
 
     external_deps = [
       "c_utils:utils",
-      "ffrt:libffrt",
       "googletest:gmock_main",
       "googletest:gtest_main",
       "hilog:libhilog",

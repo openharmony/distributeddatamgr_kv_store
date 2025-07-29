@@ -67,7 +67,6 @@
         "c_utils",
         "device_manager",
         "dmsfwk",
-        "ffrt",
         "hilog",
         "hisysevent",
         "hitrace",

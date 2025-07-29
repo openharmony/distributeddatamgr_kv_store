@@ -47,7 +47,6 @@ namespace {
     KvStoreConfig g_config;
     Key g_keyPrefix = {'A', 'B', 'C'};
     const int RESULT_SET_COUNT = 9;
-    const int RESULT_SET_INIT_POS = -1;
     uint8_t g_testDict[RESULT_SET_COUNT] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
     // define the g_kvNbDelegateCallback, used to get some information when open a kv store.
@@ -60,16 +59,6 @@ namespace {
     auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
 #endif // OMIT_MULTI_VER
-    const int OBSERVER_SLEEP_TIME = 100;
-    const int BATCH_PRESET_SIZE_TEST = 10;
-    const int DIVIDE_BATCH_PRESET_SIZE = 5;
-    const int VALUE_OFFSET = 5;
-
-    const int DEFAULT_KEY_VALUE_SIZE = 10;
-
-    const int CON_PUT_THREAD_NUM = 4;
-    const int PER_THREAD_PUT_NUM = 100;
-
     const std::string DEVICE_B = "deviceB";
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
     KvVirtualDevice *g_deviceB = nullptr;
@@ -1067,7 +1056,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest002, Te
     EXPECT_EQ(kvStoreImpl->SetReceiveDataInterceptor(nullptr), DB_ERROR);
     CloudSyncConfig config;
     EXPECT_EQ(kvStoreImpl->SetCloudSyncConfig(config), DB_ERROR);
-    const IOption iOption;
     std::vector<Entry> entries;
     EXPECT_EQ(kvStoreImpl->GetEntries(key, entries), DB_ERROR);
 
