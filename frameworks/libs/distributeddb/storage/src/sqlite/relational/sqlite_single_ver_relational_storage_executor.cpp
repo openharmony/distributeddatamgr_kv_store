@@ -231,7 +231,14 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
         return errCode;
     }
     std::string tableName = table.GetTableName();
-    if (!isUpgraded) {
+    bool isOnceDropped = false;
+    (void)IsTableOnceDropped(tableName, isOnceDropped);
+    if (isOnceDropped) {
+        SQLiteRelationalUtils::GenLogParam param = {
+            dbHandle_, isMemDb_, table.GetTrackerTable().GetTableName().empty()
+        };
+        errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, table, tableManager, param);
+    } else if (!isUpgraded) {
         if (table.GetTrackerTable().GetTableName().empty()) {
             errCode = GeneLogInfoForExistedData(dbHandle_, identity, table, tableManager, false);
         } else if (table.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
@@ -240,13 +247,6 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
         } else {
             // tracker table -> distributed cloud table
             errCode = ResetLogStatus(tableName);
-        }
-    } else {
-        bool isOnceDropped = false;
-        (void)IsTableOnceDropped(tableName, isOnceDropped);
-        if (isOnceDropped && table.GetTrackerTable().GetTableName().empty()) {
-            SQLiteRelationalUtils::GenLogParam param = {dbHandle_, isMemDb_, false};
-            errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, table, tableManager, param);
         }
     }
     if (errCode != E_OK) {
@@ -1250,6 +1250,7 @@ int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::stri
     int errCode = GetKvData(key, value);
     if (errCode == E_OK) {
         onceDropped = true;
+        LOGW("[RDBExecutor] Table %s once dropped!", DBCommon::StringMiddleMasking(tableName).c_str());
         return E_OK;
     } else if (errCode == -E_NOT_FOUND) {
         onceDropped = false;

@@ -40,6 +40,8 @@ public:
     std::string GetCreateRelationalLogTableSql(const TableInfo &table, const std::string &extendStr = "");
 
     virtual std::string GetConflictPkSql(const TableInfo &table);
+
+    static std::string CalcPkHash(const std::string &references, const std::vector<std::string> &pk);
 protected:
     virtual void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema);
     std::string GetLogTableName(const TableInfo &table) const;
@@ -50,8 +52,6 @@ protected:
 
     static std::string GetUpdateWithAssignSql(const TableInfo &table, const std::string &emptyValue,
         const std::string &matchValue, const std::string &missMatchValue);
-
-    static std::string CalcPkHash(const std::string &references, const std::vector<std::string> &pk);
 private:
     virtual std::string GetInsertTrigger(const TableInfo &table, const std::string &identity) = 0;
     virtual std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) = 0;

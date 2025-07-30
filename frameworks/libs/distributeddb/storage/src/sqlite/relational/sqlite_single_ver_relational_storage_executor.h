@@ -271,6 +271,8 @@ public:
     int GetFlagIsLocalCount(const std::string &logTableName, int32_t &count);
 
     void ClearLogOfMismatchedData(const std::string &tableName);
+
+    int IsTableOnceDropped(const std::string &tableName, bool &onceDropped);
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
@@ -424,8 +426,6 @@ private:
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
-
-    int IsTableOnceDropped(const std::string &tableName, bool &onceDropped);
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 

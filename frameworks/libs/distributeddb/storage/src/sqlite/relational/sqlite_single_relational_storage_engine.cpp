@@ -471,11 +471,7 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         (void)handle->Rollback();
         return ret;
     }
-    Key key;
-    DBCommon::StringToVector(SYNC_TABLE_TYPE + schema.tableName, key);
-    Value value;
-    DBCommon::StringToVector(tableInfo.GetTableSyncType() == DEVICE_COOPERATION ? DEVICE_TYPE : CLOUD_TYPE, value);
-    errCode = handle->PutKvData(key, value);
+    errCode = SaveSyncTableTypeAndDropFlagToMeta(handle, schema.tableName, tableInfo.GetTableSyncType());
     if (errCode != E_OK) {
         LOGE("[SetTrackerTable] Save sync type to meta table failed: %d", errCode);
         (void)handle->Rollback();

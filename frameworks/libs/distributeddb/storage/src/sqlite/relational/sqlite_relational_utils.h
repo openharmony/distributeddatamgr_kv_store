@@ -94,6 +94,15 @@ public:
     static std::string GetExtendValue(const TrackerTable &trackerTable);
 
     static int CleanTrackerData(sqlite3 *db, const std::string &tableName, int64_t cursor, bool isOnlyTrackTable);
+
+    static std::pair<int, bool> CheckExistDirtyLog(sqlite3 *db, const std::string &oriTable);
+
+    static int CleanDirtyLog(sqlite3 *db, const std::string &oriTable, const RelationalSchemaObject &obj);
+
+    static std::pair<int, bool> ExecuteCheckSql(sqlite3 *db, const std::string &sql);
+
+    static int ExecuteSql(sqlite3 *db, const std::string &sql,
+        const std::function<void(sqlite3_stmt *stmt)> &checkFunc);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

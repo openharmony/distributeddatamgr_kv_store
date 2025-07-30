@@ -440,7 +440,7 @@ int RDBGeneralUt::CountTableDataByDev(const StoreInfo &info, const std::string &
     return count;
 }
 
-int RDBGeneralUt::SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables)
+int RDBGeneralUt::SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables, bool isForce)
 {
     auto store = GetDelegate(info);
     if (store == nullptr) {
@@ -449,7 +449,9 @@ int RDBGeneralUt::SetTrackerTables(const StoreInfo &info, const std::vector<std:
     }
     auto trackerSchema = GetAllTrackerSchema(info, tables);
     for (const auto &trackerTable : trackerSchema) {
-        auto errCode = store->SetTrackerTable(trackerTable);
+        auto temp = trackerTable;
+        temp.isForceUpgrade = isForce;
+        auto errCode = store->SetTrackerTable(temp);
         if (errCode != E_OK) {
             LOGE("[RDBGeneralUt] Set tracker table %s failed %d app %s store %s user %s",
                 trackerTable.tableName.c_str(), errCode,

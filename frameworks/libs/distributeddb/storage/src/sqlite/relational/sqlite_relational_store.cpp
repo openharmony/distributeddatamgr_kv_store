@@ -22,6 +22,7 @@
 #include "db_errno.h"
 #include "log_print.h"
 #include "db_types.h"
+#include "res_finalizer.h"
 #include "sqlite_log_table_manager.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_relational_store_connection.h"
@@ -462,6 +463,8 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         schemaChanged, syncType, trackerSchemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
+    } else {
+        CleanDirtyLogIfNeed(tableName);
     }
     if (schemaChanged) {
         LOGD("Notify schema changed.");
@@ -1370,6 +1373,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
             }
             ReleaseHandle(handle);
         }
+        CleanDirtyLogIfNeed(trackerSchema.tableName);
         return E_OK;
     }
     errCode = sqliteStorageEngine_->UpdateExtendField(trackerSchema);
@@ -1379,7 +1383,11 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
         return errCode;
     }
     if (isNoTableInSchema) {
-        return sqliteStorageEngine_->SetTrackerTable(trackerSchema, tableInfo, isFirstCreate);
+        errCode = sqliteStorageEngine_->SetTrackerTable(trackerSchema, tableInfo, isFirstCreate);
+        if (errCode == E_OK) {
+            CleanDirtyLogIfNeed(trackerSchema.tableName);
+        }
+        return errCode;
     }
     sqliteStorageEngine_->CacheTrackerSchema(trackerSchema);
     errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType(), true);
@@ -1401,15 +1409,20 @@ int SQLiteRelationalStore::CheckTrackerTable(const TrackerSchema &trackerSchema,
     TrackerTable trackerTable;
     trackerTable.Init(trackerSchema);
     int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([this, handle]() {
+        SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
+        ReleaseHandle(releaseHandle);
+    });
+    bool isOnceDrop = false;
+    (void)handle->IsTableOnceDropped(trackerSchema.tableName, isOnceDrop);
     if (table.Empty()) {
         isNoTableInSchema = true;
         table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
-        auto *handle = GetHandle(true, errCode);
-        if (handle == nullptr) {
-            return errCode;
-        }
         errCode = handle->AnalysisTrackerTable(trackerTable, table);
-        ReleaseHandle(handle);
         if (errCode != E_OK) {
             LOGE("[CheckTrackerTable] analysis table schema failed %d.", errCode);
             return errCode;
@@ -1422,7 +1435,8 @@ int SQLiteRelationalStore::CheckTrackerTable(const TrackerSchema &trackerSchema,
             return errCode;
         }
     }
-    if (!trackerSchema.isForceUpgrade && !tracker.GetTrackerTable(trackerSchema.tableName).IsChanging(trackerSchema)) {
+    if (!trackerSchema.isForceUpgrade && !tracker.GetTrackerTable(trackerSchema.tableName).IsChanging(trackerSchema)
+        && !isOnceDrop) {
         LOGW("[CheckTrackerTable] tracker schema is no change, table[%s [%zu]]",
             DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size());
         return -E_IGNORE_DATA;
@@ -1928,6 +1942,51 @@ int32_t SQLiteRelationalStore::GetDeviceSyncTaskCount() const
         return 0;
     }
     return syncAbleEngine_->GetDeviceSyncTaskCount();
+}
+
+void SQLiteRelationalStore::CleanDirtyLogIfNeed(const std::string &tableName) const
+{
+    int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGW("[RDBStore][ClearDirtyLog] Get handle failed %d", errCode);
+        return;
+    }
+    ResFinalizer finalizer([this, handle]() {
+        SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
+        ReleaseHandle(releaseHandle);
+    });
+    sqlite3 *db = nullptr;
+    errCode = handle->GetDbHandle(db);
+    if (errCode != E_OK) {
+        LOGW("[RDBStore][ClearDirtyLog] Get db handle failed %d", errCode);
+        return;
+    }
+    bool isExistDirtyLog = false;
+    std::tie(errCode, isExistDirtyLog) = SQLiteRelationalUtils::CheckExistDirtyLog(db, tableName);
+    if (errCode != E_OK) {
+        LOGW("[RDBStore][ClearDirtyLog] Check dirty log failed %d", errCode);
+        return;
+    }
+    if (!isExistDirtyLog) {
+        return;
+    }
+    auto obj = GetSchemaObj();
+    if (!obj.IsSchemaValid()) {
+        return;
+    }
+    errCode = SQLiteRelationalUtils::CleanDirtyLog(db, tableName, obj);
+    if (errCode != E_OK) {
+        LOGW("[RDBStore][ClearDirtyLog] Clean dirty log failed %d", errCode);
+    }
+}
+
+RelationalSchemaObject SQLiteRelationalStore::GetSchemaObj() const
+{
+    if (storageEngine_ == nullptr) {
+        return {};
+    }
+    return storageEngine_->GetSchemaInfo();
 }
 } // namespace DistributedDB
 #endif
