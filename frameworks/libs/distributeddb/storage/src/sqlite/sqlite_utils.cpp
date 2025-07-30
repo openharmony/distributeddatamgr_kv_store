@@ -169,6 +169,7 @@ int SQLiteUtils::OpenDatabase(const OpenDbProperties &properties, sqlite3 *&db, 
         if (!g_configLog) {
             sqlite3_config(SQLITE_CONFIG_LOG, &SqliteLogCallback, &properties.createIfNecessary);
             sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 0, 0);
+            sqlite3_register_cksumvfs(0);
             g_configLog = true;
         }
     }
