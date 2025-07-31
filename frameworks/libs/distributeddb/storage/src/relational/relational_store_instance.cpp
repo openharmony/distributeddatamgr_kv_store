@@ -67,7 +67,7 @@ int RelationalStoreInstance::ReleaseDataBaseConnection(RelationalStoreConnection
 static IRelationalStore *GetFromCache(const RelationalDBProperties &properties, int &errCode)
 {
     errCode = E_OK;
-    std::string identifier = properties.GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
+    std::string identifier = properties.GetStringProp(RelationalDBProperties::DATA_DIR, "");
     std::lock_guard<std::mutex> lockGuard(storeLock_);
     auto iter = dbs_.find(identifier);
     if (iter == dbs_.end()) {
@@ -88,14 +88,14 @@ static IRelationalStore *GetFromCache(const RelationalDBProperties &properties, 
 // Save to IKvDB to the global map
 void RelationalStoreInstance::RemoveKvDBFromCache(const RelationalDBProperties &properties)
 {
-    std::string identifier = properties.GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
+    std::string identifier = properties.GetStringProp(RelationalDBProperties::DATA_DIR, "");
     std::lock_guard<std::mutex> lockGuard(storeLock_);
     dbs_.erase(identifier);
 }
 
 void RelationalStoreInstance::SaveRelationalDBToCache(IRelationalStore *store, const RelationalDBProperties &properties)
 {
-    std::string identifier = properties.GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
+    std::string identifier = properties.GetStringProp(RelationalDBProperties::DATA_DIR, "");
     std::lock_guard<std::mutex> lockGuard(storeLock_);
     if (dbs_.count(identifier) == 0) {
         dbs_.insert(std::pair<std::string, IRelationalStore *>(identifier, store));
