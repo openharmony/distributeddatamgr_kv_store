@@ -140,6 +140,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/system_time.cpp",
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
+    "unittest/common/storage/virtual_sqlite_relational_store.cpp",
     "unittest/common/storage/virtual_sqlite_storage_engine.cpp",
     "unittest/common/syncer/cloud/cloud_db_data_utils.cpp",
     "unittest/common/syncer/cloud/cloud_db_sync_utils_client_test.cpp",
@@ -915,6 +916,11 @@ distributeddb_unittest("DistributedDBRDBCompressTest") {
       [ "unittest/common/store_test/rdb/distributeddb_rdb_compress_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRDBDropTableTest") {
+  sources =
+      [ "unittest/common/store_test/rdb/distributeddb_rdb_drop_table_test.cpp" ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1194,6 +1200,7 @@ group("unittest") {
     ":DistributedDBRDBCollaborationTest",
     ":DistributedDBRDBCompressTest",
     ":DistributedDBRDBDataStatusTest",
+    ":DistributedDBRDBDropTableTest",
     ":DistributedDBRDBKnowledgeClientTest",
     ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRDBMultiUserSyncTest",

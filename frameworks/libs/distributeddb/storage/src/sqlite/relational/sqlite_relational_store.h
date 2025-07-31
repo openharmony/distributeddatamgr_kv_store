@@ -124,7 +124,7 @@ public:
     int OperateDataStatus(uint32_t dataOperator);
 
     int32_t GetDeviceSyncTaskCount() const;
-private:
+protected:
     void ReleaseResources();
 
     // 1 store 1 connection
@@ -208,6 +208,10 @@ private:
 #endif
 
     int OperateDataStatusInner(const std::vector<std::string> &tables, uint64_t virtualTime) const;
+
+    void CleanDirtyLogIfNeed(const std::string &tableName) const;
+
+    RelationalSchemaObject GetSchemaObj() const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

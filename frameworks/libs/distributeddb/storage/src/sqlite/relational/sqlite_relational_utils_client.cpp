@@ -155,8 +155,11 @@ int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity
     }
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
-    std::string flag = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
-        static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
+    uint32_t flagVal = static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
+    if (tableInfo.GetTableSyncType() == TableSyncType::CLOUD_COOPERATION) {
+        flagVal = flagVal | static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY);
+    }
+    std::string flag = std::to_string(flagVal);
     TrackerTable trackerTable = tableInfo.GetTrackerTable();
     trackerTable.SetTableName(tableName);
     const std::string prefix = "a.";

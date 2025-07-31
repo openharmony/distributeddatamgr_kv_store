@@ -73,7 +73,7 @@ protected:
     int CountTableDataByDev(const StoreInfo &info, const std::string &table, const std::string &dev,
         const std::string &condition = "");
 
-    int SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables);
+    int SetTrackerTables(const StoreInfo &info, const std::vector<std::string> &tables, bool isForce = false);
 
     // use for cloud sync
     std::shared_ptr<VirtualCloudDb> GetVirtualCloudDb() const;

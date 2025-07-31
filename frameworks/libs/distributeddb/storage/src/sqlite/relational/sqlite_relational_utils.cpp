@@ -820,4 +820,84 @@ int SQLiteRelationalUtils::UpdateLocalDataModifyTime(sqlite3 *db, const std::str
     }
     return errCode;
 }
+
+std::pair<int, bool> SQLiteRelationalUtils::CheckExistDirtyLog(sqlite3 *db, const std::string &oriTable)
+{
+    std::pair<int, bool> res;
+    auto &[errCode, isExist] = res;
+    if (db == nullptr) {
+        errCode = -E_INVALID_DB;
+        return res;
+    }
+    auto logTable = DBCommon::GetLogTableName(oriTable);
+    bool isCreate = false;
+    errCode = SQLiteUtils::CheckTableExists(db, logTable, isCreate);
+    if (!isCreate) {
+        return res;
+    }
+    std::string sql = "SELECT count(1) FROM (SELECT data_key FROM " + logTable + " "
+        "WHERE data_key != -1 GROUP BY data_key HAVING count(1) > 1)";
+    return ExecuteCheckSql(db, sql);
+}
+
+std::pair<int, bool> SQLiteRelationalUtils::ExecuteCheckSql(sqlite3 *db, const std::string &sql)
+{
+    bool isExist = false;
+    int errCode = ExecuteSql(db, sql, [&isExist](sqlite3_stmt *stmt) {
+        auto count = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        if (count > 0) {
+            isExist = true;
+            LOGW("[SQLiteRDBUtils] Exist %" PRId64 " duplicate log", count);
+        }
+    });
+    return {errCode, isExist};
+}
+
+int SQLiteRelationalUtils::ExecuteSql(sqlite3 *db, const std::string &sql,
+    const std::function<void(sqlite3_stmt *)> &checkFunc)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Get check stmt failed %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        int resetRet = E_OK;
+        sqlite3_stmt *releaseStmt = stmt;
+        SQLiteUtils::ResetStatement(releaseStmt, true, resetRet);
+    });
+    errCode = SQLiteUtils::StepNext(stmt);
+    if (errCode == E_OK) {
+        if (checkFunc != nullptr) {
+            checkFunc(stmt);
+        }
+    } else if (errCode == -E_FINISHED) {
+        errCode = E_OK;
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::CleanDirtyLog(sqlite3 *db, const std::string &oriTable, const RelationalSchemaObject &obj)
+{
+    TableInfo tableInfo;
+    tableInfo.SetDistributedTable(obj.GetDistributedTable(oriTable));
+    auto distributedPk = tableInfo.GetSyncDistributedPk();
+    if (distributedPk.empty()) {
+        return E_OK;
+    }
+    auto logTable = DBCommon::GetLogTableName(oriTable);
+    int errCode = E_OK;
+    std::string sql = "DELETE FROM " + logTable + " WHERE hash_key IN "
+          "(SELECT hash_key FROM (SELECT data_key, hash_key, extend_field FROM " + logTable +
+          " WHERE data_key IN(SELECT data_key FROM " + logTable + " GROUP BY data_key HAVING count(1)>1)"
+          " AND data_key != -1) AS log, '" + oriTable +
+          "' WHERE log.data_key = '" + oriTable + "'.rowid AND log.hash_key != " +
+          SqliteLogTableManager::CalcPkHash(oriTable + ".", distributedPk) + ")";
+    errCode = ExecuteSql(db, sql, nullptr);
+    if (errCode == E_OK) {
+        LOGI("[SQLiteRDBUtils] Clean %d dirty hash log", sqlite3_changes(db));
+    }
+    return errCode;
+}
 } // namespace DistributedDB
