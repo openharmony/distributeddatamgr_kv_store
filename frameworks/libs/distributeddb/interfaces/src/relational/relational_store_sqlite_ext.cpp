@@ -1654,7 +1654,6 @@ void GetFtsTableInfos(sqlite3 *db, std::set<std::string> &tableInfos)
         GetColumnTextValue(stmt, 0, tableName);
         tableInfos.insert(tableName);
         tableInfos.insert(tableName + "_config");
-        tableInfos.insert(tableName + "_content");
         tableInfos.insert(tableName + "_data");
         tableInfos.insert(tableName + "_docsize");
         tableInfos.insert(tableName + "_idx");

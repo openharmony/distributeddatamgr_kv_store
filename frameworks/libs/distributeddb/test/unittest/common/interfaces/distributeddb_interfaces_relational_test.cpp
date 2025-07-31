@@ -744,6 +744,79 @@ void TableModifyTest(const std::string &modifySql, TableSyncType tableSyncType, 
 }
 
 /**
+  * @tc.name: RelationalStoreTest010
+  * @tc.desc: Test opening libraries with the same name in different paths.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest010, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    std::string dbPath1 = g_dbDir + "path1/";
+    ASSERT_EQ(OS::MakeDBDirectory(dbPath1), E_OK);
+    sqlite3 *db1 = RelationalTestUtils::CreateDataBase(dbPath1 + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db1, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db1, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db1, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db1), SQLITE_OK);
+    std::string dbPath2 = g_dbDir + "path2/";
+    ASSERT_EQ(OS::MakeDBDirectory(dbPath2), E_OK);
+    sqlite3 *db2 = RelationalTestUtils::CreateDataBase(dbPath2 + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db2, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db2, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db2, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db2), SQLITE_OK);
+    /**
+     * @tc.steps:step2. open db
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate1 = nullptr;
+    DBStatus status1 = g_mgr.OpenStore(dbPath1 + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate1);
+    EXPECT_EQ(status1, OK);
+    ASSERT_NE(delegate1, nullptr);
+    RelationalStoreDelegate *delegate2 = nullptr;
+    DBStatus status2 = g_mgr.OpenStore(dbPath2 + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate2);
+    EXPECT_EQ(status2, OK);
+    ASSERT_NE(delegate2, nullptr);
+    /**
+     * @tc.steps:step3. create table
+     * @tc.expected: step3. Return OK.
+     */
+    SqlCondition sqlCondition1;
+    std::vector<VBucket> records1;
+    sqlCondition1.sql = "create table if not exists table1(id int);";
+    EXPECT_EQ(delegate1->ExecuteSql(sqlCondition1, records1), OK);
+    SqlCondition sqlCondition2;
+    std::vector<VBucket> records2;
+    sqlCondition2.sql = "create table if not exists table2(id int);";
+    EXPECT_EQ(delegate2->ExecuteSql(sqlCondition2, records2), OK);
+    /**
+     * @tc.steps:step4. check table
+     * @tc.expected: step4. Return OK.
+     */
+    db1 = RelationalTestUtils::CreateDataBase(dbPath1 + STORE_ID + DB_SUFFIX);
+    std::string sql1 = "select count(*) from sqlite_master where type = 'table' and name = 'table1'";
+    int tableCount1 = 0;
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db1, sql1, tableCount1), E_OK);
+    EXPECT_EQ(tableCount1, 1);
+    EXPECT_EQ(sqlite3_close_v2(db1), SQLITE_OK);
+    db2 = RelationalTestUtils::CreateDataBase(dbPath2 + STORE_ID + DB_SUFFIX);
+    std::string sql2 = "select count(*) from sqlite_master where type = 'table' and name = 'table2'";
+    int tableCount2 = 0;
+    EXPECT_EQ(SQLiteUtils::GetCountBySql(db2, sql2, tableCount2), E_OK);
+    EXPECT_EQ(tableCount2, 1);
+    EXPECT_EQ(sqlite3_close_v2(db2), SQLITE_OK);
+    status1 = g_mgr.CloseStore(delegate1);
+    EXPECT_EQ(status1, OK);
+    status2 = g_mgr.CloseStore(delegate2);
+    EXPECT_EQ(status2, OK);
+}
+
+/**
   * @tc.name: RelationalTableModifyTest001
   * @tc.desc: Test modify distributed table with compatible upgrade
   * @tc.type: FUNC
@@ -1494,14 +1567,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalOpenStorePathCheckTest
 
     RelationalStoreDelegate *delegate2 = nullptr;
     status = g_mgr.OpenStore(dir2 + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate2);
-    EXPECT_EQ(status, INVALID_ARGS);
-    ASSERT_EQ(delegate2, nullptr);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate2, nullptr);
 
     status = g_mgr.CloseStore(delegate1);
     EXPECT_EQ(status, OK);
 
     status = g_mgr.CloseStore(delegate2);
-    EXPECT_EQ(status, INVALID_ARGS);
+    EXPECT_EQ(status, OK);
 }
 
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalOpenStorePressureTest001, TestSize.Level1)
