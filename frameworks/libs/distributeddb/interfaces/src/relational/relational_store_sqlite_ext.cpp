@@ -2034,7 +2034,7 @@ void Clean(bool isOpenSslClean)
     Logger::DeleteInstance();
 }
 
-// hw export the symbols
+// export the symbols
 #ifdef SQLITE_DISTRIBUTE_RELATIONAL
 #if defined(__GNUC__)
 #  define EXPORT_SYMBOLS  __attribute__ ((visibility ("default")))
@@ -2052,7 +2052,7 @@ struct sqlite3_api_routines_relational {
 };
 
 typedef struct sqlite3_api_routines_relational sqlite3_api_routines_relational;
-static const sqlite3_api_routines_relational sqlite3HwApis = {
+static const sqlite3_api_routines_relational sqlite3Apis = {
 #ifdef SQLITE_DISTRIBUTE_RELATIONAL
     sqlite3_open_relational,
     sqlite3_open16_relational,
@@ -2066,5 +2066,5 @@ static const sqlite3_api_routines_relational sqlite3HwApis = {
 #endif
 };
 
-EXPORT_SYMBOLS const sqlite3_api_routines_relational *sqlite3_export_relational_symbols = &sqlite3HwApis;
+EXPORT_SYMBOLS const sqlite3_api_routines_relational *sqlite3_export_relational_symbols = &sqlite3Apis;
 #endif

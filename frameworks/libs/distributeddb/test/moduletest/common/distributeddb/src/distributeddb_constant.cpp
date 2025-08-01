@@ -16,7 +16,7 @@
 #include "distributeddb_nb_test_tools.h"
 
 namespace DistributedDBDataGenerator {
-#ifndef HW_USING_LABEL_FUNC_IN_RELEASE_VERSION
+#ifndef USING_LABEL_FUNC_IN_RELEASE_VERSION
     const std::string DistributedDBConstant::NB_DIRECTOR = "/data/test/nbstub/"; // default work dir.
 #else
     // default work dir by label in phone requested by fbe.
