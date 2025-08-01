@@ -430,8 +430,8 @@ const std::string IMAGE_VALUE_PRE = {"\"_id\":23,\"local_media_id\":0," \
     "\"orientation\":0,\"latitude\":0,\"longitude\":0,\"datetaken\":1514792938000," \
     "\"bucket_id\":771419238,\"bucket_display_name\":\"MagazineUnlock\",\"duration\":0," \
     "\"resolution\":\"1440x2560\",\"media_type\":1,\"storage_id\":65537,\"width\":1440," \
-    "\"height\":2560,\"is_hdr\":0,\"is_hw_privacy\":0,\"hw_voice_offset\":0,\"is_hw_favorite\":0," \
-    "\"hw_image_refocus\":0,\"is_hw_burst\":0,\"hw_rectify_offset\":0,\"contenturi\":\"\"," \
+    "\"height\":2560,\"is_hdr\":0,\"is_privacy\":0,\"voice_offset\":0,\"is_favorite\":0," \
+    "\"image_refocus\":0,\"is_burst\":0,\"rectify_offset\":0,\"contenturi\":\"\"," \
     "\"hash\":\"e46cf1bb4773421fbded2e2583fe7130\",\"special_file_list\":0,\"special_file_type\":0," \
     "\"special_file_offset\":0,\"relative_bucket_id\":1793967153,\"albumId\":\"default-album-3\",\"fileType\":1," \
     "\"fileId\":0,\"videoThumbId\":0,\"thumbId\":0,\"lcdThumbId\":0,\"thumbType\":3,\"localThumbPath\":\"\"," \
