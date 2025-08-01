@@ -1805,7 +1805,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLocalDataCount(const std::strin
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateExtendField(const std::string &tableName,
-    const std::set<std::string> &extendColNames)
+    const std::set<std::string> &extendColNames, const std::string &condition)
 {
     bool isLogTableExist = false;
     int errCode = SQLiteUtils::CheckTableExists(dbHandle_, DBCommon::GetLogTableName(tableName), isLogTableExist);
@@ -1820,6 +1820,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateExtendField(const std::strin
     }
     sql.pop_back();
     sql += ") from " + tableName + " as data where log.data_key = data." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    sql += condition;
     sqlite3_stmt *stmt = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {

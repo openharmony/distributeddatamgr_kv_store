@@ -103,6 +103,8 @@ public:
 
     static int ExecuteSql(sqlite3 *db, const std::string &sql,
         const std::function<void(sqlite3_stmt *stmt)> &checkFunc);
+
+    static int ExecuteListAction(const std::vector<std::function<int()>> &actions);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

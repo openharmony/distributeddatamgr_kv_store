@@ -2041,5 +2041,57 @@ void SQLiteSingleVerRelationalStorageExecutor::ClearLogOfMismatchedData(const st
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
+
+void SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLog(const TrackerSchema &trackerSchema,
+    const TrackerTable &table)
+{
+    if (trackerSchema.extendColNames.empty()) {
+        return;
+    }
+    std::string sql = "SELECT COUNT(1) FROM " + DBCommon::GetLogTableName(trackerSchema.tableName) +
+        " WHERE json_type(extend_field) IS NOT 'object' AND data_key != -1";
+    if (!SQLiteRelationalUtils::ExecuteCheckSql(dbHandle_, sql).second) {
+        return;
+    }
+    auto errCode = SQLiteUtils::BeginTransaction(dbHandle_, TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor][RecoverTracker] Begin transaction fail %d", errCode);
+        return;
+    }
+    errCode = RecoverNullExtendLogInner(trackerSchema, table);
+    int changeRow = 0;
+    if (errCode == E_OK) {
+        changeRow = sqlite3_changes(dbHandle_);
+        errCode = SQLiteUtils::CommitTransaction(dbHandle_);
+    } else {
+        (void)SQLiteUtils::RollbackTransaction(dbHandle_);
+    }
+    LOGI("[RDBExecutor][RecoverTracker] Recover tracker[%s][%zu] finished[%d] changeRow[%d]",
+        DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size(),
+        errCode, changeRow);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLogInner(const TrackerSchema &trackerSchema,
+    const TrackerTable &table)
+{
+    std::vector<std::function<int()>> actions;
+    actions.emplace_back([this]() {
+        return SetLogTriggerStatus(false);
+    });
+    actions.emplace_back([this, &table]() {
+        return SQLiteUtils::ExecuteRawSQL(dbHandle_, table.GetTempUpdateLogCursorTriggerSql());
+    });
+    actions.emplace_back([this, &trackerSchema]() {
+        return UpdateExtendField(trackerSchema.tableName, trackerSchema.extendColNames,
+            " AND json_type(log.extend_field) IS NOT 'object'");
+    });
+    actions.emplace_back([this]() {
+        return ClearAllTempSyncTrigger();
+    });
+    actions.emplace_back([this]() {
+        return SetLogTriggerStatus(true);
+    });
+    return SQLiteRelationalUtils::ExecuteListAction(actions);
+}
 } // namespace DistributedDB
 #endif

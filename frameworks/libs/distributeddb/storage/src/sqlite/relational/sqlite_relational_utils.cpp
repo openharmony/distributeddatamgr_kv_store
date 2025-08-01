@@ -900,4 +900,19 @@ int SQLiteRelationalUtils::CleanDirtyLog(sqlite3 *db, const std::string &oriTabl
     }
     return errCode;
 }
+
+int SQLiteRelationalUtils::ExecuteListAction(const std::vector<std::function<int()>> &actions)
+{
+    int errCode = E_OK;
+    for (const auto &action : actions) {
+        if (action == nullptr) {
+            continue;
+        }
+        errCode = action();
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return errCode;
+}
 } // namespace DistributedDB
