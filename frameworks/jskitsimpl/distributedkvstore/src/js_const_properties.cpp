@@ -43,7 +43,7 @@ static napi_value ExportConstants(napi_env env)
     napi_value constants = nullptr;
     napi_status status = napi_create_object(env, &constants);
     if (status != napi_ok) {
-        return constants;
+        return nullptr;
     }
     SetNamedProperty(env, constants, "MAX_KEY_LENGTH", MAX_KEY_LENGTH);
     SetNamedProperty(env, constants, "MAX_VALUE_LENGTH", MAX_VALUE_LENGTH);
@@ -60,7 +60,7 @@ static napi_value ExportValueType(napi_env env)
     napi_value valueType = nullptr;
     napi_status status = napi_create_object(env, &valueType);
     if (status != napi_ok) {
-        return valueType;
+        return nullptr;
     }
     SetNamedProperty(env, valueType, "STRING", (int32_t)JSUtil::STRING);
     SetNamedProperty(env, valueType, "INTEGER", (int32_t)JSUtil::INTEGER);
@@ -77,7 +77,7 @@ static napi_value ExportSyncMode(napi_env env)
     napi_value syncMode = nullptr;
     napi_status status = napi_create_object(env, &syncMode);
     if (status != napi_ok) {
-        return syncMode;
+        return nullptr;
     }
     SetNamedProperty(env, syncMode, "PULL_ONLY", (int32_t)SyncMode::PULL);
     SetNamedProperty(env, syncMode, "PUSH_ONLY", (int32_t)SyncMode::PUSH);
@@ -91,7 +91,7 @@ static napi_value ExportSubscribeType(napi_env env)
     napi_value subscribeType = nullptr;
     napi_status status = napi_create_object(env, &subscribeType);
     if (status != napi_ok) {
-        return subscribeType;
+        return nullptr;
     }
     SetNamedProperty(env, subscribeType, "SUBSCRIBE_TYPE_LOCAL", (int32_t)SUBSCRIBE_LOCAL);
     SetNamedProperty(env, subscribeType, "SUBSCRIBE_TYPE_REMOTE", (int32_t)SUBSCRIBE_REMOTE);
@@ -105,7 +105,7 @@ static napi_value ExportKVStoreType(napi_env env)
     napi_value kvStoreType = nullptr;
     napi_status status = napi_create_object(env, &kvStoreType);
     if (status != napi_ok) {
-        return kvStoreType;
+        return nullptr;
     }
     SetNamedProperty(env, kvStoreType, "DEVICE_COLLABORATION", (int32_t)KvStoreType::DEVICE_COLLABORATION);
     SetNamedProperty(env, kvStoreType, "SINGLE_VERSION", (int32_t)KvStoreType::SINGLE_VERSION);
@@ -118,7 +118,7 @@ static napi_value ExportSecurityLevel(napi_env env)
     napi_value securityLevel = nullptr;
     napi_status status = napi_create_object(env, &securityLevel);
     if (status != napi_ok) {
-        return securityLevel;
+        return nullptr;
     }
     SetNamedProperty(env, securityLevel, "S1", (int32_t)SecurityLevel::S1);
     SetNamedProperty(env, securityLevel, "S2", (int32_t)SecurityLevel::S2);
