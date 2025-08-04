@@ -49,6 +49,7 @@ public:
     const std::string GetTempTriggerName(TriggerMode::TriggerModeEnum mode) const;
     const std::string GetTempUpdateTriggerSql(bool incFlag = false) const;
     const std::string GetTempDeleteTriggerSql(bool incFlag = false) const;
+    const std::string GetTempUpdateLogCursorTriggerSql() const;
     void SetTableName(const std::string &tableName);
     void SetExtendNames(const std::set<std::string> &colNames);
     void SetExtendName(const std::string &colName);

@@ -284,6 +284,20 @@ const std::string TrackerTable::GetTempDeleteTriggerSql(bool incFlag) const
     return sql;
 }
 
+const std::string TrackerTable::GetTempUpdateLogCursorTriggerSql() const
+{
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_;
+    sql += "LOG_ON_UPDATE_TEMP AFTER UPDATE ON " + DBCommon::GetLogTableName(tableName_);
+    sql += " WHEN (SELECT 1 FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
+           " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
+    sql += "BEGIN\n";
+    sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
+    sql += "UPDATE " + DBCommon::GetLogTableName(tableName_) + " SET ";
+    sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE data_key = OLD.data_key;\n";
+    sql += "END;";
+    return sql;
+}
+
 void TrackerTable::SetTableName(const std::string &tableName)
 {
     tableName_ = tableName;

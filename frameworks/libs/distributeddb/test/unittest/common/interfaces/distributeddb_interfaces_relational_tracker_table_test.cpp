@@ -351,11 +351,12 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest002,
     SetTrackerTableTest(schema, SCHEMA_MISMATCH);
 
     /**
-     * @tc.steps:step1. param valid but extend name is empty
-     * @tc.expected: step1. Return OK.
+     * @tc.steps:step3. param valid but extend name is empty
+     * @tc.expected: step3. Return OK.
      */
     schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2;
     schema.extendColNames = {};
+    SetTrackerTableTest(schema, OK);
     SetTrackerTableTest(schema, OK);
 }
 
@@ -2787,6 +2788,50 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest046,
     sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2);
     num = 8;
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest047
+  * @tc.desc: Test recover log for extend_field is NULL
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest047, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable on table2
+     * @tc.expected: step1. Return WITH_INVENTORY_DATA.
+     */
+    CreateMultiTable();
+    OpenStore();
+    int num = 10;
+    BatchInsertTableName2Data(num);
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+
+    /**
+     * @tc.steps:step2. Construct a log with invalid extend_field
+     * @tc.expected: step2. Return OK.
+     */
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(TABLE_NAME2) + " SET extend_field = NULL"
+        " WHERE data_key=1";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, sql), E_OK);
+    std::string querySql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
+        " WHERE json_type(extend_field) IS 'object'";
+    num = 9;
+    EXPECT_EQ(sqlite3_exec(g_db, querySql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. Set tracker and check log count
+     * @tc.expected: step3. Return OK.
+     */
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    num = 10;
+    EXPECT_EQ(sqlite3_exec(g_db, querySql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
     CloseStore();
 }

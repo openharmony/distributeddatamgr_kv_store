@@ -14,6 +14,7 @@
  */
 
 #include "rdb_general_ut.h"
+#include "sqlite_relational_utils.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -190,4 +191,33 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample002, TestSize.Level0)
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 20);
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD
+
+/**
+ * @tc.name: RdbUtilsTest001
+ * @tc.desc: Test rdb utils execute actions.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbUtilsTest001, TestSize.Level0)
+{
+    std::vector<std::function<int()>> actions;
+    /**
+     * @tc.steps: step1. execute null actions no effect ret.
+     * @tc.expected: step1. E_OK
+     */
+    actions.emplace_back(nullptr);
+    EXPECT_EQ(SQLiteRelationalUtils::ExecuteListAction(actions), E_OK);
+    /**
+     * @tc.steps: step2. execute abort when action return error.
+     * @tc.expected: step2. -E_INVALID_ARGS
+     */
+    actions.clear();
+    actions.emplace_back([]() {
+        return -E_INVALID_ARGS;
+    });
+    actions.emplace_back([]() {
+        return -E_NOT_SUPPORT;
+    });
+    EXPECT_EQ(SQLiteRelationalUtils::ExecuteListAction(actions), -E_INVALID_ARGS);
+}
 }

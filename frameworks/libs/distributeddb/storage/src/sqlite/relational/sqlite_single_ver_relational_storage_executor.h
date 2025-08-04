@@ -236,7 +236,8 @@ public:
 
     int GetCloudDataCount(const std::string &tableName, DownloadData &downloadData, int64_t &count);
 
-    int UpdateExtendField(const std::string &tableName, const std::set<std::string> &extendColNames);
+    int UpdateExtendField(const std::string &tableName, const std::set<std::string> &extendColNames,
+        const std::string &condition = "");
 
     int UpdateDeleteDataExtendField(const std::string &tableName, const std::string &lowVersionExtendColName,
         const std::set<std::string> &oldExtendColNames, const std::set<std::string> &extendColNames);
@@ -273,6 +274,8 @@ public:
     void ClearLogOfMismatchedData(const std::string &tableName);
 
     int IsTableOnceDropped(const std::string &tableName, bool &onceDropped);
+
+    void RecoverNullExtendLog(const TrackerSchema &trackerSchema, const TrackerTable &table);
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
@@ -532,6 +535,8 @@ private:
 
     bool AbortGetDownloadAssetGidIfNeed(const TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
         uint32_t &count);
+
+    int RecoverNullExtendLogInner(const TrackerSchema &trackerSchema, const TrackerTable &table);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";

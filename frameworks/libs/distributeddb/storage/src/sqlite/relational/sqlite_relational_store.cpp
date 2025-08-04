@@ -1371,6 +1371,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
             if (isNoTableInSchema) {
                 handle->ClearLogOfMismatchedData(trackerSchema.tableName);
             }
+            handle->RecoverNullExtendLog(trackerSchema, tableInfo.GetTrackerTable());
             ReleaseHandle(handle);
         }
         CleanDirtyLogIfNeed(trackerSchema.tableName);
@@ -1402,7 +1403,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
 int SQLiteRelationalStore::CheckTrackerTable(const TrackerSchema &trackerSchema, TableInfo &table,
     bool &isNoTableInSchema, bool &isFirstCreate)
 {
-    const RelationalSchemaObject &tracker = sqliteStorageEngine_->GetTrackerSchema();
+    const RelationalSchemaObject tracker = sqliteStorageEngine_->GetTrackerSchema();
     isFirstCreate = tracker.GetTrackerTable(trackerSchema.tableName).GetTableName().empty();
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     table = localSchema.GetTable(trackerSchema.tableName);
