@@ -264,7 +264,7 @@ HWTEST_F(AclTest, Anonymous001, TestSize.Level1)
  * @tc.desc: Test ACL_PERM.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1) 
+HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
 {
     std::string path = "/data/test/abc";
     std::string aclAttrName = "aclAttrName";
