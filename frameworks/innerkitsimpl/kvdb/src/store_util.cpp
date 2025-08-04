@@ -21,6 +21,7 @@
 #include "log_print.h"
 #include "types.h"
 #include "acl.h"
+#include <filesystem>
 namespace OHOS::DistributedKv {
 using namespace DATABASE_UTILS;
 constexpr mode_t DEFAULT_UMASK = 0002;
@@ -162,10 +163,41 @@ bool StoreUtil::InitPath(const std::string &path)
         ZLOGE("Mkdir error:%{public}d, path:%{public}s", errno, Anonymous(path).c_str());
         return false;
     }
-    Acl acl(path);
-    acl.SetDefaultUser(getuid(), Acl::R_RIGHT | Acl::W_RIGHT);
-    acl.SetDefaultGroup(SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT);
     return true;
+}
+
+void StoreUtil::SetSyncACL(const std::string &path)
+{
+
+    AclXattrEntry group = {ACL_TAG::GROUP, SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
+    AclXattrEntry user = {ACL_TAG::USER, getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
+    Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
+    
+    if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
+        ZLOGI("alctest no aclDefault, path: %{public}s", path.c_str());
+        return;
+    }
+    
+    aclDefault.SetAcl(group);
+    aclDefault.SetAcl(user);
+    Acl aclAccess(path, Acl::ACL_XATTR_ACCESS);
+    aclAccess.SetAcl(group);
+    aclAccess.SetAcl(user);
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+        Acl aclAccess(entry.path(), Acl::ACL_XATTR_ACCESS);
+        ZLOGI("alctest set aclAccess ,  path: %{public}s", entry.path().c_str());
+        aclAccess.SetAcl(group);
+        aclAccess.SetAcl(user);
+        if (entry.is_directory()) {
+            ZLOGI("alctest set aclDefault ,  path: %{public}s", entry.path().c_str());
+            Acl aclDefault(entry.path(), Acl::ACL_XATTR_DEFAULT);
+            aclDefault.SetAcl(group);
+            aclDefault.SetAcl(user);
+        }
+    }
+
+    ZLOGI("alctest already set acl, path: %{public}s", path.c_str());
 }
 
 bool StoreUtil::CreateFile(const std::string &name)
