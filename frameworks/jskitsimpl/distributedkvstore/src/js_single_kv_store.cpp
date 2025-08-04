@@ -190,6 +190,10 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
             napi_valuetype ntype = napi_undefined;
             napi_typeof(env, argv[0], &ntype);
             auto type = valueTypeToString_.find(ntype);
+            if (type->second == end()) {
+                ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error: invalid value type");
+                return;
+            }
             ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:the type of value must be:" + type->second);
             return;
         }
@@ -202,6 +206,9 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
         auto &kvStore = reinterpret_cast<JsSingleKVStore *>(ctxt->native)->kvStore_;
         DistributedKv::Value value = isSchemaStore ? DistributedKv::Blob(std::get<std::string>(ctxt->value))
                                                    : JSUtil::VariantValue2Blob(ctxt->value);
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->Put(key, value);
         ZLOGD("kvStore->Put return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?

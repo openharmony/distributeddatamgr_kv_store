@@ -55,12 +55,6 @@ JsFieldNode::~JsFieldNode()
             napi_delete_reference(env_, ref);
         }
     }
-    for (auto field : fields_) {
-        if (field != nullptr) {
-            delete field;
-        }
-    }
-    fields_.clear();
 }
 
 std::string JsFieldNode::GetFieldName()
