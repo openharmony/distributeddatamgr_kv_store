@@ -30,7 +30,6 @@ constexpr int32_t END_SIZE = 3;
 constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
 constexpr const char *REPLACE_CHAIN = "***";
 constexpr const char *DEFAULT_ANONYMOUS = "******";
-constexpr int32_t SERVICE_GID = 3012;
 std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
 using DBStatus = DistributedDB::DBStatus;
 std::map<DBStatus, Status> StoreUtil::statusMap_ = {
@@ -164,36 +163,6 @@ bool StoreUtil::InitPath(const std::string &path)
         return false;
     }
     return true;
-}
-
-void StoreUtil::SetSyncACL(const std::string &path)
-{
-
-    AclXattrEntry group = {ACL_TAG::GROUP, SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
-    AclXattrEntry user = {ACL_TAG::USER, getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
-    Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
-    
-    if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
-        ZLOGI("already set acl, path: %{public}s", path.c_str());
-        return;
-    }
-    
-    aclDefault.SetAcl(group);
-    aclDefault.SetAcl(user);
-    Acl aclAccess(path, Acl::ACL_XATTR_ACCESS);
-    aclAccess.SetAcl(group);
-    aclAccess.SetAcl(user);
-
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
-        Acl aclAccess(entry.path(), Acl::ACL_XATTR_ACCESS);
-        aclAccess.SetAcl(group);
-        aclAccess.SetAcl(user);
-        if (entry.is_directory()) {
-            Acl aclDefault(entry.path(), Acl::ACL_XATTR_DEFAULT);
-            aclDefault.SetAcl(group);
-            aclDefault.SetAcl(user);
-        }
-    }
 }
 
 bool StoreUtil::CreateFile(const std::string &name)

@@ -626,7 +626,6 @@ Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
     KVDBService::SyncInfo syncInfo;
     syncInfo.seqId = StoreUtil::GenSequenceId();
     serviceAgent->AddCloudSyncCallback(syncInfo.seqId, async);
-    StoreUtil::SetSyncAcl(path_);
     auto status = service->CloudSync({ appId_ }, { storeId_ }, syncInfo);
     if (status != SUCCESS) {
         ZLOGE("Sync failed!: %{public}d", status);
@@ -979,7 +978,6 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
     }
 
     serviceAgent->AddSyncCallback(observer, syncInfo.seqId);
-    StoreUtil::SetSyncAcl(path_);
     auto status = service->Sync({ appId_ }, { storeId_ }, subUser_, syncInfo);
     if (status != Status::SUCCESS) {
         ZLOGE("Service sync failed! app:%{public}s store:%{public}s status:%{public}d", appId_.c_str(),
@@ -1028,7 +1026,6 @@ void SingleStoreImpl::DoAutoSync()
         return;
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
-    StoreUtil::SetSyncAcl(path_);
     AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
 }
 

@@ -15,6 +15,7 @@
 #define LOG_TAG "StoreFactory"
 #include "store_factory.h"
 
+#include "acl.h"
 #include "backup_manager.h"
 #include "device_convertor.h"
 #include "ithread_pool.h"
@@ -28,6 +29,7 @@
 #include "runtime_config.h"
 namespace OHOS::DistributedKv {
 using namespace DistributedDB;
+using namespace DATABASE_UTILS;
 static constexpr const char *KEY_SPLIT = "###";
 StoreFactory &StoreFactory::GetInstance()
 {
@@ -120,7 +122,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 StoreUtil::Anonymous(path).c_str());
             return !stores.empty();
         }
-        StoreUtil::SetSyncAcl(path);
+        ACL::SetACL(path);
         stores[key] = kvStore;
         KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         storeParams.isCreate = true;
