@@ -15,7 +15,7 @@
 #ifndef RELATIONAL_STORE_EXT_H
 #define RELATIONAL_STORE_EXT_H
 
-#define SQLITE3_HW_EXPORT_SYMBOLS
+#define SQLITE3_EXTRA_EXPORT_SYMBOLS
 
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
