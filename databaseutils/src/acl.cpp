@@ -28,7 +28,6 @@
 #include <type_traits>
 #include "log_print.h"
 
-
 namespace OHOS {
 namespace DATABASE_UTILS {
 using namespace DistributedKv;
@@ -183,7 +182,7 @@ void Acl::AclFromMode()
 int32_t Acl::SetAcl()
 {
     if (IsEmpty()) {
-        ZLOGE("acltest Failed to generate ACL from file's mode: %{public}s", std::strerror(errno));
+        ZLOGE("Failed to generate ACL from file's mode: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
 
@@ -191,11 +190,11 @@ int32_t Acl::SetAcl()
     uint32_t bufSize;
     auto buf = Serialize(bufSize);
     if (buf == nullptr) {
-        ZLOGE("acltest Failed to serialize ACL into binary: %{public}s", std::strerror(errno));
+        ZLOGE("Failed to serialize ACL into binary: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
     if (setxattr(path_.c_str(), aclAttrName_.c_str(), buf.get(), bufSize, 0) == -1) {
-        ZLOGE("acltest Failed to write into file's xattr: %{public}s", std::strerror(errno));
+        ZLOGE("Failed to write into file's xattr: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
     return E_OK;

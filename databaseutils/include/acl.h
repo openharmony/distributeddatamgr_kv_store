@@ -126,7 +126,7 @@ public:
     static constexpr uint16_t R_RIGHT = 4;
     static constexpr uint16_t W_RIGHT = 2;
     static constexpr uint16_t E_RIGHT = 1;
- 
+
     API_EXPORT Acl(const std::string &path, const std::string &aclAttrName);
     Acl();
     API_EXPORT ~Acl();

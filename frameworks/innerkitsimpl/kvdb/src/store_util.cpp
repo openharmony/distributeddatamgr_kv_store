@@ -174,7 +174,7 @@ void StoreUtil::SetSyncACL(const std::string &path)
     Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
     
     if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
-        ZLOGI("alctest no aclDefault, path: %{public}s", path.c_str());
+        ZLOGI("already set acl, path: %{public}s", path.c_str());
         return;
     }
     
@@ -186,18 +186,14 @@ void StoreUtil::SetSyncACL(const std::string &path)
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
         Acl aclAccess(entry.path(), Acl::ACL_XATTR_ACCESS);
-        ZLOGI("alctest set aclAccess ,  path: %{public}s", entry.path().c_str());
         aclAccess.SetAcl(group);
         aclAccess.SetAcl(user);
         if (entry.is_directory()) {
-            ZLOGI("alctest set aclDefault ,  path: %{public}s", entry.path().c_str());
             Acl aclDefault(entry.path(), Acl::ACL_XATTR_DEFAULT);
             aclDefault.SetAcl(group);
             aclDefault.SetAcl(user);
         }
     }
-
-    ZLOGI("alctest already set acl, path: %{public}s", path.c_str());
 }
 
 bool StoreUtil::CreateFile(const std::string &name)
