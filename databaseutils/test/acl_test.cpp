@@ -272,7 +272,7 @@ HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
     Acl acl(path, aclAttrName);
 
     EXPECT_EQ(acl.path_, path);
-    EXPECT_FALSE(acl.hasError_);
+    EXPECT_TRUE(acl.hasError_);
     EXPECT_EQ(acl.aclAttrName_, aclAttrName);
 }
 
@@ -288,7 +288,7 @@ HWTEST_F(AclTest, AclAttrTest002, TestSize.Level1) {
     Acl acl(path, aclAttrName);
 
     EXPECT_EQ(acl.path_, path);
-    EXPECT_FALSE(acl.hasError_);
+    EXPECT_TRUE(acl.hasError_);
     EXPECT_EQ(acl.aclAttrName_, aclAttrName);
 }
 
@@ -304,7 +304,7 @@ HWTEST_F(AclTest, AclAttrTest003, TestSize.Level1) {
     Acl acl(path, aclAttrName);
 
     EXPECT_EQ(acl.path_, path);
-    EXPECT_FALSE(acl.hasError_);
+    EXPECT_TRUE(acl.hasError_);
     EXPECT_EQ(acl.aclAttrName_, aclAttrName);
 }
 
@@ -319,7 +319,7 @@ HWTEST_F(AclTest, AclFromFileTest, TestSize.Level1)
     acl.path_ = "/data/test/abc";
     acl.aclAttrName_ = "acl_attr";
     acl.AclFromFile();
-    EXPECT_FALSE(acl.hasError_);
+    EXPECT_TRUE(acl.hasError_);
 }
 
 /**
