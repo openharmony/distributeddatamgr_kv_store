@@ -19,6 +19,7 @@
 #include <cerrno>
 #include <cstring>
 #include <dlfcn.h>
+#include <filesystem>
 #include <functional>
 #include <iosfwd>
 #include <memory>
