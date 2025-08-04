@@ -121,7 +121,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 StoreUtil::Anonymous(path).c_str());
             return !stores.empty();
         }
-        ACL::SetACL(path);
+        Acl::SetACL(path);
         stores[key] = kvStore;
         KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         storeParams.isCreate = true;
