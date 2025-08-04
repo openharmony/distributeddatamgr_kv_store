@@ -293,8 +293,7 @@ const std::string TrackerTable::GetTempUpdateLogCursorTriggerSql() const
     sql += "BEGIN\n";
     sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
     sql += "UPDATE " + DBCommon::GetLogTableName(tableName_) + " SET ";
-    sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE";
-    sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
+    sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE data_key = OLD.data_key;\n";
     sql += "END;";
     return sql;
 }
