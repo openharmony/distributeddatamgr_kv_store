@@ -274,7 +274,6 @@ HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
     EXPECT_EQ(acl.path_, path);
     EXPECT_FALSE(acl.hasError_);
     EXPECT_EQ(acl.aclAttrName_, aclAttrName);
-
 }
 
 /**

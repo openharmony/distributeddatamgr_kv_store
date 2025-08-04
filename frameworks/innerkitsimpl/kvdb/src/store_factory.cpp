@@ -83,8 +83,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         std::string path = options.GetDatabaseDir();
         auto dbManager = GetDBManager(path, appId, options.subUser);
-        auto dbPassword =
-            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
+        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
             status = CRYPT_ERROR;
             ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",

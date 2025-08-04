@@ -132,7 +132,6 @@ public:
     API_EXPORT ~Acl();
     API_EXPORT int32_t SetAcl(const AclXattrEntry &entry);
     API_EXPORT bool HasAcl(const AclXattrEntry &entry);
-    API_EXPORT void SetACL(const std::string &path);
     API_EXPORT static void SetACL(const std::string &path);
  
 private:

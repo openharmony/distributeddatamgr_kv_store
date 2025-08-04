@@ -238,11 +238,9 @@ std::string Acl::Anonymous(const std::string &name)
 
 void Acl::SetACL(const std::string &path)
 {
-
     AclXattrEntry group = {ACL_TAG::GROUP, SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
     AclXattrEntry user = {ACL_TAG::USER, getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
     Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
-    
     if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
         ZLOGI("already set acl, path: %{public}s", path.c_str());
         return;
@@ -253,7 +251,6 @@ void Acl::SetACL(const std::string &path)
     Acl aclAccess(path, Acl::ACL_XATTR_ACCESS);
     aclAccess.SetAcl(group);
     aclAccess.SetAcl(user);
-
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
         Acl aclAccess(entry.path(), Acl::ACL_XATTR_ACCESS);
         aclAccess.SetAcl(group);
