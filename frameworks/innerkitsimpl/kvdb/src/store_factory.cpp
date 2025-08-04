@@ -212,7 +212,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
     dbOption.secOption = StoreUtil::GetDBSecurity(options.securityLevel);
-    dbOption.localOnly = !options.syncable;
+    dbOption.localOnly = !options.isClientSync;
     dbOption.rdconfig.type = StoreUtil::GetDBIndexType(options.config.type);
     dbOption.rdconfig.pageSize = options.config.pageSize;
     dbOption.rdconfig.cacheSize = options.config.cacheSize;
