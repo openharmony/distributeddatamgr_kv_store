@@ -110,7 +110,7 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
         OHOS::DistributedKv::Key key(deviceKey);
         OHOS::DistributedKv::Value value;
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        if (kvstore == nullptr) {
+        if (kvStore == nullptr) {
             return;
         }
         ASSERT_STATUS(ctxt, "kvStore->result() failed!");
@@ -205,7 +205,7 @@ napi_value JsDeviceKVStore::GetEntries(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        if (kvstore == nullptr) {
+        if (kvStore == nullptr) {
             return;
         }
         Status status = kvStore->GetEntries(ctxt->va.dataQuery, ctxt->entries);
@@ -260,7 +260,7 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        if (kvstore == nullptr) {
+        if (kvStore == nullptr) {
             return;
         }
         Status status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
@@ -306,7 +306,7 @@ napi_value JsDeviceKVStore::GetResultSize(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        if (kvstore == nullptr) {
+        if (kvStore == nullptr) {
             return;
         }
         Status status = kvStore->GetCount(ctxt->va.dataQuery, ctxt->resultSize);
