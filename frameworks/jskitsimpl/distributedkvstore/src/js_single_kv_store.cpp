@@ -190,7 +190,7 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
             napi_valuetype ntype = napi_undefined;
             napi_typeof(env, argv[0], &ntype);
             auto type = valueTypeToString_.find(ntype);
-            if (type->second == end()) {
+            if (type == end()) {
                 ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error: invalid value type");
                 return;
             }
