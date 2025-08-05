@@ -1251,7 +1251,7 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
 
     auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
     if (kvStore == nullptr) {
-        return;
+        return nullptr;
     }
     Status status = Status::INVALID_ARGUMENT;
     if (ctxt->type == napi_object) {
