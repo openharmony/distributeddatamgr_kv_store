@@ -21,7 +21,6 @@
 #include "log_print.h"
 #include "types.h"
 #include "acl.h"
-#include <filesystem>
 namespace OHOS::DistributedKv {
 using namespace DATABASE_UTILS;
 constexpr mode_t DEFAULT_UMASK = 0002;

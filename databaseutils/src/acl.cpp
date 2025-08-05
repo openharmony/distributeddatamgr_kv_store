@@ -243,7 +243,7 @@ void Acl::SetACL(const std::string &path)
     AclXattrEntry user = {ACL_TAG::USER, getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
     Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
     if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
-        ZLOGI("already set acl, path: %{public}s", path.c_str());
+        ZLOGI("already set acl, path: %{public}s", Anonymous(path).c_str());
         return;
     }
     
