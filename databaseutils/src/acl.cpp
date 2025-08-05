@@ -36,7 +36,6 @@ using namespace DistributedKv;
 static constexpr int32_t HEAD_SIZE = 3;
 static constexpr int32_t END_SIZE = 3;
 static constexpr int32_t MIN_SIZE = 9;
-static constexpr int32_t SERVICE_GID = 3012;
 static constexpr const char *REPLACE_CHAIN = "***";
 static constexpr const char *DEFAULT_ANONYMOUS = "******";
 Acl::Acl(const std::string &path, const std::string &aclAttrName)
@@ -237,9 +236,9 @@ std::string Acl::Anonymous(const std::string &name)
     return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
 
-void Acl::SetACL(const std::string &path)
+void Acl::SetACL(const std::string &path, int32_t gid)
 {
-    AclXattrEntry group = {ACL_TAG::GROUP, SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
+    AclXattrEntry group = {ACL_TAG::GROUP, gid, Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
     AclXattrEntry user = {ACL_TAG::USER, getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
     Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
     if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
