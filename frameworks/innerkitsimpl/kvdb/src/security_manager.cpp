@@ -244,15 +244,20 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     keyContent.assign(keyContent.size(), 0);
     auto keyPath = path + KEY_DIR;
     StoreUtil::InitPath(keyPath);
-    std::vector<char> content;
-    for (size_t index = 0; index < SecurityContent::MAGIC_NUM; ++index) {
-        content.push_back(char(SecurityContent::MAGIC_CHAR));
-    }
-    content.insert(content.end(), securityContent.nonceValue.begin(), securityContent.nonceValue.end());
-    content.insert(content.end(), securityContent.encryptValue.begin(), securityContent.encryptValue.end());
     auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY_V1;
-    auto ret = SaveBufferToFile(keyFullPath, content);
-    content.assign(content.size(), 0);
+    auto fd = open(keyFullPath.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        ZLOGE("Create file failed, ret:%{public}d", errno);
+        return false;
+    }
+    std::string content(SecurityContent::MAGIC_NUM, static_cast<char>(SecurityContent::MAGIC_CHAR));
+    content.append(reinterpret_cast<const char *>(securityContent.nonceValue.data()),
+        securityContent.nonceValue.size());
+    content.append(reinterpret_cast<const char *>(securityContent.encryptValue.data()),
+        securityContent.encryptValue.size());
+    auto ret = SaveStringToFd(fd, content);
+    std::fill(content.begin(), content.end(), '\0');
+    close(fd);
     if (!ret) {
         ZLOGE("Save key to file fail, ret:%{public}d", ret);
         return false;
@@ -456,7 +461,7 @@ SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &
     if (!openFile) {
         return;
     }
-    lockFd_ = open(lockFile_.c_str(), O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    lockFd_ = open(lockFile_.c_str(), O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (lockFd_ < 0) {
         ZLOGE("Open failed, errno:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(lockFile_).c_str());
     }
