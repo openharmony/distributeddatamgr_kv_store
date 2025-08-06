@@ -25,6 +25,7 @@ config("module_private_config") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
     "../../../../interfaces/innerkits/distributeddatamgr/include/",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
+    "//foundation/distributeddatamgr/kv_store/databaseutils/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test/mock",

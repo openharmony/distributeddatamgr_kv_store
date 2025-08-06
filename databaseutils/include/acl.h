@@ -118,23 +118,23 @@ struct AclXattrEntry {
 
 class Acl {
 public:
-    static constexpr uint16_t R_RIGHT = 4;
-    static constexpr uint16_t W_RIGHT = 2;
-    static constexpr uint16_t E_RIGHT = 1;
-
-    API_EXPORT Acl(const std::string &path);
-    Acl();
-    API_EXPORT ~Acl();
-    API_EXPORT int32_t SetDefaultGroup(const uint32_t gid, const uint16_t mode);
-    API_EXPORT int32_t SetDefaultUser(const uint32_t uid, const uint16_t mode);
-    // just for Acl Test
-    bool HasEntry(const AclXattrEntry &entry);
-
-private:
     /*
      * ACL extended attributes (xattr) names
     */
     static constexpr const char *ACL_XATTR_DEFAULT = "system.posix_acl_default";
+    static constexpr const char *ACL_XATTR_ACCESS = "system.posix_acl_access";
+    static constexpr uint16_t R_RIGHT = 4;
+    static constexpr uint16_t W_RIGHT = 2;
+    static constexpr uint16_t E_RIGHT = 1;
+
+    API_EXPORT Acl(const std::string &path, const std::string &aclAttrName);
+    Acl();
+    API_EXPORT ~Acl();
+    API_EXPORT int32_t SetAcl(const AclXattrEntry &entry);
+    API_EXPORT bool HasAcl(const AclXattrEntry &entry);
+    API_EXPORT static void SetACL(const std::string &path, int32_t gid = 3012);
+ 
+private:
     static constexpr int32_t E_OK = 0;
     static constexpr int32_t E_ERROR = -1;
     static constexpr int32_t USER_OFFSET = 6;
@@ -143,9 +143,9 @@ private:
     static constexpr size_t ENTRIES_MAX_NUM = 100; // just heuristic
     static constexpr size_t BUF_MAX_SIZE = sizeof(AclXattrHeader) + sizeof(AclXattrEntry) * ENTRIES_MAX_NUM;
     bool IsEmpty();
-    int32_t SetDefault();
+    int32_t SetAcl();
     void AclFromMode();
-    void AclFromDefault();
+    void AclFromFile();
     void CompareInsertEntry(const AclXattrEntry &entry);
     ACL_PERM ReCalcMaskPerm();
     std::unique_ptr<char[]> Serialize(uint32_t &bufSize);
@@ -168,6 +168,7 @@ private:
     unsigned maskDemand_ = 0;
     std::string path_;
     bool hasError_ = false;
+    std::string aclAttrName_;
 };
 } // DATABASE_UTILS
 } // namespace OHOS
