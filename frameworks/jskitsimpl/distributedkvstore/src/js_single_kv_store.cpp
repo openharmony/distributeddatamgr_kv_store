@@ -187,10 +187,7 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
         if (ctxt->status != napi_ok) {
             ctxt->isThrowError = true;
-            napi_valuetype ntype = napi_undefined;
-            napi_typeof(env, argv[0], &ntype);
-            auto type = valueTypeToString_.find(ntype);
-            ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error:the type of value must be:" + type->second);
+            ThrowNapiError(env, Status::INVALID_ARGUMENT, "Parameter error: invalid value type");
             return;
         }
     });
@@ -202,6 +199,9 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
         auto &kvStore = reinterpret_cast<JsSingleKVStore *>(ctxt->native)->kvStore_;
         DistributedKv::Value value = isSchemaStore ? DistributedKv::Blob(std::get<std::string>(ctxt->value))
                                                    : JSUtil::VariantValue2Blob(ctxt->value);
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->Put(key, value);
         ZLOGD("kvStore->Put return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -906,6 +906,9 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
         OHOS::DistributedKv::Key key(ctxt->key);
         OHOS::DistributedKv::Value value;
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         bool isSchemaStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
         Status status = kvStore->Get(key, value);
         ZLOGD("kvStore->Get return %{public}d", status);
@@ -989,6 +992,9 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->GetEntries(ctxt->va.dataQuery, ctxt->entries);
         ZLOGD("kvStore->GetEntries() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -1039,6 +1045,9 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
         ZLOGD("kvStore->GetResultSet() return %{public}d", status);
 
@@ -1085,6 +1094,9 @@ napi_value JsSingleKVStore::CloseResultSet(napi_env env, napi_callback_info info
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         auto resultSet = ctxt->resultSet->GetInstance();
         ctxt->resultSet->SetInstance(nullptr);
         Status status = kvStore->CloseResultSet(resultSet);
@@ -1124,6 +1136,9 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         auto query = ctxt->query->GetDataQuery();
         Status status = kvStore->GetCount(query, ctxt->resultSize);
         ZLOGD("kvStore->GetCount() return %{public}d", status);
@@ -1161,6 +1176,9 @@ napi_value JsSingleKVStore::RemoveDeviceData(napi_env env, napi_callback_info in
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->RemoveDeviceData(ctxt->deviceId);
         ZLOGD("kvStore->RemoveDeviceData return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -1232,6 +1250,9 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
         (int)ctxt->deviceIdList.size(), ctxt->mode, ctxt->allowedDelayMs);
 
     auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+    if (kvStore == nullptr) {
+        return nullptr;
+    }
     Status status = Status::INVALID_ARGUMENT;
     if (ctxt->type == napi_object) {
         auto query = ctxt->query->GetDataQuery();
@@ -1270,6 +1291,9 @@ napi_value JsSingleKVStore::SetSyncParam(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         KvSyncParam syncParam { ctxt->allowedDelayMs };
         Status status = kvStore->SetSyncParam(syncParam);
         ZLOGD("kvStore->SetSyncParam return %{public}d", status);
@@ -1294,6 +1318,9 @@ napi_value JsSingleKVStore::GetSecurityLevel(napi_env env, napi_callback_info in
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->GetSecurityLevel(ctxt->securityLevel);
         ZLOGD("kvStore->GetSecurityLevel return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?

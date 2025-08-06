@@ -110,6 +110,9 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
         OHOS::DistributedKv::Key key(deviceKey);
         OHOS::DistributedKv::Value value;
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         ASSERT_STATUS(ctxt, "kvStore->result() failed!");
         bool isSchemaStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->IsSchemaStore();
         Status status = kvStore->Get(key, value);
@@ -202,6 +205,9 @@ napi_value JsDeviceKVStore::GetEntries(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->GetEntries(ctxt->va.dataQuery, ctxt->entries);
         ZLOGD("kvStore->GetEntries() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -254,6 +260,9 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
         ZLOGD("kvStore->GetResultSet() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -297,6 +306,9 @@ napi_value JsDeviceKVStore::GetResultSize(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
+        if (kvStore == nullptr) {
+            return;
+        }
         Status status = kvStore->GetCount(ctxt->va.dataQuery, ctxt->resultSize);
         ZLOGD("kvStore->GetCount() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?

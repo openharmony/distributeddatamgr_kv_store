@@ -41,7 +41,10 @@ static napi_value ExportConstants(napi_env env)
     constexpr int32_t MAX_BATCH_SIZE = 128;
 
     napi_value constants = nullptr;
-    napi_create_object(env, &constants);
+    napi_status status = napi_create_object(env, &constants);
+    if (status != napi_ok) {
+        return nullptr;
+    }
     SetNamedProperty(env, constants, "MAX_KEY_LENGTH", MAX_KEY_LENGTH);
     SetNamedProperty(env, constants, "MAX_VALUE_LENGTH", MAX_VALUE_LENGTH);
     SetNamedProperty(env, constants, "MAX_KEY_LENGTH_DEVICE", MAX_KEY_LENGTH_DEVICE);
@@ -55,7 +58,10 @@ static napi_value ExportConstants(napi_env env)
 static napi_value ExportValueType(napi_env env)
 {
     napi_value valueType = nullptr;
-    napi_create_object(env, &valueType);
+    napi_status status = napi_create_object(env, &valueType);
+    if (status != napi_ok) {
+        return nullptr;
+    }
     SetNamedProperty(env, valueType, "STRING", (int32_t)JSUtil::STRING);
     SetNamedProperty(env, valueType, "INTEGER", (int32_t)JSUtil::INTEGER);
     SetNamedProperty(env, valueType, "FLOAT", (int32_t)JSUtil::FLOAT);
@@ -69,7 +75,10 @@ static napi_value ExportValueType(napi_env env)
 static napi_value ExportSyncMode(napi_env env)
 {
     napi_value syncMode = nullptr;
-    napi_create_object(env, &syncMode);
+    napi_status status = napi_create_object(env, &syncMode);
+    if (status != napi_ok) {
+        return nullptr;
+    }
     SetNamedProperty(env, syncMode, "PULL_ONLY", (int32_t)SyncMode::PULL);
     SetNamedProperty(env, syncMode, "PUSH_ONLY", (int32_t)SyncMode::PUSH);
     SetNamedProperty(env, syncMode, "PUSH_PULL", (int32_t)SyncMode::PUSH_PULL);
@@ -80,8 +89,10 @@ static napi_value ExportSyncMode(napi_env env)
 static napi_value ExportSubscribeType(napi_env env)
 {
     napi_value subscribeType = nullptr;
-    napi_create_object(env, &subscribeType);
-
+    napi_status status = napi_create_object(env, &subscribeType);
+    if (status != napi_ok) {
+        return nullptr;
+    }
     SetNamedProperty(env, subscribeType, "SUBSCRIBE_TYPE_LOCAL", (int32_t)SUBSCRIBE_LOCAL);
     SetNamedProperty(env, subscribeType, "SUBSCRIBE_TYPE_REMOTE", (int32_t)SUBSCRIBE_REMOTE);
     SetNamedProperty(env, subscribeType, "SUBSCRIBE_TYPE_ALL", (int32_t)SUBSCRIBE_LOCAL_REMOTE);
@@ -92,7 +103,10 @@ static napi_value ExportSubscribeType(napi_env env)
 static napi_value ExportKVStoreType(napi_env env)
 {
     napi_value kvStoreType = nullptr;
-    napi_create_object(env, &kvStoreType);
+    napi_status status = napi_create_object(env, &kvStoreType);
+    if (status != napi_ok) {
+        return nullptr;
+    }
     SetNamedProperty(env, kvStoreType, "DEVICE_COLLABORATION", (int32_t)KvStoreType::DEVICE_COLLABORATION);
     SetNamedProperty(env, kvStoreType, "SINGLE_VERSION", (int32_t)KvStoreType::SINGLE_VERSION);
     napi_object_freeze(env, kvStoreType);
@@ -102,8 +116,10 @@ static napi_value ExportKVStoreType(napi_env env)
 static napi_value ExportSecurityLevel(napi_env env)
 {
     napi_value securityLevel = nullptr;
-    
-    napi_create_object(env, &securityLevel);
+    napi_status status = napi_create_object(env, &securityLevel);
+    if (status != napi_ok) {
+        return nullptr;
+    }
     SetNamedProperty(env, securityLevel, "S1", (int32_t)SecurityLevel::S1);
     SetNamedProperty(env, securityLevel, "S2", (int32_t)SecurityLevel::S2);
     SetNamedProperty(env, securityLevel, "S3", (int32_t)SecurityLevel::S3);
