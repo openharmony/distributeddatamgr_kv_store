@@ -58,6 +58,7 @@ void EndPointTest::SetUpTestCase(void)
     options_.area = EL1;
     options_.baseDir = std::string("/data/service/el1/public/database/odmf");
     options_.securityLevel = S1;
+    options_.isClientSync = true;
     mkdir(options_.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     AppId appId = { "odmf" };
     StoreId storeId = { "student_device" }; // define kvstore(database) name.
