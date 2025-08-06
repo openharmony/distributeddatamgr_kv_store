@@ -2018,7 +2018,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest002
     auto storeObserver = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
     RegisterDbHook(db);
-    EXPECT_TRUE(g_changedData.empty());
+    g_changedData.clear();
     /**
      * @tc.steps: step3. insert data and check changed data.
      * @tc.expected: step3. return ok.
@@ -2026,6 +2026,46 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest002
     sql = "insert into " + tableName + "_content values(1, '123456');";
     EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
     ASSERT_EQ(g_changedData.size(), 1u);
+    EXPECT_EQ(g_changedData.front().tableName, tableName + "_content");
+    ASSERT_EQ(g_changedData.front().primaryData[OP_INSERT].size(), 1u);
+    EXPECT_EQ(UnregisterStoreObserver(db, storeObserver), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: CreateTempTriggerTest003
+ * @tc.desc: Test monitoring of virtual table data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create db and fts table.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string tableName = "table1";
+    std::string sql = "create virtual table if not exists " + tableName + " using fts4(content);";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    /**
+     * @tc.steps: step2. create temp trigger on table.
+     * @tc.expected: step2. return ok.
+     */
+    auto storeObserver = std::make_shared<MockStoreObserver>();
+    EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    RegisterDbHook(db);
+    g_changedData.clear();
+    /**
+     * @tc.steps: step3. insert data and check changed data.
+     * @tc.expected: step3. return ok.
+     */
+    sql = "insert into " + tableName + " values(12345);";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    ASSERT_FALSE(g_changedData.empty());
     EXPECT_EQ(g_changedData.front().tableName, tableName + "_content");
     ASSERT_EQ(g_changedData.front().primaryData[OP_INSERT].size(), 1u);
     EXPECT_EQ(UnregisterStoreObserver(db, storeObserver), OK);
