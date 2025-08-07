@@ -56,7 +56,7 @@ typedef int32_t (*KVBatchPushback)(const void *key, uint32_t keyLen, const void 
     GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchPut)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDel)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
-typedef int32_t (*KVBatchDestory)(GRD_KVBatchT *batch);
+typedef int32_t (*KVBatchDestroy)(GRD_KVBatchT *batch);
 struct GRD_APIInfo {
     DBOpen DBOpenApi = nullptr;
     DBClose DBCloseApi = nullptr;
@@ -89,9 +89,11 @@ struct GRD_APIInfo {
     KVBatchPushback KVBatchPushbackApi = nullptr;
     KVBatchDel KVBatchPutApi = nullptr;
     KVBatchDel KVBatchDelApi = nullptr;
-    KVBatchDestory KVBatchDestoryApi = nullptr;
+    KVBatchDestroy KVBatchDestroyApi = nullptr;
 };
-GRD_APIInfo GetApiInfoInstance();
+GRD_APIInfo *GetApiInfo(void);
+void GetApiInfoInstance(void);
 void InitApiInfo(const char *configStr);
+void UnloadApiInfo(GRD_APIInfo *GRD_DBApiInfo);
 } // namespace DocumentDB
 #endif // __cplusplus

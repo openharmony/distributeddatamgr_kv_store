@@ -2966,4 +2966,40 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SetAndGetHandleTest001, TestSize
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test_rd"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: SetAndGetHandleTest002
+  * @tc.desc: Test multi get delegate.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lideshi
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, SetAndGetHandleTest002, TestSize.Level0)
+{
+    const std::string dbName = "storeId";
+
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.storageEngineType = GAUSSDB_RD;
+    static int openCount = 2; // test open count 2
+
+    std::vector<KvStoreNbDelegate *> delegates;
+    KvStoreDelegateManager g_mgrTest("app1", "user1");
+    g_mgrTest.SetKvStoreConfig(g_config);
+    for (int i = 0; i < openCount; i++) {
+        KvStoreNbDelegate *delegate = nullptr;
+        DBStatus kvDelegateStatus = INVALID_ARGS;
+        auto callback1 = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
+            placeholders::_2, std::ref(kvDelegateStatus), std::ref(delegate));
+        g_mgrTest.GetKvStore(dbName + std::to_string(i), option, callback1);
+        ASSERT_TRUE(delegate != nullptr);
+        EXPECT_TRUE(kvDelegateStatus == OK);
+        delegates.push_back(delegate);
+    }
+
+    for (int i = 0; i < openCount; i++) {
+        EXPECT_EQ(g_mgrTest.CloseKvStore(delegates[i]), OK);
+        EXPECT_EQ(g_mgrTest.DeleteKvStore(dbName + std::to_string(i)), OK);
+        delegates[i] = nullptr;
+    }
+}
 }

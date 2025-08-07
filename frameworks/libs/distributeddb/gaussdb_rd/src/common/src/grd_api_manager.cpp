@@ -33,6 +33,8 @@
 
 #ifndef _WIN32
 static void *g_library = nullptr;
+static int g_openCount = 0;
+static std::mutex g_apiInfoMutex;
 #endif
 
 static bool g_isGmdbLib = false;
@@ -69,7 +71,7 @@ void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVBatchPushbackApi = GRD_KVBatchPushbackInner;
     GRD_DBApiInfo.KVBatchPutApi = GRD_KVBatchPutInner;
     GRD_DBApiInfo.KVBatchDelApi = GRD_KVBatchDelInner;
-    GRD_DBApiInfo.KVBatchDestoryApi = GRD_KVBatchDestroyInner;
+    GRD_DBApiInfo.KVBatchDestroyApi = GRD_KVBatchDestroyInner;
 }
 
 void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
@@ -106,7 +108,7 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVBatchPushbackApi = (KVBatchPushback)dlsym(g_library, "GRD_KVBatchPushback");
     GRD_DBApiInfo.KVBatchPutApi = (KVBatchPut)dlsym(g_library, "GRD_KVBatchPut");
     GRD_DBApiInfo.KVBatchDelApi = (KVBatchDel)dlsym(g_library, "GRD_KVBatchDel");
-    GRD_DBApiInfo.KVBatchDestoryApi = (KVBatchDestory)dlsym(g_library, "GRD_KVBatchDestroy");
+    GRD_DBApiInfo.KVBatchDestroyApi = (KVBatchDestroy)dlsym(g_library, "GRD_KVBatchDestroy");
 #endif
 }
 
@@ -115,18 +117,44 @@ void InitApiInfo(const char *configStr)
     g_isGmdbLib = (configStr != nullptr);
 }
 
-GRD_APIInfo GetApiInfoInstance()
+static GRD_APIInfo GRD_ApiInfo;
+
+GRD_APIInfo *GetApiInfo(void)
 {
-    GRD_APIInfo GRD_TempApiStruct;
+    return &GRD_ApiInfo;
+}
+
+void GetApiInfoInstance(void)
+{
 #ifndef _WIN32
+    std::lock_guard<std::mutex> lock(g_apiInfoMutex);
+    g_openCount++;
+    if (g_library != nullptr) {
+        return;
+    }
     std::string libPath = g_isGmdbLib ? "libarkdata_db_core.z.so" : "libgaussdb_rd.z.so";
     g_library = dlopen(libPath.c_str(), RTLD_LAZY);
     if (!g_library) {
-        GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
+        GRD_DBApiInitCommon(GRD_ApiInfo); // When calling specific function, read whether init is successful.
     } else {
-        GRD_DBApiInitEnhance(GRD_TempApiStruct);
+        GRD_DBApiInitEnhance(GRD_ApiInfo);
     }
 #endif
-    return GRD_TempApiStruct;
+}
+
+void UnloadApiInfo(GRD_APIInfo *GRD_DBApiInfo)
+{
+#ifndef _WIN32
+    std::lock_guard<std::mutex> lock(g_apiInfoMutex);
+    g_openCount--;
+    if (g_library == nullptr) {
+        return;
+    }
+    if (g_openCount == 0) {
+        dlclose(g_library);
+        *GRD_DBApiInfo = {0};
+        g_library = nullptr;
+    }
+#endif
 }
 } // namespace DocumentDB

@@ -23,80 +23,82 @@
 #include "rd_log_print.h"
 
 using namespace DocumentDB;
-static GRD_APIInfo GRD_DBApiInfo;
+static GRD_APIInfo *GRD_DBApiInfo = GetApiInfo();
 
 GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db)
 {
-    if (GRD_DBApiInfo.DBOpenApi == nullptr) {
-        InitApiInfo(configStr);
-        GRD_DBApiInfo = GetApiInfoInstance();
-    }
-    if (GRD_DBApiInfo.DBOpenApi == nullptr) {
+    InitApiInfo(configStr);
+    GetApiInfoInstance();
+    if (GRD_DBApiInfo->DBOpenApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
-    return GRD_DBApiInfo.DBOpenApi(dbPath, configStr, flags, db);
+    int32_t ret = GRD_DBApiInfo->DBOpenApi(dbPath, configStr, flags, db);
+    if (ret != GRD_OK) {
+        GLOGE("Fail to open db");
+        UnloadApiInfo(GRD_DBApiInfo);
+        return ret;
+    }
+    return ret;
 }
 
 GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
 {
-    if (GRD_DBApiInfo.DBCloseApi == nullptr) {
-        GRD_DBApiInfo = GetApiInfoInstance();
-    }
-    if (GRD_DBApiInfo.DBCloseApi == nullptr) {
+    if (GRD_DBApiInfo->DBCloseApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
-    return GRD_DBApiInfo.DBCloseApi(db, flags);
+    int32_t ret = GRD_DBApiInfo->DBCloseApi(db, flags);
+    if (ret != GRD_OK) {
+        GLOGE("Fail to close db");
+    }
+    UnloadApiInfo(GRD_DBApiInfo);
+    return ret;
 }
 
 GRD_API int32_t GRD_DBBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
 {
-    if (GRD_DBApiInfo.DBBackupApi == nullptr) {
-        GRD_DBApiInfo = GetApiInfoInstance();
-    }
-    if (GRD_DBApiInfo.DBBackupApi == nullptr) {
+    if (GRD_DBApiInfo->DBBackupApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     GRD_CipherInfoT cipherInfo = {.hexPassword = nullptr};
-    return GRD_DBApiInfo.DBBackupApi(db, backupDbFile, &cipherInfo);
+    return GRD_DBApiInfo->DBBackupApi(db, backupDbFile, &cipherInfo);
 }
 
 GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey,
     uint32_t decryptedKeyLen)
 {
-    if (GRD_DBApiInfo.DBRestoreApi == nullptr) {
-        GRD_DBApiInfo = GetApiInfoInstance();
-    }
-    if (GRD_DBApiInfo.DBRestoreApi == nullptr) {
+    // db restore operation will start after dlclose, should reload so to link api func
+    GetApiInfoInstance();
+    if (GRD_DBApiInfo->DBRestoreApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");
+        UnloadApiInfo(GRD_DBApiInfo);
         return GRD_INNER_ERR;
     }
     GRD_CipherInfoT cipherInfo = {.hexPassword = nullptr};
-    return GRD_DBApiInfo.DBRestoreApi(dbFile, backupDbFile, &cipherInfo);
+    int32_t ret = GRD_DBApiInfo->DBRestoreApi(dbFile, backupDbFile, &cipherInfo);
+    if (ret != GRD_OK) {
+        GLOGE("Fail to restore db");
+    }
+    UnloadApiInfo(GRD_DBApiInfo);
+    return ret;
 }
 
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
 {
-    if (GRD_DBApiInfo.FlushApi == nullptr) {
-        GRD_DBApiInfo = GetApiInfoInstance();
-    }
-    if (GRD_DBApiInfo.FlushApi == nullptr) {
+    if (GRD_DBApiInfo->FlushApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
-    return GRD_DBApiInfo.FlushApi(db, flags);
+    return GRD_DBApiInfo->FlushApi(db, flags);
 }
 
 GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
 {
-    if (GRD_DBApiInfo.IndexPreloadApi == nullptr) {
-        GRD_DBApiInfo = GetApiInfoInstance();
-    }
-    if (GRD_DBApiInfo.IndexPreloadApi == nullptr) {
+    if (GRD_DBApiInfo->IndexPreloadApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
-    return GRD_DBApiInfo.IndexPreloadApi(db, collectionName);
+    return GRD_DBApiInfo->IndexPreloadApi(db, collectionName);
 }
