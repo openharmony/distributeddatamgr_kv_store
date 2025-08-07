@@ -364,7 +364,7 @@ HWTEST_F(SingleKvStoreClientTest, RemoveDeviceData001, TestSize.Level1)
 
     std::string deviceId = "no_exist_device_id";
     auto removeStatus = singleKvStore->RemoveDeviceData(deviceId);
-    EXPECT_EQ(removeStatus, Status::SUCCESS) << "remove device should return success";
+    EXPECT_NE(removeStatus, Status::SUCCESS) << "remove device should not return success";
 
     Value retVal;
     auto getRet = singleKvStore->Get(skey, retVal);

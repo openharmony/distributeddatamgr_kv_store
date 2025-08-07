@@ -15,7 +15,6 @@
 #define LOG_TAG "StoreFactory"
 #include "store_factory.h"
 
-#include "acl.h"
 #include "backup_manager.h"
 #include "device_convertor.h"
 #include "ithread_pool.h"
@@ -29,7 +28,6 @@
 #include "runtime_config.h"
 namespace OHOS::DistributedKv {
 using namespace DistributedDB;
-using namespace DATABASE_UTILS;
 static constexpr const char *KEY_SPLIT = "###";
 StoreFactory &StoreFactory::GetInstance()
 {
@@ -83,7 +81,8 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         std::string path = options.GetDatabaseDir();
         auto dbManager = GetDBManager(path, appId, options.subUser);
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
+        auto dbPassword =
+            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
             status = CRYPT_ERROR;
             ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",
@@ -121,7 +120,6 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 StoreUtil::Anonymous(path).c_str());
             return !stores.empty();
         }
-        Acl::SetACL(path);
         stores[key] = kvStore;
         KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         storeParams.isCreate = true;

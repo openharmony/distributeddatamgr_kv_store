@@ -62,11 +62,9 @@ void AclTest::PreOperation() const
     int res = mkdir(PATH_ABC, mode);
     EXPECT_EQ(res, 0) << "directory creation failed." << std::strerror(errno);
 
-    AclXattrEntry group = {ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT};
-    AclXattrEntry user = {ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT};
-    Acl acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    acl.SetAcl(user);
-    acl.SetAcl(group);
+    Acl acl(PATH_ABC);
+    acl.SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    acl.SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
 
     res = mkdir(PATH_ABC_XIAOMING, mode);
     EXPECT_EQ(res, 0) << "directory creation failed." << std::strerror(errno);
@@ -92,13 +90,12 @@ HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
     int res = mkdir(PATH_ABC, mode);
     EXPECT_EQ(res, 0) << "directory creation failed.";
-    AclXattrEntry group = {ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT};
-    int32_t rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetAcl(group);
+    int rc = Acl(PATH_ABC).SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    Acl aclNew(PATH_ABC);
     AclXattrEntry entry(ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    ASSERT_TRUE(aclNew.HasAcl(entry));
+    ASSERT_TRUE(aclNew.HasEntry(entry));
 }
 
 /**
@@ -113,13 +110,12 @@ HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0)
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
     int res = mkdir(PATH_ABC, mode);
     EXPECT_EQ(res, 0) << "directory creation failed.";
-    AclXattrEntry user = {ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT};
-    int32_t rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetAcl(user);
+    int rc = Acl(PATH_ABC).SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    Acl aclNew(PATH_ABC);
     AclXattrEntry entry(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    ASSERT_TRUE(aclNew.HasAcl(entry));
+    ASSERT_TRUE(aclNew.HasEntry(entry));
 }
 
 /**
@@ -250,103 +246,12 @@ HWTEST_F(AclTest, ACL_PERM001, TestSize.Level1)
  */
 HWTEST_F(AclTest, Anonymous001, TestSize.Level1)
 {
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    Acl aclNew(PATH_ABC);
     std::string name = "";
     EXPECT_EQ(aclNew.Anonymous(name), "******");
     name = "12345678";
     EXPECT_EQ(aclNew.Anonymous(name), "123***");
     name = "123456789";
     EXPECT_EQ(aclNew.Anonymous(name), "123***789");
-}
-
-/**
- * @tc.name: AclAttrTest001
- * @tc.desc: Test ACL_PERM.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
-{
-    std::string path = "/data/test/abc";
-    std::string aclAttrName = "aclAttrName";
-
-    Acl acl(path, aclAttrName);
-
-    EXPECT_EQ(acl.path_, path);
-    EXPECT_TRUE(acl.hasError_);
-    EXPECT_EQ(acl.aclAttrName_, aclAttrName);
-}
-
-/**
- * @tc.name: AclAttrTest002
- * @tc.desc: Test ACL_PERM.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, AclAttrTest002, TestSize.Level1) {
-    std::string path = "";
-    std::string aclAttrName = "aclAttrName";
-
-    Acl acl(path, aclAttrName);
-
-    EXPECT_EQ(acl.path_, path);
-    EXPECT_TRUE(acl.hasError_);
-    EXPECT_EQ(acl.aclAttrName_, aclAttrName);
-}
-
-/**
- * @tc.name: AclAttrTest003
- * @tc.desc: Test ACL_PERM.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, AclAttrTest003, TestSize.Level1) {
-    std::string path = "/data/test/abc";
-    std::string aclAttrName = "";
-
-    Acl acl(path, aclAttrName);
-
-    EXPECT_EQ(acl.path_, path);
-    EXPECT_TRUE(acl.hasError_);
-    EXPECT_EQ(acl.aclAttrName_, aclAttrName);
-}
-
-/**
- * @tc.name: AclFromFileTest
- * @tc.desc: Test ACL_PERM.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, AclFromFileTest, TestSize.Level1)
-{
-    Acl acl;
-    acl.path_ = "/data/test/abc";
-    acl.aclAttrName_ = "acl_attr";
-    acl.AclFromFile();
-    EXPECT_TRUE(acl.hasError_);
-}
-
-/**
- * @tc.name: HasAclTest
- * @tc.desc: Test ACL_PERM.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, HasAclTest, TestSize.Level1)
-{
-    Acl acl;
-    AclXattrEntry entry = {ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT};
-
-    acl.entries_.insert(entry);
-    EXPECT_TRUE(acl.HasAcl(entry));
-}
-
-/**
- * @tc.name: SetAcl
- * @tc.desc: Test ACL_PERM.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, SetAcl, TestSize.Level0)
-{
-    Acl acl;
-    AclXattrEntry entry = {ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT};
-
-    int32_t result = acl.SetAcl(entry);
-    EXPECT_GE(result, 0);
 }
 } // namespace OHOS::Test
