@@ -18,6 +18,7 @@
 #include "backup_manager.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
+#include "kvstore_service_death_notifier.h"
 #include "log_print.h"
 #include "security_manager.h"
 #include "store_util.h"
@@ -212,6 +213,14 @@ Status StoreManager::SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvS
         return status;
     }
     serviceAgent->AddSwitchCallback(appId.appId, observer);
+    switchObservers_.Compute(appId.appId, [&](auto &, auto &switchBridge) {
+        if (switchBridge == nullptr) {
+            switchBridge = std::make_shared<SwitchObserverBridge>(appId);
+            KvStoreServiceDeathNotifier::AddServiceDeathWatcher(switchBridge);
+        }
+        switchBridge->AddSwitchCallback(observer);
+        return true;
+    });
     return SUCCESS;
 }
 
@@ -234,6 +243,12 @@ Status StoreManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<K
         return status;
     }
     serviceAgent->DeleteSwitchCallback(appId.appId, observer);
+    switchObservers_.ComputeIfPresent(appId.appId, [&](auto &, auto &switchBridge) {
+        if (switchBridge != nullptr) {
+            switchBridge->DeleteSwitchCallback(observer);
+        }
+        return true;
+    });
     return SUCCESS;
 }
 } // namespace OHOS::DistributedKv

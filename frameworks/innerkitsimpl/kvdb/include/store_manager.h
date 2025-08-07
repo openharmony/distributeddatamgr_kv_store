@@ -14,9 +14,13 @@
  */
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
+
+#include "concurrent_map.h"
 #include "single_kvstore.h"
 #include "kv_hiview_reporter.h"
 #include "store_factory.h"
+#include "switch_observer_bridge.h"
+
 namespace OHOS::DistributedKv {
 class StoreManager {
 public:
@@ -35,6 +39,7 @@ public:
 private:
     std::shared_ptr<SingleKvStore> OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,
         const Options &options, Status &status, StoreParams &storeParams);
+    ConcurrentMap<std::string, std::shared_ptr<SwitchObserverBridge>> switchObservers_;
 };
-}
+} // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
