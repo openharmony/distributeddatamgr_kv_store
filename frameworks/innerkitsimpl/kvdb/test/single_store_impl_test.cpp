@@ -1929,7 +1929,7 @@ HWTEST_F(SingleStoreImplTest, DoClientSync001, TestSize.Level1)
     std::shared_ptr<SyncCallback> observer;
     observer = nullptr;
     auto status = kvStore->DoClientSync(syncInfo, observer);
-    ASSERT_EQ(status, DB_ERROR);
+    ASSERT_EQ(status, ERROR);
 }
 
 /**
