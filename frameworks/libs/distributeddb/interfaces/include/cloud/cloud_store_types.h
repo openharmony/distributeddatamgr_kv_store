@@ -54,7 +54,7 @@ enum class ClearKvMetaOpType : uint64_t {
 };
 
 struct ClearKvMetaDataOption {
-    ClearKvMetaOpType type;
+    ClearKvMetaOpType type = ClearKvMetaOpType::CLEAN_CLOUD_WATERMARK;
 };
 
 enum class AssetOpType {
