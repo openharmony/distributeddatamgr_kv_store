@@ -196,6 +196,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);
     dbOption.isMemoryDb = (!options.persistent);
     dbOption.isEncryptedDb = options.encrypt;
+    dbOption.localOnly = !options.isClientSync;
     if (options.encrypt) {
         dbOption.cipher = DistributedDB::CipherType::AES_256_GCM;
         dbOption.passwd = dbPassword.password;
@@ -207,12 +208,12 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
         dbOption.conflictResolvePolicy = DistributedDB::LAST_WIN;
     } else if (options.kvStoreType == KvStoreType::LOCAL_ONLY) {
         dbOption.storageEngineType = DistributedDB::GAUSSDB_RD;
+        dbOption.localOnly = false;
     }
 
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
     dbOption.secOption = StoreUtil::GetDBSecurity(options.securityLevel);
-    dbOption.localOnly = !options.isClientSync;
     dbOption.rdconfig.type = StoreUtil::GetDBIndexType(options.config.type);
     dbOption.rdconfig.pageSize = options.config.pageSize;
     dbOption.rdconfig.cacheSize = options.config.cacheSize;
