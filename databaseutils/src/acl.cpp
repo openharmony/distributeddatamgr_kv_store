@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #define LOG_TAG "DataBaseUtilsAcl"
 #include "acl.h"
 
@@ -19,7 +20,6 @@
 #include <cerrno>
 #include <cstring>
 #include <dlfcn.h>
-#include <filesystem>
 #include <functional>
 #include <iosfwd>
 #include <memory>
@@ -27,8 +27,8 @@
 #include <sys/stat.h>
 #include <sys/xattr.h>
 #include <type_traits>
-#include <unistd.h>
 #include "log_print.h"
+
 
 namespace OHOS {
 namespace DATABASE_UTILS {
@@ -38,11 +38,10 @@ static constexpr int32_t END_SIZE = 3;
 static constexpr int32_t MIN_SIZE = 9;
 static constexpr const char *REPLACE_CHAIN = "***";
 static constexpr const char *DEFAULT_ANONYMOUS = "******";
-Acl::Acl(const std::string &path, const std::string &aclAttrName)
-    : path_(path), hasError_(false), aclAttrName_(aclAttrName)
+Acl::Acl(const std::string &path) : path_(path), hasError_(false)
 {
     /* init acl from file's defaule or mode*/
-    AclFromFile();
+    AclFromDefault();
 }
 
 Acl::Acl()
@@ -152,10 +151,10 @@ int Acl::DeSerialize(const char *p, int32_t bufSize)
     return 0;
 }
 
-void Acl::AclFromFile()
+void Acl::AclFromDefault()
 {
     char buf[BUF_SIZE] = { 0 };
-    ssize_t len = getxattr(path_.c_str(), aclAttrName_.c_str(), buf, BUF_SIZE);
+    ssize_t len = getxattr(path_.c_str(), ACL_XATTR_DEFAULT, buf, BUF_SIZE);
     if (len != -1) {
         DeSerialize(buf, BUF_SIZE);
     } else if (errno == ENODATA) {
@@ -181,7 +180,7 @@ void Acl::AclFromMode()
         (st.st_mode & S_IRWXO)));
 }
 
-int32_t Acl::SetAcl()
+int32_t Acl::SetDefault()
 {
     if (IsEmpty()) {
         ZLOGE("Failed to generate ACL from file's mode: %{public}s", std::strerror(errno));
@@ -195,32 +194,33 @@ int32_t Acl::SetAcl()
         ZLOGE("Failed to serialize ACL into binary: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
-    if (setxattr(path_.c_str(), aclAttrName_.c_str(), buf.get(), bufSize, 0) == -1) {
+    if (setxattr(path_.c_str(), ACL_XATTR_DEFAULT, buf.get(), bufSize, 0) == -1) {
         ZLOGE("Failed to write into file's xattr: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
     return E_OK;
 }
 
-int32_t Acl::SetAcl(const AclXattrEntry &entry)
+int32_t Acl::SetDefaultGroup(const uint32_t gid, const uint16_t mode)
 {
-    return InsertEntry(entry);
+    return InsertEntry(AclXattrEntry(ACL_TAG::GROUP, gid, mode));
+}
+
+int32_t Acl::SetDefaultUser(const uint32_t uid, const uint16_t mode)
+{
+    return InsertEntry(AclXattrEntry(ACL_TAG::USER, uid, mode));
 }
 
 Acl::~Acl()
 {
     if (!hasError_) {
-        SetAcl();
+        SetDefault();
     }
 }
 
-bool Acl::HasAcl(const AclXattrEntry &entry)
+bool Acl::HasEntry(const AclXattrEntry &Acl)
 {
-    auto iter = entries_.find(entry);
-    if (iter == entries_.end()) {
-        return false;
-    }
-    return *iter == entry;
+    return entries_.find(Acl) != entries_.end();
 }
 
 std::string Acl::Anonymous(const std::string &name)
@@ -234,33 +234,6 @@ std::string Acl::Anonymous(const std::string &name)
     }
 
     return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
-}
-
-void Acl::SetACL(const std::string &path, int32_t gid)
-{
-    AclXattrEntry group = {ACL_TAG::GROUP, gid, Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
-    AclXattrEntry user = {ACL_TAG::USER, getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT};
-    Acl aclDefault(path, Acl::ACL_XATTR_DEFAULT);
-    if (aclDefault.HasAcl(group) && aclDefault.HasAcl(user)) {
-        ZLOGI("already set acl, path: %{public}s", path.c_str());
-        return;
-    }
-    
-    aclDefault.SetAcl(group);
-    aclDefault.SetAcl(user);
-    Acl aclAccess(path, Acl::ACL_XATTR_ACCESS);
-    aclAccess.SetAcl(group);
-    aclAccess.SetAcl(user);
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
-        Acl aclAccess(entry.path(), Acl::ACL_XATTR_ACCESS);
-        aclAccess.SetAcl(group);
-        aclAccess.SetAcl(user);
-        if (entry.is_directory()) {
-            Acl aclDefault(entry.path(), Acl::ACL_XATTR_DEFAULT);
-            aclDefault.SetAcl(group);
-            aclDefault.SetAcl(user);
-        }
-    }
 }
 }
 }

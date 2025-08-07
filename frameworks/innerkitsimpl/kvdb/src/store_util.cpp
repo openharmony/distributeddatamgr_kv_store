@@ -29,6 +29,7 @@ constexpr int32_t END_SIZE = 3;
 constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
 constexpr const char *REPLACE_CHAIN = "***";
 constexpr const char *DEFAULT_ANONYMOUS = "******";
+constexpr int32_t SERVICE_GID = 3012;
 std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
 using DBStatus = DistributedDB::DBStatus;
 std::map<DBStatus, Status> StoreUtil::statusMap_ = {
@@ -161,6 +162,9 @@ bool StoreUtil::InitPath(const std::string &path)
         ZLOGE("Mkdir error:%{public}d, path:%{public}s", errno, Anonymous(path).c_str());
         return false;
     }
+    Acl acl(path);
+    acl.SetDefaultUser(getuid(), Acl::R_RIGHT | Acl::W_RIGHT);
+    acl.SetDefaultGroup(SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT);
     return true;
 }
 
