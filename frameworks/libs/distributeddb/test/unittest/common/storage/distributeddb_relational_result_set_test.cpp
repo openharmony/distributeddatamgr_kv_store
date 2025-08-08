@@ -15,6 +15,8 @@
 #ifdef RELATIONAL_STORE
 #include <gtest/gtest.h>
 
+#include "data_transformer.h"
+#include "data_value.h"
 #include "db_errno.h"
 #include "distributeddb/result_set.h"
 #include "distributeddb_tools_unit_test.h"
@@ -435,6 +437,185 @@ HWTEST_F(DistributedDBRelationalResultSetTest, ResultSetTest002, TestSize.Level0
     EXPECT_EQ(resultSet->IsColumnNull(0, isNull), DBStatus::NOT_FOUND);
 
     delete resultSet;
+}
+
+/**
+ * @tc.name: SerializeTest001
+ * @tc.desc: Test Serialize func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, SerializeTest001, TestSize.Level0)
+{
+    DataValue dataValue;
+    dataValue.ResetValue();
+    RowData rowData;
+    rowData.push_back(dataValue);
+    RelationalRowDataImpl row(std::move(rowData));
+    Parcel parcel(nullptr, 0);
+    EXPECT_EQ(row.Serialize(parcel), -E_PARSE_FAIL);
+}
+
+/**
+ * @tc.name: SerializeTest002
+ * @tc.desc: Test Serialize func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, SerializeTest002, TestSize.Level0)
+{
+    std::string largeString(DBConstant::MAX_SET_VALUE_SIZE + 1, 'a');
+    DataValue dataValue;
+    dataValue.SetText(largeString);
+    RowData rowData;
+    rowData.push_back(dataValue);
+    RelationalRowDataImpl row(std::move(rowData));
+    uint32_t parcelSize = DBConstant::MAX_SET_VALUE_SIZE;
+    uint8_t* buffer = new(std::nothrow) uint8_t[parcelSize];
+    ASSERT_NE(buffer, nullptr);
+    Parcel parcel(buffer, parcelSize);
+    EXPECT_EQ(row.Serialize(parcel), -E_PARSE_FAIL);
+    delete[] buffer;
+}
+
+/**
+ * @tc.name: DeSerializeTest001
+ * @tc.desc: Test DeSerialize func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, DeSerializeTest001, TestSize.Level0)
+{
+    uint8_t buffer[100] = {0};
+    Parcel parcelA(buffer, 100);
+    EXPECT_FALSE(parcelA.IsError());
+    uint32_t size = 1;
+    (void)parcelA.WriteUInt32(size);
+    EXPECT_FALSE(parcelA.IsError());
+    uint32_t type = static_cast<uint32_t>(StorageType::STORAGE_TYPE_NONE);
+    (void)parcelA.WriteUInt32(type);
+    EXPECT_FALSE(parcelA.IsError());
+    RelationalRowDataImpl row;
+    Parcel parcelB(buffer, 100);
+    EXPECT_EQ(row.DeSerialize(parcelB), -E_PARSE_FAIL);
+}
+
+/**
+ * @tc.name: DeSerializeTest002
+ * @tc.desc: Test DeSerialize func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, DeSerializeTest002, TestSize.Level0)
+{
+    /**
+     *  @tc.steps: step1. Set totalLen as the critical condition.
+     *  satisfies the write condition (parcelLen is less than totalLen), but does not meet the byte alignment condition
+     *  parcelLen is 12 after writing, after byte alignment it becomes 16, which is greater than totalLen.
+     */
+    uint8_t buffer[12] = {0}; // Set totalLen as 12
+    Parcel parcelA(buffer, 12);
+    uint32_t size = 1;
+    (void)parcelA.WriteUInt32(size);
+    EXPECT_FALSE(parcelA.IsError());
+    uint32_t type = static_cast<uint32_t>(StorageType::STORAGE_TYPE_NULL);
+    (void)parcelA.WriteUInt32(type);
+    EXPECT_FALSE(parcelA.IsError());
+    RelationalRowDataImpl row;
+    Parcel parcelB(buffer, 12);
+    EXPECT_EQ(row.DeSerialize(parcelB), -E_PARSE_FAIL);
+}
+
+/**
+ * @tc.name: GetTypeTest001
+ * @tc.desc: Test GetType func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, GetTypeTest001, TestSize.Level0)
+{
+    DistributedDB::RowData data;
+    DistributedDB::DataValue value;
+    value.SetText("test");
+    data.emplace_back(std::move(value));
+    DistributedDB::RelationalRowDataImpl row(std::move(data));
+    DistributedDB::StorageType type;
+    EXPECT_EQ(row.GetType(-1, type), -E_NONEXISTENT);
+    EXPECT_EQ(row.GetType(3, type), -E_NONEXISTENT);
+}
+
+/**
+ * @tc.name: GetTest001
+ * @tc.desc: Test Get func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, GetTest001, TestSize.Level0)
+{
+    DistributedDB::RowData data;
+    DistributedDB::DataValue value;
+    value.SetText("test");
+    data.emplace_back(std::move(value));
+    DistributedDB::RelationalRowDataImpl row(std::move(data));
+    int64_t intValue;
+    double doubleValue;
+    std::string stringValueResult;
+    std::vector<uint8_t> blobValueResult;
+    EXPECT_EQ(row.Get(-1, intValue), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(1, intValue), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(-1, doubleValue), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(1, doubleValue), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(-1, stringValueResult), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(1, stringValueResult), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(-1, blobValueResult), -E_NONEXISTENT);
+    EXPECT_EQ(row.Get(1, blobValueResult), -E_NONEXISTENT);
+}
+
+/**
+ * @tc.name: GetTest002
+ * @tc.desc: Test Get func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, GetTest002, TestSize.Level0)
+{
+    DistributedDB::RowData data;
+    DistributedDB::DataValue value;
+    value.SetText("test");
+    data.emplace_back(std::move(value));
+    DistributedDB::RelationalRowDataImpl row(std::move(data));
+    int64_t intValue;
+    EXPECT_EQ(row.Get(0, intValue), -E_TYPE_MISMATCH);
+    double doubleValue;
+    EXPECT_EQ(row.Get(0, doubleValue), -E_TYPE_MISMATCH);
+}
+
+/**
+ * @tc.name: GetTest003
+ * @tc.desc: Test Get func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, GetTest003, TestSize.Level0)
+{
+    DistributedDB::RowData data;
+    DistributedDB::DataValue value;
+    int64_t intValue = 10;
+    value.GetInt64(intValue);
+    data.emplace_back(std::move(value));
+    DistributedDB::RelationalRowDataImpl row(std::move(data));
+    std::string stringValueResult;
+    EXPECT_EQ(row.Get(0, stringValueResult), -E_TYPE_MISMATCH);
+    std::vector<uint8_t> blobValueResult;
+    EXPECT_EQ(row.Get(0, blobValueResult), -E_TYPE_MISMATCH);
 }
 
 /**

@@ -21,6 +21,8 @@
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "sqlite_import.h"
 #include "sqlite_log_table_manager.h"
+#include "sqlite_local_storage_executor.h"
+#include "sqlite_utils.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -60,6 +62,8 @@ void DistributedDBSqliteUtilsTest::SetUp()
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
 
     g_db = NativeSqlite::CreateDataBase(g_dbDir + "test.db");
+    const std::string createTableSql = "CREATE TABLE IF NOT EXISTS data (key BLOB PRIMARY KEY, value BLOB);";
+    EXPECT_EQ(sqlite3_exec(g_db, createTableSql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
 }
 
 void DistributedDBSqliteUtilsTest::TearDown()
@@ -69,6 +73,123 @@ void DistributedDBSqliteUtilsTest::TearDown()
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error.");
     }
+}
+
+/**
+ * @tc.name: SQLiteLocalStorageExecutorTest001
+ * @tc.desc: Test SQLiteLocalStorageExecutor construction
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest001, TestSize.Level0)
+{
+    SQLiteLocalStorageExecutor executor(g_db, true, false);
+    EXPECT_EQ(sqlite3_close(g_db), SQLITE_OK);
+    EXPECT_EQ(sqlite3_open("test.db", &g_db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: SQLiteLocalStorageExecutorTest002
+ * @tc.desc: Test SQLiteLocalStorageExecutor Put and Get
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest002, TestSize.Level0)
+{
+    SQLiteLocalStorageExecutor executor(g_db, true, false);
+    Key key = { 0x01 };
+    Value value = { 0x02 };
+    EXPECT_EQ(executor.Put(key, value), E_OK);
+    Value outValue;
+    EXPECT_EQ(executor.Get(key, outValue), E_OK);
+    EXPECT_EQ(value, outValue);
+    Key unknownKey = { 0x03 };
+    EXPECT_EQ(executor.Get(unknownKey, outValue), -E_NOT_FOUND);
+}
+
+/**
+ * @tc.name: SQLiteLocalStorageExecutorTest003
+ * @tc.desc: Test SQLiteLocalStorageExecutor PutBatch
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest003, TestSize.Level0)
+{
+    SQLiteLocalStorageExecutor executor(g_db, true, false);
+    std::vector<Entry> entries;
+    Key key1 = { 0x01 };
+    Value value1 = { 0x02 };
+    Entry entry1;
+    entry1.key = key1;
+    entry1.value = value1;
+    Key key2 = { 0x03 };
+    Value value2 = { 0x04 };
+    Entry entry2;
+    entry2.key = key2;
+    entry2.value = value2;
+    entries.push_back(entry1);
+    entries.push_back(entry2);
+    EXPECT_EQ(executor.PutBatch(entries), E_OK);
+    Value outValue;
+    EXPECT_EQ(executor.Get(key1, outValue), E_OK);
+    EXPECT_EQ(outValue, value1);
+    EXPECT_EQ(executor.Get(key2, outValue), E_OK);
+    EXPECT_EQ(outValue, value2);
+    std::vector<Entry> emptyEntries;
+    EXPECT_EQ(executor.PutBatch(emptyEntries), -E_INVALID_ARGS);
+    Key invalidKey;
+    Entry invalidEntry;
+    invalidEntry.key = invalidKey;
+    invalidEntry.value = value2;
+    entries.push_back(invalidEntry);
+    EXPECT_EQ(executor.PutBatch(entries), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: SQLiteLocalStorageExecutorTest004
+ * @tc.desc: Test SQLiteLocalStorageExecutor Delete and GetEntries
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest004, TestSize.Level0)
+{
+    SQLiteLocalStorageExecutor executor(g_db, true, false);
+    Key key = { 0x01 };
+    Key key1 = { 0x01, 0x02 };
+    Key key2 = { 0x01, 0x03 };
+    Value value;
+    executor.Put(key1, value);
+    executor.Put(key2, value);
+    std::vector<Entry> entries;
+    EXPECT_EQ(executor.Delete(key1), E_OK);
+    EXPECT_EQ(executor.GetEntries(key, entries), E_OK);
+    EXPECT_EQ(entries.size(), 1);
+}
+
+/**
+ * @tc.name: SQLiteLocalStorageExecutorTest005
+ * @tc.desc: Test SQLiteLocalStorageExecutor Transaction
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest005, TestSize.Level0)
+{
+    SQLiteLocalStorageExecutor executor(g_db, true, false);
+    Key key = { 0x01 };
+    Value value = { 0x02 };
+    EXPECT_EQ(executor.Put(key, value), E_OK);
+    EXPECT_EQ(executor.Clear(), E_OK);
+    Value outValue;
+    EXPECT_EQ(executor.Get(key, outValue), -E_NOT_FOUND);
+    EXPECT_EQ(executor.StartTransaction(), E_OK);
+    EXPECT_EQ(executor.Put(key, value), E_OK);
+    EXPECT_EQ(executor.RollBack(), E_OK);
+    EXPECT_EQ(executor.Get(key, outValue), -E_NOT_FOUND);
 }
 
 /**
@@ -425,4 +546,48 @@ HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalSqliteCloudKvExecutorUtilsTest001
     ret = cloudKvObj.QueryCloudGid(db, true, user, query, gid);
     EXPECT_NE(ret, E_OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: CheckIntegrityTest001
+ * @tc.desc: Test CheckIntegrity function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, CheckIntegrityTest001, TestSize.Level0)
+{
+    CipherPassword passwd;
+    CipherType invalidType = static_cast<CipherType>(999);
+    EXPECT_EQ(SQLiteUtils::CheckIntegrity(g_dbDir, invalidType, passwd), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: GetVersionTest001
+ * @tc.desc: Test GetVersion function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, GetVersionTest001, TestSize.Level0)
+{
+    DistributedDB::OpenDbProperties properties;
+    properties.uri = "";
+    int version = 0;
+    EXPECT_EQ(SQLiteUtils::GetVersion(properties, version), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: SetUserVerTest001
+ * @tc.desc: Test SetUserVer function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SetUserVerTest001, TestSize.Level0)
+{
+    DistributedDB::OpenDbProperties properties;
+    properties.uri = "";
+    int version = 0;
+    EXPECT_EQ(SQLiteUtils::SetUserVer(properties, version), -E_INVALID_ARGS);
 }

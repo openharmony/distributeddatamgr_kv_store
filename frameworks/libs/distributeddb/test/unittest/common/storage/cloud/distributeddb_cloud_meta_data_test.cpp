@@ -245,6 +245,9 @@ namespace {
         EXPECT_EQ(proxyObj.GetUploadCount(TABLE_NAME_1, retLocalMark, true, count), -E_INVALID_DB);
         const QuerySyncObject query;
         EXPECT_EQ(proxyObj.GetUploadCount(query, retLocalMark, true, true, count), -E_INVALID_DB);
+        QuerySyncObject newQuery;
+        newQuery.SetTableName(TABLE_NAME_1);
+        EXPECT_EQ(proxyObj.GetUploadCount(newQuery, retLocalMark, true, true, count), -E_INVALID_DB);
         ContinueToken continueStmtToken;
         CloudSyncData cloudDataResult;
         EXPECT_EQ(proxyObj.GetCloudData(query, retLocalMark, continueStmtToken, cloudDataResult), -E_INVALID_DB);
@@ -278,6 +281,10 @@ namespace {
         const RelationalSchemaObject localSchema;
         std::vector<Asset> assets = {};
         EXPECT_EQ(proxyObj.CleanCloudData(ClearMode::DEFAULT, strVec, localSchema, assets), -E_INVALID_DB);
+        std::vector<std::string> tableNameList = {TABLE_NAME_1, TABLE_NAME_2};
+        EXPECT_EQ(proxyObj.ClearCloudLogVersion(tableNameList), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.CheckSchema(TABLE_NAME_1), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.CheckSchema(tableNameList), -E_INVALID_DB);
     }
 
     /**

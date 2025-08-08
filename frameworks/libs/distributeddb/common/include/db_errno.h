@@ -191,6 +191,8 @@ constexpr const int E_CLOUD_DISABLED = (E_BASE + 205); // The cloud switch has b
 constexpr const int E_DISTRIBUTED_FIELD_DECREASE = (E_BASE + 206); // Sync fewer specified columns than last time
 constexpr const int E_NO_TRUSTED_USER = (E_BASE + 207); // No trusted found before device sync
 constexpr const int E_FEEDBACK_DB_CLOSING = (E_BASE + 208); // Db was closing feedback from remote device
+// The target user ID is incorrect and needs to be re-obtained
+constexpr const int E_NEED_CORRECT_TARGET_USER = (E_BASE + 209);
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H

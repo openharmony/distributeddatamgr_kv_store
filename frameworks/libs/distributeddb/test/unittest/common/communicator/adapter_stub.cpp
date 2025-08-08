@@ -21,7 +21,6 @@
 #include "iprocess_communicator.h"
 #include "log_print.h"
 #include "distributeddb_communicator_common.h"
-#include "process_communicator_test_stub.h"
 
 using namespace DistributedDB;
 
@@ -220,10 +219,11 @@ void AdapterStub::DeliverBytes(const std::string &srcTarget, const uint8_t *byte
         } else {
             userInfos = userInfo_;
         }
-        std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator =
-            std::make_shared<ProcessCommunicatorTestStub>();
-        processCommunicator->SetDataUserInfo(userInfos);
-        DataUserInfoProc userInfoProc = {bytes, length, processCommunicator};
+        if (processCommunicator_ == nullptr) {
+            processCommunicator_ = std::make_shared<ProcessCommunicatorTestStub>();
+        }
+        processCommunicator_->SetDataUserInfo(userInfos);
+        DataUserInfoProc userInfoProc = {bytes, length, processCommunicator_};
         ReceiveBytesInfo receiveBytesInfo = {bytes + headLength, srcTarget, length - headLength, headLength != 0};
         onReceiveHandle_(receiveBytesInfo, userInfoProc);
     }
@@ -471,4 +471,9 @@ void AdapterStub::SetUserInfo(const std::vector<UserInfo> &userInfo)
 std::vector<UserInfo> AdapterStub::GetUserInfo()
 {
     return userInfo_;
+}
+
+void AdapterStub::SetProcessCommunicator(std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator)
+{
+    processCommunicator_ = std::move(processCommunicator);
 }

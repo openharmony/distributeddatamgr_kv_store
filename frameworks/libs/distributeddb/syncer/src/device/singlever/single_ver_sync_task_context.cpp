@@ -647,12 +647,18 @@ int32_t SingleVerSyncTaskContext::GetResponseTaskCount()
     return taskCount;
 }
 
-bool SingleVerSyncTaskContext::IsNeedRetrySync(int errNo, uint16_t messageType)
+bool SingleVerSyncTaskContext::IsNeedRetrySync(uint32_t errNo, uint16_t messageType)
 {
-    if (errNo != E_FEEDBACK_DB_CLOSING || messageType != TYPE_RESPONSE) {
+    if ((errNo != E_FEEDBACK_DB_CLOSING && errNo != E_NEED_CORRECT_TARGET_USER) || messageType != TYPE_RESPONSE) {
         return false;
     }
-    uint32_t cur = ++resyncTimes_;
+    uint32_t cur = 0;
+    if (errNo == E_NEED_CORRECT_TARGET_USER) {
+        cur = ++resyncForUserTimes_;
+        LOGI("[IsNeedRetrySync] resync for user times: %u", cur);
+        return cur <= MANUAL_RETRY_TIMES;
+    }
+    cur = ++resyncTimes_;
     LOGI("[IsNeedRetrySync]%u", cur);
     return cur <= MANUAL_RETRY_TIMES;
 }
@@ -660,6 +666,7 @@ bool SingleVerSyncTaskContext::IsNeedRetrySync(int errNo, uint16_t messageType)
 void SingleVerSyncTaskContext::ResetResyncTimes()
 {
     resyncTimes_ = 0;
+    resyncForUserTimes_ = 0;
 }
 
 bool SingleVerSyncTaskContext::IsRetryTask() const

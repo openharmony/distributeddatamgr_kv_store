@@ -331,7 +331,7 @@ int SyncEngine::AddSyncOperForContext(const std::string &deviceId, SyncOperation
     ISyncTaskContext *context = nullptr;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
-        context = FindSyncTaskContext({deviceId, targetUserId});
+        context = FindSyncTaskContext({deviceId, targetUserId}, false);
         if (context == nullptr) {
             if (!IsKilled()) {
                 context = GetSyncTaskContext({deviceId, targetUserId}, errCode);
@@ -422,7 +422,8 @@ int SyncEngine::DealMsgUtilQueueEmpty()
     // it will deal with the first message in queue, we should increase object reference counts and sure that resources
     // could be prevented from destroying by other threads.
     do {
-        ISyncTaskContext *nextContext = GetContextForMsg({inMsg->GetTarget(), inMsg->GetSenderUserId()}, errCode);
+        ISyncTaskContext *nextContext = GetContextForMsg({inMsg->GetTarget(), inMsg->GetSenderUserId()}, errCode,
+            inMsg->GetErrorNo() == E_NEED_CORRECT_TARGET_USER);
         if (errCode != E_OK) {
             break;
         }
@@ -439,12 +440,12 @@ int SyncEngine::DealMsgUtilQueueEmpty()
     return errCode;
 }
 
-ISyncTaskContext *SyncEngine::GetContextForMsg(const DeviceSyncTarget &target, int &errCode)
+ISyncTaskContext *SyncEngine::GetContextForMsg(const DeviceSyncTarget &target, int &errCode, bool isNeedCorrectUserId)
 {
     ISyncTaskContext *context = nullptr;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
-        context = FindSyncTaskContext(target);
+        context = FindSyncTaskContext(target, isNeedCorrectUserId);
         if (context != nullptr) { // LCOV_EXCL_BR_LINE
             if (context->IsKilled()) {
                 errCode = -E_OBJ_IS_KILLED;
@@ -553,7 +554,8 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
     }
 
     int errCode = E_OK;
-    ISyncTaskContext *nextContext = GetContextForMsg({targetDev, inMsg->GetSenderUserId()}, errCode);
+    ISyncTaskContext *nextContext = GetContextForMsg({targetDev, inMsg->GetSenderUserId()}, errCode,
+        inMsg->GetErrorNo() == E_NEED_CORRECT_TARGET_USER);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -607,18 +609,21 @@ int SyncEngine::GetMsgSize(const Message *inMsg) const
     }
 }
 
-ISyncTaskContext *SyncEngine::FindSyncTaskContext(const DeviceSyncTarget &target)
+ISyncTaskContext *SyncEngine::FindSyncTaskContext(const DeviceSyncTarget &target, bool isNeedCorrectUserId)
 {
     if (target.userId == DBConstant::DEFAULT_USER) {
-        for (auto &[key, value] : syncTaskContextMap_) {
-            if (key.device == target.device) {
-                return value;
+        for (auto it = syncTaskContextMap_.begin(); it != syncTaskContextMap_.end(); it++) {
+            if (it->first.device == target.device) {
+                ISyncTaskContext *context = it->second;
+                CorrectTargetUserId(it, isNeedCorrectUserId);
+                return context;
             }
         }
     }
     auto iter = syncTaskContextMap_.find(target);
     if (iter != syncTaskContextMap_.end()) {
         ISyncTaskContext *context = iter->second;
+        CorrectTargetUserId(iter, isNeedCorrectUserId);
         return context;
     }
     return nullptr;
@@ -1477,5 +1482,19 @@ bool SyncEngine::ExchangeClosePending(bool expected)
     int res = communicator->ExchangeClosePending(expected);
     RefObject::DecObjRef(communicator);
     return res;
+}
+
+void SyncEngine::CorrectTargetUserId(std::map<DeviceSyncTarget, ISyncTaskContext *>::iterator &it,
+    bool isNeedCorrectUserId)
+{
+    if (!isNeedCorrectUserId) {
+        return;
+    }
+    ISyncTaskContext *context = it->second;
+    std::string targetDev = it->first.device;
+    std::string newTargetUserId = GetTargetUserId(targetDev);
+    it = syncTaskContextMap_.erase(it);
+    context->SetTargetUserId(newTargetUserId);
+    syncTaskContextMap_[{targetDev, newTargetUserId}] = context;
 }
 } // namespace DistributedDB

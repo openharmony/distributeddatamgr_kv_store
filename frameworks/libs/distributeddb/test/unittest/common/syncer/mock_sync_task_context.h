@@ -70,6 +70,11 @@ public:
         SyncTaskContext::CommErrHandlerFuncInner(errCode, sessionId);
     }
 
+    void SetRequestSessionId(uint32_t sessionId)
+    {
+        requestSessionId_ = sessionId;
+    }
+
     void CallSetTaskExecStatus(int status)
     {
         SyncTaskContext::SetTaskExecStatus(status);

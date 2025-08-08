@@ -23,6 +23,7 @@
 #include <string>
 #include <cstdint>
 #include "iadapter.h"
+#include "process_communicator_test_stub.h"
 
 namespace DistributedDB {
 using OnSendBytes = std::function<int (void)>;
@@ -90,6 +91,8 @@ public:
 
     void SetUserInfo(const std::vector<UserInfo> &userInfo);
     std::vector<UserInfo> GetUserInfo();
+
+    void SetProcessCommunicator(std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator);
 private:
     void Connect(AdapterStub *inStub);
     void Disconnect(AdapterStub *inStub);
@@ -144,6 +147,8 @@ private:
     OnSendBytes onSendBytes_;
 
     std::vector<UserInfo> userInfo_;
+
+    std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator_ = nullptr;
 };
 }
 

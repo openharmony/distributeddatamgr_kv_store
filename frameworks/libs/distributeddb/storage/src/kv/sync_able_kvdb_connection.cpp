@@ -146,7 +146,8 @@ int SyncAbleKvDBConnection::PragmaSyncAction(const PragmaSync *syncParameter)
     }
 
     ISyncer::SyncParam syncParam;
-    syncParam.devices = syncParameter->devices_;
+    std::set<std::string> tempDevices(syncParameter->devices_.begin(), syncParameter->devices_.end());
+    syncParam.devices.assign(tempDevices.begin(), tempDevices.end());
     syncParam.mode = syncParameter->mode_;
     syncParam.wait = syncParameter->wait_;
     syncParam.isQuerySync = syncParameter->isQuerySync_;

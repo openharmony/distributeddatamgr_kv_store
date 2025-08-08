@@ -133,9 +133,11 @@ private:
 
     // Feedback related functions
     void TriggerVersionNegotiation(const std::string &dstTarget);
+    void TryToFeedBackWithErr(const std::string &dstTarget, const LabelType &dstLabel,
+        const SerialBuffer *inOriFrame, int inErrCode);
     void TryToFeedbackWhenCommunicatorNotFound(const std::string &dstTarget, const LabelType &dstLabel,
         const SerialBuffer *inOriFrame, int inErrCode);
-    void TriggerCommunicatorNotFoundFeedback(const std::string &dstTarget, const LabelType &dstLabel, Message* &oriMsg,
+    void TriggerCommunicatorFeedback(const std::string &dstTarget, const LabelType &dstLabel, Message* &oriMsg,
         int sendErrNo);
 
     // Record the protocol version of remote target.
