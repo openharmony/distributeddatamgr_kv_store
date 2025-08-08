@@ -326,7 +326,7 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         sendRecord_[info.frameId] = {};
     }
-    SendTask task{inBuff, dstTarget, onEnd, info.frameId, true, inConfig.infos};
+    SendTask task{inBuff, dstTarget, onEnd, info.frameId, true, inConfig.isRetryTask, inConfig.infos};
     if (inConfig.nonBlock) {
         errCode = scheduler_.AddSendTaskIntoSchedule(task, inConfig.prio);
     } else {
@@ -337,7 +337,8 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         return errCode;
     }
     TriggerSendData();
-    LOGI("[CommAggr][Create] Exit ok, dev=%.3s, frameId=%u", dstTarget.c_str(), info.frameId);
+    LOGI("[CommAggr][Create] Exit ok, dev=%.3s, frameId=%u, isRetry=%d", dstTarget.c_str(), info.frameId,
+        task.isRetryTask);
     return E_OK;
 }
 
@@ -384,7 +385,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         startIndex = sendRecord_[inTask.frameId].sendIndex;
     }
     uint64_t currentSendSequenceId = IncreaseSendSequenceId(inTask.dstTarget);
-    DeviceInfos deviceInfos = {inTask.dstTarget, inTask.infos};
+    DeviceInfos deviceInfos = {inTask.dstTarget, inTask.infos, inTask.isRetryTask};
     for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()) && inTask.isValid; ++index) {
         auto &entry = eachPacket[index];
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
@@ -797,11 +798,9 @@ int CommunicatorAggregator::RegCallbackToAdapter()
     RefObject::IncObjRef(this); // Reference to be hold by adapter
     errCode = adapterHandle_->RegSendableCallback([this](const std::string &target, int deviceCommErrCode) {
             LOGI("[CommAggr] Send able dev=%.3s, deviceCommErrCode=%d", target.c_str(), deviceCommErrCode);
-            if (deviceCommErrCode == E_OK) {
-                (void)IncreaseSendSequenceId(target);
-                OnSendable(target);
-            }
+            (void)IncreaseSendSequenceId(target);
             scheduler_.SetDeviceCommErrCode(target, deviceCommErrCode);
+            OnSendable(target);
         },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
@@ -855,7 +854,7 @@ void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTar
         return;
     }
 
-    TaskConfig config{true, 0, Priority::HIGH};
+    TaskConfig config{true, true, 0, Priority::HIGH};
     errCode = ScheduleSendTask(dstTarget, buffer, FrameType::EMPTY, config);
     if (errCode != E_OK) {
         LOGE("[CommAggr][TrigVer] Send empty frame fail, errCode=%d", errCode);
@@ -907,7 +906,7 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
         return;
     }
 
-    TaskConfig config{true, 0, Priority::HIGH};
+    TaskConfig config{true, true, 0, Priority::HIGH};
     errCode = ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
         LOGE("[CommAggr][TrigNotFound] Send communicator not found feedback frame fail, errCode=%d", errCode);
@@ -1095,12 +1094,12 @@ void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target, uint
         std::lock_guard<std::mutex> autoLock(retryCountMutex_);
         retryCount_[target] = 0;
     } else {
+        RetrySendTask(target, sendSequenceId);
         if (sendSequenceId != GetSendSequenceId(target)) {
             LOGD("[CommAggr] %.3s Send sequence id has changed", target.c_str());
             return;
         }
         scheduler_.DelayTaskByTarget(target);
-        RetrySendTask(target, sendSequenceId);
     }
 }
 

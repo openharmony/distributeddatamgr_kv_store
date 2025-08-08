@@ -32,6 +32,7 @@ constexpr uint32_t SEND_TIME_OUT = 3000; // 3s
 struct SendConfig {
     bool nonBlock = false;
     bool isNeedExtendHead = false;
+    bool isRetryTask = true;
     uint32_t timeout = SEND_TIME_OUT;
     ExtendInfo paramInfo;
 };

@@ -503,9 +503,14 @@ void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context,
         RefObject::IncObjRef(context);
     }
 
-    static_cast<SyncTaskContext *>(context)->CommErrHandlerFuncInner(errCode, static_cast<uint32_t>(sessionId),
-        isDirectEnd);
-    RefObject::DecObjRef(context);
+    int ret = RuntimeContext::GetInstance()->ScheduleTask([context, errCode, sessionId, isDirectEnd]() {
+        static_cast<SyncTaskContext *>(context)->CommErrHandlerFuncInner(errCode, static_cast<uint32_t>(sessionId),
+            isDirectEnd);
+        RefObject::DecObjRef(context);
+        });
+    if (ret != E_OK) {
+        RefObject::DecObjRef(context);
+    }
 }
 
 void SyncTaskContext::SetRemoteSoftwareVersion(uint32_t version)

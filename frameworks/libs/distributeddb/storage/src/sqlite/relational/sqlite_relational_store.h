@@ -46,7 +46,7 @@ public:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode) const;
     void ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
 
-    int Sync(const ISyncer::SyncParma &syncParam, uint64_t connectionId);
+    int Sync(const ISyncer::SyncParam &syncParam, uint64_t connectionId);
 
     void ReleaseDBConnection(uint64_t connectionId, RelationalStoreConnection *connection);
 

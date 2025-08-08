@@ -174,7 +174,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2
      */
     Message *msgForAB = BuildRegedTinyMessage();
     ASSERT_NE(msgForAB, nullptr);
-    SendConfig conf = {true, false, 0};
+    SendConfig conf = {true, false, true, 0};
     int errCode = g_commAB->SendMessage(DEVICE_NAME_B, msgForAB, conf);
     EXPECT_EQ(errCode, E_OK);
 
@@ -200,6 +200,60 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2
 
     // CleanUp
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
+}
+
+/**
+ * @tc.name: WaitAndRetrySend002
+ * @tc.desc: Test send return retry but task not retry
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend002, TestSize.Level2)
+{
+    // Preset
+    Message *msgForCA = nullptr;
+    g_commCA->RegOnMessageCallback([&msgForCA](const std::string &srcTarget, Message *inMsg) {
+        msgForCA = inMsg;
+        return E_OK;
+    }, nullptr);
+
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure quiet
+
+    /**
+     * @tc.steps: step2. device A simulate send retry
+     */
+    g_envDeviceA.adapterHandle->SimulateSendRetry(DEVICE_NAME_B);
+
+    /**
+     * @tc.steps: step3. device A send message to device B using communicator AB
+     * @tc.expected: step3. communicator BB received no message
+     */
+    Message *msgForAB = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAB, nullptr);
+    SendConfig conf = {true, false, false, 0};
+    OnSendEnd onSendEnd = [](int, int) {
+        LOGI("[WaitAndRetrySend002] on send end.");
+    };
+    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, msgForAB, conf, onSendEnd);
+    EXPECT_EQ(errCode, E_OK);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
+    EXPECT_EQ(msgForCA, nullptr);
+
+    /**
+     * @tc.steps: step4. device A simulate sendable feedback
+     * @tc.expected: step4. communicator BB received the message
+     */
+    g_envDeviceA.adapterHandle->SimulateSendRetryClear(DEVICE_NAME_B);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
+
+    // CleanUp
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
 }
 
@@ -352,7 +406,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment001, TestSize.Level2)
     const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
     Message *sendMsgForAB = BuildRegedGiantMessage(dataLength);
     ASSERT_NE(sendMsgForAB, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsgForAB, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(2600)); // Wait 2600 ms to make sure send done
@@ -414,7 +468,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment002, TestSize.Level2)
     uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
     Message *sendMsgForBC = BuildRegedGiantMessage(dataLength);
     ASSERT_NE(sendMsgForBC, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commBC->SendMessage(DEVICE_NAME_C, sendMsgForBC, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(2600)); // Wait 2600 ms to make sure send done
@@ -486,7 +540,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
     uint32_t dataLength = 23 * 1024 * 1024; // 23 MB, 1024 is scale
     Message *sendMsgForAB = BuildRegedGiantMessage(dataLength);
     ASSERT_NE(sendMsgForAB, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsgForAB, conf);
     EXPECT_EQ(errCode, E_OK);
 
@@ -545,7 +599,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
     const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
     Message *sendMsg = BuildRegedGiantMessage(dataLength);
     ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
@@ -1011,7 +1065,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit001, TestSize.
     const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
     Message *sendMsg = BuildRegedGiantMessage(dataLength);
     ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
@@ -1056,7 +1110,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit002, TestSize.
     const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
     Message *sendMsg = BuildRegedGiantMessage(dataLength);
     ASSERT_NE(sendMsg, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     EXPECT_EQ(g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf, sendResultNotifier), E_OK);
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Wait 1s to make sure send done
 

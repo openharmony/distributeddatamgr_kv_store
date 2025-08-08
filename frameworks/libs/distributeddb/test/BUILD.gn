@@ -911,6 +911,11 @@ distributeddb_unittest("DistributedDBAbnormalKVSyncTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBKvDeviceSyncTest") {
+  sources =
+      [ "unittest/common/store_test/kv/distributeddb_kv_device_sync_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBRDBCompressTest") {
   sources =
       [ "unittest/common/store_test/rdb/distributeddb_rdb_compress_test.cpp" ]

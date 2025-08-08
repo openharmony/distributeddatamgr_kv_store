@@ -150,7 +150,7 @@ int GenericSyncer::Sync(const std::vector<std::string> &devices, int mode,
     const std::function<void(const std::map<std::string, int> &)> &onComplete,
     const std::function<void(void)> &onFinalize, bool wait = false)
 {
-    SyncParma param;
+    SyncParam param;
     param.devices = devices;
     param.mode = mode;
     param.onComplete = onComplete;
@@ -161,7 +161,7 @@ int GenericSyncer::Sync(const std::vector<std::string> &devices, int mode,
 
 int GenericSyncer::Sync(const InternalSyncParma &param)
 {
-    SyncParma syncParam;
+    SyncParam syncParam;
     syncParam.devices = param.devices;
     syncParam.mode = param.mode;
     syncParam.isQuerySync = param.isQuerySync;
@@ -169,12 +169,12 @@ int GenericSyncer::Sync(const InternalSyncParma &param)
     return Sync(syncParam);
 }
 
-int GenericSyncer::Sync(const SyncParma &param)
+int GenericSyncer::Sync(const SyncParam &param)
 {
     return Sync(param, DBConstant::IGNORE_CONNECTION_ID);
 }
 
-int GenericSyncer::Sync(const SyncParma &param, uint64_t connectionId)
+int GenericSyncer::Sync(const SyncParam &param, uint64_t connectionId)
 {
     int errCode = SyncPreCheck(param);
     if (errCode != E_OK) {
@@ -232,10 +232,10 @@ int GenericSyncer::CancelSync(uint32_t syncId)
     return E_OK;
 }
 
-int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId)
+int GenericSyncer::PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t connectionId)
 {
     auto *operation =
-        new (std::nothrow) SyncOperation(syncId, param.devices, param.mode, param.onComplete, param.wait);
+        new (std::nothrow) SyncOperation(syncId, param);
     if (operation == nullptr) {
         SubQueuedSyncSize();
         return -E_OUT_OF_MEMORY;
@@ -246,8 +246,8 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         std::lock_guard<std::mutex> autoLock(syncerLock_);
         PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
         InitSyncOperation(operation, param);
-        LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %.3s, devices = %s", syncId,
-            param.mode, param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str());
+        LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %.3s, devices = %s, isRetry = %d",
+            syncId, param.mode, param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str(), param.isRetry);
         engine = syncEngine_;
         RefObject::IncObjRef(engine);
     }
@@ -528,7 +528,7 @@ bool GenericSyncer::IsValidMode(int mode) const
     return true;
 }
 
-int GenericSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const
+int GenericSyncer::SyncConditionCheck(const SyncParam &param, const ISyncEngine *engine, ISyncInterface *storage) const
 {
     (void)param;
     (void)engine;
@@ -871,7 +871,7 @@ int GenericSyncer::StatusCheck() const
     return E_OK;
 }
 
-int GenericSyncer::SyncPreCheck(const SyncParma &param) const
+int GenericSyncer::SyncPreCheck(const SyncParam &param) const
 {
     ISyncEngine *engine = nullptr;
     ISyncInterface *storage = nullptr;
@@ -903,7 +903,7 @@ int GenericSyncer::SyncPreCheck(const SyncParma &param) const
     return errCode;
 }
 
-void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParma &param)
+void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParam &param)
 {
     if (syncInterface_ == nullptr) {
         LOGE("[GenericSyncer] [InitSyncOperation] syncInterface_ is nullptr.");

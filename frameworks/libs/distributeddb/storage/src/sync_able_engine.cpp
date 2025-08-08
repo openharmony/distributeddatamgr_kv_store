@@ -43,7 +43,7 @@ SyncAbleEngine::~SyncAbleEngine()
 }
 
 // Start a sync action.
-int SyncAbleEngine::Sync(const ISyncer::SyncParma &parm, uint64_t connectionId)
+int SyncAbleEngine::Sync(const ISyncer::SyncParam &parm, uint64_t connectionId)
 {
     if (!started_) {
         int errCode = StartSyncer();

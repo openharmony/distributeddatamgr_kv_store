@@ -593,39 +593,13 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
     const Query &query, bool wait)
 {
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    if (mode > SYNC_MODE_PUSH_PULL) {
-        LOGE("not support other mode");
-        return NOT_SUPPORT;
-    }
-
-    QuerySyncObject querySyncObj(query);
-    if (!querySyncObj.GetRelationTableNames().empty()) {
-        LOGE("check query table names from tables failed!");
-        return NOT_SUPPORT;
-    }
-
-    if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
-        LOGE("not support for invalid query");
-        return NOT_SUPPORT;
-    }
-    if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
-        LOGE("not support order by timestamp and query by range");
-        return NOT_SUPPORT;
-    }
-    PragmaSync pragmaData(
-        devices, mode, querySyncObj, [this, onComplete](const std::map<std::string, int> &statuses) {
-            OnSyncComplete(statuses, onComplete);
-        }, wait);
-    int errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
-    if (errCode < E_OK) {
-        LOGE("[KvStoreNbDelegate] QuerySync data failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    return OK;
+    DeviceSyncOption option;
+    option.devices = devices;
+    option.mode = mode;
+    option.isQuery = true;
+    option.query = query;
+    option.isWait = wait;
+    return Sync(option, onComplete);
 }
 
 void KvStoreNbDelegateImpl::OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
@@ -682,6 +656,51 @@ DBStatus KvStoreNbDelegateImpl::Sync(const DeviceSyncOption &option, const Devic
 
     if (errCode != E_OK) {
         LOGE("[KvStoreNbDelegate] DeviceSync data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::Sync(const DeviceSyncOption &option,
+    const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (option.mode > SYNC_MODE_PUSH_PULL) {
+        LOGE("not support other mode");
+        return NOT_SUPPORT;
+    }
+
+    int errCode = E_OK;
+    if (option.isQuery) {
+        QuerySyncObject querySyncObj(option.query);
+        if (!querySyncObj.GetRelationTableNames().empty()) {
+            LOGE("check query table names from tables failed!");
+            return NOT_SUPPORT;
+        }
+
+        if (!DBCommon::CheckQueryWithoutMultiTable(option.query)) {
+            LOGE("not support for invalid query");
+            return NOT_SUPPORT;
+        }
+        if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
+            LOGE("not support order by timestamp and query by range");
+            return NOT_SUPPORT;
+        }
+        PragmaSync pragmaData(option, querySyncObj, [this, onComplete](const std::map<std::string, int> &statuses) {
+            OnSyncComplete(statuses, onComplete);
+        });
+        errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
+    } else {
+        PragmaSync pragmaData(option, [this, onComplete](const std::map<std::string, int> &statuses) {
+            OnSyncComplete(statuses, onComplete);
+        });
+        errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
+    }
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] QuerySync data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
     return OK;

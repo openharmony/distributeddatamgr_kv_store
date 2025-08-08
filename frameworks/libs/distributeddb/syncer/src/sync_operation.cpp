@@ -32,7 +32,24 @@ SyncOperation::SyncOperation(uint32_t syncId, const std::vector<std::string> &de
       semaphore_(nullptr),
       query_(QuerySyncObject()),
       isQuerySync_(false),
-      isAutoSubscribe_(false)
+      isAutoSubscribe_(false),
+      isRetry_(true)
+{
+}
+
+SyncOperation::SyncOperation(uint32_t syncId, const ISyncer::SyncParam &param)
+    : devices_(param.devices),
+      syncId_(syncId),
+      mode_(param.mode),
+      userCallback_(param.onComplete),
+      isBlockSync_(param.wait),
+      isAutoSync_(false),
+      isFinished_(false),
+      semaphore_(nullptr),
+      query_(QuerySyncObject()),
+      isQuerySync_(false),
+      isAutoSubscribe_(false),
+      isRetry_(param.isRetry)
 {
 }
 
@@ -486,6 +503,11 @@ std::string SyncOperation::GetFinishDetailMsg(const std::map<std::string, int> &
     }
     msg.pop_back();
     return msg;
+}
+
+bool SyncOperation::IsRetryTask() const
+{
+    return isRetry_;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SyncOperation)
 } // namespace DistributedDB

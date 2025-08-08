@@ -50,10 +50,10 @@ public:
         const std::function<void(const std::map<std::string, int> &)> &onComplete,
         const std::function<void(void)> &onFinalize, bool wait) override;
 
-    // Sync function. use SyncParma to reduce parameter.
-    int Sync(const SyncParma &param);
+    // Sync function. use SyncParam to reduce parameter.
+    int Sync(const SyncParam &param);
 
-    int Sync(const SyncParma &param, uint64_t connectionId) override;
+    int Sync(const SyncParam &param, uint64_t connectionId) override;
 
     // Cancel sync function.
     int CancelSync(uint32_t syncId) override;
@@ -130,7 +130,7 @@ protected:
     // Create a sync engine, if has memory error, will return nullptr.
     virtual ISyncEngine *CreateSyncEngine() = 0;
 
-    virtual int PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId);
+    virtual int PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t connectionId);
 
     // Add a Sync Operation, after call this function, the operation will be start
     virtual void AddSyncOperation(ISyncEngine *engine, SyncOperation *operation);
@@ -159,7 +159,7 @@ protected:
     // Check if the mode arg is valid
     bool IsValidMode(int mode) const;
 
-    virtual int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const;
+    virtual int SyncConditionCheck(const SyncParam &param, const ISyncEngine *engine, ISyncInterface *storage) const;
 
     // Check if the devices arg is valid
     bool IsValidDevices(const std::vector<std::string> &devices) const;
@@ -187,11 +187,11 @@ protected:
 
     std::string GetSyncDevicesStr(const std::vector<std::string> &devices) const;
 
-    void InitSyncOperation(SyncOperation *operation, const SyncParma &param);
+    void InitSyncOperation(SyncOperation *operation, const SyncParam &param);
 
     int StatusCheck() const;
 
-    int SyncPreCheck(const SyncParma &param) const;
+    int SyncPreCheck(const SyncParam &param) const;
 
     int BuildSyncEngine();
 

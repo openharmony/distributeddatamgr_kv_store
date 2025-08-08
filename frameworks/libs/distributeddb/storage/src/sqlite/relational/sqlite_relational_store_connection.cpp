@@ -254,7 +254,7 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
         return -E_INVALID_CONNECTION;
     }
 
-    ISyncer::SyncParma syncParam;
+    ISyncer::SyncParam syncParam;
     syncParam.devices = info.devices;
     syncParam.mode = info.mode;
     syncParam.wait = info.wait;

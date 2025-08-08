@@ -34,6 +34,7 @@ public:
         std::string query;
         uint64_t syncId = 0;
         int32_t triggerMode = 0;
+        bool isRetry = true;
     };
     enum PasswordType {
         BACKUP_SECRET_KEY = 0,

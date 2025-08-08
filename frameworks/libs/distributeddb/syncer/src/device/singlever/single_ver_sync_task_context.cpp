@@ -660,4 +660,15 @@ void SingleVerSyncTaskContext::ResetResyncTimes()
 {
     resyncTimes_ = 0;
 }
+
+bool SingleVerSyncTaskContext::IsRetryTask() const
+{
+    SyncOperation *operation = GetAndIncSyncOperation();
+    if (operation == nullptr) {
+        return true;
+    }
+    bool isRetryTask = operation->IsRetryTask();
+    RefObject::DecObjRef(operation);
+    return isRetryTask;
+}
 } // namespace DistributedDB

@@ -402,6 +402,9 @@ int AbilitySync::SyncStart(uint32_t sessionId, uint32_t sequenceId, uint16_t rem
     message->SetSequenceId(sequenceId);
     SendConfig conf;
     SetSendConfigParam(storageInterface_->GetDbProperties(), deviceId_, false, SEND_TIME_OUT, conf);
+    if (context != nullptr) {
+        conf.isRetryTask = context->IsRetryTask();
+    }
     errCode = communicator_->SendMessage(deviceId_, message, conf, handler);
     if (errCode != E_OK) {
         LOGE("[AbilitySync][SyncStart] SendPacket failed, err %d", errCode);

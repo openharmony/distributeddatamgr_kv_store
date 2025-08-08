@@ -64,6 +64,7 @@ struct PragmaSync {
           onComplete_(onComplete),
           wait_(wait),
           isQuerySync_(true),
+          isRetry_(true),
           query_(query)
     {
     }
@@ -76,6 +77,7 @@ struct PragmaSync {
           onComplete_(onComplete),
           wait_(wait),
           isQuerySync_(false),
+          isRetry_(true),
           query_(Query::Select())
     {
     }
@@ -85,6 +87,7 @@ struct PragmaSync {
           mode_(option.mode),
           wait_(option.isWait),
           isQuerySync_(option.isQuery),
+          isRetry_(true),
           onSyncProcess_(onProcess)
     {
         if (!isQuerySync_) {
@@ -98,8 +101,36 @@ struct PragmaSync {
           mode_(option.mode),
           wait_(option.isWait),
           isQuerySync_(false),
+          isRetry_(true),
           query_(Query::Select()),
           onSyncProcess_(onProcess)
+    {
+    }
+
+    PragmaSync(const DeviceSyncOption &option, const QuerySyncObject &query,
+        const std::function<void(const std::map<std::string, int> &devicesMap)> &onComplete)
+        : devices_(option.devices),
+          mode_(option.mode),
+          onComplete_(onComplete),
+          wait_(option.isWait),
+          isQuerySync_(option.isQuery),
+          isRetry_(option.isRetry)
+    {
+        if (!isQuerySync_) {
+            return;
+        }
+        query_ = query;
+    }
+
+    PragmaSync(const DeviceSyncOption &option,
+        const std::function<void(const std::map<std::string, int> &devicesMap)> &onComplete)
+        : devices_(option.devices),
+          mode_(option.mode),
+          onComplete_(onComplete),
+          wait_(option.isWait),
+          isQuerySync_(false),
+          isRetry_(option.isRetry),
+          query_(Query::Select())
     {
     }
 
@@ -108,6 +139,7 @@ struct PragmaSync {
     std::function<void(const std::map<std::string, int> &devicesMap)> onComplete_;
     bool wait_;
     bool isQuerySync_;
+    bool isRetry_;
     QuerySyncObject query_;
     DeviceSyncProcessCallback onSyncProcess_;
 };

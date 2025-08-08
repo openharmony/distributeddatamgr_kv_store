@@ -1158,6 +1158,20 @@ HWTEST_F(SingleKvStoreClientTest, SyncWithCondition001, TestSize.Level1)
 }
 
 /**
+* @tc.name: SyncWithCondition002
+* @tc.desc: sync device data with condition and retry is false
+* @tc.type: FUNC
+*/
+HWTEST_F(SingleKvStoreClientTest, SyncWithCondition002, TestSize.Level1)
+{
+    ASSERT_NE(singleKvStore, nullptr);
+    std::vector<std::string> deviceIds;
+    DataQuery dataQuery;
+    auto syncStatus = singleKvStore->Sync(deviceIds, SyncMode::PUSH, dataQuery, false, nullptr);
+    ASSERT_NE(syncStatus, Status::SUCCESS);
+}
+
+/**
  * @tc.name: SubscribeWithQuery001
  * desc: subscribe and sync device data with query;
  * type: FUNC

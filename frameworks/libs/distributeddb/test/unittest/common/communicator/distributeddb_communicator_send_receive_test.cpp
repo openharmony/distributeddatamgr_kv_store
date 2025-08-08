@@ -166,7 +166,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive001, TestSize.L
      */
     Message *msgForAA = BuildRegedTinyMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0, {}};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
@@ -210,7 +210,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive002, TestSize.L
      */
     Message *msgForAA = BuildRegedOverSizeMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {true, false, 0};
+    SendConfig conf = {true, false, true, 0};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_NE(errCode, E_OK);
     delete msgForAA;
@@ -240,7 +240,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive003, TestSize.L
      */
     Message *msgForAA = BuildUnRegedTinyMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {true, false, 0};
+    SendConfig conf = {true, false, true, 0};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_NE(errCode, E_OK);
     delete msgForAA;
@@ -293,13 +293,13 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive004, TestSize.L
     ASSERT_NE(msgForAAUser1, nullptr);
     Message *msgForAAUser2 = BuildRegedGiantMessage(HUGE_SIZE + HUGE_SIZE);
     ASSERT_NE(msgForAAUser2, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
-    SendConfig confUser1 = {false, true, 0, {"appId", "storeId", USER_ID_1, "DeviceB", ""}};
+    SendConfig confUser1 = {false, true, true, 0, {"appId", "storeId", USER_ID_1, "DeviceB", ""}};
     errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAAUser1, confUser1);
     EXPECT_EQ(errCode, E_OK);
-    SendConfig confUser2 = {false, true, 0, {"appId", "storeId", USER_ID_2, "DeviceB", ""}};
+    SendConfig confUser2 = {false, true, true, 0, {"appId", "storeId", USER_ID_2, "DeviceB", ""}};
     errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAAUser2, confUser2);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -358,7 +358,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl001, TestSize.
     while (true) {
         Message *msgForBA = BuildRegedHugeMessage();
         ASSERT_NE(msgForBA, nullptr);
-        SendConfig conf = {true, false, 0};
+        SendConfig conf = {true, false, true, 0};
         int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
         if (errCode == E_OK) {
             sendCount++;
@@ -423,7 +423,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl002, TestSize.
         while (sendCount < SEND_COUNT_GOAL) {
             Message *msgForBA = BuildRegedHugeMessage();
             ASSERT_NE(msgForBA, nullptr);
-            SendConfig conf = {false, false, 0};
+            SendConfig conf = {false, false, true, 0};
             int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
             if (errCode != E_OK) {
                 delete msgForBA;
@@ -489,7 +489,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendFlowControl003, TestSize.
         while (sendCnt < SEND_COUNT_GOAL) {
             Message *msgForBA = BuildRegedHugeMessage();
             ASSERT_NE(msgForBA, nullptr);
-            SendConfig conf = {false, false, 100};
+            SendConfig conf = {false, false, true, 100};
             int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf); // 100 ms timeout
             if (errCode != E_OK) {
                 delete msgForBA;
@@ -544,7 +544,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck001, TestSize.Lev
      */
     g_envDeviceB.adapterHandle->SimulateSendBitErrorInMagicField(true, 0xFFFF);
     Message *msgForBA = BuildRegedTinyMessage();
-    SendConfig conf = {true, false, 0};
+    SendConfig conf = {true, false, true, 0};
     int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -606,7 +606,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ReceiveCheck002, TestSize.Lev
      */
     g_envDeviceB.adapterHandle->SimulateSendBitErrorInPacketLenField(true, 0xFFFF);
     Message *msgForBA = BuildRegedTinyMessage();
-    SendConfig conf = {true, false, 0};
+    SendConfig conf = {true, false, true, 0};
     int errCode = g_commBA->SendMessage(DEVICE_NAME_A, msgForBA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -667,7 +667,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendResultNotify001, TestSize
      */
     Message *msgForAA = BuildRegedTinyMessage();
     ASSERT_NE(msgForAA, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf, sendResultNotifier);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
@@ -718,7 +718,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, MessageFeedback001, TestSize.
      */
     Message *msgForBB = BuildRegedTinyMessage();
     ASSERT_NE(msgForBB, nullptr);
-    SendConfig conf = {false, false, 0};
+    SendConfig conf = {false, false, true, 0};
     int errCode = g_commBB->SendMessage(DEVICE_NAME_A, msgForBB, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep 100 ms
@@ -791,7 +791,7 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead0
     ASSERT_NE(msgForAA, nullptr);
     UserInfo userInfo = {"", "userId"};
     g_envDeviceB.adapterHandle->SetUserInfo({userInfo});
-    SendConfig conf = {false, true, 0, {"appId", "storeId", "", "DeviceB"}};
+    SendConfig conf = {false, true, true, 0, {"appId", "storeId", "", "DeviceB"}};
     int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
     EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms

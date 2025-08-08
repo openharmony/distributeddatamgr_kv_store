@@ -493,7 +493,7 @@ Event SingleVerSyncStateMachine::DoTimeSync() const
                 SyncTaskContext::CommErrHandlerFunc(ret, context, requestSessionId, isDirectEnd);
             };
         }
-        int errCode = timeSync_->SyncStart(handler, context_->GetRequestSessionId());
+        int errCode = timeSync_->SyncStart(handler, context_->GetRequestSessionId(), context_->IsRetryTask());
         if (errCode == E_OK) {
             return Event::WAIT_ACK_EVENT;
         }

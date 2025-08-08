@@ -92,7 +92,7 @@ void SyncAbleKvDB::Close()
 }
 
 // Start a sync action.
-int SyncAbleKvDB::Sync(const ISyncer::SyncParma &parma, uint64_t connectionId)
+int SyncAbleKvDB::Sync(const ISyncer::SyncParam &parma, uint64_t connectionId)
 {
     if (!started_) {
         int errCode = StartSyncer();

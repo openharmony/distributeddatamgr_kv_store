@@ -43,7 +43,7 @@ public:
     void Close() override;
 
     // Start a sync action.
-    int Sync(const ISyncer::SyncParma &parma, uint64_t connectionId);
+    int Sync(const ISyncer::SyncParam &parma, uint64_t connectionId);
 
     // Cancel a sync action.
     int CancelSync(uint32_t syncId);

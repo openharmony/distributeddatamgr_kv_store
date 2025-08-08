@@ -201,6 +201,7 @@ struct DeviceSyncOption {
     Query query; // isQuery must be set to true if the query is set
     bool isQuery = false;
     bool isWait = true;
+    bool isRetry = true;
 };
 
 struct DeviceSyncInfo {

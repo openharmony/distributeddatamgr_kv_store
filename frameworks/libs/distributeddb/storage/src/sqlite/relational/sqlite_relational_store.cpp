@@ -361,7 +361,7 @@ void SQLiteRelationalStore::ReleaseHandle(SQLiteSingleVerRelationalStorageExecut
     }
 }
 
-int SQLiteRelationalStore::Sync(const ISyncer::SyncParma &syncParam, uint64_t connectionId)
+int SQLiteRelationalStore::Sync(const ISyncer::SyncParam &syncParam, uint64_t connectionId)
 {
     return syncAbleEngine_->Sync(syncParam, connectionId);
 }
