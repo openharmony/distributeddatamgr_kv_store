@@ -223,6 +223,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema001, TestSize.Level1)
         for (const auto &table : changedData.tableData) {
             EXPECT_FALSE(table.second.isTrackedDataChange);
             EXPECT_TRUE(table.second.isP2pSyncDataChange);
+            EXPECT_FALSE(table.second.isCloudSyncDataChange);
         }
     }), OK);
     EXPECT_EQ(RDBDataGenerator::UpdateLocalDBData(0, 1, db_, GetTableSchema()), E_OK);
@@ -285,6 +286,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema003, TestSize.Level1)
         for (const auto &table : changedData.tableData) {
             EXPECT_FALSE(table.second.isTrackedDataChange);
             EXPECT_FALSE(table.second.isP2pSyncDataChange);
+            EXPECT_FALSE(table.second.isCloudSyncDataChange);
         }
     }), OK);
     EXPECT_EQ(RDBDataGenerator::UpdateLocalDBData(0, 1, db_, GetTableSchema()), E_OK);
@@ -397,6 +399,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, SetSchema006, TestSize.Level1)
         for (const auto &table : changedData.tableData) {
             EXPECT_TRUE(table.second.isTrackedDataChange);
             EXPECT_TRUE(table.second.isP2pSyncDataChange);
+            EXPECT_FALSE(table.second.isCloudSyncDataChange);
         }
     }), OK);
     EXPECT_EQ(RDBDataGenerator::InsertLocalDBData(0, 1, db_, GetTableSchema()), E_OK);

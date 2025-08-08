@@ -829,3 +829,58 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey012, TestSize.
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_publish_SingleVerPublishKey012"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: SingleVerPublishKey013
+  * @tc.desc: Test concurrent registrer and unRegistrer
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey013, TestSize.Level1)
+{
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.GetKvStore("distributed_nb_publish_SingleVerPublishKey013", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    std::vector<std::shared_ptr<KvStoreObserverUnitTest>> obList;
+    std::function<void(KvStoreObserverUnitTest *)> obReleaser = [](KvStoreObserverUnitTest *obj) {
+        if (obj == nullptr) {
+            return;
+        }
+        g_kvNbDelegatePtr->UnRegisterObserver(obj);
+        delete obj;
+    };
+    size_t maxCnt = 1000;
+    obList.resize(maxCnt);
+    std::mutex listMutex;
+    std::thread t1([maxCnt, &obList, obReleaser, &listMutex] {
+        for (size_t i = 0; i < maxCnt; i++) {
+            std::shared_ptr<KvStoreObserverUnitTest> ob1 = { new (std::nothrow) KvStoreObserverUnitTest(), obReleaser};
+            EXPECT_TRUE(ob1 != nullptr);
+            g_kvNbDelegatePtr->RegisterObserver(NULL_KEY, OBSERVER_CHANGES_NATIVE, ob1.get());
+            std::lock_guard<std::mutex> lock(listMutex);
+            obList[i] = ob1;
+        }
+    });
+    std::thread t2([maxCnt] {
+        for (size_t i = 0; i < maxCnt; i++) {
+            EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_2, VALUE_2), OK);
+        }
+    });
+
+    for (size_t i = 0; i < maxCnt; i++) {
+        std::lock_guard<std::mutex> lock(listMutex);
+        obList[i] = nullptr;
+    }
+    t1.join();
+    t2.join();
+    for (size_t i = 0; i < maxCnt; i++) {
+        std::lock_guard<std::mutex> lock(listMutex);
+        obList[i] = nullptr;
+    }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_publish_SingleVerPublishKey013"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}

@@ -99,6 +99,7 @@ public:
     static constexpr const uint32_t ON_CHANGE_TRACKER = 0x1;
     static constexpr const uint32_t ON_CHANGE_P2P = 0x2;
     static constexpr const uint32_t ON_CHANGE_KNOWLEDGE = 0x4;
+    static constexpr const uint32_t ON_CHANGE_CLOUD = 0x8;
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

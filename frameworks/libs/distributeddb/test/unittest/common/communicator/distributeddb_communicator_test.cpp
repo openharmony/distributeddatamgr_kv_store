@@ -15,7 +15,10 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+
+#include "combine_status.h"
 #include "communicator.h"
+#include "communicator_aggregator.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "distributeddb_communicator_common.h"
@@ -24,6 +27,7 @@
 #include "endian_convert.h"
 #include "log_print.h"
 #include "runtime_config.h"
+#include "runtime_context_impl.h"
 #include "thread_pool_test_stub.h"
 #include "virtual_communicator_aggregator.h"
 
@@ -1448,5 +1452,43 @@ HWTEST_F(DistributedDBCommunicatorTest, AbnormalCommunicatorTest001, TestSize.Le
     ASSERT_NE(communicator, nullptr);
     EXPECT_EQ(communicator->GetTargetUserId({}), DBConstant::DEFAULT_USER);
     g_envDeviceA.commAggrHandle->ReleaseCommunicator(commAA);
+}
+
+/**
+  * @tc.name: CheckInFragmentNoTest001
+  * @tc.desc: Test CheckInFragmentNo func.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBCommunicatorTest, CheckInFragmentNoTest001, TestSize.Level1)
+{
+    CombineStatus status;
+    /**
+     * @tc.steps: step1. set fragmentCount by inFragCount
+     */
+    uint16_t inFragCount = 5;
+    status.SetFragmentCount(inFragCount);
+    /**
+     * @tc.steps: step2. make inFragNo greater than fragmentCount
+     */
+    uint16_t inFragNo = inFragCount + 1;
+    status.CheckInFragmentNo(inFragNo);
+    EXPECT_FALSE(status.IsFragNoAlreadyExist(inFragNo));
+}
+
+/**
+  * @tc.name: GetRemoteCommunicatorVersionTest001
+  * @tc.desc: Test GetRemoteCommunicatorVersion func.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBCommunicatorTest, GetRemoteCommunicatorVersionTest001, TestSize.Level1)
+{
+    auto aggregator = std::make_unique<CommunicatorAggregator>();
+    ASSERT_NE(aggregator, nullptr);
+    uint16_t outVersion = 0;
+    EXPECT_EQ(aggregator->GetRemoteCommunicatorVersion("notExistTarget", outVersion), -E_NOT_FOUND);
 }
 }

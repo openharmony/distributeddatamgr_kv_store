@@ -1655,7 +1655,7 @@ void CloudSyncer::WaitCurTaskFinished()
     std::unique_lock<std::mutex> uniqueLock(dataLock_);
     if (currentContext_.currentTaskId != INVALID_TASK_ID) {
         LOGI("[CloudSyncer] begin wait current task %" PRIu64 " finished", currentContext_.currentTaskId);
-        contextCv_.wait_for(uniqueLock, std::chrono::milliseconds(DBConstant::MAX_TIMEOUT), [this]() {
+        contextCv_.wait(uniqueLock, [this]() {
             return currentContext_.currentTaskId == INVALID_TASK_ID;
         });
         LOGI("[CloudSyncer] current task has been finished");

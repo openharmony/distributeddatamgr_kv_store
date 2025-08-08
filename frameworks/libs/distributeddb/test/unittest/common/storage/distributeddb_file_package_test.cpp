@@ -39,6 +39,9 @@ namespace {
     const string FILE_NAME_1 = "file1.txt";
     const string FILE_NAME_2 = "file2.dat";
     const string FILE_CONTENT_1 = "Hello world.";
+    const string NON_EXIST_FILE = "nonexist.dat";
+    const string EMPTY_FILE = "empty.dat";
+    const string SECURE_FILE = "secure.dat";
     const int FILE_CONTENT_2_LEN = 4;
     const char FILE_CONTENT_2[FILE_CONTENT_2_LEN] = {0x5B, 0x3A, 0x29, 0x3E};
     const int BUFFER_SIZE = 4096;
@@ -180,7 +183,7 @@ void DistributedDBFilePackageTest::TearDown(void)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest001, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest001, TestSize.Level0)
 {
     int errCode = PackageFile::PackageFiles(g_sourcePath, g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
     ASSERT_EQ(errCode, E_OK);
@@ -198,7 +201,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest001, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest002, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest002, TestSize.Level0)
 {
     int errCode = PackageFile::PackageFiles(g_sourcePath + NON_EXIST_PATH,
         g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
@@ -212,7 +215,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest002, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest003, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest003, TestSize.Level0)
 {
     int errCode = PackageFile::PackageFiles(g_sourcePath,
         g_packageResultPath + NON_EXIST_PATH + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
@@ -226,7 +229,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest003, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest004, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest004, TestSize.Level0)
 {
     // Clear source files.
     RemovePath(g_sourcePath);
@@ -252,7 +255,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest004, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest005, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest005, TestSize.Level0)
 {
     FileInfo fileInfo;
     int errCode = PackageFile::UnpackFile(g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_unpackResultPath, fileInfo);
@@ -266,7 +269,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest005, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest006, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest006, TestSize.Level0)
 {
     int errCode = PackageFile::PackageFiles(g_sourcePath, g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
     ASSERT_EQ(errCode, E_OK);
@@ -283,7 +286,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest006, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest007, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest007, TestSize.Level0)
 {
     int errCode = PackageFile::PackageFiles(g_sourcePath, g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
     ASSERT_EQ(errCode, E_OK);
@@ -307,7 +310,7 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest007, TestSize.Level1)
   * @tc.require:
   * @tc.author: liujialei
   */
-HWTEST_F(DistributedDBFilePackageTest, PackageFileTest008, TestSize.Level1)
+HWTEST_F(DistributedDBFilePackageTest, PackageFileTest008, TestSize.Level0)
 {
     int errCode = PackageFile::PackageFiles(g_sourcePath, g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_fileInfo);
     ASSERT_EQ(errCode, E_OK);
@@ -330,4 +333,32 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest008, TestSize.Level1)
     FileInfo fileInfo;
     errCode = PackageFile::UnpackFile(g_packageResultPath + PACKAGE_RESULT_FILE_NAME, g_unpackResultPath, fileInfo);
     ASSERT_EQ(errCode, -E_INVALID_FILE);
+}
+
+/**
+  * @tc.name: GetPackageVersionTest001
+  * @tc.desc: Test GetPackageVersion func.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBFilePackageTest, GetPackageVersionTest001, TestSize.Level0)
+{
+    uint32_t version;
+    std::ofstream emptyFile(g_packageResultPath + EMPTY_FILE, ios::out | ios::binary | ios::trunc);
+    ASSERT_TRUE(emptyFile.is_open());
+    emptyFile.close();
+    std::ofstream secureFile(g_packageResultPath + SECURE_FILE, ios::out | ios::binary | ios::trunc);
+    ASSERT_TRUE(secureFile.is_open());
+    secureFile.close();
+    EXPECT_EQ(chmod((g_packageResultPath + SECURE_FILE).c_str(), S_IRUSR | S_IRGRP | S_IROTH), E_OK);
+    int errCode = PackageFile::GetPackageVersion(g_packageResultPath + NON_EXIST_FILE, version);
+    EXPECT_EQ(errCode, -E_INVALID_PATH);
+    errCode = PackageFile::GetPackageVersion(g_packageResultPath + EMPTY_FILE, version);
+    EXPECT_EQ(errCode, -E_INVALID_PATH);
+    int oldErr = errno;
+    errno = EKEYREVOKED;
+    errCode = PackageFile::GetPackageVersion(g_packageResultPath + SECURE_FILE, version);
+    EXPECT_EQ(errCode, -E_EKEYREVOKED);
+    errno = oldErr;
 }

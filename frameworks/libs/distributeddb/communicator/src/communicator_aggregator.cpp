@@ -283,14 +283,14 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel, co
 namespace {
 void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
 {
-    if (onEnd) { // LCOV_EXCL_BR_LINE
+    if (onEnd) {
         TaskAction onSendEndTask = [onEnd, result]() {
             LOGD("[CommAggr][SendEndTask] Before On Send End.");
             onEnd(result, true);
             LOGD("[CommAggr][SendEndTask] After On Send End.");
         };
         int errCode = RuntimeContext::GetInstance()->ScheduleTask(onSendEndTask);
-        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        if (errCode != E_OK) {
             LOGE("[CommAggr][SendEndTask] ScheduleTask failed, errCode = %d.", errCode);
         }
     }
@@ -351,7 +351,7 @@ int CommunicatorAggregator::GetRemoteCommunicatorVersion(const std::string &targ
 {
     std::lock_guard<std::mutex> versionMapLockGuard(versionMapMutex_);
     auto pair = versionMap_.find(target);
-    if (pair == versionMap_.end()) { // LCOV_EXCL_BR_LINE
+    if (pair == versionMap_.end()) {
         return -E_NOT_FOUND;
     }
     outVersion = pair->second;
@@ -682,6 +682,13 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     UserInfo userInfo = { .sendUser = DBConstant::DEFAULT_USER };
     if (receiveBytesInfo.isNeedGetUserInfo) {
         int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userInfo);
+        if (ret == NEED_CORRECT_TARGET_USER) {
+            TryToFeedBackWithErr(receiveBytesInfo.srcTarget, toLabel, inFrameBuffer,
+                E_NEED_CORRECT_TARGET_USER);
+            delete inFrameBuffer;
+            inFrameBuffer = nullptr;
+            return -E_NEED_CORRECT_TARGET_USER;
+        }
         if (ret != E_OK || userInfo.sendUser.empty()) {
             LOGE("[CommAggr][AppReceive] get data user id err, ret=%d, empty receiveUser=%d, empty sendUser=%d", ret,
                 userInfo.receiveUser.empty(), userInfo.sendUser.empty());
@@ -723,6 +730,9 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     LOGI("[CommAggr][GetDataUserId] get data user info, ret=%d", ret);
     if (ret == NO_PERMISSION) {
         LOGE("[CommAggr][GetDataUserId] userId dismatched, drop packet");
+        return ret;
+    } else if (ret == NEED_CORRECT_TARGET_USER) {
+        LOGW("[CommAggr][GetDataUserId] the target user is incorrect and needs to be corrected");
         return ret;
     }
     if (!userInfos.empty()) {
@@ -867,7 +877,16 @@ void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTar
 void CommunicatorAggregator::TryToFeedbackWhenCommunicatorNotFound(const std::string &dstTarget,
     const LabelType &dstLabel, const SerialBuffer *inOriFrame, int inErrCode)
 {
-    if (!isCommunicatorNotFoundFeedbackEnable_ || dstTarget.empty() || inOriFrame == nullptr) {
+    if (!isCommunicatorNotFoundFeedbackEnable_) {
+        return;
+    }
+    TryToFeedBackWithErr(dstTarget, dstLabel, inOriFrame, inErrCode);
+}
+
+void CommunicatorAggregator::TryToFeedBackWithErr(const std::string &dstTarget,
+    const DistributedDB::LabelType &dstLabel, const DistributedDB::SerialBuffer *inOriFrame, int inErrCode)
+{
+    if (dstTarget.empty() || inOriFrame == nullptr) {
         return;
     }
     int errCode = E_OK;
@@ -879,10 +898,10 @@ void CommunicatorAggregator::TryToFeedbackWhenCommunicatorNotFound(const std::st
         return;
     }
     // Message is release in TriggerCommunicatorNotFoundFeedback
-    TriggerCommunicatorNotFoundFeedback(dstTarget, dstLabel, message, inErrCode);
+    TriggerCommunicatorFeedback(dstTarget, dstLabel, message, inErrCode);
 }
 
-void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::string &dstTarget,
+void CommunicatorAggregator::TriggerCommunicatorFeedback(const std::string &dstTarget,
     const LabelType &dstLabel, Message* &oriMsg, int sendErrNo)
 {
     if (oriMsg == nullptr || oriMsg->GetMessageType() != TYPE_REQUEST) {
@@ -893,7 +912,8 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
         return;
     }
 
-    LOGI("[CommAggr][TrigNotFound] Do communicator not found feedback with target=%s{private}.", dstTarget.c_str());
+    LOGI("[CommAggr][TrigNotFound] Do communicator feedback with target=%s{private}, send error code=%d.",
+        dstTarget.c_str(), sendErrNo);
     oriMsg->SetMessageType(TYPE_RESPONSE);
     oriMsg->SetErrorNo(sendErrNo);
 
@@ -902,14 +922,14 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
     delete oriMsg;
     oriMsg = nullptr;
     if (errCode != E_OK) {
-        LOGE("[CommAggr][TrigNotFound] Build communicator not found feedback frame fail, errCode=%d", errCode);
+        LOGE("[CommAggr][TrigNotFound] Build communicator feedback frame fail, errCode=%d", errCode);
         return;
     }
 
     TaskConfig config{true, true, 0, Priority::HIGH};
     errCode = ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
-        LOGE("[CommAggr][TrigNotFound] Send communicator not found feedback frame fail, errCode=%d", errCode);
+        LOGE("[CommAggr][TrigNotFound] Send communicator feedback frame fail, errCode=%d", errCode);
         // if send fails, free buffer, otherwise buffer will be taked over by ScheduleSendTask
         delete buffer;
         buffer = nullptr;

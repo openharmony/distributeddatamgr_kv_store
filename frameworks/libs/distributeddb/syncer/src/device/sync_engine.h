@@ -146,7 +146,7 @@ protected:
     virtual ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) = 0;
 
     // Find SyncTaskContext from the map
-    ISyncTaskContext *FindSyncTaskContext(const DeviceSyncTarget &target);
+    ISyncTaskContext *FindSyncTaskContext(const DeviceSyncTarget &target, bool isNeedCorrectUserId);
     std::vector<ISyncTaskContext *> GetSyncTaskContextAndInc(const std::string &deviceId);
     void GetQueryAutoSyncParam(const std::string &device, const QuerySyncObject &query, InternalSyncParma &outParam);
     void GetSubscribeSyncParam(const std::string &device, const QuerySyncObject &query, InternalSyncParma &outParam);
@@ -205,7 +205,7 @@ private:
     // Handle message in order.
     int ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg);
 
-    ISyncTaskContext *GetContextForMsg(const DeviceSyncTarget &target, int &errCode);
+    ISyncTaskContext *GetContextForMsg(const DeviceSyncTarget &target, int &errCode, bool isNeedCorrectUserId);
 
     ICommunicator *AllocCommunicator(const std::string &identifier, int &errCode, std::string userId = "");
 
@@ -247,6 +247,9 @@ private:
         const ISyncInterface *syncInterface);
 
     std::string GetTargetUserId(const std::string &dev);
+
+    void CorrectTargetUserId(std::map<DeviceSyncTarget, ISyncTaskContext *>::iterator &it, bool isNeedCorrectUserId);
+
     ICommunicator *communicator_;
     DeviceManager *deviceManager_;
     std::function<void(const std::string &)> onRemoteDataChanged_;

@@ -85,6 +85,7 @@ public:
         ASSERT_EQ(triggerTableData_.size(), dataSize);
         EXPECT_EQ(triggerTableData_.begin()->first, tableName);
         EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, properties.isTrackedDataChange);
+        EXPECT_EQ(triggerTableData_.begin()->second.isCloudSyncDataChange, properties.isCloudSyncDataChange);
         EXPECT_EQ(triggeredCount_, triggerCount);
     }
 
@@ -137,6 +138,7 @@ void DistributedDBCloudInterfacesRelationalExtTest::CheckTriggerObserverTest002(
     ASSERT_EQ(triggerTableData_.size(), 1u);
     EXPECT_EQ(triggerTableData_.begin()->first, tableName);
     EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, false);
+    EXPECT_TRUE(triggerTableData_.begin()->second.isCloudSyncDataChange);
     EXPECT_EQ(triggeredCount_, count);
 }
 
@@ -731,6 +733,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
     WaitAndResetNotifyWithLock(lock);
     ASSERT_EQ(triggerTableData_.size(), 1u);
     EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_TRUE(triggerTableData_.begin()->second.isCloudSyncDataChange);
     EXPECT_EQ(triggeredCount_, dataCounts);
 
     /**
@@ -793,6 +796,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest005, 
     WaitAndResetNotify();
     ASSERT_EQ(triggerTableData_.size(), 1u);
     EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_TRUE(triggerTableData_.begin()->second.isCloudSyncDataChange);
     EXPECT_EQ(triggeredCount_, 1);
 
     /**
@@ -862,6 +866,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
     WaitAndResetNotify();
     ASSERT_EQ(triggerTableData_.size(), 1u); // 1 is table size
     EXPECT_EQ(triggerTableData_.begin()->first, tableName1);
+    EXPECT_TRUE(triggerTableData_.begin()->second.isCloudSyncDataChange);
     EXPECT_EQ(triggeredCount_, 1); // 1 is trigger count
 
     /**
@@ -887,6 +892,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
     WaitAndResetNotify();
     ASSERT_EQ(triggerTableData_.size(), 1u); // 1 is table size
     EXPECT_EQ(triggerTableData_.begin()->first, tableName1);
+    EXPECT_TRUE(triggerTableData_.begin()->second.isCloudSyncDataChange);
     EXPECT_EQ(triggeredCount_, 1); // 1 is trigger count
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
@@ -929,6 +935,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
     ExecSqlAndWaitForObserver(db, sql, lock);
     ChangeProperties properties;
     properties.isTrackedDataChange = true;
+    properties.isCloudSyncDataChange = false;
     int triggerCount = 1;
     CheckTriggerTableData(1u, tableName, properties, triggerCount);
 
@@ -1029,6 +1036,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest008, 
     std::unique_lock<std::mutex> lock(g_mutex);
     ExecSqlAndWaitForObserver(db, sql, lock);
     EXPECT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_TRUE(triggerTableData_.begin()->second.isCloudSyncDataChange);
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }

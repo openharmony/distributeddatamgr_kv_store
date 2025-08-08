@@ -61,6 +61,8 @@ enum class LogInfoFlag : uint32_t {
     FLAG_LOGIN_USER = 0x2000, // same hash key, login user's data
     FLAG_CLOUD_UPDATE_LOCAL = 0x4000,  // 1 indicates an update on the cloud side, and 0 indicates data inserted on the
                                        // cloud side or data operated locally
+    FLAG_KNOWLEDGE_INVERTED_WRITE = 0x8000, // knowledge process written to inverted table
+    FLAG_KNOWLEDGE_VECTOR_WRITE = 0x10000,  // knowledge process written to vector table
 };
 
 struct RowDataWithLog {

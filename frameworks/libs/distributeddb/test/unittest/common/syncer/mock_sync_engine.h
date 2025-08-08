@@ -23,6 +23,7 @@ namespace DistributedDB {
 class MockSyncEngine : public SyncEngine {
 public:
     MOCK_METHOD1(CreateSyncTaskContext, ISyncTaskContext *(const ISyncInterface &syncInterface));
+    MOCK_METHOD1(GetTargetUserId, std::string(const std::string &dev));
 
     void InitSubscribeManager()
     {
@@ -34,9 +35,9 @@ public:
         return SyncEngine::GetSyncTaskContext(target, errCode);
     }
 
-    ISyncTaskContext *CallFindSyncTaskContext(const DeviceSyncTarget &target)
+    ISyncTaskContext *CallFindSyncTaskContext(const DeviceSyncTarget &target, bool isNeedCorrectUserId)
     {
-        return SyncEngine::FindSyncTaskContext(target);
+        return SyncEngine::FindSyncTaskContext(target, isNeedCorrectUserId);
     }
 };
 } // namespace DistributedDB
