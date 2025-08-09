@@ -62,8 +62,8 @@ void DistributedDBRDBUpgradeTest::InitNoJsonTrackerSchema()
     std::string keyStr = "relational_tracker_schema";
     Key key(keyStr.begin(), keyStr.end());
     std::string schemaStr = R"({"SCHEMA_TYPE":"TRACKER","TABLES":[
-        {"NAME": "DEVICE_SYNC_TABLE","EXTEND_NAME": "id",
-        "TRACKER_NAMES": ["id","name1","name2"],"TRACKER_ACTION": false}]})";
+        {"NAME": "DEVICE_SYNC_TABLE", "EXTEND_NAME": "id",
+        "TRACKER_NAMES": ["id", "name1", "name2"], "TRACKER_ACTION": false}]})";
     Value value(schemaStr.begin(), schemaStr.end());
     ASSERT_EQ(PutMetaData(GetStoreInfo1(), key, value), E_OK);
 }
