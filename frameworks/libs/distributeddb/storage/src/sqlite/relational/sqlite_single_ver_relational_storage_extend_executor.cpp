@@ -2049,7 +2049,7 @@ void SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLog(const Tracke
         return;
     }
     std::string sql = "SELECT COUNT(1) FROM " + DBCommon::GetLogTableName(trackerSchema.tableName) +
-        " WHERE json_type(extend_field) IS NOT 'object' AND data_key != -1";
+        " WHERE (json_valid(extend_field) = 0 OR json_type(extend_field) IS NOT 'object') AND data_key != -1";
     if (!SQLiteRelationalUtils::ExecuteCheckSql(dbHandle_, sql).second) {
         return;
     }
@@ -2083,7 +2083,7 @@ int SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLogInner(const Tr
     });
     actions.emplace_back([this, &trackerSchema]() {
         return UpdateExtendField(trackerSchema.tableName, trackerSchema.extendColNames,
-            " AND json_type(log.extend_field) IS NOT 'object'");
+            " AND (json_valid(log.extend_field) = 0 OR json_type(log.extend_field) IS NOT 'object')");
     });
     actions.emplace_back([this]() {
         return ClearAllTempSyncTrigger();

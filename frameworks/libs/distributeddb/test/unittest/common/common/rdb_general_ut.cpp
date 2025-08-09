@@ -15,6 +15,7 @@
 #include "rdb_general_ut.h"
 #include "rdb_data_generator.h"
 #include "runtime_config.h"
+#include "sqlite_relational_utils.h"
 #include "virtual_cloud_data_translate.h"
 
 using namespace DistributedDBUnitTest;
@@ -580,5 +581,16 @@ void RDBGeneralUt::RemoteQuery(const StoreInfo &from, const StoreInfo &to, const
     std::shared_ptr<ResultSet> resultSet = nullptr;
     EXPECT_EQ(store->RemoteQuery(toDevice, condition, DBConstant::MAX_TIMEOUT, resultSet), expectRet);
     EXPECT_NE(resultSet, nullptr);
+}
+
+int RDBGeneralUt::PutMetaData(const StoreInfo &store, const Key &key, const Value &value)
+{
+    auto db = GetSqliteHandle(store);
+    if (db == nullptr) {
+        LOGE("[RDBGeneralUt] Get null sqlite when put meta data userId[%s] appId[%s] storeId[%s]",
+            store.userId.c_str(), store.appId.c_str(), store.storeId.c_str());
+        return -E_INTERNAL_ERROR;
+    }
+    return SQLiteRelationalUtils::PutKvData(db, false, key, value);
 }
 }

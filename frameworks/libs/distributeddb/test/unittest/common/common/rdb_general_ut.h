@@ -96,6 +96,8 @@ protected:
 
     void RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet);
 
+    int PutMetaData(const StoreInfo &store, const Key &key, const Value &value);
+
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *> stores_;
     std::map<StoreInfo, sqlite3 *> sqliteDb_;
