@@ -174,7 +174,7 @@ bool StoreUtil::CreateFile(const std::string &name)
     if (access(name.c_str(), F_OK) == 0) {
         return RemoveRWXForOthers(name);
     }
-    int fp = open(name.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP));
+    int fp = open(name.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP));
     if (fp < 0) {
         ZLOGE("Fopen error:%{public}d, path:%{public}s", errno, Anonymous(name).c_str());
         return false;
