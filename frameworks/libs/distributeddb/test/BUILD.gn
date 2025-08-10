@@ -921,6 +921,11 @@ distributeddb_unittest("DistributedDBRDBDropTableTest") {
       [ "unittest/common/store_test/rdb/distributeddb_rdb_drop_table_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRDBUpgradeTest") {
+  sources =
+      [ "unittest/common/store_test/rdb/distributeddb_rdb_upgrade_test.cpp" ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1204,6 +1209,7 @@ group("unittest") {
     ":DistributedDBRDBKnowledgeClientTest",
     ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRDBMultiUserSyncTest",
+    ":DistributedDBRDBUpgradeTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",
