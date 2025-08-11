@@ -1334,6 +1334,9 @@ int32_t SyncEngine::GetResponseTaskCount()
     int32_t taskCount = 0;
     for (auto &iter : decContext) {
         taskCount += iter->GetResponseTaskCount();
+        if (iter->IsSavingTask(GetTimeout(iter->GetDeviceId()))) {
+            taskCount++;
+        }
         RefObject::DecObjRef(iter);
     }
     {

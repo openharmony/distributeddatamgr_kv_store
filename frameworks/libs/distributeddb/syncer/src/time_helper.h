@@ -35,6 +35,8 @@ public:
 
     static const uint64_t MS_TO_100_NS = 10000; // 1ms to 100ns
 
+    static const uint64_t MS_TO_US = 1000; // 1ms to 1000us
+
     static const Timestamp INVALID_TIMESTAMP = 0;
 
     // Get current system time

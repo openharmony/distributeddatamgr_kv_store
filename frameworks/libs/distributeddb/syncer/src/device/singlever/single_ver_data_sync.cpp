@@ -1035,7 +1035,7 @@ int SingleVerDataSync::DataRequestRecvInner(SingleVerSyncTaskContext *context, c
     RemotePushFinished(packet->GetSendCode(), packet->GetMode(), message->GetSessionId(),
         context->GetRequestSessionId());
     UpdatePeerWaterMarkInner(*packet, dataTime, isUpdateWaterMark, context);
-
+    context->RefreshSaveTime(packet->IsLastSequence());
     if (errCode != E_OK) {
         return errCode;
     }

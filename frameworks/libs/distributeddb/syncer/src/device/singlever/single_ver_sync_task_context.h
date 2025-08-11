@@ -151,6 +151,10 @@ public:
     void ResetResyncTimes();
 
     bool IsRetryTask() const override;
+
+    void RefreshSaveTime(bool isFinished);
+
+    bool IsSavingTask(uint32_t timeout) const override;
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
@@ -197,6 +201,7 @@ private:
     WaterMark initDeletedMark_ = 0;
 
     std::atomic<uint32_t> resyncTimes_ = 0;
+    std::atomic<uint64_t> lastSaveTimes_ = 0; // last save time us
 };
 } // namespace DistributedDB
 
