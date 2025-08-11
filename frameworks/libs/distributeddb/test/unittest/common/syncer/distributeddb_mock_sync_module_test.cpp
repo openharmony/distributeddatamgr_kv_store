@@ -2502,4 +2502,25 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerSyncStateMachineTest001, Test
     stateMachine.CallSyncStepInner();
     stateMachine.CallSetCurStateErrStatus();
 }
+
+/**
+ * @tc.name: GetSavingTaskCountTest001
+ * @tc.desc: Test get saving task count.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, GetSavingTaskCountTest001, TestSize.Level0)
+{
+    auto syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(syncTaskContext, nullptr);
+    syncTaskContext->RefreshSaveTime(true);
+    EXPECT_FALSE(syncTaskContext->IsSavingTask(0));
+    EXPECT_FALSE(syncTaskContext->IsSavingTask(DBConstant::MIN_TIMEOUT));
+    syncTaskContext->RefreshSaveTime(false);
+    // ignore saving task when duration >= timeout
+    EXPECT_FALSE(syncTaskContext->IsSavingTask(0));
+    // no ignore saving task when duration < timeout
+    EXPECT_TRUE(syncTaskContext->IsSavingTask(DBConstant::MIN_TIMEOUT));
+    RefObject::KillAndDecObjRef(syncTaskContext);
+}
 }

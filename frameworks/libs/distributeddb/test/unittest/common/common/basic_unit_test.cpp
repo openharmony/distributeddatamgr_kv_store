@@ -151,4 +151,10 @@ void BasicUnitTest::RegBeforeDispatch(const std::function<void(const std::string
     ASSERT_NE(communicatorAggregator_, nullptr);
     communicatorAggregator_->RegBeforeDispatch(beforeDispatch);
 }
+
+void BasicUnitTest::SetMtu(const std::string &dev, uint32_t mtu)
+{
+    ASSERT_NE(communicatorAggregator_, nullptr);
+    communicatorAggregator_->SetDeviceMtuSize(dev, mtu);
+}
 }  // namespace DistributedDB
