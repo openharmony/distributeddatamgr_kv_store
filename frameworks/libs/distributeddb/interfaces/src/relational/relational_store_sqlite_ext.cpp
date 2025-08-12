@@ -72,7 +72,7 @@ namespace {
 const std::string DISTRIBUTED_TABLE_MODE = "distributed_table_mode";
 static std::mutex g_binlogInitMutex;
 static int g_binlogInit = -1;
-constexpr const char *BINLOG_WHITELIST[] = {};
+constexpr const char *COMPRESS_WHITELIST[] = {"test.db"};
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
@@ -82,6 +82,7 @@ const std::string DEVICE_TYPE = "device";
 const std::string KNOWLEDGE_TYPE = "knowledge";
 const std::string SYNC_TABLE_TYPE = "sync_table_type_";
 const std::string KNOWLEDGE_CURSOR = "knowledge_cursor_";
+const std::string COMPRESS_VFS = "compressvfs";
 class ValueHashCalc {
 public:
     ValueHashCalc() {};
@@ -1742,10 +1743,29 @@ SQLITE_API int sqlite3_open16_relational(const void *filename, sqlite3 **ppDb)
     return err;
 }
 
+static bool IsSupportCompressVfs(const char *filePath)
+{
+    if (filePath == nullptr) {
+        return false;
+    }
+    std::string filePathStr(filePath);
+    auto filename = filePathStr.substr(filePathStr.rfind("/") + 1, filePathStr.size());
+    for (auto whiteItem : COMPRESS_WHITELIST) {
+        if (filename == std::string(whiteItem)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 SQLITE_API int sqlite3_open_v2_relational(const char *filename, sqlite3 **ppDb, int flags, const char *zVfs)
 {
     bool isExists = (access(filename, 0) == 0);
-    int err = sqlite3_open_v2(filename, ppDb, flags, zVfs);
+    const char *vfsOption = zVfs;
+    if (zVfs != nullptr && std::string(zVfs) == COMPRESS_VFS && !IsSupportCompressVfs(filename)) {
+        vfsOption = nullptr;
+    }
+    int err = sqlite3_open_v2(filename, ppDb, flags, vfsOption);
     if (err != SQLITE_OK) {
         return err;
     }
@@ -1776,13 +1796,8 @@ SQLITE_API int sqlite3_is_support_binlog_relational(const char *filename)
             g_binlogInit = static_cast<int>(IsBinlogSupported());
         }
     }
-    if (g_binlogInit != static_cast<int>(true)) {
-        return SQLITE_ERROR;
-    }
-    for (auto whiteItem : BINLOG_WHITELIST) {
-        if (strcmp(whiteItem, filename) == 0) {
-            return SQLITE_OK;
-        }
+    if (g_binlogInit == static_cast<int>(true)) {
+        return SQLITE_OK;
     }
     return SQLITE_ERROR;
 }

@@ -437,7 +437,6 @@ HWTEST_F(DistributedDBRelationalResultSetTest, ResultSetTest002, TestSize.Level0
     delete resultSet;
 }
 
-#ifdef USE_RD_KERNEL
 /**
  * @tc.name: BinlogSupportTest001
  * @tc.desc: Test binlog support API return values as expected
@@ -448,9 +447,63 @@ HWTEST_F(DistributedDBRelationalResultSetTest, ResultSetTest002, TestSize.Level0
 HWTEST_F(DistributedDBRelationalResultSetTest, BinlogSupportTest001, TestSize.Level0)
 {
     EXPECT_EQ(sqlite3_is_support_binlog(nullptr), SQLITE_ERROR);
-    EXPECT_EQ(sqlite3_is_support_binlog(""), SQLITE_ERROR);
-    EXPECT_EQ(sqlite3_is_support_binlog(" "), SQLITE_ERROR);
-    EXPECT_EQ(sqlite3_is_support_binlog("advisor"), SQLITE_OK);
+    EXPECT_EQ(sqlite3_is_support_binlog(""), sqlite3_is_support_binlog(" "));
 }
-#endif
+
+/**
+ * @tc.name: CompressSupportTest001
+ * @tc.desc: Test sqlite open with different vfs option return values as expected
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: hongyangliu
+ */
+HWTEST_F(DistributedDBRelationalResultSetTest, CompressSupportTest001, TestSize.Level0)
+{
+    sqlite3 *db = nullptr;
+    uint32_t openOption = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
+    /**
+     * @tc.steps: step1. sqlite open with both filepath and vfs as null
+     * @tc.expected: no crash
+     */
+    ASSERT_NO_FATAL_FAILURE(sqlite3_open_v2(nullptr, &db, openOption, nullptr));
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step2. sqlite open with null filepath and random vfs
+     * @tc.expected: no crash
+     */
+    ASSERT_NO_FATAL_FAILURE(sqlite3_open_v2(nullptr, &db, openOption, "non-exist"));
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step3. sqlite open with null filepath and compress vfs
+     * @tc.expected: no crash
+     */
+    ASSERT_NO_FATAL_FAILURE(sqlite3_open_v2(nullptr, &db, openOption, "compressvfs"));
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step4. sqlite open with a regular file with no vfs
+     * @tc.expected: open ok
+     */
+    EXPECT_EQ(sqlite3_open_v2(g_storePath.c_str(), &db, openOption, nullptr), SQLITE_OK);
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step5. sqlite open with a non-whitelist file using compress vfs
+     * @tc.expected: open ok
+     */
+    std::string nonWhiteDb = g_testDir + "/nonWhiteList.db";
+    EXPECT_EQ(sqlite3_open_v2(nonWhiteDb.c_str(), &db, openOption, "compressvfs"), SQLITE_OK);
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step6. sqlite open with a whitelist file using compress vfs
+     * @tc.expected: no crash
+     */
+    std::string whitelistDb = g_testDir + "/test.db";
+    ASSERT_NO_FATAL_FAILURE(sqlite3_open_v2(whitelistDb.c_str(), &db, openOption, "compressvfs"));
+    sqlite3_close_v2(db);
+    db = nullptr;
+}
 #endif
