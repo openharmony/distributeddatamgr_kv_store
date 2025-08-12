@@ -467,6 +467,7 @@ ohos_unittest("SwitchObserverBridgeTest") {
   module_out_path = module_output_path
 
   sources = [
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
     "unittest/switch_observer_bridge_test.cpp",
   ]
 
