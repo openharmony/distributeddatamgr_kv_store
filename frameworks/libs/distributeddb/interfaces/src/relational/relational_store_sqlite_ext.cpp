@@ -848,7 +848,7 @@ std::string GetInsertTrigger(const std::string &tableName, bool isRowid, const s
         insertTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 0);\n";
     } else {
         insertTrigger += "SELECT data_change('" + tableName + "', ";
-        insertTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";
+        insertTrigger += "'" + primaryKey + "', ";
         insertTrigger += "NEW." + primaryKey + ", 0);\n";
     }
     insertTrigger += "END;";
@@ -865,7 +865,7 @@ std::string GetUpdateTrigger(const std::string &tableName, bool isRowid, const s
         updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 1);\n";
     } else {
         updateTrigger += "SELECT data_change('" + tableName + "', ";
-        updateTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";
+        updateTrigger += "'" + primaryKey + "', ";
         updateTrigger += "NEW." + primaryKey + ", 1);\n";
     }
     updateTrigger += "END;";
@@ -882,7 +882,7 @@ std::string GetDeleteTrigger(const std::string &tableName, bool isRowid, const s
         deleteTrigger += "SELECT data_change('" + tableName + "', 'rowid', OLD._rowid_, 2);\n";
     } else {
         deleteTrigger += "SELECT data_change('" + tableName + "', ";
-        deleteTrigger += "(SELECT name as a FROM pragma_table_info('" + tableName + "') WHERE pk=1), ";
+        deleteTrigger += "'" + primaryKey + "', ";
         deleteTrigger += "OLD." + primaryKey + ", 2);\n";
     }
     deleteTrigger += "END;";
