@@ -54,15 +54,18 @@ void SwitchObserverBridge::OnRemoteDied()
 void SwitchObserverBridge::RegisterSwitchObserver()
 {
     if (!switchAppId_.IsValid() || switchObservers_.Empty()) {
+        taskId_ = 0;
         return;
     }
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
+        taskId_ = 0;
         return;
     }
     auto serviceAgent = service->GetServiceAgent(switchAppId_);
     if (serviceAgent == nullptr) {
+        taskId_ = 0;
         return;
     }
     auto status = service->SubscribeSwitchData(switchAppId_);
