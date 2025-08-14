@@ -14,12 +14,11 @@
  */
 
 #define LOG_TAG "DevManagerMockTest"
-#include <gtest/gtest.h>
-
 #include "dev_manager.h"
 #include "device_manager_mock.h"
 #include "log_print.h"
 #include "types.h"
+#include <gtest/gtest.h>
 namespace OHOS::Test {
 using namespace testing;
 using namespace testing::ext;

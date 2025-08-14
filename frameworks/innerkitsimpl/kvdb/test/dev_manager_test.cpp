@@ -82,7 +82,6 @@ HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
  */
 HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
 {
-    ZLOGI("ToNetworkId begin.");
     auto &devMgr = DevManager::GetInstance();
     auto devInfo = devMgr.GetLocalDevice();
     EXPECT_NE(devInfo.uuid, "");

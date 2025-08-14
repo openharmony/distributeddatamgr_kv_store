@@ -21,6 +21,7 @@
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
 #include "security_manager.h"
+
 #include "store_util.h"
 namespace OHOS::DistributedKv {
 StoreManager &StoreManager::GetInstance()
@@ -251,4 +252,4 @@ Status StoreManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<K
     });
     return SUCCESS;
 }
-} // namespace OHOS::DistributedKv
+}
