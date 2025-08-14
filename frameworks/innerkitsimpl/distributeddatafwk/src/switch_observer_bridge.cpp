@@ -46,33 +46,29 @@ void SwitchObserverBridge::OnRemoteDied()
     if (taskId_ > 0) {
         return;
     }
-    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
-        RegisterSwitchObserver();
-    });
+    RestartRegisterTimer();
 }
 
 void SwitchObserverBridge::RegisterSwitchObserver()
 {
     if (!switchAppId_.IsValid() || switchObservers_.Empty()) {
-        taskId_ = 0;
+        RestartRegisterTimer();
         return;
     }
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
-        taskId_ = 0;
+        RestartRegisterTimer();
         return;
     }
     auto serviceAgent = service->GetServiceAgent(switchAppId_);
     if (serviceAgent == nullptr) {
-        taskId_ = 0;
+        RestartRegisterTimer();
         return;
     }
     auto status = service->SubscribeSwitchData(switchAppId_);
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
-            RegisterSwitchObserver();
-        });
+        RestartRegisterTimer();
         return;
     }
     taskId_ = 0;
@@ -82,6 +78,13 @@ void SwitchObserverBridge::RegisterSwitchObserver()
             return true;
         }
         return false;
+    });
+}
+
+void SwitchObserverBridge::RestartRegisterTimer()
+{
+    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
+        RegisterSwitchObserver();
     });
 }
 } // namespace OHOS::DistributedKv

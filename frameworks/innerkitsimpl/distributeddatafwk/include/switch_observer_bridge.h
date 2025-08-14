@@ -28,12 +28,11 @@ public:
 
     void AddSwitchCallback(std::shared_ptr<KvStoreObserver> observer);
     void DeleteSwitchCallback(std::shared_ptr<KvStoreObserver> observer);
-
     void OnRemoteDied() override;
 
 private:
     void RegisterSwitchObserver();
-
+    void RestartRegisterTimer();
     uint64_t taskId_ = 0;
     AppId switchAppId_;
     std::mutex switchMutex_;
