@@ -12,9 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#define LOG_TAG "SwitchObserverBridge"
 #include "kvdb_service_client.h"
 #include "kvstore_service_death_notifier.h"
+#include "log_print.h"
 #include "switch_observer_bridge.h"
 
 namespace OHOS::DistributedKv {
@@ -43,7 +44,7 @@ void SwitchObserverBridge::DeleteSwitchCallback(std::shared_ptr<KvStoreObserver>
 void SwitchObserverBridge::OnRemoteDied()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
-    if (taskId_ > 0) {
+    if (taskId_ != INVALID_TASK_ID) {
         return;
     }
     RestartRegisterTimer();
@@ -51,11 +52,11 @@ void SwitchObserverBridge::OnRemoteDied()
 
 void SwitchObserverBridge::RegisterSwitchObserver()
 {
+    std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     if (!switchAppId_.IsValid() || switchObservers_.Empty()) {
         RestartRegisterTimer();
         return;
     }
-    std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         RestartRegisterTimer();
@@ -71,7 +72,7 @@ void SwitchObserverBridge::RegisterSwitchObserver()
         RestartRegisterTimer();
         return;
     }
-    taskId_ = 0;
+    taskId_ = INVALID_TASK_ID;
     switchObservers_.ForEach([&](auto &, auto &switchObserver) {
         if (switchObserver != nullptr) {
             serviceAgent->AddSwitchCallback(switchAppId_, switchObserver);
@@ -83,6 +84,7 @@ void SwitchObserverBridge::RegisterSwitchObserver()
 
 void SwitchObserverBridge::RestartRegisterTimer()
 {
+    ZLOGI("restart register timer, taskId_ is :%{public}d", taskId_);
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
         RegisterSwitchObserver();
     });
