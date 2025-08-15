@@ -124,7 +124,17 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbSyncExample001, TestSize.Level0)
     ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
     ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
     BlockPush(info1, info2, g_defaultTable1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), 2);
+
+    /**
+     * @tc.steps: step3. update name and sync to dev1.
+     * @tc.expected: step3. Ok
+     */
+    std::string sql = "UPDATE " + g_defaultTable1 + " SET name='update'";
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    ASSERT_NO_FATAL_FAILURE(BlockPush(info1, info2, g_defaultTable1));
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1, "name='update'"), 2);
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
