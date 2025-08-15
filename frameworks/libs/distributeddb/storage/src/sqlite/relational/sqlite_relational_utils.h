@@ -105,6 +105,19 @@ public:
         const std::function<void(sqlite3_stmt *stmt)> &checkFunc);
 
     static int ExecuteListAction(const std::vector<std::function<int()>> &actions);
+
+    static int GetLocalLogInfo(const RelationalSyncDataInserter &inserter, const DataItem &dataItem,
+        DistributedTableMode mode, LogInfo &logInfoGet, SaveSyncDataStmt &saveStmt);
+
+    static int GetLocalLog(const DataItem &dataItem, const RelationalSyncDataInserter &inserter, sqlite3_stmt *stmt,
+        LogInfo &logInfo);
+
+    static VBucket GetDistributedPk(const DataItem &dataItem, const RelationalSyncDataInserter &inserter);
+
+    static int BindDistributedPk(sqlite3_stmt *stmt, const RelationalSyncDataInserter &inserter,
+        VBucket &distributedPk);
+
+    static int BindOneField(sqlite3_stmt *stmt, int bindIdx, const FieldInfo &fieldInfo, VBucket &distributedPk);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

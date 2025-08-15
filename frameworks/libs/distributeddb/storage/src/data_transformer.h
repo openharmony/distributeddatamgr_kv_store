@@ -95,6 +95,13 @@ struct UpdateRecordFlagStruct {
     bool isInconsistency;
 };
 
+struct DeviceSyncSaveDataInfo {
+    bool isDefeated = false; // data is defeated by local
+    bool isExist = false;
+    int64_t rowId = -1;
+    LogInfo localLogInfo;
+};
+
 class DataTransformer {
 public:
     static int TransformTableData(const TableDataWithLog &tableDataWithLog,

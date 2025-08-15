@@ -42,6 +42,9 @@ int SaveSyncDataStmt::ResetStatements(bool isNeedFinalize)
     if (rmLogStmt != nullptr) {
         SQLiteUtils::ResetStatement(rmLogStmt, isNeedFinalize, errCode);
     }
+    if (queryByFieldStmt != nullptr) {
+        SQLiteUtils::ResetStatement(queryByFieldStmt, isNeedFinalize, errCode);
+    }
     return errCode;
 }
 
@@ -379,6 +382,11 @@ int RelationalSyncDataInserter::PrepareStatement(sqlite3 *db, SaveSyncDataStmt &
     errCode = GetUpdateStatement(db, stmt.updateDataStmt);
     if (errCode != E_OK) {
         LOGE("Get update statement failed. err=%d", errCode);
+        return errCode;
+    }
+    errCode = GetQueryLogByFieldStmt(db, stmt.queryByFieldStmt);
+    if (errCode != E_OK) {
+        LOGE("Get query by field statement failed. err=%d", errCode);
     }
     return errCode;
 }
@@ -459,8 +467,9 @@ int RelationalSyncDataInserter::BindHashKeyAndDev(const DataItem &dataItem, sqli
     return errCode;
 }
 
-int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt,
-    const DataItem &dataItem, std::map<std::string, Type> &saveVals)
+int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataItem,
+    const DeviceSyncSaveDataInfo &deviceSyncSaveDataInfo, std::map<std::string, Type> &saveVals,
+    SaveSyncDataStmt &saveStmt)
 {
     if (std::get_if<int64_t>(&saveVals[DBConstant::ROWID]) == nullptr) {
         LOGE("[RelationalSyncDataInserter] Invalid args because of no rowid!");
@@ -472,25 +481,20 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement
         LOGE("[RelationalSyncDataInserter] update cursor failed %d", errCode);
         return errCode;
     }
-    LogInfo logInfoGet;
-    errCode = SQLiteRelationalUtils::GetLogInfoPre(queryStmt, mode_, dataItem, logInfoGet);
     LogInfo logInfoBind;
     logInfoBind.hashKey = dataItem.hashKey;
     logInfoBind.device = dataItem.dev;
     logInfoBind.timestamp = dataItem.timestamp;
     logInfoBind.flag = dataItem.flag;
 
-    if (errCode == -E_NOT_FOUND) { // insert
+    if (!deviceSyncSaveDataInfo.isExist) { // insert
         logInfoBind.wTimestamp = dataItem.writeTimestamp;
         logInfoBind.originDev = dataItem.dev;
-    } else if (errCode == E_OK) { // update
-        logInfoBind.wTimestamp = logInfoGet.wTimestamp;
-        logInfoBind.originDev = logInfoGet.originDev;
-    } else {
-        LOGE("[RelationalSyncDataInserter] get log info failed %d", errCode);
-        return errCode;
+    } else { // update
+        logInfoBind.wTimestamp = deviceSyncSaveDataInfo.localLogInfo.wTimestamp;
+        logInfoBind.originDev = deviceSyncSaveDataInfo.localLogInfo.originDev;
     }
-
+    auto statement = saveStmt.saveLogStmt;
     // bind
     int bindIndex = 0;
     // 1 means dataKey index
@@ -523,5 +527,42 @@ void RelationalSyncDataInserter::BindExtendFieldOrRowid(sqlite3_stmt *&stmt, std
     } else {
         SQLiteUtils::BindInt64ToStatement(stmt, ++bindIndex, std::get<int64_t>(saveVals[DBConstant::ROWID]));
     }
+}
+
+std::vector<FieldInfo> RelationalSyncDataInserter::GetRemoteFields() const
+{
+    return remoteFields_;
+}
+
+int RelationalSyncDataInserter::GetQueryLogByFieldStmt(sqlite3 *db, sqlite3_stmt *&stmt)
+{
+    if (mode_ != DistributedTableMode::COLLABORATION) {
+        stmt = nullptr;
+        return E_OK;
+    }
+    auto syncPk = localTable_.GetSyncDistributedPk();
+    if (syncPk.empty()) {
+        stmt = nullptr;
+        return E_OK;
+    }
+    std::string sql("SELECT ");
+    std::string columnList = "log.data_key, log.device, log.ori_device, log.timestamp, log.wtimestamp, log.flag,"
+        " log.hash_key, log.extend_field";
+    auto table = localTable_.GetTableName();
+    sql.append(columnList).append(" FROM ").append(DBCommon::GetLogTableName(table))
+        .append(" AS log, ").append(table)
+        .append(" AS data WHERE log.data_key = data._rowid_ AND ");
+    for (size_t i = 0; i < syncPk.size(); ++i) {
+        if (i != 0) {
+            sql.append(", ");
+        }
+        sql.append("data.").append(syncPk[i]).append(" = ?");
+    }
+    auto errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncDataInserter] Get query [%s][%zu] log stmt failed[%d]",
+            DBCommon::StringMiddleMasking(table).c_str(), table.size(), errCode);
+    }
+    return errCode;
 }
 } // namespace DistributedDB

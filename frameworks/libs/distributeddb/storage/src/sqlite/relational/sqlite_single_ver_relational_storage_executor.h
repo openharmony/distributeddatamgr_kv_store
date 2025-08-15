@@ -319,8 +319,8 @@ private:
 
     int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
 
-    int CheckDataConflictDefeated(const DataItem &item, sqlite3_stmt *queryStmt,
-        bool &isDefeated, bool &isExist, int64_t &rowId);
+    int CheckDataConflictDefeated(const DataItem &item, const RelationalSyncDataInserter &inserter,
+        SaveSyncDataStmt &saveStmt, DeviceSyncSaveDataInfo &saveDataInfo);
 
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 

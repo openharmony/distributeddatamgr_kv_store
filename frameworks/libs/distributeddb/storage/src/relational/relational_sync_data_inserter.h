@@ -17,6 +17,7 @@
 #define RELATIONAL_SYNC_DATA_INSERTER_H
 
 #include <vector>
+#include "data_transformer.h"
 #include "db_types.h"
 #include "query_object.h"
 #include "relational_schema_object.h"
@@ -30,6 +31,7 @@ struct SaveSyncDataStmt {
     sqlite3_stmt *queryStmt = nullptr;
     sqlite3_stmt *rmDataStmt = nullptr;
     sqlite3_stmt *rmLogStmt = nullptr;
+    sqlite3_stmt *queryByFieldStmt = nullptr;
     SaveSyncDataStmt() {}
     ~SaveSyncDataStmt()
     {
@@ -80,10 +82,12 @@ public:
 
     int BindHashKeyAndDev(const DataItem &dataItem, sqlite3_stmt *stmt, int beginIndex);
 
-    int SaveSyncLog(sqlite3 *db, sqlite3_stmt *statement, sqlite3_stmt *queryStmt, const DataItem &dataItem,
-        std::map<std::string, Type> &saveVals);
+    int SaveSyncLog(sqlite3 *db, const DataItem &dataItem, const DeviceSyncSaveDataInfo &deviceSyncSaveDataInfo,
+        std::map<std::string, Type> &saveVals, SaveSyncDataStmt &saveStmt);
 
     ChangedData &GetChangedData();
+
+    std::vector<FieldInfo> GetRemoteFields() const;
 private:
 
     int GetInsertStatement(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -92,7 +96,7 @@ private:
 
     int GetUpdateStatement(sqlite3 *db, sqlite3_stmt *&stmt);
 
-    void GetPrimaryKeys(std::vector<std::string> &primaryKeys);
+    int GetQueryLogByFieldStmt(sqlite3 *db, sqlite3_stmt *&stmt);
     int GetDbValueByRowId(sqlite3 *db, const std::vector<std::string> &fieldList,
         const int64_t rowid, std::vector<Type> &values);
     void BindExtendFieldOrRowid(sqlite3_stmt *&stmt, std::map<std::string, Type> &saveVals, int bindIndex);
