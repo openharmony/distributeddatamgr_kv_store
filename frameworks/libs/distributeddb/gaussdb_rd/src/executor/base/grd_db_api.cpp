@@ -69,7 +69,7 @@ GRD_API int32_t GRD_DBBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encr
 GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint8_t *decryptedKey,
     uint32_t decryptedKeyLen)
 {
-    // db restore operation will start after dlclose, should reload so to link api func
+    // db restore operation will start after dbclose, should reload so to link api func
     GetApiInfoInstance();
     if (GRD_DBApiInfo->DBRestoreApi == nullptr) {
         GLOGE("Fail to dlysm RD api symbol");

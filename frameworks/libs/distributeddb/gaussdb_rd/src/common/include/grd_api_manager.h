@@ -91,7 +91,7 @@ struct GRD_APIInfo {
     KVBatchDel KVBatchDelApi = nullptr;
     KVBatchDestroy KVBatchDestroyApi = nullptr;
 };
-GRD_APIInfo *GetApiInfo(void);
+GRD_APIInfo *GetApiInfo();
 void GetApiInfoInstance(void);
 void InitApiInfo(const char *configStr);
 void UnloadApiInfo(GRD_APIInfo *GRD_DBApiInfo);
