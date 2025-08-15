@@ -12,7 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #define LOG_TAG "SwitchObserverBridge"
+
 #include "kvdb_service_client.h"
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
@@ -44,7 +46,7 @@ void SwitchObserverBridge::DeleteSwitchCallback(std::shared_ptr<KvStoreObserver>
 void SwitchObserverBridge::OnRemoteDied()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
-    if (taskId_ != ExecutorPool::INVALID_TASK_ID) {
+    if (!switchAppId_.IsValid() || switchObservers_.Empty() || taskId_ != ExecutorPool::INVALID_TASK_ID) {
         return;
     }
     RestartRegisterTimer();
@@ -53,10 +55,6 @@ void SwitchObserverBridge::OnRemoteDied()
 void SwitchObserverBridge::RegisterSwitchObserver()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
-    if (!switchAppId_.IsValid() || switchObservers_.Empty()) {
-        RestartRegisterTimer();
-        return;
-    }
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         RestartRegisterTimer();
