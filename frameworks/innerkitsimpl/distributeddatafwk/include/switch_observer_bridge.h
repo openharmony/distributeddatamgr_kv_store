@@ -17,6 +17,7 @@
 #define OHOS_DISTRIBUTED_DATA_SWITCH_OBSERVER_BRIDGE_H
 
 #include "concurrent_map.h"
+#include "executor_pool.h"
 #include "kvstore_death_recipient.h"
 #include "kvstore_observer.h"
 
