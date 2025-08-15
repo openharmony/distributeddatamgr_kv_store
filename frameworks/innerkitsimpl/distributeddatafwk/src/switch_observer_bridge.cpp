@@ -84,7 +84,7 @@ void SwitchObserverBridge::RegisterSwitchObserver()
 
 void SwitchObserverBridge::RestartRegisterTimer()
 {
-    ZLOGI("restart register timer, taskId_ is :%{public}d", taskId_);
+    ZLOGI("restart register timer, taskId_ is :%{public}d", static_cast<uint64_t>(taskId_));
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
         RegisterSwitchObserver();
     });
