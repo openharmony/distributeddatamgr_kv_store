@@ -47,6 +47,8 @@ void SwitchObserverBridge::OnRemoteDied()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     if (!switchAppId_.IsValid() || switchObservers_.Empty() || taskId_ != ExecutorPool::INVALID_TASK_ID) {
+        ZLOGE("appId is :%{public}s, observers size is %{public}lu", switchAppId_.appId.c_str(),
+              switchObservers_.Size());
         return;
     }
     RestartRegisterTimer();
