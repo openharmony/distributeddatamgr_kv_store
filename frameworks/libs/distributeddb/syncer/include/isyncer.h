@@ -35,7 +35,7 @@ struct SyncerBasicInfo {
 };
 class ISyncer {
 public:
-    struct SyncParma {
+    struct SyncParam {
         std::vector<std::string> devices;
         std::function<void(const std::map<std::string, int> &devicesMap)> onComplete;
         SyncStatusCallback relationOnComplete;
@@ -43,6 +43,7 @@ public:
         int mode = 0;
         bool wait = false;
         bool isQuerySync = false;
+        bool isRetry = true;
         QuerySyncObject syncQuery;
         DeviceSyncProcessCallback onSyncProcess;
     };
@@ -65,8 +66,8 @@ public:
         const std::function<void(const std::map<std::string, int> &)> &onComplete,
         const std::function<void(void)> &onFinalize, bool wait) = 0;
 
-    // Sync function. use SyncParma to reduce parameter.
-    virtual int Sync(const SyncParma &param, uint64_t connectionId) = 0;
+    // Sync function. use SyncParam to reduce parameter.
+    virtual int Sync(const SyncParam &param, uint64_t connectionId) = 0;
 
     // Cancel sync function.
     virtual int CancelSync(uint32_t syncId) = 0;

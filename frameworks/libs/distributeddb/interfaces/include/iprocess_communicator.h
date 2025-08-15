@@ -35,6 +35,7 @@ struct AccessInfos {
 struct DeviceInfos {
     std::string identifier; // An unique and fixed identifier representing a device, such as UUID.
     AccessInfos callee; // A message frame's access info.
+    bool isRetryTask = true;
 };
 
 struct ExtendInfo {

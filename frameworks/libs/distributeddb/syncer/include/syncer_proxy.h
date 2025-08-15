@@ -45,8 +45,8 @@ public:
         const std::function<void(const std::map<std::string, int> &)> &onComplete,
         const std::function<void(void)> &onFinalize, bool wait) override;
 
-    // Sync function. use SyncParma to reduce parameter.
-    int Sync(const SyncParma &param, uint64_t connectionId) override;
+    // Sync function. use SyncParam to reduce parameter.
+    int Sync(const SyncParam &param, uint64_t connectionId) override;
 
     // Cancel sync function.
     int CancelSync(uint32_t syncId) override;

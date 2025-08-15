@@ -38,7 +38,7 @@ public:
     SyncerBasicInfo DumpSyncerBasicInfo() override;
 
 protected:
-    int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
+    int SyncConditionCheck(const SyncParam &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
 
     // Init the Sync engine
     int InitSyncEngine(ISyncInterface *syncInterface) override;

@@ -84,7 +84,8 @@ public:
     int Initialize(ICommunicator *communicator, const std::shared_ptr<Metadata> &metadata,
         const ISyncInterface *storage, const DeviceID &deviceId, const DeviceID &userId);
 
-    virtual int SyncStart(const CommErrHandler &handler = nullptr, uint32_t sessionId = 0); // send timesync request
+    // send timesync request
+    virtual int SyncStart(const CommErrHandler &handler = nullptr, uint32_t sessionId = 0, bool isRetryTask = true);
 
     int AckRecv(const Message *message, uint32_t targetSessionId = 0);
 
@@ -123,7 +124,8 @@ protected:
 
     int SaveTimeOffset(const DeviceID &deviceID, const DeviceID &userId, TimeOffset timeOffset);
 
-    int SendPacket(const DeviceID &deviceId, const Message *message, const CommErrHandler &handler = nullptr);
+    int SendPacket(const DeviceID &deviceId, const Message *message, const CommErrHandler &handler = nullptr,
+        bool isRetryTask = true);
 
     int TimeSyncDriver(TimerId timerId);
 
@@ -131,7 +133,7 @@ protected:
 
     bool IsClosed() const;
 
-    int SendMessageWithSendEnd(const Message *message, const CommErrHandler &handler);
+    int SendMessageWithSendEnd(const Message *message, const CommErrHandler &handler, bool isRetryTask);
 
     Timestamp GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessionId);
 

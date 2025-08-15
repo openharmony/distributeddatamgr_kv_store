@@ -40,6 +40,7 @@ struct SendTask {
     OnSendEnd onEnd;
     uint32_t frameId = 0u;
     bool isValid = true;
+    bool isRetryTask = true;
     AccessInfos infos;
 };
 

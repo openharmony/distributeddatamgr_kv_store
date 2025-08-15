@@ -30,7 +30,7 @@ int SingleVerRelationalSyncer::Initialize(ISyncInterface *syncInterface, bool is
         RegisterSchemaChangedCallback(callback);
 }
 
-int SingleVerRelationalSyncer::Sync(const SyncParma &param, uint64_t connectionId)
+int SingleVerRelationalSyncer::Sync(const SyncParam &param, uint64_t connectionId)
 {
     int errCode = QuerySyncPreCheck(param);
     if (errCode != E_OK) {
@@ -39,7 +39,7 @@ int SingleVerRelationalSyncer::Sync(const SyncParma &param, uint64_t connectionI
     return GenericSyncer::Sync(param, connectionId);
 }
 
-int SingleVerRelationalSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId)
+int SingleVerRelationalSyncer::PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t connectionId)
 {
     if (syncInterface_ == nullptr) {
         LOGE("[SingleVerRelationalSyncer] [PrepareSync] syncInterface_ is nullptr.");
@@ -71,10 +71,10 @@ int SingleVerRelationalSyncer::PrepareSync(const SyncParma &param, uint32_t sync
     return E_OK;
 }
 
-int SingleVerRelationalSyncer::GenerateEachSyncTask(const SyncParma &param, uint32_t syncId,
+int SingleVerRelationalSyncer::GenerateEachSyncTask(const SyncParam &param, uint32_t syncId,
     const std::vector<QuerySyncObject> &tablesQuery, uint64_t connectionId, std::set<uint32_t> &subSyncIdSet)
 {
-    SyncParma subParam = param;
+    SyncParam subParam = param;
     subParam.isQuerySync = true;
     int errCode = E_OK;
     for (const QuerySyncObject &table : tablesQuery) {
@@ -103,7 +103,7 @@ int SingleVerRelationalSyncer::GenerateEachSyncTask(const SyncParma &param, uint
 }
 
 void SingleVerRelationalSyncer::DoOnSubSyncComplete(const uint32_t subSyncId, const uint32_t syncId,
-    const SyncParma &param, const std::map<std::string, int> &devicesMap)
+    const SyncParam &param, const std::map<std::string, int> &devicesMap)
 {
     bool allFinish = true;
     {
@@ -133,7 +133,7 @@ void SingleVerRelationalSyncer::DoRollBack(std::set<uint32_t> &subSyncIdSet)
     }
 }
 
-void SingleVerRelationalSyncer::DoOnComplete(const SyncParma &param, uint32_t syncId)
+void SingleVerRelationalSyncer::DoOnComplete(const SyncParam &param, uint32_t syncId)
 {
     if (!param.relationOnComplete) {
         return;
@@ -180,7 +180,7 @@ void SingleVerRelationalSyncer::SchemaChangeCallback()
     }
 }
 
-int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
+int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParam &param, const ISyncEngine *engine,
     ISyncInterface *storage) const
 {
     if (!param.isQuerySync) {
@@ -217,7 +217,7 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
     return E_OK;
 }
 
-int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
+int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParam &param) const
 {
     if (!param.isQuerySync) {
         return E_OK;
@@ -237,7 +237,7 @@ int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
     return E_OK;
 }
 
-std::vector<QuerySyncObject> SingleVerRelationalSyncer::GetQuerySyncObject(const SyncParma &param)
+std::vector<QuerySyncObject> SingleVerRelationalSyncer::GetQuerySyncObject(const SyncParam &param)
 {
     std::vector<QuerySyncObject> res;
     auto tables = param.syncQuery.GetRelationTableNames();

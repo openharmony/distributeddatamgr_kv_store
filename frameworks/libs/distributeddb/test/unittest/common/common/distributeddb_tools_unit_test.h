@@ -160,6 +160,9 @@ public:
         std::map<std::string, DistributedDB::DBStatus>& statuses, const DistributedDB::Query &query);
 
     DistributedDB::DBStatus SyncTest(DistributedDB::KvStoreNbDelegate* delegate,
+        const DistributedDB::DeviceSyncOption& option, std::map<std::string, DistributedDB::DBStatus>& statuses);
+
+    DistributedDB::DBStatus SyncTest(DistributedDB::KvStoreNbDelegate* delegate,
         DistributedDB::DeviceSyncOption option,
         std::map<std::string, DistributedDB::DeviceSyncProcess> &syncProcessMap);
 

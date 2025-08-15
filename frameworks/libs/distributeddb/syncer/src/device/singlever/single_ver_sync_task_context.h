@@ -149,6 +149,8 @@ public:
 
     bool IsNeedRetrySync(int errNo, uint16_t messageType);
     void ResetResyncTimes();
+
+    bool IsRetryTask() const override;
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;

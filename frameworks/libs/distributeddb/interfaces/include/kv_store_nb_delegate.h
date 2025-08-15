@@ -204,6 +204,12 @@ public:
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
         const Query &query, bool wait) = 0;
 
+    DB_API virtual DBStatus Sync(const DeviceSyncOption &option,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete)
+    {
+        return OK;
+    };
+
     // Sync with device, provides sync count information
     DB_API virtual DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess)
     {

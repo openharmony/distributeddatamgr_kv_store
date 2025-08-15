@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "ikvdb_sync_interface.h"
+#include "isyncer.h"
 #include "notification_chain.h"
 #include "query_sync_object.h"
 #include "ref_object.h"
@@ -66,6 +67,8 @@ public:
 
     SyncOperation(uint32_t syncId, const std::vector<std::string> &devices, int mode,
         const UserCallback &userCallback, bool isBlockSync);
+
+    SyncOperation(uint32_t syncId, const ISyncer::SyncParam &param);
 
     DISABLE_COPY_ASSIGN_MOVE(SyncOperation);
 
@@ -119,6 +122,8 @@ public:
 
     // Check if All devices sync finished.
     bool CheckIsAllFinished() const;
+
+    bool IsRetryTask() const;
 
     // For query sync
     void SetQuery(const QuerySyncObject &query);
@@ -200,6 +205,8 @@ private:
     volatile bool isQuerySync_;
 
     volatile bool isAutoSubscribe_;
+
+    volatile bool isRetry_;
 
     // record identifier used to call ScheduleQueuedTask in SyncOperation::Finished
     std::string identifier_;

@@ -167,7 +167,7 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfinishedSubQueries(device, syncQueries);
 }
 
-int SingleVerKVSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
+int SingleVerKVSyncer::SyncConditionCheck(const SyncParam &param, const ISyncEngine *engine,
     ISyncInterface *storage) const
 {
     if (!param.isQuerySync) {
@@ -203,7 +203,7 @@ void SingleVerKVSyncer::TriggerSubscribe(const std::string &device, const QueryS
     int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, device, query] {
         std::vector<std::string> devices;
         devices.push_back(device);
-        SyncParma param;
+        SyncParam param;
         param.devices = devices;
         param.mode = SyncModeType::AUTO_SUBSCRIBE_QUERY;
         param.onComplete = nullptr;

@@ -949,6 +949,30 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate* delegate,
     return callStatus;
 }
 
+DBStatus DistributedDBToolsUnitTest::SyncTest(DistributedDB::KvStoreNbDelegate* delegate,
+    const DistributedDB::DeviceSyncOption& option, std::map<std::string, DistributedDB::DBStatus>& statuses)
+{
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(option, [&statuses, this](const std::map<std::string, DBStatus>& statusMap) {
+            std::unique_lock<std::mutex> innerlock(this->syncLock_);
+            statuses = statusMap;
+            this->syncCondVar_.notify_one();
+        });
+    if (!option.isWait) {
+        std::unique_lock<std::mutex> lock(syncLock_);
+        syncCondVar_.wait(lock, [callStatus, &statuses]() {
+            if (callStatus != OK) {
+                return true;
+            }
+            if (!statuses.empty()) {
+                return true;
+            }
+            return false;
+        });
+    }
+    return callStatus;
+}
+
 static bool WaitUntilReady(DBStatus status, const std::map<std::string, DeviceSyncProcess> &syncProcessMap)
 {
     if (status != OK) {
@@ -980,7 +1004,8 @@ DBStatus DistributedDBToolsUnitTest::SyncTest(KvStoreNbDelegate *delegate, Devic
 
     if (!option.isWait) {
         std::unique_lock<std::mutex> lock(this->syncLock_);
-        this->syncCondVar_.wait(lock, [status, &syncProcessMap]() {
+        uint32_t waitTime = 30; // 30s
+        this->syncCondVar_.wait_for(lock, std::chrono::seconds(waitTime), [status, &syncProcessMap]() {
             return WaitUntilReady(status, syncProcessMap);
         });
     }

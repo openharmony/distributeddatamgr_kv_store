@@ -610,6 +610,19 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
     return DoSync(syncInfo, syncCallback);
 }
 
+Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
+    bool isRetry, std::shared_ptr<KvStoreSyncCallback> syncCallback)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    KVDBService::SyncInfo syncInfo;
+    syncInfo.seqId = StoreUtil::GenSequenceId();
+    syncInfo.mode = mode;
+    syncInfo.devices = devices;
+    syncInfo.query = query.ToString();
+    syncInfo.isRetry = isRetry;
+    return DoSync(syncInfo, syncCallback);
+}
+
 Status SingleStoreImpl::CloudSync(const AsyncDetail &async)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));

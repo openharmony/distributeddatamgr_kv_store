@@ -64,7 +64,7 @@ int SyncerProxy::Sync(const std::vector<std::string> &devices, int mode,
     return syncer_->Sync(devices, mode, onComplete, onFinalize, wait);
 }
 
-int SyncerProxy::Sync(const SyncParma &parma, uint64_t connectionId)
+int SyncerProxy::Sync(const SyncParam &parma, uint64_t connectionId)
 {
     if (syncer_ == nullptr) {
         return -E_NOT_INIT;

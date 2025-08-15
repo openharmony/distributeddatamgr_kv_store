@@ -130,7 +130,7 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
         return errCode;
     }
 
-    TaskConfig taskConfig {config.nonBlock, config.timeout, inMsg->GetPriority()};
+    TaskConfig taskConfig {config.nonBlock, config.isRetryTask, config.timeout, inMsg->GetPriority()};
     taskConfig.infos = {config.paramInfo.appId, config.paramInfo.storeId, config.paramInfo.userId,
         config.paramInfo.subUserId};
     errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, taskConfig, onEnd);
@@ -243,7 +243,7 @@ void Communicator::TriggerVersionNegotiation(const std::string &dstTarget)
         return;
     }
 
-    TaskConfig config{true, 0, Priority::HIGH};
+    TaskConfig config{true, true, 0, Priority::HIGH};
     errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::EMPTY, config);
     if (errCode != E_OK) {
         LOGE("[Comm][TrigVer] Send empty frame fail, errCode=%d", errCode);
@@ -276,7 +276,7 @@ void Communicator::TriggerUnknownMessageFeedback(const std::string &dstTarget, M
         return;
     }
 
-    TaskConfig config{true, 0, Priority::HIGH};
+    TaskConfig config{true, true, 0, Priority::HIGH};
     errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
         LOGE("[Comm][TrigFeedback] Send unknown message feedback frame fail, errCode=%d", errCode);

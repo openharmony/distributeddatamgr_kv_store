@@ -48,7 +48,7 @@ public:
         return TimeSync::CalculateTimeOffset(timeSyncInfo);
     }
 
-    MOCK_METHOD2(SyncStart, int(const CommErrHandler &, uint32_t));
+    MOCK_METHOD3(SyncStart, int(const CommErrHandler &, uint32_t, bool));
 };
 }
 #endif // MOCK_TIME_SYNC_H

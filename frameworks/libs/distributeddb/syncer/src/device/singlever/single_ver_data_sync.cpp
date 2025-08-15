@@ -244,6 +244,7 @@ int SingleVerDataSync::Send(SingleVerSyncTaskContext *context, const Message *me
     }
     SendConfig sendConfig;
     SetSendConfigParam(storage_->GetDbProperties(), context->GetDeviceId(), false, SEND_TIME_OUT, sendConfig);
+    sendConfig.isRetryTask = context->IsRetryTask();
     int errCode = communicateHandle_->SendMessage(context->GetDeviceId(), message, sendConfig, handler);
     if (errCode != E_OK) {
         LOGE("[DataSync][Send] send message failed, errCode=%d", errCode);

@@ -136,6 +136,9 @@ public:
     // Sync with devices, provides sync count information
     DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess) override;
 
+    DBStatus Sync(const DeviceSyncOption &option,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) override;
+
     // Cancel sync by syncId
     DBStatus CancelSync(uint32_t syncId) override;
 

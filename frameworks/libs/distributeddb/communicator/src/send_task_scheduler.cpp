@@ -318,5 +318,28 @@ void SendTaskScheduler::SetDeviceCommErrCode(const std::string &target, int devi
 {
     std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
     deviceCommErrCodeMap_[target] = deviceCommErrCode;
+    if (deviceCommErrCode == E_OK) {
+        return;
+    }
+    for (const auto &priority : priorityOrder_) {
+        if (taskCountByPrio_[priority] == 0 ||
+            taskGroupByPrio_[priority].find(target) == taskGroupByPrio_[priority].end()) {
+            // No task of this priority or target
+            continue;
+        }
+        for (auto &sendTask : taskGroupByPrio_[priority][target]) {
+            if (sendTask.isRetryTask) {
+                continue;
+            }
+            LOGI("[Scheduler][SetDeviceCommErrCode] Erase task that do not allow retries, target=%.3s",
+                target.c_str());
+            sendTask.isValid = false;
+            if (sendTask.onEnd) {
+                LOGI("[Scheduler][SetDeviceCommErrCode] On Send End, target=%.3s", target.c_str());
+                sendTask.onEnd(deviceCommErrCodeMap_[target], true);
+                sendTask.onEnd = nullptr;
+            }
+        }
+    }
 }
 }

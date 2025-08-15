@@ -145,11 +145,12 @@ int SyncAbleKvDBConnection::PragmaSyncAction(const PragmaSync *syncParameter)
         IncObjRef(this);
     }
 
-    ISyncer::SyncParma syncParam;
+    ISyncer::SyncParam syncParam;
     syncParam.devices = syncParameter->devices_;
     syncParam.mode = syncParameter->mode_;
     syncParam.wait = syncParameter->wait_;
     syncParam.isQuerySync = syncParameter->isQuerySync_;
+    syncParam.isRetry = syncParameter->isRetry_;
     syncParam.syncQuery = syncParameter->query_;
     syncParam.onFinalize =  [this]() { DecObjRef(this); };
     if (syncParameter->onComplete_) {

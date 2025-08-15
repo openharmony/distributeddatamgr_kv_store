@@ -24,8 +24,8 @@ public:
 
     int Initialize(ISyncInterface *syncInterface, bool isNeedActive) override;
 
-    // Sync function. use SyncParma to reduce parameter.
-    int Sync(const SyncParma &param, uint64_t connectionId) override;
+    // Sync function. use SyncParam to reduce parameter.
+    int Sync(const SyncParam &param, uint64_t connectionId) override;
 
     void EnableAutoSync(bool enable) override;
 
@@ -34,26 +34,26 @@ public:
     int32_t GetTaskCount() override;
 protected:
 
-    int PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId) override;
+    int PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t connectionId) override;
 
-    int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
+    int SyncConditionCheck(const SyncParam &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
 
 private:
 
-    int GenerateEachSyncTask(const SyncParma &param, uint32_t syncId,
+    int GenerateEachSyncTask(const SyncParam &param, uint32_t syncId,
         const std::vector<QuerySyncObject> &tablesQuery, uint64_t connectionId, std::set<uint32_t> &subSyncIdSet);
 
     void DoRollBack(std::set<uint32_t> &subSyncIdSet);
 
-    void DoOnComplete(const SyncParma &param, uint32_t syncId);
+    void DoOnComplete(const SyncParam &param, uint32_t syncId);
     void DoOnSubSyncComplete(const uint32_t subSyncId, const uint32_t syncId,
-        const SyncParma &param, const std::map<std::string, int> &devicesMap);
+        const SyncParam &param, const std::map<std::string, int> &devicesMap);
 
     void SchemaChangeCallback();
 
-    int QuerySyncPreCheck(const SyncParma &param) const;
+    int QuerySyncPreCheck(const SyncParam &param) const;
 
-    static std::vector<QuerySyncObject> GetQuerySyncObject(const SyncParma &param);
+    static std::vector<QuerySyncObject> GetQuerySyncObject(const SyncParam &param);
 
     mutable std::mutex syncMapLock_;
     std::map<uint32_t, std::set<uint32_t>> fullSyncIdMap_;

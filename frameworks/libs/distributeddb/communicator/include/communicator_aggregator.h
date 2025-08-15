@@ -39,6 +39,7 @@ class CommunicatorLinker;
 
 struct TaskConfig {
     bool nonBlock = true;
+    bool isRetryTask = true;
     uint32_t timeout = 0u;
     Priority prio = Priority::NORMAL;
     AccessInfos infos;

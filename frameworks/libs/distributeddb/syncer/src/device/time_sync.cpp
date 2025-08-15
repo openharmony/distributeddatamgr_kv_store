@@ -226,7 +226,7 @@ void TimeSync::Finalize()
     LOGD("[TimeSync] Finalized!");
 }
 
-int TimeSync::SyncStart(const CommErrHandler &handler,  uint32_t sessionId)
+int TimeSync::SyncStart(const CommErrHandler &handler, uint32_t sessionId, bool isRetryTask)
 {
     isOnline_ = true;
     TimeSyncPacket packet;
@@ -251,7 +251,7 @@ int TimeSync::SyncStart(const CommErrHandler &handler,  uint32_t sessionId)
         message = nullptr;
         return errCode;
     }
-    errCode = SendMessageWithSendEnd(message, handler);
+    errCode = SendMessageWithSendEnd(message, handler, isRetryTask);
     if (errCode != E_OK) {
         delete message;
         message = nullptr;
@@ -483,10 +483,12 @@ bool TimeSync::IsPacketValid(const Message *inMsg, uint16_t messageType)
     return true;
 }
 
-int TimeSync::SendPacket(const DeviceID &deviceId, const Message *message, const CommErrHandler &handler)
+int TimeSync::SendPacket(const DeviceID &deviceId, const Message *message, const CommErrHandler &handler,
+    bool isRetryTask)
 {
     SendConfig conf;
     timeHelper_->SetSendConfig(deviceId, false, SEND_TIME_OUT, conf);
+    conf.isRetryTask = isRetryTask;
     int errCode = communicateHandle_->SendMessage(deviceId, message, conf, handler);
     if (errCode != E_OK) {
         LOGE("[TimeSync] SendPacket failed, err %d", errCode);
@@ -619,7 +621,7 @@ bool TimeSync::IsClosed() const
     return closed_ ;
 }
 
-int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandler &handler)
+int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandler &handler, bool isRetryTask)
 {
     std::shared_ptr<TimeSync> timeSyncPtr = shared_from_this();
     auto sessionId = message->GetSessionId();
@@ -636,7 +638,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
         if (handler != nullptr) {
             handler(errCode, isDirectEnd);
         }
-    });
+    }, isRetryTask);
 }
 
 Timestamp TimeSync::GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessionId)

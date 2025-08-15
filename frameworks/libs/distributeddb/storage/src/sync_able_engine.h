@@ -29,7 +29,7 @@ public:
     ~SyncAbleEngine();
 
     // Start a sync action.
-    int Sync(const ISyncer::SyncParma &parm, uint64_t connectionId);
+    int Sync(const ISyncer::SyncParam &parm, uint64_t connectionId);
 
     void WakeUpSyncer();
     void Close();
