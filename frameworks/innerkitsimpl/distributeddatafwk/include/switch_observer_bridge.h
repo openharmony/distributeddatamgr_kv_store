@@ -33,8 +33,7 @@ public:
 private:
     void RegisterSwitchObserver();
     void RestartRegisterTimer();
-    inline static constexpr uint64_t INVALID_TASK_ID = static_cast<uint64_t>(0l);
-    std::atomic<uint64_t> taskId_ = INVALID_TASK_ID;
+    ExecutorPool::TaskId taskId_ = ExecutorPool::INVALID_TASK_ID;
     AppId switchAppId_;
     std::mutex switchMutex_;
     ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;

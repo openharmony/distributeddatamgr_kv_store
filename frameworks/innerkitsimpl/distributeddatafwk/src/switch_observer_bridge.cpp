@@ -44,7 +44,7 @@ void SwitchObserverBridge::DeleteSwitchCallback(std::shared_ptr<KvStoreObserver>
 void SwitchObserverBridge::OnRemoteDied()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
-    if (taskId_ != INVALID_TASK_ID) {
+    if (taskId_ != ExecutorPool::INVALID_TASK_ID) {
         return;
     }
     RestartRegisterTimer();
@@ -72,7 +72,7 @@ void SwitchObserverBridge::RegisterSwitchObserver()
         RestartRegisterTimer();
         return;
     }
-    taskId_ = INVALID_TASK_ID;
+    taskId_ = ExecutorPool::INVALID_TASK_ID;
     switchObservers_.ForEach([&](auto &, auto &switchObserver) {
         if (switchObserver != nullptr) {
             serviceAgent->AddSwitchCallback(switchAppId_, switchObserver);
@@ -84,7 +84,8 @@ void SwitchObserverBridge::RegisterSwitchObserver()
 
 void SwitchObserverBridge::RestartRegisterTimer()
 {
-    ZLOGI("restart register timer, taskId_ is :%{public}d", static_cast<uint64_t>(taskId_));
+    ZLOGI("restart register timer, appId is :%{public}s, observers size is %{public}lu", switchAppId_.appId.c_str(),
+        switchObservers_.Size());
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
         RegisterSwitchObserver();
     });
