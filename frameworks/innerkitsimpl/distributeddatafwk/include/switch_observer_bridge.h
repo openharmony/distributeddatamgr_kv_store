@@ -17,6 +17,7 @@
 #define OHOS_DISTRIBUTED_DATA_SWITCH_OBSERVER_BRIDGE_H
 
 #include "concurrent_map.h"
+#include "executor_pool.h"
 #include "kvstore_death_recipient.h"
 #include "kvstore_observer.h"
 
@@ -28,16 +29,16 @@ public:
 
     void AddSwitchCallback(std::shared_ptr<KvStoreObserver> observer);
     void DeleteSwitchCallback(std::shared_ptr<KvStoreObserver> observer);
-
     void OnRemoteDied() override;
 
 private:
     void RegisterSwitchObserver();
-
-    uint64_t taskId_ = 0;
+    void RestartRegisterTimer();
+    ExecutorPool::TaskId taskId_ = ExecutorPool::INVALID_TASK_ID;
     AppId switchAppId_;
     std::mutex switchMutex_;
     ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;
+    std::atomic<uint32_t> registerRetryCount_ = 0;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_SWITCH_OBSERVER_BRIDGE_H

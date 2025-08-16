@@ -13,8 +13,11 @@
  * limitations under the License.
  */
 
+#define LOG_TAG "SwitchObserverBridge"
+
 #include "kvdb_service_client.h"
 #include "kvstore_service_death_notifier.h"
+#include "log_print.h"
 #include "switch_observer_bridge.h"
 
 namespace OHOS::DistributedKv {
@@ -43,42 +46,50 @@ void SwitchObserverBridge::DeleteSwitchCallback(std::shared_ptr<KvStoreObserver>
 void SwitchObserverBridge::OnRemoteDied()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
-    if (taskId_ > 0) {
+    if (!switchAppId_.IsValid() || switchObservers_.Empty() || taskId_ != ExecutorPool::INVALID_TASK_ID) {
+        ZLOGI("appId is :%{public}s, observers size is %{public}u", switchAppId_.appId.c_str(),
+              switchObservers_.Size());
         return;
     }
-    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
-        RegisterSwitchObserver();
-    });
+    RestartRegisterTimer();
 }
 
 void SwitchObserverBridge::RegisterSwitchObserver()
 {
-    if (!switchAppId_.IsValid() || switchObservers_.Empty()) {
-        return;
-    }
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
+        RestartRegisterTimer();
         return;
     }
     auto serviceAgent = service->GetServiceAgent(switchAppId_);
     if (serviceAgent == nullptr) {
+        RestartRegisterTimer();
         return;
     }
     auto status = service->SubscribeSwitchData(switchAppId_);
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
-            RegisterSwitchObserver();
-        });
+        RestartRegisterTimer();
         return;
     }
-    taskId_ = 0;
+    registerRetryCount_ = 0;
+    taskId_ = ExecutorPool::INVALID_TASK_ID;
     switchObservers_.ForEach([&](auto &, auto &switchObserver) {
         if (switchObserver != nullptr) {
             serviceAgent->AddSwitchCallback(switchAppId_, switchObserver);
             return true;
         }
         return false;
+    });
+}
+
+void SwitchObserverBridge::RestartRegisterTimer()
+{
+    registerRetryCount_ ++;
+    ZLOGI("restart register timer, appId is :%{public}s, observers size is %{public}u, retry count_ is %{public}d",
+        switchAppId_.appId.c_str(), switchObservers_.Size(), registerRetryCount_.load());
+    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
+        RegisterSwitchObserver();
     });
 }
 } // namespace OHOS::DistributedKv

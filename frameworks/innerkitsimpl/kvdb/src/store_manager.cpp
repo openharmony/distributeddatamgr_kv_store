@@ -213,7 +213,7 @@ Status StoreManager::SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvS
         return status;
     }
     serviceAgent->AddSwitchCallback(appId.appId, observer);
-    switchObservers_.Compute(appId.appId, [&](auto &, auto &switchBridge) {
+    switchObservers_.Compute(appId.appId, [appId, observer](auto &, auto &switchBridge) {
         if (switchBridge == nullptr) {
             switchBridge = std::make_shared<SwitchObserverBridge>(appId);
             KvStoreServiceDeathNotifier::AddServiceDeathWatcher(switchBridge);
@@ -243,7 +243,7 @@ Status StoreManager::UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<K
         return status;
     }
     serviceAgent->DeleteSwitchCallback(appId.appId, observer);
-    switchObservers_.ComputeIfPresent(appId.appId, [&](auto &, auto &switchBridge) {
+    switchObservers_.ComputeIfPresent(appId.appId, [appId, observer](auto &, auto &switchBridge) {
         if (switchBridge != nullptr) {
             switchBridge->DeleteSwitchCallback(observer);
         }
