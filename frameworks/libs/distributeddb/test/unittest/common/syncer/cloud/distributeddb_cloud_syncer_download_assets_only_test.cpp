@@ -1740,5 +1740,23 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly024, 
     EXPECT_NE(cnt, 0);
     EXPECT_NE(cnt, dataCount);
 }
+
+/**
+ * @tc.name: SetAssetsConfig001
+ * @tc.desc: Test set async download assets config
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, SetAssetsConfig001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set valid param
+     * @tc.expected: step1. ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = 10;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+}
 } // namespace
 #endif // RELATIONAL_STORE
