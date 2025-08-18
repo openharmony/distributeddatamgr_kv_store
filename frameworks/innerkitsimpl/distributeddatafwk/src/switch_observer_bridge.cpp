@@ -47,7 +47,7 @@ void SwitchObserverBridge::OnRemoteDied()
 {
     std::lock_guard<decltype(switchMutex_)> lock(switchMutex_);
     if (!switchAppId_.IsValid() || switchObservers_.Empty() || taskId_ != ExecutorPool::INVALID_TASK_ID) {
-        ZLOGI("appId is :%{public}s, observers size is %{public}u", switchAppId_.appId.c_str(),
+        ZLOGI("appId is :%{public}s, observers size is %{public}zu", switchAppId_.appId.c_str(),
               switchObservers_.Size());
         return;
     }
@@ -86,7 +86,7 @@ void SwitchObserverBridge::RegisterSwitchObserver()
 void SwitchObserverBridge::RestartRegisterTimer()
 {
     registerRetryCount_ ++;
-    ZLOGI("restart register timer, appId is :%{public}s, observers size is %{public}u, retry count_ is %{public}d",
+    ZLOGI("restart register timer, appId is :%{public}s, observers size is %{public}zu, retry count_ is %{public}d",
         switchAppId_.appId.c_str(), switchObservers_.Size(), registerRetryCount_.load());
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
         RegisterSwitchObserver();
