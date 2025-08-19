@@ -871,6 +871,78 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload002, Test
 }
 
 /**
+ * @tc.name: AsyncNormalDownload003
+ * @tc.desc: Test:async asset task paused
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload003, TestSize.Level4)
+{
+    /**
+     * @tc.steps: step1. Set max download task 1
+     * @tc.expected: step1. Ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = 1;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+    /**
+     * @tc.steps: step2. Insert cloud data
+     * @tc.expected: step2. Ok
+     */
+    const int cloudCount = 1;
+    auto schema = GetSchema();
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
+    /**
+     * @tc.steps: step3. async asset task submit
+     * @tc.expected: step3. Ok
+     */
+    int count = 0;
+    int expQueryTimes = 3;
+    std::mutex mutex;
+    std::condition_variable cond;
+    virtualCloudDb_->ForkQuery([&count, &cond, expQueryTimes](const std::string &, VBucket &extend) {
+        count++;
+        if (count == 1) {
+            cond.notify_all();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        if (count == expQueryTimes) {
+            std::string cursor;
+            CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::CURSOR_FIELD, extend, cursor);
+            EXPECT_EQ(cursor, std::string("1"));
+        }
+    });
+    std::thread t1([this]{
+        CloudSyncOption option = GetAsyncCloudSyncOption();
+        EXPECT_NO_FATAL_FAILURE(RelationalTestUtils::CloudBlockSync(option, delegate_));
+    });
+    /**
+     * @tc.steps: step4. wait for async task query
+     * @tc.expected: step4. Ok
+     */
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        (void)cond.wait_for(lock, std::chrono::seconds(1), [&count]() {
+            return count == 1;
+        });
+    }
+    /**
+     * @tc.steps: step5. priority task submit
+     * @tc.expected: step5. Ok
+     */
+    CloudSyncOption priOption = GetAsyncCloudSyncOption();
+    std::vector<int64_t> inValue = {3, 4};
+    priOption.priorityTask = true;
+    priOption.query = Query::Select().From("AsyncDownloadAssetsTest").In("pk", inValue);
+    priOption.asyncDownloadAssets = false;
+    EXPECT_NO_FATAL_FAILURE(RelationalTestUtils::CloudBlockSync(priOption, delegate_));
+    t1.join();
+    virtualCloudDb_->ForkQuery(nullptr);
+    EXPECT_EQ(count, expQueryTimes);
+}
+
+/**
  * @tc.name: AsyncNormalDownload004
  * @tc.desc: Test multiple tables and multiple batches of asset downloads
  * @tc.type: FUNC
