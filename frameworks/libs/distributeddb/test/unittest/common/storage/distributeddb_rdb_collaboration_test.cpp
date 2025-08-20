@@ -1738,7 +1738,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync011, TestSize.Level1)
  * @tc.require:
  * @tc.author: zqq
  */
-HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level1)
+HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync012, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. Create auto increment table and unique index
