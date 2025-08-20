@@ -556,7 +556,7 @@ int RelationalSyncDataInserter::GetQueryLogByFieldStmt(sqlite3 *db, sqlite3_stmt
         if (i != 0) {
             sql.append(", ");
         }
-        sql.append("data.").append(syncPk[i]).append(" = ?");
+        sql.append("data.'").append(syncPk[i]).append("' = ?");
     }
     auto errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {

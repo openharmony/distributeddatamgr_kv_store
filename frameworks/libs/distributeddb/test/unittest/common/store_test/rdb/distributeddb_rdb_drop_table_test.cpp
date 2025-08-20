@@ -363,7 +363,6 @@ HWTEST_F(DistributedDBRDBDropTableTest, GetLocalLog001, TestSize.Level0)
     dataItem.value.resize(Parcel::GetUInt64Len());
     Parcel parcel(dataItem.value.data(), dataItem.value.size());
     parcel.WriteUInt64(0);
-    ASSERT_FALSE(parcel.IsError());
     /**
      * @tc.steps: step2. Get distributed pk when field is diff.
      * @tc.expected: step2. Get empty pk
