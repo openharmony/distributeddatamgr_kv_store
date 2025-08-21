@@ -245,7 +245,7 @@ public:
         OHOS::DistributedKv::Value value;
         auto status = kvStore_->Get(s_key, value);
         if (status == OHOS::DistributedKv::NOT_FOUND) {
-            ::taihe::set_business_error(15100004, "15100004");
+            ::taihe::set_business_error(15100004, "Not found.");
         }
         return KVValueToDataTypes(value);
     }
@@ -298,7 +298,7 @@ public:
         OHOS::DistributedKv::Value value;
         auto status = kvStore_->Get(s_key, value);
         if (status == OHOS::DistributedKv::NOT_FOUND) {
-            ::taihe::set_business_error(15100004, "15100004");
+            ::taihe::set_business_error(15100004, "Not found.");
         }
         return KVValueToDataTypes(value);
     }
