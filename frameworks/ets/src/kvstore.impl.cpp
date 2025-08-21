@@ -246,6 +246,8 @@ public:
         auto status = kvStore_->Get(s_key, value);
         if (status == OHOS::DistributedKv::NOT_FOUND) {
             ::taihe::set_business_error(15100004, "Not found.");
+        } else if (status == OHOS::DistributedKv::DATA_CORRUPTED) {
+            ::taihe::set_business_error(15100003, "Database corrupted.");
         }
         return KVValueToDataTypes(value);
     }
@@ -258,7 +260,10 @@ public:
     void PutSync(::taihe::string_view key, ::kvstore::DataTypes const& value)
     {
         auto tempKey = DistributedKv::Key(std::string(key));
-        kvStore_->Put(tempKey, DataTypesToKVValue(value));
+        auto status = kvStore_->Put(tempKey, DataTypesToKVValue(value));
+        if (status == OHOS::DistributedKv::WAL_OVER_LIMITS) {
+            ::taihe::set_business_error(14800047, "The WAL file size exceeds the default limit.");
+        }
     }
 
     void SetKvStorePtr(std::shared_ptr<OHOS::DistributedKv::SingleKvStore> kvStore)
@@ -299,6 +304,8 @@ public:
         auto status = kvStore_->Get(s_key, value);
         if (status == OHOS::DistributedKv::NOT_FOUND) {
             ::taihe::set_business_error(15100004, "Not found.");
+        } else if (status == OHOS::DistributedKv::DATA_CORRUPTED) {
+            ::taihe::set_business_error(15100003, "Database corrupted.");
         }
         return KVValueToDataTypes(value);
     }
