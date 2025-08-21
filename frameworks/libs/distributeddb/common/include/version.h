@@ -49,9 +49,11 @@ constexpr const uint32_t SOFTWARE_VERSION_RELEASE_9_0 = SOFTWARE_VERSION_BASE + 
 // 110 version add totalDataCount field in DataRequestPkt
 constexpr const uint32_t SOFTWARE_VERSION_RELEASE_10_0 = SOFTWARE_VERSION_BASE + 10; // 10 for tenth released version
 // 111 version record remote version and rdb sync with config column
-constexpr const uint32_t SOFTWARE_VERSION_RELEASE_11_0 = SOFTWARE_VERSION_BASE + 11; // 11 for tenth released version
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_11_0 = SOFTWARE_VERSION_BASE + 11; // 11 for eleventh released version
+// 112 version add E_FEEDBACK_DB_CLOSING errorNo for sync message
+constexpr const uint32_t SOFTWARE_VERSION_RELEASE_12_0 = SOFTWARE_VERSION_BASE + 12; // 12 for twelfth released version
 constexpr const uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-constexpr const uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_11_0;
+constexpr const uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_12_0;
 constexpr const uint32_t SOFTWARE_VERSION_MAX = UINT16_MAX;
 constexpr const int VERSION_INVALID = INT32_MAX;
 

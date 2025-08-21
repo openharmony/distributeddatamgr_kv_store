@@ -32,6 +32,7 @@ struct FrameInfo {
     std::string sendUser;
     LabelType commLabel;
     uint32_t frameId = 0u;
+    uint16_t remoteDbVersion = 0u;
 };
 
 struct RetainWork {
@@ -39,6 +40,7 @@ struct RetainWork {
     std::string sendUser;
     uint32_t frameId = 0u;
     uint32_t remainTime = 0u; // in second
+    uint16_t remoteDbVersion = 0u;
 };
 
 class FrameRetainer {

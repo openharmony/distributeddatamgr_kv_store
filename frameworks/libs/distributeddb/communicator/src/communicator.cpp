@@ -147,7 +147,7 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
 }
 
 int Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf,
-    const std::string &sendUser)
+    const std::string &sendUser, uint16_t remoteDbVersion)
 {
     std::lock_guard<std::mutex> messageHandleLockGuard(messageHandleMutex_);
     if (!srcTarget.empty() && inBuf != nullptr && onMessageHandle_) {
@@ -168,7 +168,8 @@ int Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuff
             }
             return E_OK;
         }
-        if (message->GetMessageType() == TYPE_REQUEST && ExchangeClosePending(false)) {
+        message->SetRemoteSoftwareVersion(DBCommon::TransfDbVersionToSoftwareVersion(remoteDbVersion));
+        if (message->IsSupportFeedDbClosing() && ExchangeClosePending(false)) {
             delete message;
             message = nullptr;
             LOGW("[Comm][Receive] db closing label=%.3s", VEC_TO_STR(commLabel_));

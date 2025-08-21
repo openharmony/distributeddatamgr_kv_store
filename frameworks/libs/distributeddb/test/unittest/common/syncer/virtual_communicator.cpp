@@ -209,7 +209,8 @@ VirtualCommunicator::~VirtualCommunicator()
 
 VirtualCommunicator::VirtualCommunicator(const std::string &deviceId,
     VirtualCommunicatorAggregator *communicatorAggregator)
-    : deviceId_(deviceId), communicatorAggregator_(communicatorAggregator), targetUserId_(DBConstant::DEFAULT_USER)
+    : deviceId_(deviceId), communicatorAggregator_(communicatorAggregator), targetUserId_(DBConstant::DEFAULT_USER),
+    dbClosePending_(false)
 {
 }
 
@@ -254,6 +255,7 @@ uint64_t VirtualCommunicator::GetSendMsgSize() const
 
 bool VirtualCommunicator::ExchangeClosePending(bool expected)
 {
-    return false;
+    bool curVal = !expected;
+    return dbClosePending_.compare_exchange_strong(curVal, expected);
 }
 } // namespace DistributedDB

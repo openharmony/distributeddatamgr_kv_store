@@ -322,6 +322,46 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive004, TestSize.L
 }
 
 /**
+ * @tc.name: Send And Receive 005
+ * @tc.desc: Test send when db closing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive005, TestSize.Level1)
+{
+    // Preset
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+    REG_MESSAGE_CALLBACK(B, B);
+
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    g_commBA->ExchangeClosePending(true);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
+
+    /**
+     * @tc.steps: step2. device A send message(registered and tiny) to device B using communicator AA
+     * @tc.expected: step2. communicator AA received the message
+     */
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {false, false, true, 0, {}};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
+    EXPECT_EQ(recvMsgForAA->GetErrorNo(), E_FEEDBACK_DB_CLOSING);
+    delete recvMsgForAA;
+    recvMsgForAA = nullptr;
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
+}
+
+/**
  * @tc.name: Send Flow Control 001
  * @tc.desc: Test send in nonblock way
  * @tc.type: FUNC
