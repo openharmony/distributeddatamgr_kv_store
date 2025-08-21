@@ -243,7 +243,10 @@ public:
     {
         auto s_key = OHOS::DistributedKv::Key(std::string(key));
         OHOS::DistributedKv::Value value;
-        kvStore_->Get(s_key, value);
+        auto status = kvStore_->Get(s_key, value);
+        if (status == OHOS::DistributedKv::NOT_FOUND) {
+            ::taihe::set_business_error(15100004, "15100004");
+        }
         return KVValueToDataTypes(value);
     }
 
@@ -293,7 +296,10 @@ public:
         std::string deviceKey = std::string(oss.str());
         auto s_key = DistributedKv::Key(deviceKey);
         OHOS::DistributedKv::Value value;
-        kvStore_->Get(s_key, value);
+        auto status = kvStore_->Get(s_key, value);
+        if (status == OHOS::DistributedKv::NOT_FOUND) {
+            ::taihe::set_business_error(15100004, "15100004");
+        }
         return KVValueToDataTypes(value);
     }
 
