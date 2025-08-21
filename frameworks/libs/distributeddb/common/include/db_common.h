@@ -164,6 +164,8 @@ public:
 
     static std::string GetStoreIdentifier(const StoreInfo &info, const std::string &subUser, bool syncDualTupleMode,
         bool allowStoreIdWithDot);
+
+    static uint32_t TransfDbVersionToSoftwareVersion(uint16_t dbVersion);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

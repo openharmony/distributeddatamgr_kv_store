@@ -520,7 +520,7 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
         LOGE("[SyncEngine] engine is closing, ignore msg");
         return -E_BUSY;
     }
-    if (inMsg->GetMessageType() == TYPE_REQUEST && ExchangeClosePending(false)) {
+    if (inMsg->IsSupportFeedDbClosing() && ExchangeClosePending(false)) {
         return -E_FEEDBACK_DB_CLOSING;
     }
     if (inMsg->GetMessageId() == REMOTE_EXECUTE_MESSAGE) {

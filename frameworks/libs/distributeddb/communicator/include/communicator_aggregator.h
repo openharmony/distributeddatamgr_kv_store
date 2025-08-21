@@ -122,7 +122,7 @@ private:
         const ParseResult &inResult, const DataUserInfoProc &userInfoProc);
 
     // Function with suffix NoMutex should be called with mutex in the caller
-    int TryDeliverAppLayerFrameToCommunicatorNoMutex(const DataUserInfoProc &userInfoProc,
+    int TryDeliverAppLayerFrameToCommunicatorNoMutex(uint16_t remoteDbVersion,
         const std::string &srcTarget, SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo);
 
     // Auxiliary function for cutting short primary function

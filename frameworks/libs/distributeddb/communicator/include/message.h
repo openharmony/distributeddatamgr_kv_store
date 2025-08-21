@@ -19,11 +19,12 @@
 #include <new>
 #include <string>
 #include <cstdint>
+#include "communicator_type_define.h"
 #include "db_errno.h"
 #include "macro_utils.h"
 #include "object_holder.h"
 #include "object_holder_typed.h"
-#include "communicator_type_define.h"
+#include "version.h"
 
 namespace DistributedDB {
 constexpr uint32_t INVALID_MESSAGE_ID = 0;
@@ -160,6 +161,11 @@ public:
         version_ = inVersion;
     }
 
+    void SetRemoteSoftwareVersion(uint32_t sVersion)
+    {
+        remoteSoftwareVersion_ = sVersion;
+    }
+
     uint16_t GetMessageType() const
     {
         return messageType_;
@@ -205,10 +211,20 @@ public:
         return version_;
     }
 
+    uint16_t GetRemoteSoftwareVersion() const
+    {
+        return remoteSoftwareVersion_;
+    }
+
     bool IsFeedbackError() const
     {
         return (errorNo_ == E_FEEDBACK_UNKNOWN_MESSAGE || errorNo_ == E_FEEDBACK_COMMUNICATOR_NOT_FOUND ||
             errorNo_ == E_FEEDBACK_DB_CLOSING);
+    }
+
+    bool IsSupportFeedDbClosing() const
+    {
+        return messageType_ == TYPE_REQUEST && remoteSoftwareVersion_ >= SOFTWARE_VERSION_RELEASE_12_0;
     }
 
 private:
@@ -219,6 +235,7 @@ private:
     uint32_t sessionId_ = 0;    // Distinguish different conversation
     uint32_t sequenceId_ = 0;   // Distinguish different message even in same session with same content in retry case
     uint32_t errorNo_ = NO_ERROR;
+    uint32_t remoteSoftwareVersion_ = SOFTWARE_VERSION_EARLIEST;
     ObjectHolder *holderPtr_ = nullptr;
 
     // Field carry supplemental info

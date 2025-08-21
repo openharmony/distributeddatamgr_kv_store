@@ -33,6 +33,7 @@
 #include "query_sync_object.h"
 #include "hash.h"
 #include "runtime_context.h"
+#include "version.h"
 
 namespace DistributedDB {
 namespace {
@@ -740,5 +741,10 @@ std::string DBCommon::GetStoreIdentifier(const StoreInfo &info, const std::strin
         return DBCommon::TransferHashString(info.userId + "-" + info.appId + "-" + info.storeId);
     }
     return DBCommon::TransferHashString(info.userId + "-" + info.appId + "-" + info.storeId + "-" + subUser);
+}
+
+uint32_t DBCommon::TransfDbVersionToSoftwareVersion(uint16_t dbVersion)
+{
+    return SOFTWARE_VERSION_EARLIEST + dbVersion;
 }
 } // namespace DistributedDB
