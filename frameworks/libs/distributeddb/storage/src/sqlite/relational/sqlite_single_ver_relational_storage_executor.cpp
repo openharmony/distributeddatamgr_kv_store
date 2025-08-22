@@ -878,16 +878,18 @@ int SQLiteSingleVerRelationalStorageExecutor::ProcessMissQueryData(const DataIte
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const DataItem &dataItem,
-    sqlite3_stmt *queryStmt, bool &isDefeated, bool &isExist, int64_t &rowId)
+    const RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DeviceSyncSaveDataInfo &saveDataInfo)
 {
-    LogInfo logInfoGet;
-    int errCode = SQLiteRelationalUtils::GetLogInfoPre(queryStmt, mode_, dataItem, logInfoGet);
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(queryStmt, false, ret);
+    auto &logInfoGet = saveDataInfo.localLogInfo;
+    int errCode = SQLiteRelationalUtils::GetLocalLogInfo(inserter, dataItem, mode_, logInfoGet, saveStmt);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("Failed to get raw data. %d", errCode);
         return errCode;
     }
+
+    auto &rowId = saveDataInfo.rowId;
+    auto &isExist = saveDataInfo.isExist;
+    auto &isDefeated = saveDataInfo.isDefeated;
     rowId = logInfoGet.dataKey;
     isExist = (errCode != -E_NOT_FOUND) && ((logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) == 0);
     if ((dataItem.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != DataItem::REMOTE_DEVICE_DATA_MISS_QUERY &&
@@ -903,14 +905,15 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const Da
 int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(RelationalSyncDataInserter &inserter,
     SaveSyncDataStmt &saveStmt, DataItem &item)
 {
-    bool isDefeated = false;
-    bool isExist = false;
-    int64_t rowid = -1;
-    int errCode = CheckDataConflictDefeated(item, saveStmt.queryStmt, isDefeated, isExist, rowid);
+    DeviceSyncSaveDataInfo deviceSyncSaveDataInfo;
+    int errCode = CheckDataConflictDefeated(item, inserter, saveStmt, deviceSyncSaveDataInfo);
     if (errCode != E_OK) {
         LOGE("check data conflict failed. %d", errCode);
         return errCode;
     }
+    bool &isDefeated = deviceSyncSaveDataInfo.isDefeated;
+    bool &isExist = deviceSyncSaveDataInfo.isExist;
+    int64_t &rowid = deviceSyncSaveDataInfo.rowId;
 
     if (isDefeated) {
         LOGD("Data was defeated.");
@@ -924,11 +927,16 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(RelationalSyncDat
         return E_OK;
     }
     bool isUpdate = isExist && mode_ == DistributedTableMode::COLLABORATION;
+    Key sourceHash = item.hashKey;
+    if (isUpdate) {
+        item.hashKey = deviceSyncSaveDataInfo.localLogInfo.hashKey;
+    }
     std::map<std::string, Type> saveVals;
     saveVals[DBConstant::ROWID] = rowid;
     errCode = SaveSyncDataItem(item, isUpdate, saveStmt, inserter, saveVals);
-    if (errCode == E_OK || errCode == -E_NOT_FOUND) {
-        errCode = inserter.SaveSyncLog(dbHandle_, saveStmt.saveLogStmt, saveStmt.queryStmt, item, saveVals);
+    if (errCode == E_OK) {
+        item.hashKey = sourceHash;
+        errCode = inserter.SaveSyncLog(dbHandle_, item, deviceSyncSaveDataInfo, saveVals, saveStmt);
     }
     return errCode;
 }

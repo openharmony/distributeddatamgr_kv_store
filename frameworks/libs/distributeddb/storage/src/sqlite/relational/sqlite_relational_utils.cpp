@@ -749,8 +749,8 @@ int SQLiteRelationalUtils::GetLogData(sqlite3_stmt *logStatement, LogInfo &logIn
     return errCode;
 }
 
-int SQLiteRelationalUtils::GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTableMode mode,
-    const DataItem &dataItem, LogInfo &logInfoGet)
+int SQLiteRelationalUtils::GetLogInfoPre(sqlite3_stmt *queryStmt, DistributedTableMode mode, const DataItem &dataItem,
+    LogInfo &logInfoGet)
 {
     if (queryStmt == nullptr) {
         return -E_INVALID_ARGS;
@@ -914,5 +914,132 @@ int SQLiteRelationalUtils::ExecuteListAction(const std::vector<std::function<int
         }
     }
     return errCode;
+}
+
+int SQLiteRelationalUtils::GetLocalLogInfo(const RelationalSyncDataInserter &inserter, const DataItem &dataItem,
+    DistributedTableMode mode, LogInfo &logInfoGet, SaveSyncDataStmt &saveStmt)
+{
+    int errCode = SQLiteRelationalUtils::GetLogInfoPre(saveStmt.queryStmt, mode, dataItem, logInfoGet);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(saveStmt.queryStmt, false, ret);
+    if (errCode == -E_NOT_FOUND) {
+        errCode = GetLocalLog(dataItem, inserter, saveStmt.queryByFieldStmt, logInfoGet);
+        SQLiteUtils::ResetStatement(saveStmt.queryByFieldStmt, false, ret);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::GetLocalLog(const DataItem &dataItem, const RelationalSyncDataInserter &inserter,
+    sqlite3_stmt *stmt, LogInfo &logInfo)
+{
+    if (stmt == nullptr) {
+        // no need to get log by distributed pk
+        return -E_NOT_FOUND;
+    }
+    if ((dataItem.flag & DataItem::DELETE_FLAG) != 0 ||
+        (dataItem.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != 0) {
+        return -E_NOT_FOUND;
+    }
+    auto distributedPk = SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter);
+    int errCode = BindDistributedPk(stmt, inserter, distributedPk);
+    if (errCode != E_OK) {
+        LOGW("[SQLiteRDBUtils] Bind distributed pk stmt failed[%d]", errCode);
+        return -E_NOT_FOUND;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false); // rdb not exist mem db
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        errCode = -E_NOT_FOUND;
+    } else {
+        errCode = SQLiteRelationalUtils::GetLogData(stmt, logInfo);
+    }
+    return errCode;
+}
+
+VBucket SQLiteRelationalUtils::GetDistributedPk(const DataItem &dataItem, const RelationalSyncDataInserter &inserter)
+{
+    VBucket distributedPk;
+    OptRowDataWithLog data;
+    // deserialize by remote field info
+    int errCode = DataTransformer::DeSerializeDataItem(dataItem, data, inserter.GetRemoteFields());
+    if (errCode != E_OK) {
+        LOGW("[SQLiteRDBUtils] DeSerialize dataItem failed! errCode[%d]", errCode);
+        return distributedPk;
+    }
+    size_t dataIdx = 0;
+    const auto &localTableFields = inserter.GetLocalTable().GetFields();
+    auto pkFields = inserter.GetLocalTable().GetSyncDistributedPk();
+    std::set<std::string> distributedPkFields(pkFields.begin(), pkFields.end());
+    for (const auto &it : inserter.GetRemoteFields()) {
+        if (distributedPkFields.find(it.GetFieldName()) == distributedPkFields.end()) {
+            dataIdx++;
+            continue;
+        }
+        if (localTableFields.find(it.GetFieldName()) == localTableFields.end()) {
+            LOGW("[SQLiteRDBUtils] field[%s][%zu] not found in local schema.",
+                 DBCommon::StringMiddleMasking(it.GetFieldName()).c_str(),
+                 it.GetFieldName().size());
+            dataIdx++;
+            continue; // skip fields which is orphaned in remote
+        }
+        if (dataIdx >= data.optionalData.size()) {
+            LOGE("[SQLiteRDBUtils] field over size. cnt[%d] data size[%d]", dataIdx, data.optionalData.size());
+            break; // cnt should less than optionalData size.
+        }
+        Type saveVal;
+        CloudStorageUtils::SaveChangedDataByType(data.optionalData[dataIdx], saveVal);
+        distributedPk[it.GetFieldName()] = std::move(saveVal);
+        dataIdx++;
+    }
+    return distributedPk;
+}
+
+int SQLiteRelationalUtils::BindDistributedPk(sqlite3_stmt *stmt, const RelationalSyncDataInserter &inserter,
+    VBucket &distributedPk)
+{
+    const auto &table = inserter.GetLocalTable();
+    const auto distributedPkFields = table.GetSyncDistributedPk();
+    auto &fields = table.GetFields();
+    int bindIdx = 1;
+    for (const auto &fieldName : distributedPkFields) {
+        auto field = fields.find(fieldName);
+        if (field == fields.end()) {
+            LOGE("[SQLiteRDBUtils] bind no exist field[%s][%zu]", DBCommon::StringMiddleMasking(fieldName).c_str(),
+                fieldName.size());
+            return -E_INTERNAL_ERROR;
+        }
+        auto errCode = BindOneField(stmt, bindIdx, field->second, distributedPk);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRDBUtils] bind field[%s][%zu] type[%d] failed[%d]",
+                DBCommon::StringMiddleMasking(fieldName).c_str(), fieldName.size(),
+                static_cast<int>(field->second.GetStorageType()), errCode);
+            return errCode;
+        }
+        bindIdx++;
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalUtils::BindOneField(sqlite3_stmt *stmt, int bindIdx, const FieldInfo &fieldInfo,
+    VBucket &distributedPk)
+{
+    Field field;
+    field.colName = fieldInfo.GetFieldName();
+    field.nullable = !fieldInfo.IsNotNull();
+    switch (fieldInfo.GetStorageType()) {
+        case StorageType::STORAGE_TYPE_INTEGER:
+            field.type = TYPE_INDEX<int64_t>;
+            return CloudStorageUtils::BindInt64(bindIdx, distributedPk, field, stmt);
+        case StorageType::STORAGE_TYPE_BLOB:
+            field.type = TYPE_INDEX<Bytes>;
+            return CloudStorageUtils::BindBlob(bindIdx, distributedPk, field, stmt);
+        case StorageType::STORAGE_TYPE_TEXT:
+            field.type = TYPE_INDEX<std::string>;
+            return CloudStorageUtils::BindText(bindIdx, distributedPk, field, stmt);
+        case StorageType::STORAGE_TYPE_REAL:
+            field.type = TYPE_INDEX<double>;
+            return CloudStorageUtils::BindDouble(bindIdx, distributedPk, field, stmt);
+        default:
+            return -E_INTERNAL_ERROR;
+    }
 }
 } // namespace DistributedDB
