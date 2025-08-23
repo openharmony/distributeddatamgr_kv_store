@@ -923,8 +923,9 @@ int SQLiteRelationalUtils::GetLocalLogInfo(const RelationalSyncDataInserter &ins
     int ret = E_OK;
     SQLiteUtils::ResetStatement(saveStmt.queryStmt, false, ret);
     if (errCode == -E_NOT_FOUND) {
-        errCode = GetLocalLog(dataItem, inserter, saveStmt.queryByFieldStmt, logInfoGet);
+        int res = GetLocalLog(dataItem, inserter, saveStmt.queryByFieldStmt, logInfoGet);
         SQLiteUtils::ResetStatement(saveStmt.queryByFieldStmt, false, ret);
+        errCode = (res == E_OK) ? E_OK : errCode;
     }
     return errCode;
 }
@@ -940,11 +941,15 @@ int SQLiteRelationalUtils::GetLocalLog(const DataItem &dataItem, const Relationa
         (dataItem.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != 0) {
         return -E_NOT_FOUND;
     }
-    auto distributedPk = SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter);
-    int errCode = BindDistributedPk(stmt, inserter, distributedPk);
+    auto [errCode, distributedPk] = SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter);
     if (errCode != E_OK) {
-        LOGW("[SQLiteRDBUtils] Bind distributed pk stmt failed[%d]", errCode);
-        return -E_NOT_FOUND;
+        LOGE("[SQLiteRDBUtils] Get distributed pk failed[%d]", errCode);
+        return errCode;
+    }
+    errCode = BindDistributedPk(stmt, inserter, distributedPk);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Bind distributed pk stmt failed[%d]", errCode);
+        return errCode;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt, false); // rdb not exist mem db
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -955,15 +960,17 @@ int SQLiteRelationalUtils::GetLocalLog(const DataItem &dataItem, const Relationa
     return errCode;
 }
 
-VBucket SQLiteRelationalUtils::GetDistributedPk(const DataItem &dataItem, const RelationalSyncDataInserter &inserter)
+std::pair<int, VBucket> SQLiteRelationalUtils::GetDistributedPk(const DataItem &dataItem,
+    const RelationalSyncDataInserter &inserter)
 {
-    VBucket distributedPk;
+    std::pair<int, VBucket> res;
+    auto &[errCode, distributedPk] = res;
     OptRowDataWithLog data;
     // deserialize by remote field info
-    int errCode = DataTransformer::DeSerializeDataItem(dataItem, data, inserter.GetRemoteFields());
+    errCode = DataTransformer::DeSerializeDataItem(dataItem, data, inserter.GetRemoteFields());
     if (errCode != E_OK) {
-        LOGW("[SQLiteRDBUtils] DeSerialize dataItem failed! errCode[%d]", errCode);
-        return distributedPk;
+        LOGE("[SQLiteRDBUtils] DeSerialize dataItem failed! errCode[%d]", errCode);
+        return res;
     }
     size_t dataIdx = 0;
     const auto &localTableFields = inserter.GetLocalTable().GetFields();
@@ -983,6 +990,7 @@ VBucket SQLiteRelationalUtils::GetDistributedPk(const DataItem &dataItem, const 
         }
         if (dataIdx >= data.optionalData.size()) {
             LOGE("[SQLiteRDBUtils] field over size. cnt[%d] data size[%d]", dataIdx, data.optionalData.size());
+            errCode = -E_INTERNAL_ERROR;
             break; // cnt should less than optionalData size.
         }
         Type saveVal;
@@ -990,7 +998,7 @@ VBucket SQLiteRelationalUtils::GetDistributedPk(const DataItem &dataItem, const 
         distributedPk[it.GetFieldName()] = std::move(saveVal);
         dataIdx++;
     }
-    return distributedPk;
+    return res;
 }
 
 int SQLiteRelationalUtils::BindDistributedPk(sqlite3_stmt *stmt, const RelationalSyncDataInserter &inserter,

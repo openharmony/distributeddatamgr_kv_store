@@ -112,7 +112,8 @@ public:
     static int GetLocalLog(const DataItem &dataItem, const RelationalSyncDataInserter &inserter, sqlite3_stmt *stmt,
         LogInfo &logInfo);
 
-    static VBucket GetDistributedPk(const DataItem &dataItem, const RelationalSyncDataInserter &inserter);
+    static std::pair<int, VBucket> GetDistributedPk(const DataItem &dataItem,
+        const RelationalSyncDataInserter &inserter);
 
     static int BindDistributedPk(sqlite3_stmt *stmt, const RelationalSyncDataInserter &inserter,
         VBucket &distributedPk);
