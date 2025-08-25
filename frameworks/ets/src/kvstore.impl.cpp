@@ -53,7 +53,7 @@ struct ContextParam {
 };
 static constexpr const int32_t NOT_FOUND = 15100004;
 static constexpr const int32_t DATA_CORRUPTED = 15100003;
-static constexpr const int32_t WAL_OVER_LIMITS= 14800047;
+static constexpr const int32_t WAL_OVER_LIMITS = 14800047;
 
 class FieldNodeImpl {
 public:
