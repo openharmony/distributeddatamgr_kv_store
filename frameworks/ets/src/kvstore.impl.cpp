@@ -51,9 +51,50 @@ struct ContextParam {
     std::string hapName = "";
     int32_t area = DistributedKv::Area::EL1;
 };
-static constexpr const int32_t NOT_FOUND = 15100004;
-static constexpr const int32_t DATA_CORRUPTED = 15100003;
-static constexpr const int32_t WAL_OVER_LIMITS = 14800047;
+
+struct EtsErrorCode {
+    int32_t status;
+    int32_t etsCode;
+    const char *message;
+};
+
+static constexpr EtsErrorCode ERROR_CODE_MSGS[] = {
+    { Status::NOT_FOUND, 15100004, "Not found." },
+    { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
+    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
+};
+
+const std::optional GetErrorCode(int32_t errorCode)
+{
+    auto etsErrorCode = EtsErrorCode{ errorCode, -1, "" };
+    auto iter = std::lower_bound(ERROR_CODE_MSGS,
+        ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]), etsErrorCode,
+        [](const EtsErrorCode &etsErrorCode1, const EtsErrorCode &etsErrorCode2) {
+        return etsErrorCode1.status < etsErrorCode2.status;
+    });
+    if (iter < ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]) &&
+        iter->status == errorCode) {
+        return *iter;
+    }
+    return std::nullopt;
+}
+
+void ThrowErrCode(Status status)
+{
+    int32_t code = 0;
+    std::string message;
+    auto err = GetErrorCode(status);
+    if (err.has_value()) {
+        auto napiError = err.value();
+        code = napiError.etsCode;
+        message = napiError.message;
+    } else {
+        code = -1;
+        message = "";
+    }
+    ::taihe::set_business_error(code, message);
+    return;
+}
 
 class FieldNodeImpl {
 public:
@@ -247,11 +288,7 @@ public:
         auto s_key = OHOS::DistributedKv::Key(std::string(key));
         OHOS::DistributedKv::Value value;
         auto status = kvStore_->Get(s_key, value);
-        if (status == OHOS::DistributedKv::NOT_FOUND) {
-            ::taihe::set_business_error(NOT_FOUND, "Not found.");
-        } else if (status == OHOS::DistributedKv::DATA_CORRUPTED) {
-            ::taihe::set_business_error(DATA_CORRUPTED, "Database corrupted.");
-        }
+        ThrowErrCode(status);
         return KVValueToDataTypes(value);
     }
 
@@ -264,9 +301,7 @@ public:
     {
         auto tempKey = DistributedKv::Key(std::string(key));
         auto status = kvStore_->Put(tempKey, DataTypesToKVValue(value));
-        if (status == OHOS::DistributedKv::WAL_OVER_LIMITS) {
-            ::taihe::set_business_error(WAL_OVER_LIMITS, "The WAL file size exceeds the default limit.");
-        }
+        ThrowErrCode(status);
     }
 
     void SetKvStorePtr(std::shared_ptr<OHOS::DistributedKv::SingleKvStore> kvStore)
@@ -305,11 +340,7 @@ public:
         auto s_key = DistributedKv::Key(deviceKey);
         OHOS::DistributedKv::Value value;
         auto status = kvStore_->Get(s_key, value);
-        if (status == OHOS::DistributedKv::NOT_FOUND) {
-            ::taihe::set_business_error(NOT_FOUND, "Not found.");
-        } else if (status == OHOS::DistributedKv::DATA_CORRUPTED) {
-            ::taihe::set_business_error(DATA_CORRUPTED, "Database corrupted.");
-        }
+        ThrowErrCode(status);
         return KVValueToDataTypes(value);
     }
 
