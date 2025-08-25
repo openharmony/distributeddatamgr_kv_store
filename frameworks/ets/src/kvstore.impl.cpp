@@ -64,7 +64,7 @@ static constexpr EtsErrorCode ERROR_CODE_MSGS[] = {
     { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
-const std::optional GetErrorCode(int32_t errorCode)
+const std::optional<EtsErrorCode> GetErrorCode(int32_t errorCode)
 {
     auto etsErrorCode = EtsErrorCode{ errorCode, -1, "" };
     auto iter = std::lower_bound(ERROR_CODE_MSGS,
