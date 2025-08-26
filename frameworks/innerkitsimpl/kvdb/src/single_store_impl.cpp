@@ -22,12 +22,12 @@
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "ipc_skeleton.h"
+#include "kv_hiview_reporter.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_result_set.h"
 #include "store_util.h"
 #include "task_executor.h"
-#include "kv_hiview_reporter.h"
 
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
