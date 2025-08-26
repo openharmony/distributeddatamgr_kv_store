@@ -288,7 +288,9 @@ public:
         auto s_key = OHOS::DistributedKv::Key(std::string(key));
         OHOS::DistributedKv::Value value;
         auto status = kvStore_->Get(s_key, value);
-        ThrowErrCode(status);
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
+        }
         return KVValueToDataTypes(value);
     }
 
@@ -301,7 +303,9 @@ public:
     {
         auto tempKey = DistributedKv::Key(std::string(key));
         auto status = kvStore_->Put(tempKey, DataTypesToKVValue(value));
-        ThrowErrCode(status);
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
+        }
     }
 
     void SetKvStorePtr(std::shared_ptr<OHOS::DistributedKv::SingleKvStore> kvStore)
@@ -340,7 +344,9 @@ public:
         auto s_key = DistributedKv::Key(deviceKey);
         OHOS::DistributedKv::Value value;
         auto status = kvStore_->Get(s_key, value);
-        ThrowErrCode(status);
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
+        }
         return KVValueToDataTypes(value);
     }
 
