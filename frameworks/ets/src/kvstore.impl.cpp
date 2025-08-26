@@ -52,25 +52,34 @@ struct ContextParam {
     int32_t area = DistributedKv::Area::EL1;
 };
 
-struct EtsErrorCode {
+struct ErrorCode {
     int32_t status;
-    int32_t etsCode;
+    int32_t errorCode;
     const char *message;
 };
 
-static constexpr EtsErrorCode ERROR_CODE_MSGS[] = {
+static constexpr ErrorCode ERROR_CODE_MSGS[] = {
+    { Status::INVALID_ARGUMENT, 401, "Parameter error: Parameters verification failed." },
+    { Status::STORE_NOT_OPEN, 0, "" },
+    { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
+    { Status::STORE_NOT_SUBSCRIBE, 0, "" },
     { Status::NOT_FOUND, 15100004, "Not found." },
+    { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
+    { Status::PERMISSION_DENIED, 202, "Permission denied" },
     { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
+    { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
+    { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
+    { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
     { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
-const std::optional<EtsErrorCode> GetErrorCode(int32_t errorCode)
+const std::optional<ErrorCode> GetErrorCode(int32_t errorCode)
 {
-    auto etsErrorCode = EtsErrorCode{ errorCode, -1, "" };
+    auto errorCode = ErrorCode{ errorCode, -1, "" };
     auto iter = std::lower_bound(ERROR_CODE_MSGS,
-        ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]), etsErrorCode,
-        [](const EtsErrorCode &etsErrorCode1, const EtsErrorCode &etsErrorCode2) {
-        return etsErrorCode1.status < etsErrorCode2.status;
+        ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]), errorCode,
+        [](const ErrorCode &errorCode1, const ErrorCode &errorCode2) {
+        return errorCode1.status < errorCode2.status;
     });
     if (iter < ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]) &&
         iter->status == errorCode) {
@@ -86,7 +95,7 @@ void ThrowErrCode(Status status)
     auto err = GetErrorCode(status);
     if (err.has_value()) {
         auto napiError = err.value();
-        code = napiError.etsCode;
+        code = napiError.errorCode;
         message = napiError.message;
     } else {
         code = -1;
