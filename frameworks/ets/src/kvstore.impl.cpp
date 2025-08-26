@@ -59,27 +59,18 @@ struct ErrorCode {
 };
 
 static constexpr ErrorCode ERROR_CODE_MSGS[] = {
-    { Status::INVALID_ARGUMENT, 401, "Parameter error: Parameters verification failed." },
-    { Status::STORE_NOT_OPEN, 0, "" },
-    { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
-    { Status::STORE_NOT_SUBSCRIBE, 0, "" },
     { Status::NOT_FOUND, 15100004, "Not found." },
-    { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
-    { Status::PERMISSION_DENIED, 202, "Permission denied" },
     { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
-    { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
-    { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
-    { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
     { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
 const std::optional<ErrorCode> GetErrorCode(int32_t errorCode)
 {
-    auto errorCode = ErrorCode{ errorCode, -1, "" };
+    auto code = ErrorCode{ errorCode, -1, "" };
     auto iter = std::lower_bound(ERROR_CODE_MSGS,
-        ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]), errorCode,
-        [](const ErrorCode &errorCode1, const ErrorCode &errorCode2) {
-        return errorCode1.status < errorCode2.status;
+        ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]), code,
+        [](const ErrorCode &code1, const ErrorCode &code2) {
+        return code1.status < code2.status;
     });
     if (iter < ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]) &&
         iter->status == errorCode) {
