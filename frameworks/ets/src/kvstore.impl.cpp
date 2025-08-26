@@ -52,6 +52,59 @@ struct ContextParam {
     int32_t area = DistributedKv::Area::EL1;
 };
 
+struct ErrorCode {
+    int32_t status;
+    int32_t errorCode;
+    const char *message;
+};
+
+static constexpr ErrorCode ERROR_CODE_MSGS[] = {
+    { Status::INVALID_ARGUMENT, 401, "Parameter error: Parameters verification failed." },
+    { Status::STORE_NOT_OPEN, 0, "" },
+    { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
+    { Status::STORE_NOT_SUBSCRIBE, 0, "" },
+    { Status::NOT_FOUND, 15100004, "Not found." },
+    { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
+    { Status::PERMISSION_DENIED, 202, "Permission denied" },
+    { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
+    { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
+    { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
+    { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
+    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
+};
+
+const std::optional<ErrorCode> GetErrorCode(int32_t errorCode)
+{
+    auto code = ErrorCode{ errorCode, -1, "" };
+    auto iter = std::lower_bound(ERROR_CODE_MSGS,
+        ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]), code,
+        [](const ErrorCode &code1, const ErrorCode &code2) {
+        return code1.status < code2.status;
+    });
+    if (iter < ERROR_CODE_MSGS + sizeof(ERROR_CODE_MSGS) / sizeof(ERROR_CODE_MSGS[0]) &&
+        iter->status == errorCode) {
+        return *iter;
+    }
+    return std::nullopt;
+}
+
+void ThrowErrCode(Status status)
+{
+    int32_t code = 0;
+    std::string message;
+    auto err = GetErrorCode(status);
+    if (err.has_value()) {
+        auto napiError = err.value();
+        code = napiError.errorCode;
+        message = napiError.message;
+    } else {
+        code = -1;
+        message = "";
+    }
+    ::taihe::set_business_error(code, message);
+    return;
+}
+
 class FieldNodeImpl {
 public:
     FieldNodeImpl()
@@ -243,7 +296,10 @@ public:
     {
         auto s_key = OHOS::DistributedKv::Key(std::string(key));
         OHOS::DistributedKv::Value value;
-        kvStore_->Get(s_key, value);
+        auto status = kvStore_->Get(s_key, value);
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
+        }
         return KVValueToDataTypes(value);
     }
 
@@ -255,7 +311,10 @@ public:
     void PutSync(::taihe::string_view key, ::kvstore::DataTypes const& value)
     {
         auto tempKey = DistributedKv::Key(std::string(key));
-        kvStore_->Put(tempKey, DataTypesToKVValue(value));
+        auto status = kvStore_->Put(tempKey, DataTypesToKVValue(value));
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
+        }
     }
 
     void SetKvStorePtr(std::shared_ptr<OHOS::DistributedKv::SingleKvStore> kvStore)
@@ -293,7 +352,10 @@ public:
         std::string deviceKey = std::string(oss.str());
         auto s_key = DistributedKv::Key(deviceKey);
         OHOS::DistributedKv::Value value;
-        kvStore_->Get(s_key, value);
+        auto status = kvStore_->Get(s_key, value);
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
+        }
         return KVValueToDataTypes(value);
     }
 
