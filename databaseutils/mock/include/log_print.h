@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 
-#ifndef DISTRIBUTEDDATA_LOG_PRINT_H
-#define DISTRIBUTEDDATA_LOG_PRINT_H
+#ifndef DISTRIBUTEDDATA_COMMON_LOG_PRINT_H
+#define DISTRIBUTEDDATA_COMMON_LOG_PRINT_H
 
 #include <cinttypes>
 #include <cstdarg>
 #include <cstdio>
 #include <string>
 
-#define LOG_TAG_KV "DistributedDB_DATA"
+#define LOG_TAG_COMMON "DistributedDB_COMMON"
 
 class Logger {
 public:
