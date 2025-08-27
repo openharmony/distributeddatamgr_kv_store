@@ -16,6 +16,7 @@
 #include "store_util.h"
 #include <dirent.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "log_print.h"
@@ -162,9 +163,8 @@ bool StoreUtil::InitPath(const std::string &path)
         ZLOGE("Mkdir error:%{public}d, path:%{public}s", errno, Anonymous(path).c_str());
         return false;
     }
-    Acl acl(path);
-    acl.SetDefaultUser(getuid(), Acl::R_RIGHT | Acl::W_RIGHT);
-    acl.SetDefaultGroup(SERVICE_GID, Acl::R_RIGHT | Acl::W_RIGHT);
+    Acl acl(path, Acl::ACL_XATTR_DEFAULT);
+    acl.SetDefaultUser(getuid(), Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT);
     return true;
 }
 
@@ -315,5 +315,68 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
         return false;
     }
     return true;
+}
+
+bool StoreUtil::HasPermit(const std::string &path, mode_t mode)
+{
+    struct stat fileStat;
+    if (stat(path.c_str(), &fileStat) == 0) {
+        if (S_ISDIR(fileStat.st_mode) && ((mode & fileStat.st_mode) == mode)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target)
+{
+    std::string tempDir = fullPath;
+    size_t pos = tempDir.find('/');
+    std::string path = "";
+    bool isSetAcl = false;
+    uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
+    while (pos != std::string::npos) {
+        std::string dir = tempDir.substr(0, pos);
+        tempDir = tempDir.substr(pos + 1);
+        pos = tempDir.find('/');
+        if (dir.empty()) {
+            continue;
+        }
+        if (dir == target) {
+            isSetAcl = true;
+        }
+        path = path + "/" + dir;
+        if (isSetAcl && !HasPermit(path, S_IXOTH)) {
+            Acl acl(path, Acl::ACL_XATTR_ACCESS);
+            acl.SetAccessGroup(SERVICE_GID, mode);
+        }
+    }
+}
+
+void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileName)
+{
+    struct stat fileStat;
+    if (stat(path.c_str(), &fileStat) != 0) {
+        return;
+    }
+    uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
+    if (fileName == "autoBackup.bak") {
+        std::string fullPath = path + fileName;
+        Acl acl(fullPath, Acl::ACL_XATTR_ACCESS);
+        if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
+            acl.SetAccessGroup(SERVICE_GID, mode);
+        }
+    }
+    std::error_code ec;
+    for (const auto &entry : std::filesystem::recursive_directory_iterator(path, ec)) {
+        if (ec) {
+            ec.clear();
+            continue;
+        }
+        Acl acl(entry.path(), Acl::ACL_XATTR_ACCESS);
+        if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
+            acl.SetAccessGroup(SERVICE_GID, mode);
+        }
+    }
 }
 } // namespace OHOS::DistributedKv

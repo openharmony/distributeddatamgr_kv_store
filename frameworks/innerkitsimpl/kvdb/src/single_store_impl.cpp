@@ -17,6 +17,7 @@
 
 #include <cerrno>
 #include "accesstoken_kit.h"
+#include "acl.h"
 #include "auto_sync_timer.h"
 #include "backup_manager.h"
 #include "dds_trace.h"
@@ -33,6 +34,7 @@ namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
 using namespace std::chrono;
 using namespace Security::AccessToken;
+using namespace DATABASE_UTILS;
 SingleStoreImpl::SingleStoreImpl(
     std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt)
     : convertor_(cvt), dbStore_(std::move(dbStore))
@@ -52,6 +54,7 @@ SingleStoreImpl::SingleStoreImpl(
     area_ = options.area;
     hapName_ = options.hapName;
     subUser_ = options.subUser;
+    syncable_ = options.syncable;
     if (options.backup) {
         BackupManager::GetInstance().Prepare(path, storeId_);
     }
@@ -62,6 +65,18 @@ SingleStoreImpl::SingleStoreImpl(
     }
     if (!isApplication_) {
         isCheckIntegrity_ = true;
+    }
+    if (options.syncable) {
+        std::string dbPath = "";
+        DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
+        std::string fullPath = path + "/kvdb/" +dbPath + "/";
+        StoreUtil::SetDirGid(fullPath, "database");
+        StoreUtil::SetDbFileGid(fullPath);
+    }
+    if (options.backup) {
+        std::string bkPath = path + "/kvdb/backup/" + storeId_ + "/";
+        StoreUtil::SetDirGid(bkPath, "backup");
+        StoreUtil::SetDbFileGid(bkPath, "autoBackup.bak");
     }
 }
 
@@ -803,6 +818,13 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
+    }
+    if (syncable_) {
+        std::string dbPath = "";
+        DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
+        std::string fullPath = path_ + "/kvdb/" +dbPath + "/";
+        StoreUtil::SetDirGid(fullPath, "database");
+        StoreUtil::SetDbFileGid(fullPath);
     }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
