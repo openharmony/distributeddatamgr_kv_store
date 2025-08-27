@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 #define LOG_TAG "JsDeviceKVStore"
-#include "js_device_kv_store.h"
 #include <iomanip>
+
+#include "js_device_kv_store.h"
 #include "js_kv_store_resultset.h"
 #include "js_query.h"
 #include "js_util.h"
