@@ -21,6 +21,7 @@
 #include "db_errno.h"
 #include "isyncer.h"
 #include "log_print.h"
+#include "platform_specific.h"
 #include "single_ver_sync_state_machine.h"
 #include "single_ver_sync_target.h"
 #include "sync_types.h"
@@ -670,5 +671,28 @@ bool SingleVerSyncTaskContext::IsRetryTask() const
     bool isRetryTask = operation->IsRetryTask();
     RefObject::DecObjRef(operation);
     return isRetryTask;
+}
+
+void SingleVerSyncTaskContext::RefreshSaveTime(bool isFinished)
+{
+    if (isFinished) {
+        lastSaveTimes_ = 0;
+        return;
+    }
+    lastSaveTimes_ = TimeHelper::GetMonotonicTime();
+}
+
+bool SingleVerSyncTaskContext::IsSavingTask(uint32_t timeout) const
+{
+    auto lastSaveTimes = lastSaveTimes_.load();
+    if (lastSaveTimes == 0) {
+        return false;
+    }
+    Timestamp duration = TimeHelper::GetMonotonicTime() - lastSaveTimes;
+    if (duration < timeout * TimeHelper::MS_TO_US) {
+        LOGI("exist saving task, duration[%" PRIu64 "]", duration);
+        return true;
+    }
+    return false;
 }
 } // namespace DistributedDB

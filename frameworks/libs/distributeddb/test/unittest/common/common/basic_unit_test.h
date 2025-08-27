@@ -42,6 +42,7 @@ protected:
     static StoreInfo GetStoreInfo2();
     static StoreInfo GetStoreInfo3();
     void SetDevice(const StoreInfo &info, const std::string &device);
+    void SetMtu(const std::string &dev, uint32_t mtu);
     static std::string GetTestDir();
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
     std::shared_ptr<IProcessCommunicator> processCommunicator_ = nullptr;

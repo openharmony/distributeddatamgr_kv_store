@@ -75,6 +75,38 @@ HWTEST_F(DistributedDBBasicKVTest, ExampleSync001, TestSize.Level0)
 }
 
 /**
+ * @tc.name: ExampleSync002
+ * @tc.desc: Test sync from dev1 to dev2 with 2 packet.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, ExampleSync002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k1,v1) and (k2,v2)
+     * @tc.expected: step1. put ok.
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto storeInfo2 = GetStoreInfo2();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    EXPECT_EQ(store1->Put(k1, v1), OK);
+    Key k2 = {'k', '2'};
+    Value v2 = {'v', '2'};
+    EXPECT_EQ(store1->Put(k2, v2), OK);
+    /**
+     * @tc.steps: step2. dev1 sync to dev2 with mtu=1
+     * @tc.expected: step2. sync ok.
+     */
+    SetMtu("dev1", 1);
+    BlockPush(storeInfo1, storeInfo2);
+}
+
+/**
  * @tc.name: WhitelistKvGet001
  * @tc.desc: Test kv get interface for whitelist.
  * @tc.type: FUNC
