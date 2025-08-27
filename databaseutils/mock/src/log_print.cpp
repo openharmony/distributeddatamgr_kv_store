@@ -22,22 +22,22 @@
 
 #include "securec.h"
 
-Logger *Logger::logHandler = nullptr;
-const std::string Logger::PRIVATE_TAG = "{private}";
-const std::string Logger::PUBLIC_TAG = "{public}";
+Loggers *Loggers::logHandler = nullptr;
+const std::string Loggers::PRIVATE_TAG = "{private}";
+const std::string Loggers::PUBLIC_TAG = "{public}";
 
-void Logger::Print(Level level,  const char *func, int line, const std::string &tag, const std::string &msg)
+void Loggers::Print(Level level,  const char *func, int line, const std::string &tag, const std::string &msg)
 {
     printf("%d %s:%d [%s]:%s \n", level, func, line, tag.c_str(), msg.c_str());
 }
 
-Logger *Logger::GetInstance()
+Loggers *Loggers::GetInstance()
 {
-    static Logger logger;
+    static Loggers logger;
     return &logger;
 }
 
-void Logger::RegisterLogger(Logger *logger)
+void Loggers::RegisterLogger(Loggers *logger)
 {
     static std::mutex logHandlerLock;
     if (logger == nullptr) {
@@ -51,7 +51,7 @@ void Logger::RegisterLogger(Logger *logger)
     }
 }
 
-void Logger::Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...)
+void Loggers::Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...)
 {
     if (format == nullptr) {
         return;
@@ -75,13 +75,13 @@ void Logger::Log(Level level, const std::string &tag, const char *func, int line
         return;
     }
 
-    Logger::RegisterLogger(Logger::GetInstance());
+    Loggers::RegisterLogger(Loggers::GetInstance());
     if (logHandler != nullptr) {
         logHandler->Print(level, func, line, tag, msg);
     }
 }
 
-void Logger::PreparePrivateLog(const char *format, std::string &outStrFormat)
+void Loggers::PreparePrivateLog(const char *format, std::string &outStrFormat)
 {
     outStrFormat = format;
     std::string::size_type pos;

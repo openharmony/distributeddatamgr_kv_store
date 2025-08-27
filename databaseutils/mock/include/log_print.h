@@ -23,7 +23,7 @@
 
 #define LOG_TAG_COMMON "DistributedDB_COMMON"
 
-class Logger {
+class Loggers {
 public:
     enum class Level {
         LEVEL_DEBUG,
@@ -33,28 +33,28 @@ public:
         LEVEL_FATAL
     };
 
-    virtual ~Logger() {};
-    static Logger *GetInstance();
-    static void RegisterLogger(Logger *logger);
+    virtual ~Loggers() {};
+    static Loggers *GetInstance();
+    static void RegisterLogger(Loggers *logger);
     static void Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...);
 
 private:
     void Print(Level level,  const char *func, int line, const std::string &tag, const std::string &msg);
     static void PreparePrivateLog(const char *format, std::string &outStrFormat);
-    static Logger *logHandler;
+    static Loggers *logHandler;
     static const std::string PRIVATE_TAG;
     static const std::string PUBLIC_TAG;
 };
 
 #define NO_LOG(...) // No log in normal and release. Used for convenience when deep debugging
-#define LOGD(...) Logger::Log(Logger::Level::LEVEL_DEBUG, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define LOGI(...) Logger::Log(Logger::Level::LEVEL_INFO, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define LOGW(...) Logger::Log(Logger::Level::LEVEL_WARN, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define LOGE(...) Logger::Log(Logger::Level::LEVEL_ERROR, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define LOGF(...) Logger::Log(Logger::Level::LEVEL_FATAL, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define ZLOGD(...) Logger::Log(Logger::Level::LEVEL_DEBUG, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define ZLOGI(...) Logger::Log(Logger::Level::LEVEL_INFO, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define ZLOGW(...) Logger::Log(Logger::Level::LEVEL_WARN, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define ZLOGE(...) Logger::Log(Logger::Level::LEVEL_ERROR, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#define ZLOGF(...) Logger::Log(Logger::Level::LEVEL_FATAL, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define LOGD(...) Loggers::Log(Loggers::Level::LEVEL_DEBUG, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define LOGI(...) Loggers::Log(Loggers::Level::LEVEL_INFO, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define LOGW(...) Loggers::Log(Loggers::Level::LEVEL_WARN, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define LOGE(...) Loggers::Log(Loggers::Level::LEVEL_ERROR, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define LOGF(...) Loggers::Log(Loggers::Level::LEVEL_FATAL, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define ZLOGD(...) Loggers::Log(Loggers::Level::LEVEL_DEBUG, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define ZLOGI(...) Loggers::Log(Loggers::Level::LEVEL_INFO, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define ZLOGW(...) Loggers::Log(Loggers::Level::LEVEL_WARN, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define ZLOGE(...) Loggers::Log(Loggers::Level::LEVEL_ERROR, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
+#define ZLOGF(...) Loggers::Log(Loggers::Level::LEVEL_FATAL, LOG_TAG_COMMON, __FILE_NAME__, __LINE__, __VA_ARGS__)
 #endif // DISTRIBUTEDDB_LOG_PRINT_H
