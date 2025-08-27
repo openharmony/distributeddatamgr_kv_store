@@ -1997,6 +1997,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest001
      * @tc.expected: step2. return ok.
      */
     EXPECT_EQ(CreateDataChangeTempTrigger(db), OK);
+    Clean(false);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
