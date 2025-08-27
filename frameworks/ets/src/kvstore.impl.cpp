@@ -73,6 +73,17 @@ static constexpr ErrorCode ERROR_CODE_MSGS[] = {
     { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
+static constexpr bool IsIncreasing()
+{
+    for (size_t i = 1; i < sizeof(ERROR_CODE_MSGS) / sizeof(ErrorCode); i++) {
+        if (ERROR_CODE_MSGS[i].status <= ERROR_CODE_MSGS[i - 1].status) {
+            return false;
+        }
+    }
+    return true;
+}
+static_assert(IsIncreasing());
+
 const std::optional<ErrorCode> GetErrorCode(int32_t errorCode)
 {
     auto code = ErrorCode{ errorCode, -1, "" };
