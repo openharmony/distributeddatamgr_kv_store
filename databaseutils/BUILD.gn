@@ -43,8 +43,7 @@ ohos_shared_library("database_utils") {
       "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
       "//third_party/bounds_checking_function:libsec_static",
     ]
-    sources += [ "mock/src/log_print.cpp",
-                 "mock/src/win_glibc.cpp"]
+    sources += [ "mock/src/win_glibc.cpp"]
   } else if (use_platforn_mac) {
     defines = [ "_MACOS" ]
     cflags = [ "-includemac_glibc.h" ]
@@ -52,8 +51,7 @@ ohos_shared_library("database_utils") {
       "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac",
       "//third_party/bounds_checking_function:libsec_static",
     ]
-    sources += [ "mock/src/log_print.cpp",
-                 "mock/src/mac_glibc.cpp"]
+    sources += [ "mock/src/mac_glibc.cpp"]
   } else {
     sanitize = {
       ubsan = true
