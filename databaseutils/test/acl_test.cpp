@@ -116,6 +116,23 @@ HWTEST_F(AclTest, SetDefaultGroup002, TestSize.Level0)
 }
 
 /**
+ * @tc.name: SetAccessUser001
+ * @tc.desc: Set access extended properties for user.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    int res = mkdir(PATH_ABC_TEST, mode);
+    EXPECT_EQ(res, 0) << "directory creation failed.";
+    auto rc = Acl(PATH_ABC_TEST, Acl::ACL_XATTR_DEFAULT).SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    EXPECT_EQ(rc, 0);
+
+    Acl aclNew(PATH_ABC_TEST, Acl::ACL_XATTR_DEFAULT);
+    ASSERT_TRUE(aclNew.HasAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+}
+
+/**
  * @tc.name: SetDefaultUser001
  * @tc.desc: Set default extended properties for user.
  * @tc.type: FUNC
@@ -191,23 +208,6 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
         EXPECT_EQ(std::string(buf, buf + strlen(buf) - 1), std::string(DATA)) << "buffer:[" << buf << "]";
         close(fd[0]);
     }
-}
-
-/**
- * @tc.name: SetAccessUser001
- * @tc.desc: Set access extended properties for user.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC_TEST, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
-    auto rc = Acl(PATH_ABC_TEST, Acl::ACL_XATTR_DEFAULT).SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_EQ(rc, 0);
-
-    Acl aclNew(PATH_ABC_TEST, Acl::ACL_XATTR_DEFAULT);
-    ASSERT_TRUE(aclNew.HasAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
