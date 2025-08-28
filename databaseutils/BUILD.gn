@@ -40,18 +40,18 @@ ohos_shared_library("database_utils") {
     defines = [ "IS_WINDOWS" ]
     cflags = [ "-includewin_glibc.h" ]
     deps = [
-      "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
       "//third_party/bounds_checking_function:libsec_static",
     ]
     sources += [ "mock/src/win_glibc.cpp"]
+    external_deps = [ "hilog:libhilog_windows" ]
   } else if (use_platforn_mac) {
     defines = [ "_MACOS" ]
     cflags = [ "-includemac_glibc.h" ]
     deps = [
-      "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac",
       "//third_party/bounds_checking_function:libsec_static",
     ]
     sources += [ "mock/src/mac_glibc.cpp"]
+    external_deps = [ "hilog:libhilog_mac" ]
   } else {
     sanitize = {
       ubsan = true
@@ -60,13 +60,13 @@ ohos_shared_library("database_utils") {
       cfi_cross_dso = true
       debug = false
     }
+    external_deps = [ "hilog:libhilog" ]
   }
 
   innerapi_tags = [ "platformsdk" ]
   configs = [ ":database_utils_config" ]
   cflags_cc = [ "-fvisibility=hidden" ]
   public_configs = [ ":database_utils_public_config" ]
-  external_deps = [ "hilog:libhilog" ]
   public_external_deps = [ "bounds_checking_function:libsec_shared" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
