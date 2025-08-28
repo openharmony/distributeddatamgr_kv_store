@@ -36,7 +36,6 @@ base_sources = [ "src/acl.cpp" ]
 ohos_shared_library("database_utils") {
   branch_protector_ret = "pac_ret"
   sources = base_sources
-  cflags_cc = [ "-std=c++17" ]
   if (use_platform_win) {
     defines = [ "IS_WINDOWS" ]
     cflags = [ "-includewin_glibc.h" ]
@@ -63,8 +62,9 @@ ohos_shared_library("database_utils") {
     }
   }
 
+  innerapi_tags = [ "platformsdk" ]
   configs = [ ":database_utils_config" ]
-  cflags_cc += [ "-fvisibility=hidden" ]
+  cflags_cc = [ "-fvisibility=hidden" ]
   public_configs = [ ":database_utils_public_config" ]
   external_deps = [ "hilog:libhilog" ]
   public_external_deps = [ "bounds_checking_function:libsec_shared" ]
