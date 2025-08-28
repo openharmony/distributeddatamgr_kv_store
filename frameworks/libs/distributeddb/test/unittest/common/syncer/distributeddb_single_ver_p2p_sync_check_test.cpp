@@ -2551,6 +2551,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt010, TestSize.Level0)
         if (dev != DEVICE_B && msg->GetMessageType() == TYPE_RESPONSE) {
             msg->SetErrorNo(E_FEEDBACK_DB_CLOSING);
         }
+        msg->SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_12_0);
         messageCount++;
     });
     /**
@@ -2655,6 +2656,34 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt012, TestSize.Level0)
     Sync(devices, OK);
     int pkCnt = 8;
     EXPECT_EQ(messageCount, pkCnt);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
+/**
+ * @tc.name: KVSyncOpt013
+ * @tc.desc: test sync when db closing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, KVSyncOpt013, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. record packet which send to B
+     */
+    std::atomic<int> messageCount = 0;
+    RegOnDispatchWithoutDataPacket(messageCount, true);
+    g_communicatorAggregator->GetCommunicator("real_device")->ExchangeClosePending(true);
+    g_communicatorAggregator->RegOnDispatch([&messageCount](const std::string &dev, Message *msg) {
+        msg->SetRemoteSoftwareVersion(SOFTWARE_VERSION_RELEASE_12_0);
+    });
+    /**
+     * @tc.steps: step2. deviceB call sync and wait
+     * @tc.expected: step2. sync should return OK.
+     */
+    EXPECT_EQ(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true), E_OK);
+    EXPECT_EQ(messageCount, 0);
+    EXPECT_FALSE(g_communicatorAggregator->GetCommunicator("real_device")->ExchangeClosePending(false));
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
 

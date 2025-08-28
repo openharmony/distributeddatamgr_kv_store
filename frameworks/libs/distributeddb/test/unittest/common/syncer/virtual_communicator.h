@@ -119,6 +119,7 @@ private:
 
     std::string targetUserId_;
     std::atomic<uint64_t> sendMsgSize_ = 0;
+    std::atomic<bool> dbClosePending_;
 };
 } // namespace DistributedDB
 

@@ -276,7 +276,8 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel, co
     // Do Redeliver, the communicator is responsible to deal with the frame
     std::list<FrameInfo> framesToRedeliver = retainer_.FetchFramesForSpecificCommunicator(commLabel);
     for (auto &entry : framesToRedeliver) {
-        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer, entry.sendUser);
+        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer, entry.sendUser,
+            entry.remoteDbVersion);
     }
 }
 
@@ -679,6 +680,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     LabelType toLabel = inResult.GetCommLabel();
+    uint16_t remoteDbVersion = inResult.GetDbVersion();
     UserInfo userInfo = { .sendUser = DBConstant::DEFAULT_USER };
     if (receiveBytesInfo.isNeedGetUserInfo) {
         int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userInfo);
@@ -699,7 +701,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     }
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(userInfoProc, receiveBytesInfo.srcTarget,
+        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(remoteDbVersion, receiveBytesInfo.srcTarget,
             inFrameBuffer, toLabel, userInfo);
         if (errCode == E_OK) { // Attention: Here is equal to E_OK
             return E_OK;
@@ -743,14 +745,15 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     return E_OK;
 }
 
-int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const DataUserInfoProc &userInfoProc,
+int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(uint16_t remoteDbVersion,
     const std::string &srcTarget, SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo)
 {
     // Ignore nonactivated communicator, which is regarded as inexistent
     const std::string &sendUser = userInfo.sendUser;
     const std::string &receiveUser = userInfo.receiveUser;
     if (commMap_[receiveUser].count(toLabel) != 0 && commMap_[receiveUser].at(toLabel).second) {
-        int ret = commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
+        int ret = commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser,
+            remoteDbVersion);
         // Frame handed over to communicator who is responsible to delete it. The frame is deleted here after return.
         if (ret == E_OK) {
             inFrameBuffer = nullptr;
@@ -774,7 +777,7 @@ int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const D
         }
     }
     if (communicator != nullptr && (receiveUser.empty() || isEmpty)) {
-        int ret = communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
+        int ret = communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser, remoteDbVersion);
         if (ret == E_OK) {
             inFrameBuffer = nullptr;
         }
@@ -1188,6 +1191,7 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
     const UserInfo &userInfo)
 {
     LabelType toLabel = inResult.GetCommLabel();
+    uint16_t remoteDbVersion = inResult.GetDbVersion();
     int errCode = -E_NOT_FOUND;
     {
         std::lock_guard<std::mutex> onCommLackLockGuard(onCommLackMutex_);
@@ -1200,7 +1204,7 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
     }
     // Here we have to lock commMapMutex_ and search communicator again.
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(userInfoProc, receiveBytesInfo.srcTarget,
+    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(remoteDbVersion, receiveBytesInfo.srcTarget,
         inFrameBuffer, toLabel, userInfo);
     if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
         LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
@@ -1218,7 +1222,7 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
     }
     // Do Retention, the retainer is responsible to deal with the frame
     retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, userInfo.sendUser, toLabel,
-        inResult.GetFrameId()});
+        inResult.GetFrameId(), remoteDbVersion});
     inFrameBuffer = nullptr;
     return E_OK;
 }

@@ -56,7 +56,8 @@ public:
         const OnSendEnd &onEnd) override;
 
     // Call by CommunicatorAggregator directly
-    int OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf, const std::string &sendUser);
+    int OnBufferReceive(const std::string &srcTarget, const SerialBuffer *inBuf, const std::string &sendUser,
+        uint16_t remoteDbVersion);
 
     // Call by CommunicatorAggregator directly
     void OnConnectChange(const std::string &target, bool isConnect);

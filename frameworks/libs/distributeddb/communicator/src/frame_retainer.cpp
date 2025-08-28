@@ -29,8 +29,9 @@ inline void LogRetainInfo(const std::string &logPrefix, const LabelType &label, 
     uint64_t order, const RetainWork &work)
 {
     LOGI("%s : Label=%.3s, target=%s{private}, retainOrder=%" PRIu64 ", frameId=%" PRIu32 ", remainTime=%" PRIu32
-        ", frameSize=%" PRIu32 ".", logPrefix.c_str(), VEC_TO_STR(label), target.c_str(), ULL(order),
-        work.frameId, work.remainTime, work.buffer->GetSize());
+        ", frameSize=%" PRIu32 ", remoteDbVersion=%" PRIu16 ".",
+        logPrefix.c_str(), VEC_TO_STR(label), target.c_str(), ULL(order),
+        work.frameId, work.remainTime, work.buffer->GetSize(), work.remoteDbVersion);
 }
 }
 
@@ -85,7 +86,7 @@ void FrameRetainer::RetainFrame(const FrameInfo &inFrame)
     if (inFrame.buffer == nullptr) {
         return; // Never gonna happen
     }
-    RetainWork work{inFrame.buffer, inFrame.sendUser, inFrame.frameId, MAX_RETAIN_TIME};
+    RetainWork work{inFrame.buffer, inFrame.sendUser, inFrame.frameId, MAX_RETAIN_TIME, inFrame.remoteDbVersion};
     if (work.buffer->GetSize() > MAX_RETAIN_FRAME_SIZE) {
         LOGE("[Retainer][Retain] Frame size=%u over limit=%u.", work.buffer->GetSize(), MAX_RETAIN_FRAME_SIZE);
         delete work.buffer;
@@ -140,7 +141,8 @@ std::list<FrameInfo> FrameRetainer::FetchFramesForSpecificCommunicator(const Lab
     for (auto &entry : fetchOrder) {
         RetainWork &work = perLabel[entry.second][entry.first];
         LogRetainInfo("[Retainer][Fetch] FETCH-OUT", inCommLabel, entry.second, entry.first, work);
-        outFrameList.emplace_back(FrameInfo{work.buffer, entry.second, work.sendUser, inCommLabel, work.frameId});
+        outFrameList.emplace_back(FrameInfo{work.buffer, entry.second, work.sendUser, inCommLabel, work.frameId,
+            work.remoteDbVersion});
         // Update statistics
         totalSizeByByte_ -= work.buffer->GetSize();
         totalRetainFrames_--;

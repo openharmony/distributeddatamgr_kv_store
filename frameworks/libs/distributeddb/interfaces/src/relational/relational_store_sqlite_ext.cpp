@@ -320,8 +320,22 @@ class TimeHelperManager {
 public:
     static TimeHelperManager *GetInstance()
     {
-        static TimeHelperManager instance;
-        return &instance;
+        if (timeHelperInstance_ == nullptr) {
+            std::lock_guard<std::mutex> lock(timeHelperMutex_);
+            if (timeHelperInstance_ == nullptr) {
+                timeHelperInstance_ = new TimeHelperManager();
+            }
+        }
+        return timeHelperInstance_;
+    }
+
+    static void DestroyInstance()
+    {
+        std::lock_guard<std::mutex> lock(timeHelperMutex_);
+        if (timeHelperInstance_ != nullptr) {
+            delete timeHelperInstance_;
+            timeHelperInstance_ = nullptr;
+        }
     }
 
     void AddStore(const std::string &storeId)
@@ -379,11 +393,15 @@ private:
     TimeHelperManager() = default;
     std::mutex metaDataLock_;
     std::map<std::string, TimeHelper> metaData_;
+    static TimeHelperManager *timeHelperInstance_;
+    static std::mutex timeHelperMutex_;
 };
 
 std::mutex TimeHelper::systemTimeLock_;
 Timestamp TimeHelper::lastSystemTimeUs_ = 0;
 Timestamp TimeHelper::currentIncCount_ = 0;
+TimeHelperManager *TimeHelperManager::timeHelperInstance_ = nullptr;
+std::mutex TimeHelperManager::timeHelperMutex_;
 
 int GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt *&stmt);
 int ResetStatement(sqlite3_stmt *&stmt);
@@ -2050,6 +2068,7 @@ void Clean(bool isOpenSslClean)
         OPENSSL_cleanup();
     }
     Logger::DeleteInstance();
+    TimeHelperManager::DestroyInstance();
 }
 
 // export the symbols
