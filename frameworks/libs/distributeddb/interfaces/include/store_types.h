@@ -95,6 +95,7 @@ enum DBStatus {
     DISTRIBUTED_FIELD_DECREASE, // sync fewer specified columns than last time
     SKIP_ASSET, // workaround status for contact app assets download failure, need to ignore these failures
     LOW_VERSION_TARGET, // The target device is a low version device
+    NEED_CORRECT_TARGET_USER, // The target user ID is incorrect and needs to be re-obtained
     BUTT_STATUS = 27394048 // end of status
 };
 
@@ -261,6 +262,7 @@ struct ChangeProperties {
     bool isTrackedDataChange = false;
     bool isP2pSyncDataChange = false;
     bool isKnowledgeDataChange = false;
+    bool isCloudSyncDataChange = false;
 };
 
 enum IndexType : uint32_t {

@@ -828,3 +828,20 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver015, TestSize
     result = g_singleVerNaturaStoreConnection->UnRegisterObserver(handle);
     EXPECT_EQ(result, E_OK);
 }
+
+/**
+  * @tc.name: CreateKvDbTest001
+  * @tc.desc: test CreateKvDb function with invalid args.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageRegisterObserverTest, CreateKvDbTest001, TestSize.Level1)
+{
+    int errCode = 0;
+    IKvDBFactory *factory = IKvDBFactory::GetCurrent();
+    ASSERT_NE(factory, nullptr);
+    IKvDB* kvdb = factory->CreateKvDb(UNSUPPORT_KVDB_TYPE, errCode);
+    EXPECT_EQ(kvdb, nullptr);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+}

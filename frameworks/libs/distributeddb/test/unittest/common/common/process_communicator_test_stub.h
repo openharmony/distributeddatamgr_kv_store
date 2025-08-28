@@ -95,7 +95,7 @@ public:
     DBStatus GetDataUserInfo(DataUserInfo dataUserInfo, std::vector<UserInfo> &userInfos) override
     {
         userInfos = userInfos_;
-        return OK;
+        return getDataUserInfoRet_;
     }
 
     void SetDataUserInfo(const std::vector<UserInfo> &userInfos)
@@ -107,8 +107,14 @@ public:
     {
         dataHeadInfo_ = dataHeadInfo;
     }
+
+    void SetGetDataUserInfoRet(DBStatus ret)
+    {
+        getDataUserInfoRet_ = ret;
+    }
 private:
     bool isCommErr = false;
+    DBStatus getDataUserInfoRet_ = OK;
     std::vector<UserInfo> userInfos_;
     std::pair<DBStatus, uint32_t> dataHeadInfo_;
 };

@@ -208,7 +208,7 @@ public:
     bool IsFeedbackError() const
     {
         return (errorNo_ == E_FEEDBACK_UNKNOWN_MESSAGE || errorNo_ == E_FEEDBACK_COMMUNICATOR_NOT_FOUND ||
-            errorNo_ == E_FEEDBACK_DB_CLOSING);
+            errorNo_ == E_FEEDBACK_DB_CLOSING || errorNo_ == E_NEED_CORRECT_TARGET_USER);
     }
 
 private:

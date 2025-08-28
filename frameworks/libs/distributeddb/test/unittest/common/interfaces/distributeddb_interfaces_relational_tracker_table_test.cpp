@@ -24,6 +24,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
 #include "platform_specific.h"
+#include "relational_store_client.h"
 #include "relational_store_manager.h"
 #include "relational_store_sqlite_ext.h"
 #include "relational_virtual_device.h"
@@ -2833,6 +2834,63 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest047,
     num = 10;
     EXPECT_EQ(sqlite3_exec(g_db, querySql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest048
+  * @tc.desc: Test set tracker table after create cloud distributed table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest048, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create cloud distributed table
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    /**
+     * @tc.steps:step2. Set tracker table
+     * @tc.expected: step2. Return OK.
+     */
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    /**
+     * @tc.steps:step3. Register client observer
+     * @tc.expected: step3. Return OK.
+     */
+    std::vector<ClientChangedData> clientChangedData;
+    ClientObserver observer = [&clientChangedData](ClientChangedData &changedData) {
+        clientChangedData.push_back(changedData);
+    };
+    RegisterClientObserver(g_db, observer);
+    RegisterDbHook(g_db);
+    /**
+     * @tc.steps:step4. Insert data and check change data
+     * @tc.expected: step4. Return OK.
+     */
+    uint32_t num = 10;
+    BatchInsertTableName2Data(num);
+    int waitTimes = 0;
+    while (waitTimes < 10 && clientChangedData.size() != num) { // 10 is max wait times
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+        waitTimes++;
+    }
+    ASSERT_EQ(clientChangedData.size(), num);
+    for (const auto &changedData : clientChangedData) {
+        for (const auto &[tableName, prop] : changedData.tableData) {
+            EXPECT_EQ(tableName, TABLE_NAME2);
+            EXPECT_TRUE(prop.isCloudSyncDataChange);
+            EXPECT_TRUE(prop.isTrackedDataChange);
+        }
+    }
+
+    UnRegisterClientObserver(g_db);
+    UnregisterDbHook(g_db);
     CloseStore();
 }
 

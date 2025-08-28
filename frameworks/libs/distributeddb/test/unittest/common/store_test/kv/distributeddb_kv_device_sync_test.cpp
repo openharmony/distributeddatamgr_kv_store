@@ -81,6 +81,47 @@ HWTEST_F(DistributedDBKvDeviceSyncTest, NormalSyncTest001, TestSize.Level0)
 }
 
 /**
+ * @tc.name: NormalSyncTest002
+ * @tc.desc: Test normal sync with multiple devices with the same name.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBKvDeviceSyncTest, NormalSyncTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k,v)
+     * @tc.expected: step1. return OK
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    EXPECT_EQ(store1->Put(key, expectValue), OK);
+    /**
+     * @tc.steps: step2. dev1 sync to dev2
+     * @tc.expected: step2. return OK and dev2 exist (k,v)
+     */
+    DeviceSyncOption option;
+    option.devices = {DEVICE_B, DEVICE_B, DEVICE_B};
+    option.mode = SYNC_MODE_PUSH_ONLY;
+    option.isRetry = false;
+    std::map<std::string, DBStatus> syncRet;
+    EXPECT_EQ(g_tool.SyncTest(store1, option, syncRet), OK);
+    for (const auto &ret : syncRet) {
+        EXPECT_EQ(ret.first, DEVICE_B);
+        EXPECT_EQ(ret.second, OK);
+    }
+    auto storeInfo2 = GetStoreInfo2();
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+    Value actualValue;
+    EXPECT_EQ(store2->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+}
+
+/**
  * @tc.name: AbnormalKvSyncTest001
  * @tc.desc: Test sync with invalid args.
  * @tc.type: FUNC
