@@ -28,6 +28,7 @@ static constexpr uint32_t UID = 2024;      // 2024 is test uid
 static constexpr uint32_t TEST_UID = 2025; // 2025 is test uid
 class AclTest : public testing::Test {
 public:
+    static constexpr const char *PATH_ABC_TEST = "/data/test/abctest";
     static constexpr const char *PATH_ABC = "/data/test/abc";
     static constexpr const char *PATH_ABC_XIAOMING = "/data/test/abc/xiaoming";
     static constexpr const char *PATH_ABC_XIAOMING_TEST = "/data/test/abc/xiaoming/test.txt";
@@ -44,13 +45,13 @@ void AclTest::SetUpTestCase(void) { }
 
 void AclTest::TearDownTestCase(void) { }
 
-// input testcase setup step，setup invoked before each testcases
+// input testcase setup step, setup invoked before each testcases
 void AclTest::SetUp(void)
 {
     (void)remove(PATH_ABC);
 }
 
-// input testcase teardown step，teardown invoked after each testcases
+// input testcase teardown step, teardown invoked after each testcases
 void AclTest::TearDown(void)
 {
     (void)remove(PATH_ABC);
@@ -200,12 +201,12 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
 HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0)
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
+    int res = mkdir(PATH_ABC_TEST, mode);
     EXPECT_EQ(res, 0) << "directory creation failed.";
-    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    auto rc = Acl(PATH_ABC_TEST, Acl::ACL_XATTR_DEFAULT).SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    Acl aclNew(PATH_ABC_TEST, Acl::ACL_XATTR_DEFAULT);
     ASSERT_TRUE(aclNew.HasAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
