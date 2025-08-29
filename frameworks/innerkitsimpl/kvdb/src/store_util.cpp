@@ -357,6 +357,7 @@ void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileNam
 {
     struct stat fileStat;
     if (stat(path.c_str(), &fileStat) != 0) {
+        ZLOGW("file not exit, path:%{public}s ,code:%{public}d", Anonymous(path).c_str(), errno);
         return;
     }
     uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
