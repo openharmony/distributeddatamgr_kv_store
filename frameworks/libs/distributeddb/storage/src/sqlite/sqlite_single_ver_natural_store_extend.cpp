@@ -699,16 +699,6 @@ CloudSyncConfig SQLiteSingleVerNaturalStore::GetCloudSyncConfig() const
     return sqliteCloudKvStore_->GetCloudSyncConfig();
 }
 
-int SQLiteSingleVerNaturalStore::OperateDataStatus(uint32_t dataOperator)
-{
-    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
-    if (sqliteCloudKvStore_ == nullptr) {
-        LOGE("[SingleVerNStore] DB is null when operate data status");
-        return -E_INTERNAL_ERROR;
-    }
-    return sqliteCloudKvStore_->OperateDataStatus(dataOperator);
-}
-
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteSingleVerNaturalStore::ClearCloudWatermark()
 {
@@ -759,4 +749,14 @@ std::function<int(void)> SQLiteSingleVerNaturalStore::ClearCloudWatermarkInner()
     };
 }
 #endif
+
+int SQLiteSingleVerNaturalStore::OperateDataStatus(uint32_t dataOperator)
+{
+    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
+    if (sqliteCloudKvStore_ == nullptr) {
+        LOGE("[SingleVerNStore] DB is null when operate data status");
+        return -E_INTERNAL_ERROR;
+    }
+    return sqliteCloudKvStore_->OperateDataStatus(dataOperator);
+}
 }
