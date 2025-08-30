@@ -54,9 +54,19 @@ typedef enum GRD_ExtractMode {
     EXTRACT_BUTT  // INVALID ExtractMode
 } GRD_ExtractModeE;
 
+#define POS_WEIGHT_LEN 58
+
+typedef struct GRD_ExtractWeight {
+    bool setWeight;
+    uint8_t *posWeight;
+    uint32_t posWeightLen;
+    float shortWordWeight;
+} GRD_ExtractWeightT;
+
 typedef struct GRD_TokenizerParam {
     GRD_CutModeE cutMode;
     GRD_ExtractModeE extractMode;
+    GRD_ExtractWeightT extractWeight;
 } GRD_TokenizerParamT;
 
 typedef struct GRD_CutOption {
@@ -64,8 +74,13 @@ typedef struct GRD_CutOption {
     GRD_CutSceneE cutScene;
 } GRD_CutOptionT;
 
+#define EXTRACT_USE_POS_WEIGHT 1
+#define EXTRACT_USE_SHORT_WORD_WEIGHT 2
+#define EXTRACT_SKIP_PREFIX_WORD 4
+
 typedef struct GRD_ExtractOption {
     uint32_t topN;  // used for extract
+    uint32_t extractFlag;
 } GRD_ExtractOptionT;
 
 typedef struct GRD_WordEntryList GRD_WordEntryListT;
