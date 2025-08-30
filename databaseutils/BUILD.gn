@@ -24,21 +24,43 @@ config("database_utils_config") {
 config("database_utils_public_config") {
   visibility = [ ":*" ]
   include_dirs = [ "include" ]
+  if (use_platform_win || use_platforn_mac || is_ios || is_mac) {
+    include_dirs += [
+      "${kv_store_base_path}/databaseutils/mock/include",
+    ]
+  }
 }
 
 base_sources = [ "src/acl.cpp" ]
 
 ohos_shared_library("database_utils") {
   branch_protector_ret = "pac_ret"
-  sanitize = {
-    ubsan = true
-    boundary_sanitize = true
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-  }
   sources = base_sources
+  if (use_platform_win) {
+    defines = [ "IS_WINDOWS" ]
+    cflags = [ "-includewin_glibc.h" ]
+    deps = [
+      "//third_party/bounds_checking_function:libsec_static",
+    ]
+    sources += [ "mock/src/win_glibc.cpp"]
+  } else if (use_platforn_mac) {
+    defines = [ "_MACOS" ]
+    cflags = [ "-includemac_glibc.h" ]
+    deps = [
+      "//third_party/bounds_checking_function:libsec_static",
+    ]
+    sources += [ "mock/src/mac_glibc.cpp"]
+  } else {
+    sanitize = {
+      ubsan = true
+      boundary_sanitize = true
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+  }
 
+  innerapi_tags = [ "platformsdk" ]
   configs = [ ":database_utils_config" ]
   cflags_cc = [ "-fvisibility=hidden" ]
   public_configs = [ ":database_utils_public_config" ]

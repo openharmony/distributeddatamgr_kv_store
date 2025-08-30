@@ -33,6 +33,7 @@ config("module_private_config") {
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/test/distributedtest/single_kvstore_client",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/app_distributeddata/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
+    "//foundation/distributeddatamgr/kv_store/databaseutils/include",
   ]
   lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }

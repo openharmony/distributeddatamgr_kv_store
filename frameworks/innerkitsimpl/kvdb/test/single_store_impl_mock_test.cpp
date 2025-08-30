@@ -58,7 +58,7 @@ public:
     static inline shared_ptr<TaskExecutorMock> taskExecutorMock = nullptr;
     static inline shared_ptr<AccessTokenKitMock> accessTokenKitMock = nullptr;
     static inline shared_ptr<ConvertorMock> convertorMock = nullptr;
-    std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false, bool backup = true);
+    std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false, bool backup = true, bool isSyncable = false);
 };
 
 void SingleStoreImplMockTest::SetUp() { }
@@ -107,7 +107,7 @@ void SingleStoreImplMockTest::TearDownTestCase()
     (void)remove("/data/service/el1/public/database/SingleStoreImplTest");
 }
 
-std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool autosync, bool backup)
+std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool autosync, bool backup, bool isSyncable)
 {
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "DestructorTest" };
@@ -119,6 +119,7 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool aut
     options.autoSync = autosync;
     options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     options.backup = backup;
+    options.syncable = isSyncable;
     StoreFactory storeFactory;
     auto dbManager = storeFactory.GetDBManager(options.baseDir, appId);
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
@@ -180,6 +181,7 @@ HWTEST_F(SingleStoreImplMockTest, IsRemoteChanged, testing::ext::TestSize.Level1
         EXPECT_CALL(*kVDBNotifierClientMock, IsChanged(_, _)).WillOnce(Return(true));
         ret = kvStore->IsRemoteChanged("123456789");
         EXPECT_TRUE(ret);
+        kvStore = CreateKVStore(false, true, true);
     } catch (...) {
         EXPECT_TRUE(false);
         GTEST_LOG_(INFO) << "SingleStoreImplMockTest-an exception occurred by IsRemoteChanged.";
@@ -299,7 +301,7 @@ HWTEST_F(SingleStoreImplMockTest, Put_001, testing::ext::TestSize.Level1)
     try {
         EXPECT_CALL(*taskExecutorMock, Schedule(_, _, _, _)).Times(1);
         EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).Times(AnyNumber());
-        std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, false);
+        std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, false, true);
         ASSERT_NE(kvStore, nullptr);
         EXPECT_NE(kvStore->dbStore_, nullptr);
         std::vector<uint8_t> vect;

@@ -19,7 +19,6 @@
 #include "securec.h"
 #include <cerrno>
 #include <cstring>
-#include <dlfcn.h>
 #include <functional>
 #include <iosfwd>
 #include <memory>
@@ -29,7 +28,6 @@
 #include <type_traits>
 #include "log_print.h"
 
-
 namespace OHOS {
 namespace DATABASE_UTILS {
 using namespace DistributedKv;
@@ -38,10 +36,10 @@ static constexpr int32_t END_SIZE = 3;
 static constexpr int32_t MIN_SIZE = 9;
 static constexpr const char *REPLACE_CHAIN = "***";
 static constexpr const char *DEFAULT_ANONYMOUS = "******";
-Acl::Acl(const std::string &path) : path_(path), hasError_(false)
+Acl::Acl(const std::string &path, const std::string &aclAttrName) : path_(path), hasError_(false),
+    aclAttrName_(aclAttrName)
 {
-    /* init acl from file's defaule or mode*/
-    AclFromDefault();
+    AclFromFile();
 }
 
 Acl::Acl()
@@ -151,10 +149,10 @@ int Acl::DeSerialize(const char *p, int32_t bufSize)
     return 0;
 }
 
-void Acl::AclFromDefault()
+void Acl::AclFromFile()
 {
     char buf[BUF_SIZE] = { 0 };
-    ssize_t len = getxattr(path_.c_str(), ACL_XATTR_DEFAULT, buf, BUF_SIZE);
+    ssize_t len = getxattr(path_.c_str(), aclAttrName_.c_str(), buf, BUF_SIZE);
     if (len != -1) {
         DeSerialize(buf, BUF_SIZE);
     } else if (errno == ENODATA) {
@@ -180,7 +178,7 @@ void Acl::AclFromMode()
         (st.st_mode & S_IRWXO)));
 }
 
-int32_t Acl::SetDefault()
+int32_t Acl::SetAcl()
 {
     if (IsEmpty()) {
         ZLOGE("Failed to generate ACL from file's mode: %{public}s", std::strerror(errno));
@@ -194,7 +192,7 @@ int32_t Acl::SetDefault()
         ZLOGE("Failed to serialize ACL into binary: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
-    if (setxattr(path_.c_str(), ACL_XATTR_DEFAULT, buf.get(), bufSize, 0) == -1) {
+    if (setxattr(path_.c_str(), aclAttrName_.c_str(), buf.get(), bufSize, 0) == -1) {
         ZLOGE("Failed to write into file's xattr: %{public}s", std::strerror(errno));
         return E_ERROR;
     }
@@ -211,16 +209,61 @@ int32_t Acl::SetDefaultUser(const uint32_t uid, const uint16_t mode)
     return InsertEntry(AclXattrEntry(ACL_TAG::USER, uid, mode));
 }
 
+int32_t Acl::SetAccessGroup(const uint32_t gid, const uint16_t mode)
+{
+    return InsertEntry(AclXattrEntry(ACL_TAG::GROUP, gid, mode));
+}
+
+int32_t Acl::SetAccessUser(const uint32_t uid, const uint16_t mode)
+{
+    return InsertEntry(AclXattrEntry(ACL_TAG::USER, uid, mode));
+}
+
+bool Acl::HasDefaultGroup(uint32_t gid, uint16_t mode)
+{
+    auto entry = AclXattrEntry(ACL_TAG::GROUP, gid, mode);
+    auto iter = entries_.find(entry);
+    if (iter == entries_.end()) {
+        return false;
+    }
+    return *iter == entry;
+}
+
+bool Acl::HasDefaultUser(uint32_t gid, uint16_t mode)
+{
+    auto entry = AclXattrEntry(ACL_TAG::USER, gid, mode);
+    auto iter = entries_.find(entry);
+    if (iter == entries_.end()) {
+        return false;
+    }
+    return *iter == entry;
+}
+
+bool Acl::HasAccessGroup(uint32_t gid, uint16_t mode)
+{
+    auto entry = AclXattrEntry(ACL_TAG::GROUP, gid, mode);
+    auto iter = entries_.find(entry);
+    if (iter == entries_.end()) {
+        return false;
+    }
+    return *iter == entry;
+}
+
+bool Acl::HasAccessUser(uint32_t gid, uint16_t mode)
+{
+    auto entry = AclXattrEntry(ACL_TAG::USER, gid, mode);
+    auto iter = entries_.find(entry);
+    if (iter == entries_.end()) {
+        return false;
+    }
+    return *iter == entry;
+}
+
 Acl::~Acl()
 {
     if (!hasError_) {
-        SetDefault();
+        SetAcl();
     }
-}
-
-bool Acl::HasEntry(const AclXattrEntry &Acl)
-{
-    return entries_.find(Acl) != entries_.end();
 }
 
 std::string Acl::Anonymous(const std::string &name)
@@ -235,5 +278,5 @@ std::string Acl::Anonymous(const std::string &name)
 
     return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
-}
-}
+} // namespace DATABASE_UTILS
+} // namespace OHOS

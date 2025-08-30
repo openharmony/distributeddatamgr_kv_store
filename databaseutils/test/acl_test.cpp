@@ -44,13 +44,13 @@ void AclTest::SetUpTestCase(void) { }
 
 void AclTest::TearDownTestCase(void) { }
 
-// input testcase setup step，setup invoked before each testcases
+// input testcase setup step, setup invoked before each testcases
 void AclTest::SetUp(void)
 {
     (void)remove(PATH_ABC);
 }
 
-// input testcase teardown step，teardown invoked after each testcases
+// input testcase teardown step, teardown invoked after each testcases
 void AclTest::TearDown(void)
 {
     (void)remove(PATH_ABC);
@@ -62,7 +62,7 @@ void AclTest::PreOperation() const
     int res = mkdir(PATH_ABC, mode);
     EXPECT_EQ(res, 0) << "directory creation failed." << std::strerror(errno);
 
-    Acl acl(PATH_ABC);
+    Acl acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
     acl.SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     acl.SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
 
@@ -90,16 +90,49 @@ HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
     int res = mkdir(PATH_ABC, mode);
     EXPECT_EQ(res, 0) << "directory creation failed.";
-    int rc = Acl(PATH_ABC).SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC);
-    AclXattrEntry entry(ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    ASSERT_TRUE(aclNew.HasEntry(entry));
+    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    ASSERT_TRUE(aclNew.HasDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
- * @tc.name: SetDefaultpUser001
+ * @tc.name: SetAccessGroup001
+ * @tc.desc: Set access extended properties for groups.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, SetDefaultGroup002, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    int res = mkdir(PATH_ABC, mode);
+    EXPECT_EQ(res, 0) << "directory creation failed.";
+    auto rc = Acl(PATH_ABC).SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    EXPECT_EQ(rc, 0);
+
+    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    ASSERT_TRUE(aclNew.HasDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+}
+
+/**
+ * @tc.name: SetAccessUser001
+ * @tc.desc: Set access extended properties for user.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    int res = mkdir(PATH_ABC, mode);
+    EXPECT_EQ(res, 0) << "directory creation failed.";
+    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    EXPECT_EQ(rc, 0);
+
+    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    ASSERT_TRUE(aclNew.HasAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+}
+
+/**
+ * @tc.name: SetDefaultUser001
  * @tc.desc: Set default extended properties for user.
  * @tc.type: FUNC
  * @tc.require:
@@ -110,12 +143,11 @@ HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0)
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
     int res = mkdir(PATH_ABC, mode);
     EXPECT_EQ(res, 0) << "directory creation failed.";
-    int rc = Acl(PATH_ABC).SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC);
-    AclXattrEntry entry(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    ASSERT_TRUE(aclNew.HasEntry(entry));
+    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+    ASSERT_TRUE(aclNew.HasDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
@@ -246,12 +278,28 @@ HWTEST_F(AclTest, ACL_PERM001, TestSize.Level1)
  */
 HWTEST_F(AclTest, Anonymous001, TestSize.Level1)
 {
-    Acl aclNew(PATH_ABC);
+    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
     std::string name = "";
     EXPECT_EQ(aclNew.Anonymous(name), "******");
     name = "12345678";
     EXPECT_EQ(aclNew.Anonymous(name), "123***");
     name = "123456789";
     EXPECT_EQ(aclNew.Anonymous(name), "123***789");
+}
+
+/**
+ * @tc.name: AclAttrTest001
+ * @tc.desc: Test ACL_PERM.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
+{
+    std::string path = "/data/test/abc";
+    std::string aclAttrName = "aclAttrName";
+    Acl acl(path, aclAttrName);
+    acl.hasError_ = false;
+    ASSERT_EQ(acl.path_, path);
+    ASSERT_FALSE(acl.hasError_);
+    ASSERT_EQ(acl.aclAttrName_, aclAttrName);
 }
 } // namespace OHOS::Test
