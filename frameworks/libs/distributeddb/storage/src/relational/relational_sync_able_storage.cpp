@@ -1992,5 +1992,226 @@ int RelationalSyncAbleStorage::ClearUnLockingNoNeedCompensated()
     ReleaseHandle(handle);
     return errCode;
 }
+
+int RelationalSyncAbleStorage::GetCloudTableWithoutShared(std::vector<TableSchema> &tables)
+{
+    const auto tableInfos = GetSchemaInfo().GetTables();
+    for (const auto &[tableName, info] : tableInfos) {
+        if (info.GetSharedTableMark()) {
+            continue;
+        }
+        TableSchema schema;
+        int errCode = GetCloudTableSchema(tableName, schema);
+        if (errCode == -E_NOT_FOUND) {
+            continue;
+        }
+        if (errCode != E_OK) {
+            LOGW("[RDBStorage] Get cloud table failed %d", errCode);
+            return errCode;
+        }
+        tables.push_back(schema);
+    }
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery, bool isQueryDownloadRecords)
+{
+    int errCode = E_OK;
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (const auto &table : tables) {
+        if (!CheckTableSupportCompensatedSync(table)) {
+            continue;
+        }
+
+        std::vector<VBucket> syncDataPk;
+        errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk, isQueryDownloadRecords);
+        if (errCode != E_OK) {
+            LOGW("[RDBStorageEngine] Get wait compensated sync data failed, continue! errCode=%d", errCode);
+            errCode = E_OK;
+            continue;
+        }
+        if (syncDataPk.empty()) {
+            // no data need to compensated sync
+            continue;
+        }
+        errCode = CloudStorageUtils::GetSyncQueryByPk(table.name, syncDataPk, false, syncQuery);
+        if (errCode != E_OK) {
+            LOGW("[RDBStorageEngine] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
+            errCode = E_OK;
+            continue;
+        }
+    }
+    if (errCode == E_OK) {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("[RDBStorageEngine] commit failed %d when get compensated sync query", errCode);
+        }
+    } else {
+        int ret = handle->Rollback();
+        if (ret != E_OK) {
+            LOGW("[RDBStorageEngine] rollback failed %d when get compensated sync query", ret);
+        }
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName, bool flag)
+{
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    if (trackerTable.IsEmpty()) {
+        trackerTable.SetTableName(tableName);
+    }
+    return handle->CreateTempSyncTrigger(trackerTable, flag);
+}
+
+bool RelationalSyncAbleStorage::CheckTableSupportCompensatedSync(const TableSchema &table)
+{
+    auto it = std::find_if(table.fields.begin(), table.fields.end(), [](const auto &field) {
+        return field.primary && (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets> ||
+            field.type == TYPE_INDEX<Bytes>);
+    });
+    if (it != table.fields.end()) {
+        LOGI("[RDBStorageEngine] Table contain not support pk field type, ignored");
+        return false;
+    }
+    // check whether reference exist
+    std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
+    int errCode = RelationalSyncAbleStorage::GetTableReference(table.name, tableReference);
+    if (errCode != E_OK) {
+        LOGW("[RDBStorageEngine] Get table reference failed! errCode = %d", errCode);
+        return false;
+    }
+    if (!tableReference.empty()) {
+        LOGI("[RDBStorageEngine] current table exist reference property");
+        return false;
+    }
+    return true;
+}
+
+int RelationalSyncAbleStorage::MarkFlagAsConsistent(const std::string &tableName, const DownloadData &downloadData,
+    const std::set<std::string> &gidFilters)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    int errCode = transactionHandle_->MarkFlagAsConsistent(tableName, downloadData, gidFilters);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] mark flag as consistent failed.%d", errCode);
+    }
+    return errCode;
+}
+
+CloudSyncConfig RelationalSyncAbleStorage::GetCloudSyncConfig() const
+{
+    std::lock_guard<std::mutex> autoLock(configMutex_);
+    return cloudSyncConfig_;
+}
+
+void RelationalSyncAbleStorage::SetCloudSyncConfig(const CloudSyncConfig &config)
+{
+    std::lock_guard<std::mutex> autoLock(configMutex_);
+    cloudSyncConfig_ = config;
+    LOGI("[RelationalSyncAbleStorage] SetCloudSyncConfig value:[%" PRId32 ", %" PRId32 ", %" PRId32 ", %d]",
+        cloudSyncConfig_.maxUploadCount, cloudSyncConfig_.maxUploadSize,
+        cloudSyncConfig_.maxRetryConflictTimes, cloudSyncConfig_.isSupportEncrypt);
+}
+
+bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
+{
+    // check whether reference exist
+    std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
+    int errCode = RelationalSyncAbleStorage::GetTableReference(table, tableReference);
+    if (errCode != E_OK) {
+        LOGW("[RDBStorageEngine] Get table reference failed! errCode = %d", errCode);
+        return false;
+    }
+    return !tableReference.empty();
+}
+
+bool RelationalSyncAbleStorage::IsTableExistReferenceOrReferenceBy(const std::string &table)
+{
+    // check whether reference or reference by exist
+    if (storageEngine_ == nullptr) {
+        LOGE("[IsTableExistReferenceOrReferenceBy] storage is null when get reference gid");
+        return false;
+    }
+    RelationalSchemaObject schema = storageEngine_->GetSchema();
+    auto referenceProperty = schema.GetReferenceProperty();
+    if (referenceProperty.empty()) {
+        return false;
+    }
+    auto [sourceTableName, errCode] = GetSourceTableName(table);
+    if (errCode != E_OK) {
+        return false;
+    }
+    for (const auto &property : referenceProperty) {
+        if (DBCommon::CaseInsensitiveCompare(property.sourceTableName, sourceTableName) ||
+            DBCommon::CaseInsensitiveCompare(property.targetTableName, sourceTableName)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int RelationalSyncAbleStorage::ReviseLocalModTime(const std::string &tableName,
+    const std::vector<ReviseModTimeInfo> &revisedData)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[ReviseLocalModTime] Storage is null");
+        return -E_INVALID_DB;
+    }
+    int errCode = E_OK;
+    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+            storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
+    if (writeHandle == nullptr) {
+        LOGE("[ReviseLocalModTime] Get write handle fail: %d", errCode);
+        return errCode;
+    }
+    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[ReviseLocalModTime] Start Transaction fail: %d", errCode);
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->ReviseLocalModTime(tableName, revisedData);
+    if (errCode != E_OK) {
+        LOGE("[ReviseLocalModTime] Revise local modify time fail: %d", errCode);
+        writeHandle->Rollback();
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->Commit();
+    ReleaseHandle(writeHandle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetCursor(const std::string &tableName, uint64_t &cursor)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    return transactionHandle_->GetCursor(tableName, cursor);
+}
+
+int RelationalSyncAbleStorage::GetLocalDataCount(const std::string &tableName, int &dataCount,
+    int &logicDeleteDataCount)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr || errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] Get handle failed when get local data count: %d", errCode);
+        return errCode;
+    }
+    errCode = handle->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
+    ReleaseHandle(handle);
+    return errCode;
+}
 }
 #endif
