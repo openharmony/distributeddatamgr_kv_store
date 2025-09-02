@@ -32,6 +32,24 @@ struct CloudStateSwitchTable {
     std::map<uint8_t, EventToState> switchTable;
 };
 
+enum CloudSyncState {
+    IDLE = 0,
+    DO_DOWNLOAD,
+    DO_UPLOAD,
+    DO_REPEAT_CHECK,
+    DO_FINISHED
+};
+
+enum CloudSyncEvent {
+    UPLOAD_FINISHED_EVENT,
+    DOWNLOAD_FINISHED_EVENT,
+    ERROR_EVENT,
+    REPEAT_CHECK_EVENT,
+    REPEAT_DOWNLOAD_EVENT,
+    START_SYNC_EVENT,
+    ALL_TASK_FINISHED_EVENT
+};
+
 class CloudSyncStateMachine {
 public:
     CloudSyncStateMachine() = default;

@@ -19,6 +19,7 @@
 #include <set>
 #include <map>
 
+#include "db_types.h"
 #include "types_export.h"
 
 namespace DistributedDB {

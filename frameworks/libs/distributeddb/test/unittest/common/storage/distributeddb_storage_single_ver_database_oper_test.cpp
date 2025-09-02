@@ -160,45 +160,63 @@ HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, DatabaseOperationTest002
  */
 HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, DatabaseOperationTest003, TestSize.Level0)
 {
+    /**
+     * @tc.steps: step1. Create singleVerDatabaseOper;
+     * @tc.expected: OK.
+     */
     std::unique_ptr<SingleVerDatabaseOper> singleVerDatabaseOper =
         std::make_unique<SingleVerDatabaseOper>(singleVerNaturalStore_, nullptr);
     ASSERT_NE(singleVerDatabaseOper, nullptr);
-
+    /**
+     * @tc.steps: step2. Create validProperty;
+     * @tc.expected: OK.
+     */
     KvDBProperties validProperty;
     validProperty.SetStringProp(KvDBProperties::DATA_DIR, testDir_);
     validProperty.SetStringProp(KvDBProperties::STORE_ID, "TestRecoverPrehandleError");
     validProperty.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "TestRecoverPrehandleError");
     validProperty.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
-    // prepare file
+    /**
+     * @tc.steps: step3. Prepare file;
+     * @tc.expected: OK.
+     */
     std::string dbSubDir = KvDBProperties::GetStoreSubDirectory
         (validProperty.GetIntProp(KvDBProperties::DATABASE_TYPE, 0));
     std::string workDir = testDir_ + "/" + validProperty.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
     std::string preCtrlFileName = workDir + "/" + dbSubDir + DBConstant::REKEY_FILENAME_POSTFIX_PRE;
     std::string backupDir = workDir + "/" + dbSubDir + DBConstant::PATH_BACKUP_POSTFIX;
-    // Create the preCtrlFile and backupDir
+    /**
+     * @tc.steps: step4. Create the preCtrlFile and backupDir;
+     * @tc.expected: OK.
+     */
     EXPECT_EQ(OS::MakeDBDirectory(workDir), E_OK);
     EXPECT_EQ(OS::MakeDBDirectory(workDir + "/" + dbSubDir), E_OK);
     EXPECT_EQ(OS::MakeDBDirectory(backupDir), E_OK);
-    std::string testFile1 = backupDir + "/test1.txt";
-    std::string testFile2 = backupDir + "/test2.txt";
-    DistributedDB::OS::FileHandle* fileHandle1 = nullptr;
-    DistributedDB::OS::FileHandle* fileHandle2 = nullptr;
+    std::string testFile = backupDir + "/test.txt";
+    DistributedDB::OS::FileHandle* fileHandle = nullptr;
     DistributedDB::OS::FileHandle* preCtrlHandle = nullptr;
-    EXPECT_EQ(OS::OpenFile(testFile1, fileHandle1), E_OK);
-    if (fileHandle1 != nullptr) {
-        OS::CloseFile(fileHandle1);
-        fileHandle1 = nullptr;
-    }
-    EXPECT_EQ(OS::OpenFile(testFile2, fileHandle2), E_OK);
-    if (fileHandle2 != nullptr) {
-        OS::CloseFile(fileHandle2);
-        fileHandle2 = nullptr;
+    EXPECT_EQ(OS::OpenFile(testFile, fileHandle), E_OK);
+    if (fileHandle != nullptr) {
+        OS::CloseFile(fileHandle);
+        fileHandle = nullptr;
     }
     EXPECT_EQ(OS::OpenFile(preCtrlFileName, preCtrlHandle), E_OK);
     if (preCtrlHandle != nullptr) {
         OS::CloseFile(preCtrlHandle);
         preCtrlHandle = nullptr;
     }
+    /**
+     * @tc.steps: step5. Set backupDir read only;
+     * @tc.expected: OK.
+     */
+    EXPECT_EQ(chmod(backupDir.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+    if (access(backupDir.c_str(), W_OK) == 0) {
+        LOGD("Modifying permissions is ineffective for execution\n");
+        EXPECT_EQ(chmod(backupDir.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        return;
+    }
+    EXPECT_EQ(singleVerDatabaseOper->RekeyRecover(validProperty), -E_REMOVE_FILE);
+    EXPECT_EQ(chmod(backupDir.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
     EXPECT_EQ(singleVerDatabaseOper->RekeyRecover(validProperty), E_OK);
 }
 

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "db_types.h"
 #include "sync_config.h"
 namespace DistributedDB {
 const AbilityItem SyncConfig::DATABASE_COMPRESSION_ZLIB = {0, 1};

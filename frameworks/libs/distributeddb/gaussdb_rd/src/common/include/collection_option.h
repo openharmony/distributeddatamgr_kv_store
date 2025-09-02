@@ -16,6 +16,7 @@
 #ifndef COLLECTION_OPTION_H
 #define COLLECTION_OPTION_H
 
+#include <cstdint>
 #include <string>
 
 namespace DocumentDB {

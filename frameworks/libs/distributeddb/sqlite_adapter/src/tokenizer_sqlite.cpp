@@ -14,11 +14,14 @@
  */
 
 #include "tokenizer_sqlite.h"
+
+#include <cstdint>
+#include <mutex>
+#include <string>
+
 #include "tokenizer_api.h"
 #include "tokenizer_export_type.h"
 #include "securec.h"
-
-#include <mutex>
 
 SQLITE_EXTENSION_INIT1
 
@@ -42,7 +45,10 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
 {
     (void)sqlite3;
     std::lock_guard<std::mutex> lock(g_mtx);
-    auto *pFts5TokenizerParam = new Fts5TokenizerParamT;
+    auto *pFts5TokenizerParam = new(std::nothrow) Fts5TokenizerParamT;
+    if (pFts5TokenizerParam == nullptr) {
+        return SQLITE_ERROR;
+    }
     pFts5TokenizerParam->magicCode = MAGIC_CODE;
     if (nArg != 0 && nArg != CUSTOM_TOKENIZER_PARAM_NUM) {
         sqlite3_log(SQLITE_ERROR, "invalid args num");

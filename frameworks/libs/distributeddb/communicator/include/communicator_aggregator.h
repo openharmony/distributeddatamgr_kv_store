@@ -97,6 +97,8 @@ public:
     void ClearOnlineLabel() override;
 
     void ResetRetryCount();
+
+    int32_t GetRetryCount(const std::string &dev) const;
 private:
     // Working in a dedicated thread
     void SendDataRoutine();
@@ -176,6 +178,8 @@ private:
         SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc,
         const UserInfo &userInfo);
 
+    void ResetRetryCount(const std::string &dev);
+
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 
     static std::atomic<bool> isCommunicatorNotFoundFeedbackEnable_;
@@ -232,7 +236,7 @@ private:
     std::mutex sendRecordMutex_;
     std::map<uint32_t, FrameSendRecord> sendRecord_;
 
-    std::mutex retryCountMutex_;
+    mutable std::mutex retryCountMutex_;
     std::map<std::string, int32_t> retryCount_;
 
     std::mutex sendSequenceMutex_;

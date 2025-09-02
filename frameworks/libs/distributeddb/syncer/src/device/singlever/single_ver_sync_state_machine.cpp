@@ -195,6 +195,11 @@ int SingleVerSyncStateMachine::ReceiveMessageCallback(Message *inMsg)
         SwitchStateAndStep(NEED_RESYNC_EVENT);
         return E_OK;
     }
+    if (inMsg->GetErrorNo() == E_NEED_CORRECT_TARGET_USER && inMsg->GetMessageType() == TYPE_RESPONSE) {
+        context_->SetTaskErrCode(-E_NEED_CORRECT_TARGET_USER);
+        InnerErrorAbort(inMsg->GetSessionId());
+        return -E_NEED_CORRECT_TARGET_USER;
+    }
     switch (inMsg->GetMessageId()) {
         case TIME_SYNC_MESSAGE:
             errCode = TimeMarkSyncRecv(inMsg);
@@ -896,6 +901,7 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED },
         { -E_DISTRIBUTED_SCHEMA_NOT_FOUND,    SyncOperation::OP_SCHEMA_INCOMPATIBLE },
         { -E_FEEDBACK_DB_CLOSING,             SyncOperation::OP_DB_CLOSING },
+        { -E_NEED_CORRECT_TARGET_USER,        SyncOperation::OP_NEED_CORRECT_TARGET_USER },
     };
     const auto &result = std::find_if(std::begin(stateNodes), std::end(stateNodes), [errCode](const auto &node) {
         return node.errCode == errCode;

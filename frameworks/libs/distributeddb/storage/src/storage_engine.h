@@ -180,6 +180,7 @@ private:
     std::atomic<int> readPendingCount_;
     std::atomic<int> externalReadPendingCount_;
 
+    mutable std::mutex stateMutex_;
     EngineState engineState_;
 };
 } // namespace DistributedDB

@@ -145,24 +145,6 @@ enum class LockAction : uint32_t {
     DOWNLOAD = 0x8
 };
 
-enum CloudSyncState {
-    IDLE = 0,
-    DO_DOWNLOAD,
-    DO_UPLOAD,
-    DO_REPEAT_CHECK,
-    DO_FINISHED
-};
-
-enum CloudSyncEvent {
-    UPLOAD_FINISHED_EVENT,
-    DOWNLOAD_FINISHED_EVENT,
-    ERROR_EVENT,
-    REPEAT_CHECK_EVENT,
-    REPEAT_DOWNLOAD_EVENT,
-    START_SYNC_EVENT,
-    ALL_TASK_FINISHED_EVENT
-};
-
 struct CloudSyncOption {
     std::vector<std::string> devices;
     SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE;

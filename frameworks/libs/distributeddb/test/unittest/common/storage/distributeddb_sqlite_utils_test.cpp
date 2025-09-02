@@ -14,8 +14,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <sys/stat.h>
 
 #include "distributeddb_tools_unit_test.h"
+#include "kvdb_utils.h"
 #include "native_sqlite.h"
 #include "platform_specific.h"
 #include "sqlite_cloud_kv_executor_utils.h"
@@ -33,9 +35,25 @@ namespace {
     string g_testDir;
     string g_dbDir;
     sqlite3 *g_db = nullptr;
+    std::string g_dirAll;
+    std::string g_dirStoreOnly;
+    std::string g_dbName = "test.db";
+    std::string g_name = "test";
 
     const int MAX_BLOB_READ_SIZE = 64 * 1024 * 1024; // 64M limit
     const int MAX_TEXT_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+
+    void CreateTestDbFiles()
+    {
+        g_dirAll = g_dbDir + "all";
+        g_dirStoreOnly = g_dbDir + "store";
+        EXPECT_EQ(mkdir(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        EXPECT_EQ(mkdir(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        std::string dbFileNameAll = g_dirAll + '/' + g_dbName;
+        std::ofstream dbAllFile(dbFileNameAll.c_str(), std::ios::out | std::ios::binary);
+        ASSERT_TRUE(dbAllFile.is_open());
+        dbAllFile.close();
+    }
 }
 
 class DistributedDBSqliteUtilsTest : public testing::Test {
@@ -107,6 +125,12 @@ HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest002, TestSi
     EXPECT_EQ(value, outValue);
     Key unknownKey = { 0x03 };
     EXPECT_EQ(executor.Get(unknownKey, outValue), -E_NOT_FOUND);
+    SQLiteLocalStorageExecutor invalidExecutor(nullptr, true, false);
+    EXPECT_EQ(invalidExecutor.Get(key, outValue), -E_INVALID_DB);
+    EXPECT_EQ(invalidExecutor.Put(key, value), -E_INVALID_DB);
+    Key emptyKey = {};
+    EXPECT_EQ(executor.Get(emptyKey, outValue), -E_INVALID_ARGS);
+    EXPECT_EQ(executor.Put(emptyKey, value), -E_INVALID_ARGS);
 }
 
 /**
@@ -168,6 +192,16 @@ HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest004, TestSi
     EXPECT_EQ(executor.Delete(key1), E_OK);
     EXPECT_EQ(executor.GetEntries(key, entries), E_OK);
     EXPECT_EQ(entries.size(), 1);
+    SQLiteLocalStorageExecutor invalidExecutor(nullptr, true, false);
+    EXPECT_EQ(invalidExecutor.GetEntries(key, entries), -E_INVALID_DB);
+    Key invalidKey;
+    invalidKey.resize(DBConstant::MAX_KEY_SIZE + 1);
+    EXPECT_EQ(executor.GetEntries(invalidKey, entries), -E_SECUREC_ERROR);
+    std::vector<Entry> emptyEntries = {};
+    EXPECT_EQ(executor.Delete(key2), E_OK);
+    EXPECT_EQ(executor.GetEntries(key, emptyEntries), -E_NOT_FOUND);
+    Key emptyKey = {};
+    EXPECT_EQ(executor.Delete(emptyKey), -E_INVALID_ARGS);
 }
 
 /**
@@ -190,6 +224,31 @@ HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest005, TestSi
     EXPECT_EQ(executor.Put(key, value), E_OK);
     EXPECT_EQ(executor.RollBack(), E_OK);
     EXPECT_EQ(executor.Get(key, outValue), -E_NOT_FOUND);
+}
+
+/**
+ * @tc.name: SQLiteLocalStorageExecutorTest006
+ * @tc.desc: Test SQLiteLocalStorageExecutor DeleteBatch
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, SQLiteLocalStorageExecutorTest006, TestSize.Level0)
+{
+    SQLiteLocalStorageExecutor executor(g_db, true, false);
+    Key key1 = { 0x01, 0x02 };
+    Key key2 = { 0x01, 0x03 };
+    Value value;
+    executor.Put(key1, value);
+    executor.Put(key2, value);
+    std::vector<Key> keys;
+    keys.push_back(key1);
+    keys.push_back(key2);
+    std::vector<Key> emptyKeys = {};
+    EXPECT_EQ(executor.DeleteBatch(emptyKeys), -E_INVALID_ARGS);
+    SQLiteLocalStorageExecutor invalidExecutor(nullptr, true, false);
+    EXPECT_EQ(invalidExecutor.DeleteBatch(keys), -E_INVALID_DB);
+    EXPECT_EQ(executor.DeleteBatch(keys), E_OK);
 }
 
 /**
@@ -590,4 +649,94 @@ HWTEST_F(DistributedDBSqliteUtilsTest, SetUserVerTest001, TestSize.Level0)
     properties.uri = "";
     int version = 0;
     EXPECT_EQ(SQLiteUtils::SetUserVer(properties, version), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: GetStoreDirectoryTest001
+ * @tc.desc: Test GetStoreDirectory function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, GetStoreDirectoryTest001, TestSize.Level0)
+{
+    std::string directory = "data";
+    std::string identifierName = "myDatabase";
+    std::string expected = "data/myDatabase";
+    KvDBUtils::GetStoreDirectory(directory, identifierName);
+    EXPECT_EQ(directory, expected);
+}
+
+/**
+ * @tc.name: RemoveKvDBTest001
+ * @tc.desc: Test RemoveKvDB function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, RemoveKvDBTest001, TestSize.Level0)
+{
+    CreateTestDbFiles();
+    std::string dbFileNameStore = g_dirStoreOnly + '/' + g_dbName;
+    std::ofstream dbStoreFile(dbFileNameStore.c_str(), std::ios::out | std::ios::binary);
+    ASSERT_TRUE(dbStoreFile.is_open());
+    dbStoreFile.close();
+    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH |S_IXOTH)), E_OK);
+    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH |S_IXOTH)), E_OK);
+    if (access(g_dirAll.c_str(), W_OK) == 0 || access(g_dirStoreOnly.c_str(), W_OK) == 0) {
+        LOGD("Modifying permissions is ineffective for execution\n");
+        EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        return;
+    }
+    EXPECT_EQ(KvDBUtils::RemoveKvDB(g_dirAll, g_dirStoreOnly, g_name), -E_REMOVE_FILE);
+    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+    EXPECT_EQ(KvDBUtils::RemoveKvDB(g_dirAll, g_dirStoreOnly, g_name), -E_REMOVE_FILE);
+    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+}
+
+/**
+ * @tc.name: GetKvDbSizeTest001
+ * @tc.desc: Test GetKvDbSize function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, GetKvDbSizeTest001, TestSize.Level0)
+{
+    uint64_t size = 0;
+    CreateTestDbFiles();
+    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRUSR | S_IRGRP | S_IROTH)), E_OK);
+    if (access(g_dirAll.c_str(), W_OK) == 0) {
+        LOGD("Modifying permissions is ineffective for execution\n");
+        EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        return;
+    }
+    EXPECT_EQ(KvDBUtils::GetKvDbSize(g_dirAll, g_dirStoreOnly, g_name, size), -E_INVALID_DB);
+    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+}
+
+/**
+ * @tc.name: GetKvDbSizeTest002
+ * @tc.desc: Test GetKvDbSize function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, GetKvDbSizeTest002, TestSize.Level0)
+{
+    uint64_t size = 0;
+    CreateTestDbFiles();
+    std::string dbFileNameStore = g_dirStoreOnly + '/' + g_dbName;
+    std::ofstream dbStoreFile(dbFileNameStore.c_str(), std::ios::out | std::ios::binary);
+    ASSERT_TRUE(dbStoreFile.is_open());
+    dbStoreFile.close();
+    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRUSR | S_IRGRP | S_IROTH)), E_OK);
+    if (access(g_dirStoreOnly.c_str(), W_OK) == 0) {
+        LOGD("Modifying permissions is ineffective for execution\n");
+        EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        return;
+    }
+    EXPECT_EQ(KvDBUtils::GetKvDbSize(g_dirAll, g_dirStoreOnly, g_name, size), -E_INVALID_DB);
+    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
 }

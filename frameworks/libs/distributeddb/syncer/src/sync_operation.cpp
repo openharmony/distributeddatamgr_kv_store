@@ -463,6 +463,7 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
         { static_cast<int>(OP_DENIED_SQL),                    NO_PERMISSION },
         { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
         { static_cast<int>(OP_DB_CLOSING),                    OK },
+        { static_cast<int>(OP_NEED_CORRECT_TARGET_USER),      NEED_CORRECT_TARGET_USER },
         { static_cast<int>(OP_FAILED),                        DB_ERROR },
     };
     const auto &result = std::find_if(std::begin(syncOperationStatusNodes), std::end(syncOperationStatusNodes),

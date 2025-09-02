@@ -590,10 +590,10 @@ int ProtocolProto::CalculateXorSum(const uint8_t *bytes, uint32_t length, uint64
         LOGE("[Proto][CalcuXorSum] Length=%d not multiple of eight or larget than int32_max.", length);
         return -E_LENGTH_ERROR;
     }
-    int count = length / sizeof(uint64_t);
+    int32_t count = static_cast<int32_t>(length) / sizeof(uint64_t);
     auto array = reinterpret_cast<const uint64_t *>(bytes);
     outSum = 0;
-    for (int i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         outSum ^= array[i];
     }
     return E_OK;

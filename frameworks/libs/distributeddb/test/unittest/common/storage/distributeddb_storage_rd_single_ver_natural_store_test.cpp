@@ -86,6 +86,9 @@ void DistributedDBStorageRdSingleVerNaturalStoreTest::TearDown(void)
     g_store = nullptr;
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/" + g_identifier + "/" +
         DBConstant::SINGLE_SUB_DIR);
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
 }
 
 /**

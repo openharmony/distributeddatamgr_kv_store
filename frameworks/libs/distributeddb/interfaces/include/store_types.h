@@ -96,6 +96,7 @@ enum DBStatus {
     SKIP_ASSET, // workaround status for contact app assets download failure, need to ignore these failures
     LOW_VERSION_TARGET, // The target device is a low version device
     NEED_CORRECT_TARGET_USER, // The target user ID is incorrect and needs to be re-obtained
+    CLOUD_ASSET_NOT_FOUND, // The cloud download asset return 404 error
     BUTT_STATUS = 27394048 // end of status
 };
 

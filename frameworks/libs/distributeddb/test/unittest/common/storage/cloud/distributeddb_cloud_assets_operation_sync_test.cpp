@@ -1826,5 +1826,33 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithLogFlag001, TestSize
     EXPECT_EQ(sqlite3_exec(db_, checkSql.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(1u), nullptr), SQLITE_OK);
 }
+
+/**
+ * @tc.name: MergeDownloadAssetTest001
+ * @tc.desc: Test MergeDownloadAsset func.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, MergeDownloadAssetTest001, TestSize.Level0)
+{
+    map<string, Assets> downloadAssets;
+    map<string, Assets> mergeAssets;
+    Assets assets1 = {{.name = "asset1"}, {.name = "asset2"}};
+    downloadAssets["key1"] = assets1;
+    Assets assets2 = {{.name = "asset3"}, {.name = "asset1"}};
+    mergeAssets["key1"] = assets2;
+    mergeAssets["key2"] = assets1;
+    CloudStorageUtils::MergeDownloadAsset(downloadAssets, mergeAssets);
+    EXPECT_GE(mergeAssets["key1"].size(), 2);
+    EXPECT_GE(mergeAssets["key2"].size(), 2);
+    EXPECT_GE(downloadAssets["key1"].size(), 2);
+    EXPECT_EQ(mergeAssets["key1"][0].name, "asset3");
+    EXPECT_EQ(mergeAssets["key1"][1].name, "asset1");
+    EXPECT_EQ(mergeAssets["key2"][0].name, "asset1");
+    EXPECT_EQ(mergeAssets["key2"][1].name, "asset2");
+    EXPECT_EQ(downloadAssets["key1"][0].name, "asset1");
+    EXPECT_EQ(downloadAssets["key1"][1].name, "asset2");
+}
 }
 #endif

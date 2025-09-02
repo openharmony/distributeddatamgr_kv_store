@@ -31,6 +31,7 @@
 #include "sync_types.h"
 #include "virtual_communicator.h"
 #include "virtual_communicator_aggregator.h"
+#include "virtual_single_ver_serialize_manager.h"
 #include "virtual_single_ver_sync_db_Interface.h"
 
 using namespace testing::ext;
@@ -1974,4 +1975,109 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestS
         EXPECT_TRUE(item == value);
         key.pop_back();
     }
+}
+
+/**
+ * @tc.name: SerializationMessageTypeInvalid
+ * @tc.desc: Test DataSerialization() and ControlSerialization()
+ *      and DataDeSerialization() and ControlDeSerialization() when MessageType is Invalid.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, SerializationMessageTypeInvalid, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare a QuerySyncAckPacket.
+     */
+    DataAckPacket packet;
+    packet.SetVersion(SOFTWARE_VERSION_CURRENT);
+    packet.SetData(INT64_MAX);
+    packet.SetRecvCode(-E_NOT_SUPPORT);
+    std::vector<uint64_t> reserved = {INT8_MAX};
+    packet.SetReserved(reserved);
+    /**
+     * @tc.steps: step2. put the QuerySyncAckPacket into a message with invalid type.
+     */
+    Message msg;
+    msg.SetCopiedObject(packet);
+    msg.SetMessageId(QUERY_SYNC_MESSAGE);
+    msg.SetMessageType(TYPE_INVALID);
+    /**
+     * @tc.steps: step3. call DataSerialization() and ControlSerialization() and DataDeSerialization().
+     */
+    int len = static_cast<int>(SingleVerSerializeManager::CalculateLen(&msg));
+    EXPECT_EQ(len, 0);
+    vector<uint8_t> buffer(len);
+    EXPECT_EQ(VirtualSingleVerSerializeManager::CallDataSerialization(buffer.data(), buffer.size(), &msg),
+        -E_MESSAGE_TYPE_ERROR);
+    EXPECT_EQ(VirtualSingleVerSerializeManager::CallControlSerialization(buffer.data(), buffer.size(), &msg),
+        -E_MESSAGE_TYPE_ERROR);
+    EXPECT_EQ(VirtualSingleVerSerializeManager::CallDataDeSerialization(buffer.data(), buffer.size(), &msg),
+        -E_MESSAGE_TYPE_ERROR);
+    EXPECT_EQ(VirtualSingleVerSerializeManager::CallControlDeSerialization(buffer.data(), buffer.size(), &msg),
+        -E_MESSAGE_TYPE_ERROR);
+}
+
+/**
+ * @tc.name: CalculateLenError
+ * @tc.desc: Test CalculateDataLen() and CalculateDataLen() when calculateLen return ERROR.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, CalculateLenError, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare a message with TYPE_REQUEST and invalid packet.
+     */
+    Message msgRequest;
+    msgRequest.SetMessageId(QUERY_SYNC_MESSAGE);
+    msgRequest.SetMessageType(TYPE_REQUEST);
+    int errCode = SingleVerSerializeManager::CalculateLen(&msgRequest);
+    EXPECT_EQ(errCode, 0);
+    msgRequest.SetMessageId(CONTROL_SYNC_MESSAGE);
+    errCode = SingleVerSerializeManager::CalculateLen(&msgRequest);
+    EXPECT_EQ(errCode, 0);
+    /**
+     * @tc.steps: step2. prepare a message with TYPE_NOTIFY and invalid packet.
+     */
+    Message msgNotify;
+    msgNotify.SetMessageId(QUERY_SYNC_MESSAGE);
+    msgNotify.SetMessageType(TYPE_NOTIFY);
+    errCode = SingleVerSerializeManager::CalculateLen(&msgNotify);
+    EXPECT_EQ(errCode, 0);
+    msgRequest.SetMessageId(CONTROL_SYNC_MESSAGE);
+    errCode = SingleVerSerializeManager::CalculateLen(&msgNotify);
+    EXPECT_EQ(errCode, 0);
+}
+
+/**
+ * @tc.name: PacketSerializationPacketIsNull
+ * @tc.desc: Test DataPacketSerialization() DataPacketCalculateLen() and AckPacketCalculateLen()
+ *      when packet is null.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, PacketSerializationPacketIsNull, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. test DataPacketSerialization() when packet is invalid.
+     */
+    Message msg;
+    msg.SetMessageId(QUERY_SYNC_MESSAGE);
+    msg.SetMessageType(TYPE_REQUEST);
+    int len = static_cast<int>(SingleVerSerializeManager::CalculateLen(&msg));
+    vector<uint8_t> buffer(len);
+    int errCode = VirtualSingleVerSerializeManager::CallDataPacketSerialization(buffer.data(), buffer.size(), &msg);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+    /**
+     * @tc.steps: step2. test DataPacketCalculateLen() and AckPacketCalculateLen() when packet is invalid.
+     */
+    uint32_t length = 0;
+    errCode = VirtualSingleVerSerializeManager::CallDataPacketCalculateLen(&msg, length);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
+    errCode = VirtualSingleVerSerializeManager::CallAckPacketCalculateLen(&msg, length);
+    EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }

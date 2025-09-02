@@ -1456,3 +1456,219 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, AbnormalPut001, TestSize.Level1)
     EXPECT_NE(g_connection->Put(option, key, value), E_OK);
     sqlite3_close(db);
 }
+
+/**
+  * @tc.name: SerializeDataTest001
+  * @tc.desc: test SerializeData func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, SerializeDataTest001, TestSize.Level0)
+{
+    uint32_t targetVersion = 1;
+    const uint32_t bufferSize = sizeof(uint32_t) - 1; // Make the buffer unable to accommodate a uint32_t.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    GenericSingleVerKvEntry entry;
+    EXPECT_EQ(entry.SerializeData(parcel, targetVersion), -E_PARSE_FAIL);
+}
+
+/**
+  * @tc.name: SerializeDatasTest001
+  * @tc.desc: test SerializeDatas func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, SerializeDatasTest001, TestSize.Level0)
+{
+    uint32_t targetVersion = 1;
+    const uint32_t bufferSize = sizeof(uint32_t) - 1; // Make the buffer unable to accommodate a uint32_t.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    std::vector<SingleVerKvEntry*> kvEntries;
+    std::unique_ptr<SingleVerKvEntry> entry = std::make_unique<GenericSingleVerKvEntry>();
+    ASSERT_NE(entry, nullptr);
+    kvEntries.push_back(entry.get());
+    EXPECT_EQ(GenericSingleVerKvEntry::SerializeDatas(kvEntries, parcel, targetVersion), -E_PARSE_FAIL);
+}
+
+/**
+  * @tc.name: SerializeDatasTest002
+  * @tc.desc: test SerializeDatas func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, SerializeDatasTest002, TestSize.Level0)
+{
+    uint32_t targetVersion = 1;
+    const uint32_t bufferSize = sizeof(uint32_t) + 1; // Make the buffer unable to byte alignment.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    std::vector<SingleVerKvEntry*> kvEntries;
+    std::unique_ptr<SingleVerKvEntry> entry = std::make_unique<GenericSingleVerKvEntry>();
+    ASSERT_NE(entry, nullptr);
+    kvEntries.push_back(entry.get());
+    EXPECT_EQ(GenericSingleVerKvEntry::SerializeDatas(kvEntries, parcel, targetVersion), -E_PARSE_FAIL);
+}
+
+/**
+  * @tc.name: SerializeDatasTest003
+  * @tc.desc: test SerializeDatas func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, SerializeDatasTest003, TestSize.Level0)
+{
+    uint32_t targetVersion = 1;
+    const uint32_t bufferSize = 8; // Make the buffer unable to accommodate a uint32_t after byte alignment.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    std::vector<SingleVerKvEntry*> kvEntries;
+    std::unique_ptr<SingleVerKvEntry> entry = std::make_unique<GenericSingleVerKvEntry>();
+    ASSERT_NE(entry, nullptr);
+    kvEntries.push_back(nullptr);
+    kvEntries.push_back(entry.get());
+    EXPECT_EQ(GenericSingleVerKvEntry::SerializeDatas(kvEntries, parcel, targetVersion), -E_PARSE_FAIL);
+}
+
+/**
+  * @tc.name: CalculateLenTest001
+  * @tc.desc: test CalculateLen func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, CalculateLenTest001, TestSize.Level0)
+{
+    GenericSingleVerKvEntry entry;
+    uint32_t targetVersion = SOFTWARE_VERSION_EARLIEST - 1;
+    uint32_t len = entry.CalculateLen(targetVersion);
+    EXPECT_EQ(len, 0);
+}
+
+/**
+  * @tc.name: CalculateLenTest002
+  * @tc.desc: test AdaptToVersion func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, CalculateLenTest002, TestSize.Level0)
+{
+    GenericSingleVerKvEntry entry;
+    uint32_t targetVersion = SOFTWARE_VERSION_CURRENT + 1;
+    uint32_t len = entry.CalculateLen(targetVersion);
+    EXPECT_EQ(len, 0);
+}
+
+/**
+  * @tc.name: CalculateLensTest001
+  * @tc.desc: test CalculateLens func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, CalculateLensTest001, TestSize.Level0)
+{
+    uint32_t targetVersion = SOFTWARE_VERSION_CURRENT;
+    std::vector<SingleVerKvEntry*> kvEntries;
+    std::unique_ptr<SingleVerKvEntry> entry = std::make_unique<GenericSingleVerKvEntry>();
+    ASSERT_NE(entry, nullptr);
+    kvEntries.push_back(nullptr);
+    kvEntries.push_back(entry.get());
+    uint32_t len = GenericSingleVerKvEntry::CalculateLens(kvEntries, targetVersion);
+    EXPECT_NE(len, 0);
+}
+
+/**
+  * @tc.name: DeSerializeDataTest001
+  * @tc.desc: test DeSerializeData func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerializeDataTest001, TestSize.Level0)
+{
+    const uint32_t bufferSize = sizeof(uint32_t) - 1; // Make the buffer unable to accomodate a uint32_t.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    GenericSingleVerKvEntry entry;
+    EXPECT_EQ(entry.DeSerializeData(parcel), 0);
+}
+
+/**
+  * @tc.name: DeSerializeDataTest002
+  * @tc.desc: test DeSerializeData func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerializeDataTest002, TestSize.Level0)
+{
+    const uint32_t bufferSize = 100;
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    uint32_t invalidVersion = SOFTWARE_VERSION_CURRENT - 1;
+    EXPECT_EQ(parcel.WriteUInt32(invalidVersion), E_OK);
+    GenericSingleVerKvEntry entry;
+    EXPECT_EQ(entry.DeSerializeData(parcel), 0);
+}
+
+/**
+  * @tc.name: DeSerializeDataTest003
+  * @tc.desc: test AdaptToVersion func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerializeDataTest003, TestSize.Level0)
+{
+    const uint32_t bufferSize = 100;
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    uint32_t invalidVersion = SOFTWARE_VERSION_CURRENT + 1;
+    EXPECT_EQ(parcel.WriteUInt32(invalidVersion), E_OK);
+    GenericSingleVerKvEntry entry;
+    EXPECT_EQ(entry.DeSerializeData(parcel), 0);
+}
+
+/**
+  * @tc.name: DeSerializeDatasTest001
+  * @tc.desc: test DeSerializeDatas func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerializeDatasTest001, TestSize.Level0)
+{
+    const uint32_t bufferSize = 4; // Make the buffer unable to byte alignment.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcel(buffer, bufferSize);
+    std::vector<SingleVerKvEntry*> kvEntries;
+    EXPECT_EQ(GenericSingleVerKvEntry::DeSerializeDatas(kvEntries, parcel), 0);
+}
+
+/**
+  * @tc.name: DeSerializeDatasTest002
+  * @tc.desc: test DeSerializeDatas func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerializeDatasTest002, TestSize.Level0)
+{
+    const uint32_t bufferSize = 8; // Set isError to true after entering the DeSerializeData function.
+    uint8_t buffer[bufferSize] = {0};
+    Parcel parcelA(buffer, bufferSize);
+    uint32_t size = 1;
+    EXPECT_EQ(parcelA.WriteUInt32(size), E_OK);
+    uint32_t version = SOFTWARE_VERSION_EARLIEST;
+    EXPECT_EQ(parcelA.WriteUInt32(version), E_OK);
+    Parcel parcelB(buffer, bufferSize);
+    std::vector<SingleVerKvEntry*> kvEntries;
+    EXPECT_EQ(GenericSingleVerKvEntry::DeSerializeDatas(kvEntries, parcelB), 0);
+}

@@ -1847,6 +1847,51 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
 }
 
 /**
+* @tc.name: mock remote query 003
+* @tc.desc: Test RemoteExecutor response when errNo is NEED_CORRECT_TARGET_USER
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: liaoyonghuang
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. init remote query executor
+     */
+    auto executor = new (std::nothrow) MockRemoteExecutor;
+    ASSERT_NE(executor, nullptr);
+    VirtualRelationalVerSyncDBInterface storage;
+    auto *communicator = new (std::nothrow) MockCommunicator;
+    ASSERT_NE(communicator, nullptr);
+    uint32_t count = 0u;
+    EXPECT_CALL(*communicator, SendMessage(testing::_, testing::_, testing::_, testing::_)).WillRepeatedly(
+        [&count](const std::string &, const DistributedDB::Message *, const SendConfig &, const OnSendEnd &) {
+            std::this_thread::sleep_for(std::chrono::seconds(1)); // mock one msg execute 1 s
+            count++;
+            return E_OK;
+    });
+    executor->Initialize(&storage, communicator);
+    /**
+     * @tc.steps: step2. test receive message with errNo NEED_CORRECT_TARGET_USER
+     */
+    RemoteCondition condition;
+    std::shared_ptr<ResultSet> result = std::make_shared<RelationalResultSetImpl>();
+    std::string deviceName = "DEVICE";
+    executor->RemoteQuery(deviceName, condition, DBConstant::MIN_TIMEOUT, 0, result);
+    DistributedDB::Message *message = nullptr;
+    EXPECT_EQ(BuildRemoteQueryMsg(message), E_OK);
+    message->SetMessageType(TYPE_RESPONSE);
+    message->SetErrorNo(NEED_CORRECT_TARGET_USER);
+    message->SetSessionId(executor->GetLastSessionId());
+    executor->ReceiveMessage(deviceName, message);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // mock one msg execute 1 s
+    EXPECT_EQ(count, 1u); // retry 1 time
+    delete communicator;
+    executor->Close();
+    RefObject::KillAndDecObjRef(executor);
+}
+
+/**
  * @tc.name: SyncTaskContextCheck001
  * @tc.desc: test context check task can be skipped in push mode.
  * @tc.type: FUNC
@@ -2580,6 +2625,29 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerSyncStateMachineTest001, Test
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
     stateMachine.CallSyncStepInner();
     stateMachine.CallSetCurStateErrStatus();
+}
+
+/**
+ * @tc.name: SingleVerSyncStateMachineTest002
+ * @tc.desc: Test whether the return value of ReceiveMessageCallback is E_NEED_CORRECT_TARGET_USER when sync return
+ *           E_NEED_CORRECT_TARGET_USER.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerSyncStateMachineTest002, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    DistributedDB::Message msg(TIME_SYNC_MESSAGE);
+    msg.SetMessageType(TYPE_RESPONSE);
+    msg.SetErrorNo(E_NEED_CORRECT_TARGET_USER);
+    EXPECT_EQ(stateMachine.ReceiveMessageCallback(&msg), E_OK);
+    EXPECT_EQ(stateMachine.ReceiveMessageCallback(&msg), -E_NEED_CORRECT_TARGET_USER);
+    EXPECT_EQ(syncTaskContext.GetTaskErrCode(), -E_NEED_CORRECT_TARGET_USER);
 }
 
 /**

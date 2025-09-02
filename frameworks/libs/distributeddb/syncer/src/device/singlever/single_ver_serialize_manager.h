@@ -38,7 +38,7 @@ public:
     static uint32_t CalculateLen(const Message *inMsg);
 
     static int RegisterTransformFunc();
-private:
+protected:
     static bool IsPacketValid(const Message *inMsg);
 
     static int DataSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg);
@@ -51,12 +51,15 @@ private:
     static uint32_t CalculateControlLen(const Message *inMsg);
 
     static int DataPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg);
+    static int DataPacketCalculateLen(const Message *inMsg, uint32_t &len);
+
+    static int AckPacketCalculateLen(const Message *inMsg, uint32_t &len);
+
     static int DataPacketSyncerPartSerialization(Parcel &parcel, const DataRequestPacket *packet);
     static int DataPacketQuerySyncSerialization(Parcel &parcel, const DataRequestPacket *packet);
     static int DataPacketExtraConditionsSerialization(Parcel &parcel, const DataRequestPacket *packet);
-    static int DataPacketCalculateLen(const Message *inMsg, uint32_t &len);
     static int DataPacketInnerSerialization(const DataRequestPacket *packet, Parcel &parcel);
-
+private:
     static int DataPacketQuerySyncDeSerialization(Parcel &parcel, DataRequestPacket *packet);
     static int DataPacketCompressDataDeSerialization(Parcel &parcel, DataRequestPacket *packet);
     static int DataPacketDeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg);
@@ -65,7 +68,6 @@ private:
     static int DataPacketExtraConditionsDeserialization(Parcel &parcel, DataRequestPacket *packet);
     static int DataPacketInnerDeSerialization(DataRequestPacket *packet, Parcel &parcel);
 
-    static int AckPacketCalculateLen(const Message *inMsg, uint32_t &len);
     static int AckPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg);
     static int AckPacketSyncerPartSerializationV1(Parcel &parcel, const DataAckPacket *packet);
 

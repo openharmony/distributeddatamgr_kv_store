@@ -583,6 +583,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest002, Te
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
     EXPECT_EQ(g_storageProxy->GetLocalWaterMark(g_tableName, localTime), -E_BUSY);
     EXPECT_EQ(g_storageProxy->PutLocalWaterMark(g_tableName, cloudTime), -E_BUSY);
+    EXPECT_EQ(g_storageProxy->PutWaterMarkByMode(g_tableName, CloudWaterType::INSERT, cloudTime), -E_BUSY);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
     EXPECT_EQ(g_storageProxy->GetLocalWaterMark(g_tableName, localTime), E_OK);
 }

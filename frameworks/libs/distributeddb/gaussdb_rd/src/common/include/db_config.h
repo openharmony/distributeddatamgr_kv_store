@@ -16,6 +16,7 @@
 #ifndef DB_CONFIG_H
 #define DB_CONFIG_H
 
+#include <cstdint>
 #include <string>
 
 namespace DocumentDB {
