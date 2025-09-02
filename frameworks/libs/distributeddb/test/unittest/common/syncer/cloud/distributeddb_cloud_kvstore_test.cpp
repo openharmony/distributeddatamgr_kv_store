@@ -28,6 +28,9 @@
 #include "virtual_cloud_db.h"
 #include "sqlite_utils.h"
 #include "time_helper.h"
+#include "sqlite_cloud_kv_store.h"
+#include "kv_storage_handle.h"
+
 using namespace testing::ext;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
@@ -1966,5 +1969,107 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest004, TestSize.Leve
     EXPECT_EQ(kvDelegatePtrS1_->UnRegisterObserver(observer), OK);
     delete observer;
     observer = nullptr;
+}
+
+/**
+ * @tc.name: StartTransactionForAsyncDownloadTest001
+ * @tc.desc: test StartTransactionForAsyncDownload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, StartTransactionForAsyncDownloadTest001, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    EXPECT_EQ(kvStoreObj.StartTransaction(TransactType::IMMEDIATE, true), -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: StartTransactionForAsyncDownloadTest002
+ * @tc.desc: test StartTransactionForAsyncDownload function restart
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, StartTransactionForAsyncDownloadTest002, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    kvStoreObj.StartTransaction(TransactType::IMMEDIATE, true);
+    kvStoreObj.Commit();
+    EXPECT_EQ(kvStoreObj.StartTransaction(TransactType::IMMEDIATE, true), -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: StartTransactionForAsyncDownloadTest003
+ * @tc.desc: test StartTransactionForAsyncDownload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, StartTransactionForAsyncDownloadTest003, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    EXPECT_EQ(kvStoreObj.StartTransaction(TransactType::DEFERRED, true), -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: CommitForAsyncDownloadTest001
+ * @tc.desc: test CommitForAsyncDownload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, CommitForAsyncDownloadTest001, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    EXPECT_EQ(kvStoreObj.Commit(true), E_OK);
+}
+
+/**
+ * @tc.name: CommitForAsyncDownloadTest002
+ * @tc.desc: test CommitForAsyncDownload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, CommitForAsyncDownloadTest002, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    kvStoreObj.StartTransaction(TransactType::IMMEDIATE, true);
+    EXPECT_EQ(kvStoreObj.Commit(true), E_OK);
+}
+
+/**
+ * @tc.name: RollbackForAsyncDownloadTest001
+ * @tc.desc: test RollbackForAsyncDownload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, RollbackForAsyncDownloadTest001, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    EXPECT_EQ(kvStoreObj.Rollback(true), E_OK);
+}
+
+/**
+ * @tc.name: RollbackForAsyncDownloadTest002
+ * @tc.desc: test RollbackForAsyncDownload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, RollbackForAsyncDownloadTest002, TestSize.Level0)
+{
+    std::shared_ptr<KvStorageHandle> storageHandle = std::make_shared<SQLiteSingleVerNaturalStore>();
+    SqliteCloudKvStore kvStoreObj(storageHandle.get());
+    kvStoreObj.StartTransaction(TransactType::IMMEDIATE, true);
+    EXPECT_EQ(kvStoreObj.Rollback(true), E_OK);
 }
 }

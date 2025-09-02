@@ -194,6 +194,8 @@ public:
     virtual int32_t GetResponseTaskCount() = 0;
 
     virtual bool IsRetryTask() const = 0;
+
+    virtual bool IsSavingTask(uint32_t timeout) const = 0;
 protected:
     virtual ~ISyncTaskContext() {};
 };

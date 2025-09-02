@@ -1145,3 +1145,349 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, RetrySendExceededLimit002, TestSize.
     g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
+
+/**
+ * @tc.name: AllocBufferByPayloadLengthTest001
+ * @tc.desc: Test AllocBufferByPayloadLength func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, AllocBufferByPayloadLengthTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.AllocBufferByPayloadLength(100, 20), E_OK);
+    EXPECT_EQ(buffer.AllocBufferByPayloadLength(100, 20), -E_NOT_PERMIT);
+}
+
+/**
+ * @tc.name: AllocBufferByPayloadLengthTest002
+ * @tc.desc: Test AllocBufferByPayloadLength func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, AllocBufferByPayloadLengthTest002, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    uint32_t payloadLen = INT32_MAX - 1;
+    uint32_t headerLen = 10;
+    EXPECT_EQ(buffer.AllocBufferByPayloadLength(payloadLen, headerLen), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: AllocBufferByPayloadLengthTest003
+ * @tc.desc: Test AllocBufferByPayloadLength func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, AllocBufferByPayloadLengthTest003, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    const uint8_t externalBuff[100] = {0};
+    int ret = buffer.SetExternalBuff(externalBuff, 100, 20);
+    EXPECT_EQ(E_OK, ret);
+    EXPECT_EQ(buffer.AllocBufferByPayloadLength(100, 20), -E_NOT_PERMIT);
+}
+
+/**
+ * @tc.name: AllocBufferByTotalLengthTest001
+ * @tc.desc: Test AllocBufferByPayloadLength func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, AllocBufferByTotalLengthTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    uint32_t payloadLen = 100;
+    uint32_t headerLen = 20;
+    buffer.AllocBufferByPayloadLength(payloadLen, headerLen);
+    EXPECT_EQ(buffer.AllocBufferByTotalLength(100, 20), -E_NOT_PERMIT);
+}
+
+/**
+ * @tc.name: AllocBufferByTotalLengthTest002
+ * @tc.desc: Test AllocBufferByPayloadLength func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, AllocBufferByTotalLengthTest002, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    const uint8_t* externalBuff = new(std::nothrow) uint8_t[100];
+    ASSERT_NE(externalBuff, nullptr);
+    uint8_t tempArray[100] = {0};
+    EXPECT_EQ(memcpy_s(const_cast<uint8_t*>(externalBuff), 100, tempArray, 100), E_OK);
+    buffer.SetExternalBuff(externalBuff, 100, 20);
+    EXPECT_EQ(buffer.AllocBufferByTotalLength(100, 20), -E_NOT_PERMIT);
+    delete[] externalBuff;
+    externalBuff = nullptr;
+}
+
+/**
+ * @tc.name: AllocBufferByTotalLengthTest003
+ * @tc.desc: Test AllocBufferByPayloadLength func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, AllocBufferByTotalLengthTest003, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.AllocBufferByTotalLength(0, 20), -E_INVALID_ARGS);
+    EXPECT_EQ(buffer.AllocBufferByTotalLength(MAX_TOTAL_LEN + 1, 20), -E_INVALID_ARGS);
+    EXPECT_EQ(buffer.AllocBufferByTotalLength(5, 10), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: SetExternalBuffTest001
+ * @tc.desc: Test SetExternalBuff func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, SetExternalBuffTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    uint32_t payloadLen = 100;
+    uint32_t headerLen = 20;
+    buffer.AllocBufferByPayloadLength(payloadLen, headerLen);
+    const uint8_t* externalBuff = new(std::nothrow) uint8_t[100];
+    ASSERT_NE(externalBuff, nullptr);
+    EXPECT_EQ(buffer.SetExternalBuff(externalBuff, 100, 20), -E_NOT_PERMIT);
+    delete[] externalBuff;
+    externalBuff = nullptr;
+}
+
+/**
+ * @tc.name: SetExternalBuffTest002
+ * @tc.desc: Test SetExternalBuff func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, SetExternalBuffTest002, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    const uint8_t* externalBuff = new(std::nothrow) uint8_t[100];
+    ASSERT_NE(externalBuff, nullptr);
+    buffer.SetExternalBuff(externalBuff, 100, 20);
+    EXPECT_EQ(buffer.SetExternalBuff(externalBuff, 100, 20), -E_NOT_PERMIT);
+    delete[] externalBuff;
+    externalBuff = nullptr;
+}
+
+/**
+ * @tc.name: SetExternalBuffTest003
+ * @tc.desc: Test SetExternalBuff func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, SetExternalBuffTest003, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.SetExternalBuff(nullptr, 100, 20), -E_INVALID_ARGS);
+    const uint8_t* externalBuff = new(std::nothrow) uint8_t[100];
+    ASSERT_NE(externalBuff, nullptr);
+    uint8_t tempArrayA[100] = {0};
+    EXPECT_EQ(memcpy_s(const_cast<uint8_t*>(externalBuff), 100, tempArrayA, 100), E_OK);
+    EXPECT_EQ(buffer.SetExternalBuff(externalBuff, 0, 20), -E_INVALID_ARGS);
+    delete[] externalBuff;
+    externalBuff = nullptr;
+    externalBuff = new(std::nothrow) uint8_t[MAX_TOTAL_LEN + 1];
+    ASSERT_NE(externalBuff, nullptr);
+    EXPECT_EQ(buffer.SetExternalBuff(externalBuff, MAX_TOTAL_LEN + 1, 20), -E_INVALID_ARGS);
+    delete[] externalBuff;
+    externalBuff = nullptr;
+    externalBuff = new(std::nothrow) uint8_t[10];
+    ASSERT_NE(externalBuff, nullptr);
+    uint8_t tempArrayB[10] = {0};
+    EXPECT_EQ(memcpy_s(const_cast<uint8_t*>(externalBuff), 10, tempArrayB, 10), E_OK);
+    EXPECT_EQ(buffer.SetExternalBuff(externalBuff, 5, 10), -E_INVALID_ARGS);
+    delete[] externalBuff;
+    externalBuff = nullptr;
+}
+
+/**
+ * @tc.name: SerialBufferCloneTest001
+ * @tc.desc: Test invalid args of Clone function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, SerialBufferCloneTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    int errorNo = 0;
+    SerialBuffer* clone_ = buffer.Clone(errorNo);
+    EXPECT_EQ(clone_, nullptr);
+    EXPECT_EQ(errorNo, -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: ConvertForCrossThreadTest001
+ * @tc.desc: Test invalid args of ConvertForCrossThread function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, ConvertForCrossThreadTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.ConvertForCrossThread(), -E_INVALID_ARGS);
+}
+
+/**
+ * @tc.name: GetSizeTest001
+ * @tc.desc: Test GetSize function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, GetSizeTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.GetSize(), 0);
+}
+
+/**
+ * @tc.name: GetWritableBytesTest001
+ * @tc.desc: Test GetWritableBytesForEntireBuffer and EntireFrame and Header and Payload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, GetWritableBytesTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.GetWritableBytesForEntireBuffer().first, nullptr);
+    EXPECT_EQ(buffer.GetWritableBytesForEntireBuffer().second, 0);
+    EXPECT_EQ(buffer.GetWritableBytesForEntireFrame().first, nullptr);
+    EXPECT_EQ(buffer.GetWritableBytesForEntireFrame().second, 0);
+    EXPECT_EQ(buffer.GetWritableBytesForHeader().first, nullptr);
+    EXPECT_EQ(buffer.GetWritableBytesForHeader().second, 0);
+    EXPECT_EQ(buffer.GetWritableBytesForPayload().first, nullptr);
+    EXPECT_EQ(buffer.GetWritableBytesForPayload().second, 0);
+}
+
+/**
+ * @tc.name: GetWritableBytesTest002
+ * @tc.desc: Test GetWritableBytesForEntireBuffer function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, GetWritableBytesTest002, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    uint32_t payloadLen = 100;
+    uint32_t headerLen = 20;
+    EXPECT_EQ(buffer.AllocBufferByPayloadLength(payloadLen, headerLen), E_OK);
+    EXPECT_NE(buffer.GetWritableBytesForEntireBuffer().first, nullptr);
+    EXPECT_EQ(buffer.GetWritableBytesForEntireBuffer().second, buffer.GetSize());
+}
+
+/**
+ * @tc.name: GetReadOnlyBytesTest001
+ * @tc.desc: Test GetReadOnlyBytesForEntireBuffer and EntireFrame and Header and Payload function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, GetReadOnlyBytesTest001, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    EXPECT_EQ(buffer.GetReadOnlyBytesForEntireBuffer().first, nullptr);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForEntireBuffer().second, 0);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForEntireFrame().first, nullptr);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForEntireFrame().second, 0);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForHeader().first, nullptr);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForHeader().second, 0);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForPayload().first, nullptr);
+    EXPECT_EQ(buffer.GetReadOnlyBytesForPayload().second, 0);
+}
+
+/**
+ * @tc.name: GetReadOnlyBytesTest002
+ * @tc.desc: Test GetReadOnlyBytesForHeader function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, GetReadOnlyBytesTest002, TestSize.Level2)
+{
+    SerialBuffer buffer;
+    uint32_t payloadLen = 100;
+    uint32_t headerLen = 20;
+    EXPECT_EQ(buffer.AllocBufferByPayloadLength(payloadLen, headerLen), E_OK);
+    EXPECT_NE(buffer.GetReadOnlyBytesForHeader().first, nullptr);
+    EXPECT_NE(buffer.GetReadOnlyBytesForHeader().second, 0);
+}
+
+/**
+ * @tc.name: DoOnSendEndByTaskIfNeedTest001
+ * @tc.desc: Test DoOnSendEndByTaskIfNeed function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, DoOnSendEndByTaskIfNeedTest001, TestSize.Level1)
+{
+    std::string dstTarget = DEVICE_NAME_B;
+    FrameType inType = FrameType::APPLICATION_MESSAGE;
+    TaskConfig config;
+    config.nonBlock = true;
+    config.isRetryTask = false;
+    config.timeout = 1000;
+    OnSendEnd onEnd = nullptr;
+    const std::shared_ptr<DBStatusAdapter> statusAdapter = std::make_shared<DBStatusAdapter>();
+    ASSERT_NE(statusAdapter, nullptr);
+    auto adapterStub = std::make_shared<AdapterStub>("");
+    IAdapter *adapterPtr = adapterStub.get();
+    ASSERT_NE(adapterPtr, nullptr);
+    auto aggregator = std::make_unique<CommunicatorAggregator>();
+    ASSERT_NE(aggregator, nullptr);
+    EXPECT_EQ(aggregator->Initialize(adapterPtr, statusAdapter), E_OK);
+    DistributedDB::SerialBuffer *inBuff = new (std::nothrow) SerialBuffer();
+    ASSERT_NE(inBuff, nullptr);
+    EXPECT_EQ(aggregator->ScheduleSendTask(dstTarget, inBuff, inType, config, onEnd), E_OK);
+    inBuff = nullptr; // inBuff was deleted in ScheduleSendTask func
+    aggregator->Finalize();
+}
+
+/**
+ * @tc.name: DoOnSendEndByTaskIfNeedTest002
+ * @tc.desc: Test DoOnSendEndByTaskIfNeed function
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, DoOnSendEndByTaskIfNeedTest002, TestSize.Level1)
+{
+    std::string dstTarget = DEVICE_NAME_B;
+    FrameType inType = FrameType::APPLICATION_MESSAGE;
+    TaskConfig config;
+    config.nonBlock = true;
+    config.isRetryTask = false;
+    config.timeout = 1000;
+    OnSendEnd onEnd = [](int result, bool isDirectEnd) {
+        LOGD("OnSendEnd called with result: %d, isDirectEnd: %d", result, isDirectEnd);
+    };
+    const std::shared_ptr<DBStatusAdapter> statusAdapter = std::make_shared<DBStatusAdapter>();
+    ASSERT_NE(statusAdapter, nullptr);
+    auto adapterStub = std::make_shared<AdapterStub>("");
+    IAdapter *adapterPtr = adapterStub.get();
+    ASSERT_NE(adapterPtr, nullptr);
+    auto aggregator = std::make_unique<CommunicatorAggregator>();
+    ASSERT_NE(aggregator, nullptr);
+    EXPECT_EQ(aggregator->Initialize(adapterPtr, statusAdapter), E_OK);
+    DistributedDB::SerialBuffer *inBuff = new (std::nothrow) SerialBuffer();
+    ASSERT_NE(inBuff, nullptr);
+    EXPECT_EQ(aggregator->ScheduleSendTask(dstTarget, inBuff, inType, config, onEnd), E_OK);
+    inBuff = nullptr; // inBuff was deleted in ScheduleSendTask func
+    aggregator->Finalize();
+}

@@ -147,10 +147,14 @@ public:
 
     int32_t GetResponseTaskCount() override;
 
-    bool IsNeedRetrySync(int errNo, uint16_t messageType);
+    bool IsNeedRetrySync(uint32_t errNo, uint16_t messageType);
     void ResetResyncTimes();
 
     bool IsRetryTask() const override;
+
+    void RefreshSaveTime(bool isFinished);
+
+    bool IsSavingTask(uint32_t timeout) const override;
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
@@ -197,6 +201,8 @@ private:
     WaterMark initDeletedMark_ = 0;
 
     std::atomic<uint32_t> resyncTimes_ = 0;
+    std::atomic<uint64_t> lastSaveTimes_ = 0; // last save time us
+    std::atomic<uint32_t> resyncForUserTimes_ = 0;
 };
 } // namespace DistributedDB
 

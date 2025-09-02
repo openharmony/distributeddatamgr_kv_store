@@ -320,8 +320,22 @@ class TimeHelperManager {
 public:
     static TimeHelperManager *GetInstance()
     {
-        static TimeHelperManager instance;
-        return &instance;
+        if (timeHelperInstance_ == nullptr) {
+            std::lock_guard<std::mutex> lock(timeHelperMutex_);
+            if (timeHelperInstance_ == nullptr) {
+                timeHelperInstance_ = new TimeHelperManager();
+            }
+        }
+        return timeHelperInstance_;
+    }
+
+    static void DestroyInstance()
+    {
+        std::lock_guard<std::mutex> lock(timeHelperMutex_);
+        if (timeHelperInstance_ != nullptr) {
+            delete timeHelperInstance_;
+            timeHelperInstance_ = nullptr;
+        }
     }
 
     void AddStore(const std::string &storeId)
@@ -379,11 +393,15 @@ private:
     TimeHelperManager() = default;
     std::mutex metaDataLock_;
     std::map<std::string, TimeHelper> metaData_;
+    static TimeHelperManager *timeHelperInstance_;
+    static std::mutex timeHelperMutex_;
 };
 
 std::mutex TimeHelper::systemTimeLock_;
 Timestamp TimeHelper::lastSystemTimeUs_ = 0;
 Timestamp TimeHelper::currentIncCount_ = 0;
+TimeHelperManager *TimeHelperManager::timeHelperInstance_ = nullptr;
+std::mutex TimeHelperManager::timeHelperMutex_;
 
 int GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt *&stmt);
 int ResetStatement(sqlite3_stmt *&stmt);
@@ -707,6 +725,7 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     bool isTrackerChange = (changeStatus & CloudDbConstant::ON_CHANGE_TRACKER) != 0;
     bool isP2pChange = (changeStatus & CloudDbConstant::ON_CHANGE_P2P) != 0;
     bool isKnowledgeDataChange = (changeStatus & CloudDbConstant::ON_CHANGE_KNOWLEDGE) != 0;
+    bool isCloudDataChange = (changeStatus & CloudDbConstant::ON_CHANGE_CLOUD) != 0;
     bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_clientObserverMutex);
@@ -721,11 +740,13 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
                 itTable->second.isTrackedDataChange |= isTrackerChange;
                 itTable->second.isP2pSyncDataChange |= isP2pChange;
                 itTable->second.isKnowledgeDataChange |= isKnowledgeDataChange;
+                itTable->second.isCloudSyncDataChange |= isCloudDataChange;
             } else {
                 DistributedDB::ChangeProperties properties = {
                     .isTrackedDataChange = isTrackerChange,
                     .isP2pSyncDataChange = isP2pChange,
-                    .isKnowledgeDataChange = isKnowledgeDataChange
+                    .isKnowledgeDataChange = isKnowledgeDataChange,
+                    .isCloudSyncDataChange = isCloudDataChange
                 };
                 g_clientChangedDataMap[hashFileName].tableData.insert_or_assign(tableName, properties);
             }
@@ -2047,6 +2068,7 @@ void Clean(bool isOpenSslClean)
         OPENSSL_cleanup();
     }
     Logger::DeleteInstance();
+    TimeHelperManager::DestroyInstance();
 }
 
 // export the symbols

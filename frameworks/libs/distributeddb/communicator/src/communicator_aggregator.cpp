@@ -276,21 +276,22 @@ void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel, co
     // Do Redeliver, the communicator is responsible to deal with the frame
     std::list<FrameInfo> framesToRedeliver = retainer_.FetchFramesForSpecificCommunicator(commLabel);
     for (auto &entry : framesToRedeliver) {
-        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer, entry.sendUser);
+        commMap_[userId].at(commLabel).first->OnBufferReceive(entry.srcTarget, entry.buffer, entry.sendUser,
+            entry.remoteDbVersion);
     }
 }
 
 namespace {
 void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
 {
-    if (onEnd) { // LCOV_EXCL_BR_LINE
+    if (onEnd) {
         TaskAction onSendEndTask = [onEnd, result]() {
             LOGD("[CommAggr][SendEndTask] Before On Send End.");
             onEnd(result, true);
             LOGD("[CommAggr][SendEndTask] After On Send End.");
         };
         int errCode = RuntimeContext::GetInstance()->ScheduleTask(onSendEndTask);
-        if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+        if (errCode != E_OK) {
             LOGE("[CommAggr][SendEndTask] ScheduleTask failed, errCode = %d.", errCode);
         }
     }
@@ -351,7 +352,7 @@ int CommunicatorAggregator::GetRemoteCommunicatorVersion(const std::string &targ
 {
     std::lock_guard<std::mutex> versionMapLockGuard(versionMapMutex_);
     auto pair = versionMap_.find(target);
-    if (pair == versionMap_.end()) { // LCOV_EXCL_BR_LINE
+    if (pair == versionMap_.end()) {
         return -E_NOT_FOUND;
     }
     outVersion = pair->second;
@@ -679,9 +680,17 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     SerialBuffer *&inFrameBuffer, const ParseResult &inResult, const DataUserInfoProc &userInfoProc)
 {
     LabelType toLabel = inResult.GetCommLabel();
+    uint16_t remoteDbVersion = inResult.GetDbVersion();
     UserInfo userInfo = { .sendUser = DBConstant::DEFAULT_USER };
     if (receiveBytesInfo.isNeedGetUserInfo) {
         int ret = GetDataUserId(inResult, toLabel, userInfoProc, receiveBytesInfo.srcTarget, userInfo);
+        if (ret == NEED_CORRECT_TARGET_USER) {
+            TryToFeedBackWithErr(receiveBytesInfo.srcTarget, toLabel, inFrameBuffer,
+                E_NEED_CORRECT_TARGET_USER);
+            delete inFrameBuffer;
+            inFrameBuffer = nullptr;
+            return -E_NEED_CORRECT_TARGET_USER;
+        }
         if (ret != E_OK || userInfo.sendUser.empty()) {
             LOGE("[CommAggr][AppReceive] get data user id err, ret=%d, empty receiveUser=%d, empty sendUser=%d", ret,
                 userInfo.receiveUser.empty(), userInfo.sendUser.empty());
@@ -692,7 +701,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const ReceiveBytesInfo &recei
     }
     {
         std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(userInfoProc, receiveBytesInfo.srcTarget,
+        int errCode = TryDeliverAppLayerFrameToCommunicatorNoMutex(remoteDbVersion, receiveBytesInfo.srcTarget,
             inFrameBuffer, toLabel, userInfo);
         if (errCode == E_OK) { // Attention: Here is equal to E_OK
             return E_OK;
@@ -724,6 +733,9 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     if (ret == NO_PERMISSION) {
         LOGE("[CommAggr][GetDataUserId] userId dismatched, drop packet");
         return ret;
+    } else if (ret == NEED_CORRECT_TARGET_USER) {
+        LOGW("[CommAggr][GetDataUserId] the target user is incorrect and needs to be corrected");
+        return ret;
     }
     if (!userInfos.empty()) {
         userInfo = userInfos[0];
@@ -733,14 +745,15 @@ int CommunicatorAggregator::GetDataUserId(const ParseResult &inResult, const Lab
     return E_OK;
 }
 
-int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const DataUserInfoProc &userInfoProc,
+int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(uint16_t remoteDbVersion,
     const std::string &srcTarget, SerialBuffer *&inFrameBuffer, const LabelType &toLabel, const UserInfo &userInfo)
 {
     // Ignore nonactivated communicator, which is regarded as inexistent
     const std::string &sendUser = userInfo.sendUser;
     const std::string &receiveUser = userInfo.receiveUser;
     if (commMap_[receiveUser].count(toLabel) != 0 && commMap_[receiveUser].at(toLabel).second) {
-        int ret = commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
+        int ret = commMap_[receiveUser].at(toLabel).first->OnBufferReceive(srcTarget, inFrameBuffer, sendUser,
+            remoteDbVersion);
         // Frame handed over to communicator who is responsible to delete it. The frame is deleted here after return.
         if (ret == E_OK) {
             inFrameBuffer = nullptr;
@@ -764,7 +777,7 @@ int CommunicatorAggregator::TryDeliverAppLayerFrameToCommunicatorNoMutex(const D
         }
     }
     if (communicator != nullptr && (receiveUser.empty() || isEmpty)) {
-        int ret = communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser);
+        int ret = communicator->OnBufferReceive(srcTarget, inFrameBuffer, sendUser, remoteDbVersion);
         if (ret == E_OK) {
             inFrameBuffer = nullptr;
         }
@@ -867,7 +880,16 @@ void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTar
 void CommunicatorAggregator::TryToFeedbackWhenCommunicatorNotFound(const std::string &dstTarget,
     const LabelType &dstLabel, const SerialBuffer *inOriFrame, int inErrCode)
 {
-    if (!isCommunicatorNotFoundFeedbackEnable_ || dstTarget.empty() || inOriFrame == nullptr) {
+    if (!isCommunicatorNotFoundFeedbackEnable_) {
+        return;
+    }
+    TryToFeedBackWithErr(dstTarget, dstLabel, inOriFrame, inErrCode);
+}
+
+void CommunicatorAggregator::TryToFeedBackWithErr(const std::string &dstTarget,
+    const DistributedDB::LabelType &dstLabel, const DistributedDB::SerialBuffer *inOriFrame, int inErrCode)
+{
+    if (dstTarget.empty() || inOriFrame == nullptr) {
         return;
     }
     int errCode = E_OK;
@@ -879,10 +901,10 @@ void CommunicatorAggregator::TryToFeedbackWhenCommunicatorNotFound(const std::st
         return;
     }
     // Message is release in TriggerCommunicatorNotFoundFeedback
-    TriggerCommunicatorNotFoundFeedback(dstTarget, dstLabel, message, inErrCode);
+    TriggerCommunicatorFeedback(dstTarget, dstLabel, message, inErrCode);
 }
 
-void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::string &dstTarget,
+void CommunicatorAggregator::TriggerCommunicatorFeedback(const std::string &dstTarget,
     const LabelType &dstLabel, Message* &oriMsg, int sendErrNo)
 {
     if (oriMsg == nullptr || oriMsg->GetMessageType() != TYPE_REQUEST) {
@@ -893,7 +915,8 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
         return;
     }
 
-    LOGI("[CommAggr][TrigNotFound] Do communicator not found feedback with target=%s{private}.", dstTarget.c_str());
+    LOGI("[CommAggr][TrigNotFound] Do communicator feedback with target=%s{private}, send error code=%d.",
+        dstTarget.c_str(), sendErrNo);
     oriMsg->SetMessageType(TYPE_RESPONSE);
     oriMsg->SetErrorNo(sendErrNo);
 
@@ -902,14 +925,14 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
     delete oriMsg;
     oriMsg = nullptr;
     if (errCode != E_OK) {
-        LOGE("[CommAggr][TrigNotFound] Build communicator not found feedback frame fail, errCode=%d", errCode);
+        LOGE("[CommAggr][TrigNotFound] Build communicator feedback frame fail, errCode=%d", errCode);
         return;
     }
 
     TaskConfig config{true, true, 0, Priority::HIGH};
     errCode = ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
-        LOGE("[CommAggr][TrigNotFound] Send communicator not found feedback frame fail, errCode=%d", errCode);
+        LOGE("[CommAggr][TrigNotFound] Send communicator feedback frame fail, errCode=%d", errCode);
         // if send fails, free buffer, otherwise buffer will be taked over by ScheduleSendTask
         delete buffer;
         buffer = nullptr;
@@ -1168,6 +1191,7 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
     const UserInfo &userInfo)
 {
     LabelType toLabel = inResult.GetCommLabel();
+    uint16_t remoteDbVersion = inResult.GetDbVersion();
     int errCode = -E_NOT_FOUND;
     {
         std::lock_guard<std::mutex> onCommLackLockGuard(onCommLackMutex_);
@@ -1180,7 +1204,7 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
     }
     // Here we have to lock commMapMutex_ and search communicator again.
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(userInfoProc, receiveBytesInfo.srcTarget,
+    int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(remoteDbVersion, receiveBytesInfo.srcTarget,
         inFrameBuffer, toLabel, userInfo);
     if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
         LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
@@ -1198,7 +1222,7 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
     }
     // Do Retention, the retainer is responsible to deal with the frame
     retainer_.RetainFrame(FrameInfo{inFrameBuffer, receiveBytesInfo.srcTarget, userInfo.sendUser, toLabel,
-        inResult.GetFrameId()});
+        inResult.GetFrameId(), remoteDbVersion});
     inFrameBuffer = nullptr;
     return E_OK;
 }

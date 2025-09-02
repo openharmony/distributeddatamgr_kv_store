@@ -349,7 +349,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, GetLocalLog001, TestSize.Level0)
     DataItem dataItem;
     RelationalSyncDataInserter inserter;
     LogInfo logInfo;
-    EXPECT_EQ(SQLiteRelationalUtils::GetLocalLog(dataItem, inserter, stmt, logInfo), -E_NOT_FOUND);
+    EXPECT_EQ(SQLiteRelationalUtils::GetLocalLog(dataItem, inserter, stmt, logInfo), -E_PARSE_FAIL);
     dataItem.flag = DataItem::DELETE_FLAG;
     EXPECT_EQ(SQLiteRelationalUtils::GetLocalLog(dataItem, inserter, stmt, logInfo), -E_NOT_FOUND);
     dataItem.flag = DataItem::REMOTE_DEVICE_DATA_MISS_QUERY;
@@ -359,7 +359,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, GetLocalLog001, TestSize.Level0)
     int ret = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, ret);
     EXPECT_EQ(ret, E_OK);
-    EXPECT_TRUE(SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter).empty());
+    EXPECT_TRUE(SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter).second.empty());
     dataItem.value.resize(Parcel::GetUInt64Len());
     Parcel parcel(dataItem.value.data(), dataItem.value.size());
     parcel.WriteUInt64(0);
@@ -387,9 +387,9 @@ HWTEST_F(DistributedDBRDBDropTableTest, GetLocalLog001, TestSize.Level0)
     distributedTable.fields.push_back(distributedField);
     table.SetDistributedTable(distributedTable);
     inserter.SetLocalTable(table);
-    EXPECT_TRUE(SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter).empty());
+    EXPECT_TRUE(SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter).second.empty());
     dataItem.value = {};
-    EXPECT_TRUE(SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter).empty());
+    EXPECT_TRUE(SQLiteRelationalUtils::GetDistributedPk(dataItem, inserter).second.empty());
 }
 
 /**

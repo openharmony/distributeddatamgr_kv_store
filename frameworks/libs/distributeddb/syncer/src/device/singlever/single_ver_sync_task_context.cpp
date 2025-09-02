@@ -21,6 +21,7 @@
 #include "db_errno.h"
 #include "isyncer.h"
 #include "log_print.h"
+#include "platform_specific.h"
 #include "single_ver_sync_state_machine.h"
 #include "single_ver_sync_target.h"
 #include "sync_types.h"
@@ -646,12 +647,18 @@ int32_t SingleVerSyncTaskContext::GetResponseTaskCount()
     return taskCount;
 }
 
-bool SingleVerSyncTaskContext::IsNeedRetrySync(int errNo, uint16_t messageType)
+bool SingleVerSyncTaskContext::IsNeedRetrySync(uint32_t errNo, uint16_t messageType)
 {
-    if (errNo != E_FEEDBACK_DB_CLOSING || messageType != TYPE_RESPONSE) {
+    if ((errNo != E_FEEDBACK_DB_CLOSING && errNo != E_NEED_CORRECT_TARGET_USER) || messageType != TYPE_RESPONSE) {
         return false;
     }
-    uint32_t cur = ++resyncTimes_;
+    uint32_t cur = 0;
+    if (errNo == E_NEED_CORRECT_TARGET_USER) {
+        cur = ++resyncForUserTimes_;
+        LOGI("[IsNeedRetrySync] resync for user times: %u", cur);
+        return cur <= MANUAL_RETRY_TIMES;
+    }
+    cur = ++resyncTimes_;
     LOGI("[IsNeedRetrySync]%u", cur);
     return cur <= MANUAL_RETRY_TIMES;
 }
@@ -659,6 +666,7 @@ bool SingleVerSyncTaskContext::IsNeedRetrySync(int errNo, uint16_t messageType)
 void SingleVerSyncTaskContext::ResetResyncTimes()
 {
     resyncTimes_ = 0;
+    resyncForUserTimes_ = 0;
 }
 
 bool SingleVerSyncTaskContext::IsRetryTask() const
@@ -670,5 +678,28 @@ bool SingleVerSyncTaskContext::IsRetryTask() const
     bool isRetryTask = operation->IsRetryTask();
     RefObject::DecObjRef(operation);
     return isRetryTask;
+}
+
+void SingleVerSyncTaskContext::RefreshSaveTime(bool isFinished)
+{
+    if (isFinished) {
+        lastSaveTimes_ = 0;
+        return;
+    }
+    lastSaveTimes_ = TimeHelper::GetMonotonicTime();
+}
+
+bool SingleVerSyncTaskContext::IsSavingTask(uint32_t timeout) const
+{
+    auto lastSaveTimes = lastSaveTimes_.load();
+    if (lastSaveTimes == 0) {
+        return false;
+    }
+    Timestamp duration = TimeHelper::GetMonotonicTime() - lastSaveTimes;
+    if (duration < timeout * TimeHelper::MS_TO_US) {
+        LOGI("exist saving task, duration[%" PRIu64 "]", duration);
+        return true;
+    }
+    return false;
 }
 } // namespace DistributedDB

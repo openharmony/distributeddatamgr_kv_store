@@ -322,6 +322,46 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive004, TestSize.L
 }
 
 /**
+ * @tc.name: Send And Receive 005
+ * @tc.desc: Test send when db closing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceive005, TestSize.Level1)
+{
+    // Preset
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+    REG_MESSAGE_CALLBACK(B, B);
+
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    g_commBA->ExchangeClosePending(true);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(true);
+
+    /**
+     * @tc.steps: step2. device A send message(registered and tiny) to device B using communicator AA
+     * @tc.expected: step2. communicator AA received the message
+     */
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    SendConfig conf = {false, false, true, 0, {}};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
+    EXPECT_EQ(recvMsgForAA->GetErrorNo(), E_FEEDBACK_DB_CLOSING);
+    delete recvMsgForAA;
+    recvMsgForAA = nullptr;
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    CommunicatorAggregator::EnableCommunicatorNotFoundFeedback(false);
+}
+
+/**
  * @tc.name: Send Flow Control 001
  * @tc.desc: Test send in nonblock way
  * @tc.type: FUNC
@@ -802,4 +842,81 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, SendAndReceiveWithExtendHead0
     DistributedDB::ProtocolProto::UnRegTransformFunction(DistributedDB::TIME_SYNC_MESSAGE);
     // CleanUp
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: GetDataUserInfoTest001
+ * @tc.desc: Test GetDataUserInfo return NEED_CORRECT_TARGET_USER
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, GetDataUserInfoTest001, TestSize.Level1)
+{
+    // Preset
+    TimeSync::RegisterTransformFunc();
+    REG_MESSAGE_CALLBACK(A, A);
+    REG_MESSAGE_CALLBACK(B, A);
+
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+
+    /**
+     * @tc.steps: step2. return NEED_CORRECT_TARGET_USER when get data user info
+     */
+    std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator = std::make_shared<ProcessCommunicatorTestStub>();
+    processCommunicator->SetGetDataUserInfoRet(NEED_CORRECT_TARGET_USER);
+    g_envDeviceB.adapterHandle->SetProcessCommunicator(processCommunicator);
+    /**
+     * @tc.steps: step3. device A send ApplayerFrameMessage to device B using communicator AA with extednHead
+     * @tc.expected: step3. communicator AA received the message, errNo is E_NEED_CORRECT_TARGET_USER
+     */
+    Message *msgForAA = BuildAppLayerFrameMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    UserInfo userInfo = {"", "userId"};
+    g_envDeviceB.adapterHandle->SetUserInfo({userInfo});
+    SendConfig conf = {false, true, true, 0, {"appId", "storeId", "", "DeviceB"}};
+    int errCode = g_commAA->SendMessage(DEVICE_NAME_B, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200)); // sleep 200 ms
+    ASSERT_NE(recvMsgForAA, nullptr);
+    EXPECT_EQ(recvMsgForAA->GetErrorNo(), E_NEED_CORRECT_TARGET_USER);
+    delete recvMsgForAA;
+    recvMsgForAA = nullptr;
+    DistributedDB::ProtocolProto::UnRegTransformFunction(DistributedDB::TIME_SYNC_MESSAGE);
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
+
+/**
+ * @tc.name: ToSerialBufferTest001
+ * @tc.desc: Test ToSerialBuffer func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ToSerialBufferTest001, TestSize.Level1)
+{
+    std::shared_ptr<ExtendHeaderHandle> extendHandle;
+    int errorNo = E_OK;
+    SerialBuffer* buffer = ProtocolProto::ToSerialBuffer(nullptr, extendHandle, false, errorNo);
+    EXPECT_EQ(errorNo, -E_INVALID_ARGS);
+    EXPECT_EQ(buffer, nullptr);
+}
+
+/**
+ * @tc.name: ToMessageTest001
+ * @tc.desc: Test ToMessage func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ToMessageTest001, TestSize.Level1)
+{
+    int errorNo = E_OK;
+    Message* msg = ProtocolProto::ToMessage(nullptr, errorNo, false);
+    EXPECT_EQ(errorNo, -E_INVALID_ARGS);
+    EXPECT_EQ(msg, nullptr);
 }

@@ -727,6 +727,36 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck014, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SetCommErrTest001
+ * @tc.desc: test set comm err in non-retry task.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SetCommErrTest001, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    ISyncer::SyncParam param;
+    param.isRetry = false;
+    auto operation = new SyncOperation(1u, param); // 1 is syncId
+    ASSERT_NE(operation, nullptr);
+    syncTaskContext.SetSyncOperation(operation);
+    EXPECT_EQ(syncTaskContext.GetCommErrCode(), 0);
+    syncTaskContext.SetRequestSessionId(1u); // 1 is sessionId
+    int errCode = -12345678; // -12345678 is any error code
+    syncTaskContext.CallCommErrHandlerFuncInner(errCode, 1u); // 1 is sessionId
+    EXPECT_EQ(syncTaskContext.GetCommErrCode(), errCode);
+    syncTaskContext.CallCommErrHandlerFuncInner(0, 1u); // 1 is sessionId
+    EXPECT_EQ(syncTaskContext.GetCommErrCode(), errCode);
+    RefObject::KillAndDecObjRef(operation);
+    syncTaskContext.SetSyncOperation(nullptr);
+}
+
+/**
  * @tc.name: DataSyncCheck001
  * @tc.desc: Test dataSync recv error ack.
  * @tc.type: FUNC
@@ -1514,9 +1544,58 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest006, TestSize.Level0)
      * @tc.steps: step3. Find context with default user.
      * @tc.expected: step3. ok
      */
-    auto context2 = enginePtr->CallFindSyncTaskContext({deviceId, DBConstant::DEFAULT_USER});
+    auto context2 = enginePtr->CallFindSyncTaskContext({deviceId, DBConstant::DEFAULT_USER}, false);
     EXPECT_EQ(context1, context2);
     enginePtr->Close();
+}
+
+/**
+ * @tc.name: SyncEngineTest007
+ * @tc.desc: Test find context anf correct target userId.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init engine.
+     * @tc.expected: step1. ok
+     */
+    std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
+    MockKvSyncInterface syncDBInterface;
+    KvDBProperties kvDBProperties;
+    std::string userId = "user_1";
+    kvDBProperties.SetStringProp(DBProperties::USER_ID, userId);
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface.SetIdentifier(identifier);
+    syncDBInterface.SetDbProperties(kvDBProperties);
+    std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    metaData->Initialize(&syncDBInterface);
+    auto *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    enginePtr->Initialize(&syncDBInterface, metaData, param);
+    /**
+     * @tc.steps: step2. Insert context with userId.
+     * @tc.expected: step2. ok
+     */
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
+            .WillRepeatedly(Return(new (std::nothrow) SingleVerKvSyncTaskContext()));
+    int errCode = E_OK;
+    std::string deviceId = "deviceB";
+    auto *context1 = enginePtr->CallGetSyncTaskContext({deviceId, userId}, errCode);
+    ASSERT_NE(context1, nullptr);
+    /**
+     * @tc.steps: step3. Find context with default user.
+     * @tc.expected: step3. ok
+     */
+    auto context2 = enginePtr->CallFindSyncTaskContext({deviceId, DBConstant::DEFAULT_USER}, true);
+    EXPECT_EQ(context1, context2);
+    EXPECT_EQ(context2->GetTargetUserId(), DBConstant::DEFAULT_USER);
+    enginePtr->Close();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
 /**
@@ -2501,5 +2580,44 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerSyncStateMachineTest001, Test
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
     stateMachine.CallSyncStepInner();
     stateMachine.CallSetCurStateErrStatus();
+}
+
+/**
+ * @tc.name: GetSavingTaskCountTest001
+ * @tc.desc: Test get saving task count.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, GetSavingTaskCountTest001, TestSize.Level0)
+{
+    auto syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(syncTaskContext, nullptr);
+    syncTaskContext->RefreshSaveTime(true);
+    EXPECT_FALSE(syncTaskContext->IsSavingTask(0));
+    EXPECT_FALSE(syncTaskContext->IsSavingTask(DBConstant::MIN_TIMEOUT));
+    syncTaskContext->RefreshSaveTime(false);
+    // ignore saving task when duration >= timeout
+    EXPECT_FALSE(syncTaskContext->IsSavingTask(0));
+    // no ignore saving task when duration < timeout
+    EXPECT_TRUE(syncTaskContext->IsSavingTask(DBConstant::MIN_TIMEOUT));
+    RefObject::KillAndDecObjRef(syncTaskContext);
+}
+
+/**
+ * @tc.name: IsNeedRetrySyncTest
+ * @tc.desc: Test function IsNeedRetrySyncTest
+ * @tc.type: FUNC
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, IsNeedRetrySyncTest, TestSize.Level0)
+{
+    auto context = new (std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    EXPECT_FALSE(context->IsNeedRetrySync(E_OK, TYPE_RESPONSE));
+    EXPECT_FALSE(context->IsNeedRetrySync(E_FEEDBACK_DB_CLOSING, TYPE_REQUEST));
+    EXPECT_FALSE(context->IsNeedRetrySync(E_NEED_CORRECT_TARGET_USER, TYPE_REQUEST));
+    EXPECT_TRUE(context->IsNeedRetrySync(E_FEEDBACK_DB_CLOSING, TYPE_RESPONSE));
+    EXPECT_TRUE(context->IsNeedRetrySync(E_NEED_CORRECT_TARGET_USER, TYPE_RESPONSE));
+    RefObject::KillAndDecObjRef(context);
 }
 }

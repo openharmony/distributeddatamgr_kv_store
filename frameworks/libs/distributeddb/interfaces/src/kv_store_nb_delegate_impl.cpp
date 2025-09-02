@@ -398,7 +398,6 @@ DBStatus KvStoreNbDelegateImpl::CheckDeviceObserver(const Key &key, unsigned int
         return INVALID_ARGS;
     }
 
-    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     if (observerMap_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
         LOGE("[KvStoreNbDelegate][CheckDeviceObserver] The number of kv observers has been over limit, storeId[%.3s]",
             storeId_.c_str());
@@ -417,6 +416,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
         LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Transaction unfinished");
         return BUSY;
     }
+    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     DBStatus status = CheckDeviceObserver(key, mode, observer);
     if (status != OK) {
         LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Observer map cannot be registered, status:%d", status);
@@ -446,7 +446,6 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
 
 DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(KvStoreObserver *observer)
 {
-    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     if (cloudObserverMap_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
         LOGE("[KvStoreNbDelegate][CheckCloudObserver] The number of kv cloud observers over limit, storeId[%.3s]",
             storeId_.c_str());
@@ -461,6 +460,7 @@ DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(KvStoreObserver *observer)
 
 DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode, KvStoreObserver *observer)
 {
+    std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     DBStatus status = CheckCloudObserver(observer);
     if (status != OK) {
         LOGE("[KvStoreNbDelegate][RegisterCloudObserver] Cloud observer map cannot be registered, status:%d", status);

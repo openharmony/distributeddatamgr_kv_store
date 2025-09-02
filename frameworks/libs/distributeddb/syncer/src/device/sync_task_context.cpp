@@ -549,7 +549,9 @@ void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId, b
         }
 
         if (errCode == E_OK) {
-            SetCommFailErrCode(errCode);
+            if (IsRetryTask()) {
+                SetCommFailErrCode(errCode);
+            }
             // when communicator sent message failed, the state machine will get the error and exit this sync task
             // it seems unnecessary to change isCommNormal_ value, so just return here
             return;

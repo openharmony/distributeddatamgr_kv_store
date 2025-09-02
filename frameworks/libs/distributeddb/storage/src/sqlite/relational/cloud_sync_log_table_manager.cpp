@@ -125,6 +125,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
     insertTrigger += ", 0, ";
+    insertTrigger += std::to_string(CloudDbConstant::ON_CHANGE_CLOUD) + " | ";
     insertTrigger += (table.GetTrackerTable().IsEmpty() ? "0" : "1");
     insertTrigger += ");\n";
     insertTrigger += "END;";
@@ -155,6 +156,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "SELECT client_observer('" + tableName + "', OLD.";
     updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ", 1, ";
+    updateTrigger += std::to_string(CloudDbConstant::ON_CHANGE_CLOUD) + " | ";
     updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
     updateTrigger += ");";
     updateTrigger += "END;";
@@ -189,6 +191,7 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::DELETE);
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";
+    deleteTrigger += std::to_string(CloudDbConstant::ON_CHANGE_CLOUD) + " | ";
     deleteTrigger += table.GetTrackerTable().IsEmpty() ? "0" : "1";
     deleteTrigger += ");\n";
     deleteTrigger += "END;";
