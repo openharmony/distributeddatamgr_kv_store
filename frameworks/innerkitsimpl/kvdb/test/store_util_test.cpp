@@ -200,46 +200,4 @@ HWTEST_F(StoreUtilTest, CheckPermissions002, TestSize.Level1)
     remove(fileName.c_str());
     rmdir(path.c_str());
 }
-
-/**
- * @tc.name: SetDbDirGid001
- * @tc.desc: Set Db Dir ACL
- * @tc.type: FUNC
- */
-HWTEST_F(StoreUtilTest, SetDbDirGid001, TestSize.Level1)
-{
-    std::string path = "/data/test/SetDbDirGid001";
-    StoreUtil storeUtil_;
-    storeUtil_.SetDirGid(path, "test");
-    auto ret = mkdir(path.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
-    struct stat buf;
-    ret = stat(path.c_str(), &buf);
-    ASSERT_GE(ret, 0);
-    ASSERT_TRUE(buf.st_mode & S_IRWXO);
-
-    storeUtil_.SetDirGid(path, "test");
-    std::string fileName = path + "/test002.db";
-    storeUtil_.SetDbFileGid(fileName);
-    auto fp = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
-    ASSERT_GE(fp, 0);
-    close(fp);
-    ret = stat(fileName.c_str(), &buf);
-    ASSERT_GE(ret, 0);
-    ASSERT_TRUE(buf.st_mode & S_IRWXO);
-    storeUtil_.SetDbFileGid(fileName);
-
-    std::string BkfileName = path + "/autoBackup.bak";
-    storeUtil_.SetDbFileGid(BkfileName, "autoBackup.bak");
-    fp = open(BkfileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
-    ASSERT_GE(fp, 0);
-    close(fp);
-    ret = stat(BkfileName.c_str(), &buf);
-    ASSERT_GE(ret, 0);
-    ASSERT_TRUE(buf.st_mode & S_IRWXO);
-    storeUtil_.SetDbFileGid(BkfileName, "autoBackup.bak");
-
-    remove(fileName.c_str());
-    remove(BkfileName.c_str());
-    rmdir(path.c_str());
-}
 } // namespace OHOS::Test

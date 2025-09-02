@@ -152,8 +152,7 @@ private:
     uint32_t roleType_ = 0;
     uint64_t taskId_ = 0;
     bool isCheckIntegrity_ = false;
-    
-    bool syncable_ = false;
+
     bool encrypt_ = false;
     int32_t securityLevel_ = -1;
     int32_t area_ = 1;

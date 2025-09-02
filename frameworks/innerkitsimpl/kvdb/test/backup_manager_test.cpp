@@ -37,7 +37,8 @@ public:
     Status DeleteBackUpFiles(std::shared_ptr<SingleKvStore> kvStore, std::string baseDir, StoreId storeId);
     void MkdirPath(std::string baseDir, AppId appId, StoreId storeId);
 
-    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, std::string appIdTest, Options options);
+    std::shared_ptr<SingleKvStore> CreateKVStore(
+        std::string storeIdTest, std::string appIdTest, std::string baseDir, KvStoreType type, bool encrypt);
     std::shared_ptr<SingleKvStore> kvStore_;
 };
 
@@ -60,14 +61,10 @@ void BackupManagerTest::TearDownTestCase(void)
 
 void BackupManagerTest::SetUp(void)
 {
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = "/data/service/el1/public/database/BackupManagerTest";
-    options.encrypt = false;
-    options.syncable = false;
-    kvStore_ = CreateKVStore("SingleKVStore", "BackupManagerTest", options);
+    std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    kvStore_ = CreateKVStore("SingleKVStore", "BackupManagerTest", baseDir, SINGLE_VERSION, false);
     if (kvStore_ == nullptr) {
-        kvStore_ = CreateKVStore("SingleKVStore", "BackupManagerTest", options);
+        kvStore_ = CreateKVStore("SingleKVStore", "BackupManagerTest", baseDir, SINGLE_VERSION, false);
     }
     ASSERT_NE(kvStore_, nullptr);
 }
@@ -87,15 +84,14 @@ void BackupManagerTest::TearDown(void)
 }
 
 std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(
-    std::string storeIdTest, std::string appIdTest, Options opt)
+    std::string storeIdTest, std::string appIdTest, std::string baseDir, KvStoreType type, bool encrypt)
 {
     Options options;
-    options.kvStoreType = opt.kvStoreType;
+    options.kvStoreType = type;
     options.securityLevel = S1;
-    options.encrypt = opt.encrypt;
+    options.encrypt = encrypt;
     options.area = EL1;
-    options.baseDir = opt.baseDir;
-    options.syncable = opt.syncable;
+    options.baseDir = baseDir;
 
     AppId appId = { appIdTest };
     StoreId storeId = { storeIdTest };
@@ -261,12 +257,7 @@ HWTEST_F(BackupManagerTest, RollbackKey, TestSize.Level0)
     ASSERT_EQ(fl, true);
 
     std::shared_ptr<SingleKvStore> kvStoreEncrypt;
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = baseDir;
-    options.encrypt = true;
-    options.syncable = false;
-    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, options);
+    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, baseDir, SINGLE_VERSION, true);
     ASSERT_NE(kvStoreEncrypt, nullptr);
 
     auto files = StoreUtil::GetFiles(baseDir + "/kvdb/backup/" + storeId.storeId);
@@ -307,12 +298,7 @@ HWTEST_F(BackupManagerTest, RollbackData, TestSize.Level0)
     ASSERT_EQ(fl, true);
 
     std::shared_ptr<SingleKvStore> kvStoreEncrypt;
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = baseDir;
-    options.encrypt = true;
-    options.syncable = false;
-    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, options);
+    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, baseDir, SINGLE_VERSION, true);
     ASSERT_NE(kvStoreEncrypt, nullptr);
 
     auto files = StoreUtil::GetFiles(baseDir + "/kvdb/backup/" + storeId.storeId);
@@ -357,12 +343,7 @@ HWTEST_F(BackupManagerTest, Rollback, TestSize.Level0)
     ASSERT_EQ(fl, true);
 
     std::shared_ptr<SingleKvStore> kvStoreEncrypt;
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = baseDir;
-    options.encrypt = true;
-    options.syncable = false;
-    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, options);
+    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, baseDir, SINGLE_VERSION, true);
     ASSERT_NE(kvStoreEncrypt, nullptr);
 
     auto files = StoreUtil::GetFiles(baseDir + "/kvdb/backup/" + storeId.storeId);
@@ -417,12 +398,7 @@ HWTEST_F(BackupManagerTest, CleanTmp, TestSize.Level0)
     ASSERT_EQ(fl, true);
 
     std::shared_ptr<SingleKvStore> kvStoreEncrypt;
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = baseDir;
-    options.encrypt = true;
-    options.syncable = false;
-    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, options);
+    kvStoreEncrypt = CreateKVStore(storeId.storeId, appId.appId, baseDir, SINGLE_VERSION, true);
     ASSERT_NE(kvStoreEncrypt, nullptr);
 
     auto files = StoreUtil::GetFiles(baseDir + "/kvdb/backup/" + storeId.storeId);
@@ -465,14 +441,10 @@ HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
     AppId appId = { "BackupManagerTest" };
     StoreId storeId = { "SingleKVStoreEncrypt" };
     std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = baseDir;
-    options.encrypt = true;
-    options.syncable = true;
-    auto kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", options);
+
+    auto kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     if (kvStoreEncrypt == nullptr) {
-        kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", options);
+        kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     }
     ASSERT_NE(kvStoreEncrypt, nullptr);
 
@@ -516,12 +488,7 @@ HWTEST_F(BackupManagerTest, RestoreEncryptWithKeyFromService, TestSize.Level0)
     std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
 
     // put and Backup
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.baseDir = baseDir;
-    options.encrypt = true;
-    options.syncable = false;
-    auto kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", options);
+    auto kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     ASSERT_NE(kvStoreEncrypt, nullptr);
     auto status = kvStoreEncrypt->Put({ "Put Test" }, { "Put Value" });
     ASSERT_EQ(status, SUCCESS);

@@ -16,7 +16,6 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H
 #include <atomic>
-#include <sys/stat.h>
 #include "kv_store_delegate_manager.h"
 #include "store_errno.h"
 #include "store_types.h"
@@ -51,10 +50,7 @@ public:
     static void Flush();
     static uint64_t GenSequenceId();
     static bool RemoveRWXForOthers(const std::string &path);
-    static void SetDbFileGid(const std::string &path, const std::string &fileName = "");
-    static void SetDirGid(const std::string &fullPath, const std::string &target);
 private:
-    static bool HasPermit(const std::string &path, mode_t mode);
     static std::atomic<uint64_t> sequenceId_;
     static std::map<DBStatus, Status> statusMap_;
 };
