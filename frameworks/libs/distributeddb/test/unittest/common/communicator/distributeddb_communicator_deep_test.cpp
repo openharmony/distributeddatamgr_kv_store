@@ -1536,16 +1536,20 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, SendFailed001, TestSize.Level0)
     const std::shared_ptr<DBStatusAdapter> statusAdapter = std::make_shared<DBStatusAdapter>();
     ASSERT_NE(statusAdapter, nullptr);
     auto adapterStub = std::make_shared<AdapterStub>(DEVICE_NAME_A);
-    std::atomic<int> count;
-    adapterStub->ForkSendBytes([&count]() {
-        int current = count++;
-        return current == 0 ? -E_WAIT_RETRY : -E_INTERNAL_ERROR;
-    });
-
+    std::atomic<int> count = 0;
     IAdapter *adapterPtr = adapterStub.get();
     ASSERT_NE(adapterPtr, nullptr);
     auto aggregator = std::make_shared<CommunicatorAggregator>();
     ASSERT_NE(aggregator, nullptr);
+    adapterStub->ForkSendBytes([&count, aggregator]() {
+        int current = count;
+        count++;
+        if (current > 1) {
+            EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, false), 0);
+            EXPECT_GT(aggregator->GetRetryCount(DEVICE_NAME_B, true), 0);
+        }
+        return current == 0 ? -E_WAIT_RETRY : -E_INTERNAL_ERROR;
+    });
     EXPECT_EQ(aggregator->Initialize(adapterPtr, statusAdapter), E_OK);
     ResFinalizer finalizer([aggregator]() {
         aggregator->Finalize();
@@ -1557,6 +1561,9 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, SendFailed001, TestSize.Level0)
         return sendEnd;
     });
     LOGI("[SendFailed001] End wait send end");
-    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B), 0);
-    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_A), 0);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, true), 0);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, false), 0);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_A, true), 0);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_A, false), 0);
+    EXPECT_GT(count.load(), 1);
 }
