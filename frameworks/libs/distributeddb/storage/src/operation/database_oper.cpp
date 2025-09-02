@@ -322,7 +322,7 @@ int DatabaseOper::RenameStatusCtrlFile(const std::string &orgCtrlFile, const std
 
 int DatabaseOper::RecoverPrehandle(int dbType, const std::string &dir, const std::string &fileName)
 {
-    if (DBCommon::RemoveAllFilesOfDirectory(dir, true) != E_OK) { // LCOV_EXCL_BR_LINE
+    if (DBCommon::RemoveAllFilesOfDirectory(dir, true) != E_OK) {
         LOGE("Remove the backup dir failed:%d", errno);
         return -E_REMOVE_FILE;
     }
@@ -331,34 +331,6 @@ int DatabaseOper::RecoverPrehandle(int dbType, const std::string &dir, const std
         return -E_REMOVE_FILE;
     }
     return E_OK;
-}
-
-int DatabaseOper::RemoveDbDir(const std::string &dir, int dbType, bool isNeedDelDir)
-{
-    if (!OS::CheckPathExistence(dir)) { // LCOV_EXCL_BR_LINE
-        return E_OK;
-    }
-
-    if (dbType == DBConstant::DB_TYPE_LOCAL) { // LCOV_EXCL_BR_LINE
-        std::vector<std::string> dbNameList = {
-            DBConstant::LOCAL_DATABASE_NAME
-        };
-        return RemoveDbFiles(dir, dbNameList, isNeedDelDir);
-    }
-    if (dbType == DBConstant::DB_TYPE_SINGLE_VER) { // LCOV_EXCL_BR_LINE
-        std::vector<std::string> dbNameList = {
-            DBConstant::SINGLE_VER_DATA_STORE
-        };
-        return RemoveDbFiles(dir, dbNameList, isNeedDelDir);
-    }
-    if (dbType == DBConstant::DB_TYPE_MULTI_VER) { // LCOV_EXCL_BR_LINE
-        std::vector<std::string> dbNameList = {
-            DBConstant::MULTI_VER_DATA_STORE, DBConstant::MULTI_VER_COMMIT_STORE,
-            DBConstant::MULTI_VER_VALUE_STORE, DBConstant::MULTI_VER_META_STORE
-        };
-        return RemoveDbFiles(dir, dbNameList, isNeedDelDir);
-    }
-    return -E_NOT_SUPPORT;
 }
 
 int DatabaseOper::RemoveFile(const std::string &fileName)
@@ -383,36 +355,6 @@ int DatabaseOper::GetWorkDir(const KvDBProperties &property, std::string &workDi
     }
 
     workDir = dataDir + "/" + identifierDir;
-    return E_OK;
-}
-
-// Only for remove the backup directory while rekey.
-int DatabaseOper::RemoveDbFiles(const std::string &dir, const std::vector<std::string> &dbNameList, bool isNeedDelDir)
-{
-    for (const auto &iter : dbNameList) {
-        // remove
-        std::string dbFile = dir + "/" + iter + ".db";
-        if (RemoveFile(dbFile) != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("Remove the db file failed:%d", errno);
-            return -E_REMOVE_FILE;
-        }
-
-        dbFile = dir + "/" + iter + ".db-wal";
-        if (RemoveFile(dbFile) != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("Remove the wal file failed:%d", errno);
-            return -E_REMOVE_FILE;
-        }
-
-        dbFile = dir + "/" + iter + ".db-shm";
-        if (RemoveFile(dbFile) != E_OK) { // LCOV_EXCL_BR_LINE
-            LOGE("Remove the shm file failed:%d", errno);
-            return -E_REMOVE_FILE;
-        }
-    }
-    if (isNeedDelDir && OS::RemoveDBDirectory(dir) != E_OK) { // LCOV_EXCL_BR_LINE
-        LOGE("Remove directory:%d", errno);
-        return -E_REMOVE_FILE;
-    }
     return E_OK;
 }
 

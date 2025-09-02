@@ -35,7 +35,8 @@ protected:
     static DataBaseSchema GetDataBaseSchema(bool invalidSchema);
     DBStatus GetDeviceEntries(KvStoreNbDelegate *delegate, const std::string &deviceId, bool isSelfDevice,
         std::vector<Entry> &entries);
-    void BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectRet = DBStatus::OK);
+    void BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectApiRet = DBStatus::OK,
+        DBStatus expectSyncRet = DBStatus::OK);
     std::pair<DBStatus, uint64_t> GetRemoteSoftwareVersion(const StoreInfo &info, const std::string &dev,
         const std::string &user);
     std::pair<DBStatus, uint64_t> GetRemoteSchemaVersion(const StoreInfo &info, const std::string &dev,
@@ -46,6 +47,7 @@ protected:
     int QueryMetaValue(const StoreInfo &info, const std::string &dev, const std::string &user,
         const std::function<int(const std::shared_ptr<Metadata> &, const std::string &,
         const std::string &)> &queryFunc);
+    void SetActionStatus(DBStatus status);
 
     KvDBProperties GetDBProperties(const StoreInfo &info);
     static KvStoreConfig GetKvStoreConfig();

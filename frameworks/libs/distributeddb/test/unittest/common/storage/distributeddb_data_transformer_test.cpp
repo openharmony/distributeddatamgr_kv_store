@@ -208,3 +208,20 @@ HWTEST_F(DistributedDBDataTransformerTest, DataTransformerCheck001, TestSize.Lev
 
     EXPECT_TRUE(Equal(originData, targetData));
 }
+
+/**
+ * @tc.name: SerializeValueTest001
+ * @tc.desc: To test SerializeValue func and SerializeDataItem func.
+ * @tc.type: Func
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBDataTransformerTest, SerializeValueTest001, TestSize.Level1)
+{
+    RowDataWithLog data;
+    data.rowData = {DataValue()};
+    std::vector<FieldInfo> fieldInfoList;
+    fieldInfoList.resize(2); // Make the fieldInfoList size as 2 and the rowData size as 1, which are not equal.
+    DataItem dataItem;
+    EXPECT_EQ(DataTransformer::SerializeDataItem(data, fieldInfoList, dataItem), -E_INVALID_ARGS);
+}

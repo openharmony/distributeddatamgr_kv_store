@@ -15,6 +15,7 @@
 #ifndef DB_PROPERTIES_H
 #define DB_PROPERTIES_H
 
+#include <cstdint>
 #include <map>
 #include <string>
 

@@ -16,6 +16,7 @@
 #ifndef RD_SQLITE_UTILS_H
 #define RD_SQLITE_UTILS_H
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>

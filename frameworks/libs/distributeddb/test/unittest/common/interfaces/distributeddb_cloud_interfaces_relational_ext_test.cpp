@@ -1576,7 +1576,7 @@ void PrepareDataForStoreObserver(sqlite3 *db, const std::string &tableName, int 
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
         sql = "update no_" + tableName + " set name = 'lisi' where _rowid_ = " + std::to_string(i + 1) + ";";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-        sql = "update mult_" + tableName + " set age = 20 where id = " + std::to_string(i + 1);
+        sql = "update mult_" + tableName + " set age = 20 where _rowid_ = " + std::to_string(i + 1);
         sql += " and name = 'zhangsan" + std::to_string(i + 1) + "';";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
@@ -1585,7 +1585,7 @@ void PrepareDataForStoreObserver(sqlite3 *db, const std::string &tableName, int 
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
         sql = "delete from no_" + tableName + " where _rowid_ = " + std::to_string(i + 1) + ";";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-        sql = "delete from mult_" + tableName + " where id = " + std::to_string(i + 1);
+        sql = "delete from mult_" + tableName + " where _rowid_ = " + std::to_string(i + 1);
         sql += " and name = 'zhangsan" + std::to_string(i + 1) + "';";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
@@ -1595,7 +1595,7 @@ void PrepareDataForStoreObserver(sqlite3 *db, const std::string &tableName, int 
 
 void CheckChangedData(int num, int times = 0, int offset = 0)
 {
-    if (num == 1) {
+    if (num != 0) {
         for (size_t i = 1; i <= g_changedData[num].primaryData[ChangeType::OP_INSERT].size(); i++) {
             EXPECT_EQ(std::get<int64_t>(g_changedData[num].primaryData[ChangeType::OP_INSERT][i - 1][0]),
                 static_cast<int64_t>(i + offset - times * 5)); // 5 is rowid times
@@ -1808,6 +1808,116 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     auto storeObserver = std::make_shared<MockStoreObserver>();
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
     EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: RegisterStoreObserverTest005
+ * @tc.desc: Test register observer concurrently
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. prepare db and register store observer concurrently.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    auto storeObserver = std::make_shared<MockStoreObserver>();
+    size_t threadNum = 10;
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < threadNum; i++) {
+        threads.emplace_back([&db, &storeObserver]() {
+            for (int j = 0; j < 10; j++) { // Register and unregister observer 10 times
+                EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+                EXPECT_EQ(UnregisterStoreObserver(db, storeObserver), OK);
+            }
+        });
+    }
+    for (auto& t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: RegisterStoreObserverTest006
+ * @tc.desc: Test register observer for multi primary keys
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare db.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    auto storeObserver = std::make_shared<MockStoreObserver>();
+    EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    RegisterDbHook(db);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string tableName = "primary_test";
+    CreateTableForStoreObserver(db, tableName);
+    /**
+    * @tc.steps:step2. update data and check onchange.
+    * @tc.expected: step2. return ok.
+    */
+    EXPECT_TRUE(g_changedData.empty());
+    int dataCounts = 10; // 10 is count of insert options.
+    int begin = 0;
+    PrepareDataForStoreObserver(db, tableName, begin, dataCounts);
+    WaitAndResetNotify();
+    ASSERT_EQ(g_changedData.size(), 3u); // 3 tables
+    EXPECT_EQ(g_changedData[2].tableName, "mult_primary_test"); // 2 is multi primary table
+    ASSERT_EQ(g_changedData[2].field.size(), 1u); // 1 field is rowid
+    EXPECT_EQ(g_changedData[2].field.front(), "rowid");
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: RegisterStoreObserverTest007
+ * @tc.desc: Test store observer after rollback
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTest007, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. prepare db.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    auto storeObserver = std::make_shared<MockStoreObserver>();
+    EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    RegisterDbHook(db);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string tableName = "primary_test";
+    CreateTableForStoreObserver(db, tableName);
+    /**
+    * @tc.steps:step2. insert data and then rollback.
+    * @tc.expected: step2. return ok.
+    */
+    g_changedData.clear();
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "begin;"), SQLITE_OK);
+    int dataCounts = 10; // 10 is count of insert options.
+    for (int i = 0; i < dataCounts; i++) {
+        std::string sql = "insert into " + tableName + " VALUES(" + std::to_string(i + 1) + ", 'zhangsan" +
+            std::to_string(i + 1) + "');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "rollback;"), SQLITE_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    EXPECT_TRUE(g_changedData.empty());
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
@@ -2079,5 +2189,34 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest003
     ASSERT_EQ(g_changedData.front().primaryData[OP_INSERT].size(), 1u);
     EXPECT_EQ(UnregisterStoreObserver(db, storeObserver), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: InvalidRegisterDbHookTest001
+ * @tc.desc: Test register and unregister db hook with invalid db
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InvalidRegisterDbHookTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Test register and unregister db hook with nullptr
+     * @tc.expected: step1. do not crash.
+     */
+    sqlite3 *db = nullptr;
+    RegisterDbHook(db);
+    UnregisterDbHook(db);
+    /**
+     * @tc.steps: step2. Test register and unregister db hook with closed db
+     * @tc.expected: step2. do not crash.
+     */
+    db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    RegisterDbHook(db);
+    UnregisterDbHook(db);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    RegisterDbHook(db);
+    UnregisterDbHook(db);
 }
 }

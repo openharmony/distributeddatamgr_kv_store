@@ -16,6 +16,7 @@
 #ifndef DB_BASE64_UTILS_H
 #define DB_BASE64_UTILS_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 

@@ -272,6 +272,31 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest003, Test
 }
 
 /**
+  * @tc.name: DataTest004
+  * @tc.desc: Test TryToDisable after set engine state.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, DataTest004, TestSize.Level1)
+{
+    SQLiteSingleVerStorageEngine *storageEngine = nullptr;
+    GetStorageEngine(storageEngine);
+    ASSERT_NE(storageEngine, nullptr);
+
+    storageEngine->SetEngineState(EngineState::CACHEDB);
+    EXPECT_EQ(storageEngine->TryToDisable(false, OperatePerm::NORMAL_WRITE), -E_NOT_SUPPORT);
+    storageEngine->SetEngineState(EngineState::MIGRATING);
+    EXPECT_EQ(storageEngine->TryToDisable(false, OperatePerm::NORMAL_WRITE), -E_BUSY);
+    storageEngine->SetEngineState(EngineState::MAINDB);
+    EXPECT_EQ(storageEngine->TryToDisable(false, OperatePerm::NORMAL_WRITE), E_OK);
+    storageEngine->SetEngineState(EngineState::INVALID);
+    EXPECT_EQ(storageEngine->TryToDisable(false, OperatePerm::NORMAL_WRITE), E_OK);
+    storageEngine->Release();
+    storageEngine = nullptr;
+}
+
+/**
   * @tc.name: ExecutorTest001
   * @tc.desc: Test find executor after disable engine
   * @tc.type: FUNC
@@ -593,4 +618,16 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ExecutorTest010, 
     std::tie(ret, handle) = engine->GetCacheHandle(properties);
     EXPECT_EQ(ret, -E_INVALID_DB);
     engine->Release();
+}
+
+/**
+  * @tc.name: ReleaseStorageEngineTest001
+  * @tc.desc: Test ReleaseStorageEngine func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ReleaseStorageEngineTest001, TestSize.Level0)
+{
+    EXPECT_EQ(StorageEngineManager::ReleaseStorageEngine(nullptr), -E_INVALID_ARGS);
 }

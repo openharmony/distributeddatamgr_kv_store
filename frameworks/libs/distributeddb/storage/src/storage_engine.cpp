@@ -362,9 +362,10 @@ void StorageEngine::Release()
 
 int StorageEngine::TryToDisable(bool isNeedCheckAll, OperatePerm disableType)
 {
-    if (engineState_ != EngineState::MAINDB && engineState_ != EngineState::INVALID) {
-        LOGE("Not support disable handle when cacheDB existed! state = [%d]", engineState_);
-        return(engineState_ == EngineState::CACHEDB) ? -E_NOT_SUPPORT : -E_BUSY;
+    EngineState engineState = GetEngineState();
+    if (engineState != EngineState::MAINDB && engineState != EngineState::INVALID) {
+        LOGE("Not support disable handle when cacheDB existed! state = [%d]", engineState);
+        return (engineState == EngineState::CACHEDB) ? -E_NOT_SUPPORT : -E_BUSY;
     }
 
     std::lock(writeMutex_, readMutex_);
@@ -431,6 +432,7 @@ const std::string &StorageEngine::GetIdentifier() const
 
 EngineState StorageEngine::GetEngineState() const
 {
+    std::lock_guard<std::mutex> lock(stateMutex_);
     return engineState_;
 }
 
@@ -439,6 +441,7 @@ void StorageEngine::SetEngineState(EngineState state)
     if (state != EngineState::MAINDB) {
         LOGD("Storage engine state to [%d]!", state);
     }
+    std::lock_guard<std::mutex> lock(stateMutex_);
     engineState_ = state;
 }
 

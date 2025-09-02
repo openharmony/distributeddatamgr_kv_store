@@ -193,6 +193,7 @@ constexpr const int E_NO_TRUSTED_USER = (E_BASE + 207); // No trusted found befo
 constexpr const int E_FEEDBACK_DB_CLOSING = (E_BASE + 208); // Db was closing feedback from remote device
 // The target user ID is incorrect and needs to be re-obtained
 constexpr const int E_NEED_CORRECT_TARGET_USER = (E_BASE + 209);
+constexpr const int E_CLOUD_ASSET_NOT_FOUND = (E_BASE + 210); // Cloud download asset return 404 error
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H

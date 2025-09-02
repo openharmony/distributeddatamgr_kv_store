@@ -16,7 +16,9 @@
 #ifndef PACKAGE_FILE_H
 #define PACKAGE_FILE_H
 
+#include <cstdint>
 #include <string>
+
 namespace DistributedDB {
 struct FileInfo {
     uint32_t dbType;

@@ -1533,4 +1533,43 @@ namespace {
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
+
+    /**
+     * @tc.name: BoolToVectorTest001
+     * @tc.desc: Test BoolToVector func
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: tiansimiao
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, BoolToVectorTest001, TestSize.Level0)
+    {
+        VBucket bucket;
+        Field field;
+        field.colName = "testName";
+        field.type = TYPE_INDEX<std::string>;
+        CollateType collateType = CollateType::COLLATE_NONE;
+        std::vector<uint8_t> value;
+        EXPECT_EQ(CloudStorageUtils::BoolToVector(bucket, field, collateType, value), -E_CLOUD_ERROR);
+        EXPECT_EQ(CloudStorageUtils::DoubleToVector(bucket, field, collateType, value), -E_CLOUD_ERROR);
+    }
+
+    /**
+     * @tc.name: BlobToVectorTest001
+     * @tc.desc: Test BlobToVector func
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: tiansimiao
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, BlobToVectorTest001, TestSize.Level0)
+    {
+        VBucket bucket;
+        Field field;
+        field.colName = "testName";
+        field.type = TYPE_INDEX<Bytes>;
+        CollateType collateType = CollateType::COLLATE_NONE;
+        std::vector<uint8_t> value;
+        EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_NOT_FOUND);
+        field.type = TYPE_INDEX<Asset>;
+        EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_CLOUD_ERROR);
+    }
 }

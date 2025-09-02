@@ -29,6 +29,11 @@ public:
     {
         return RemoteExecutor::ResponseFailed(errCode, sessionId, sequenceId, device);
     }
+
+    uint32_t GetLastSessionId()
+    {
+        return RemoteExecutor::GetLastSessionId();
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_META_DATA_H

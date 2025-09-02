@@ -87,8 +87,6 @@ struct PragmaEntryDeviceIdentifier {
     std::string deviceIdentifier;
 };
 
-using KvStoreNbPublishAction = std::function<void (const Entry &local, const Entry *sync, bool isLocalLastest)>;
-
 struct PragmaDeviceIdentifier {
     std::string deviceID;
     std::string deviceIdentifier;
@@ -234,11 +232,6 @@ struct RemotePushNotifyInfo {
 };
 using RemotePushFinishedNotifier = std::function<void (const RemotePushNotifyInfo &info)>;
 using RemotePushFinisheNotifier = RemotePushFinishedNotifier; // To correct spelling errors in the previous version
-
-enum class CompressAlgorithm : uint8_t {
-    NONE = 0,
-    ZLIB = 1
-};
 
 struct StoreInfo {
     std::string userId;

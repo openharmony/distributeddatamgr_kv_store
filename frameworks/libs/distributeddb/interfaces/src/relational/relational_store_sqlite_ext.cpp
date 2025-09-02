@@ -433,6 +433,8 @@ std::set<std::string> g_clientCreateTable;
 
 std::mutex g_registerSqliteHookMutex;
 
+std::mutex g_createTempTriggerMutex;
+
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -761,7 +763,7 @@ int JudgeIfGetRowid(sqlite3 *db, const std::string &tableName, std::string &type
         return -E_ERROR;
     }
     std::string checkPrimaryKeySql = "SELECT count(1), type FROM pragma_table_info('" + tableName;
-    checkPrimaryKeySql += "') WHERE pk = 1";
+    checkPrimaryKeySql += "') WHERE pk != 0";
     sqlite3_stmt *checkPrimaryKeyStmt = nullptr;
     int errCode = GetStatement(db, checkPrimaryKeySql, checkPrimaryKeyStmt);
     if (errCode != E_OK) {
@@ -1079,10 +1081,17 @@ void RollbackHookCallback(void* data)
     if (errCode != E_OK) {
         return;
     }
-    std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
-    auto it = g_clientChangedDataMap.find(hashFileName);
-    if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
-        g_clientChangedDataMap[hashFileName].tableData.clear();
+    {
+        std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
+        auto it = g_clientChangedDataMap.find(hashFileName);
+        if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
+            it->second.tableData.clear();
+        }
+    }
+    std::lock_guard<std::mutex> lock(g_storeChangedDataMutex);
+    auto iterator = g_storeChangedDataMap.find(hashFileName);
+    if (iterator != g_storeChangedDataMap.end() && !iterator->second.empty()) {
+        iterator->second.clear();
     }
 }
 
@@ -1721,6 +1730,7 @@ int GetTableInfos(sqlite3 *db, std::map<std::string, bool> &tableInfos)
 
 int CreateTempTrigger(sqlite3 *db)
 {
+    std::lock_guard<std::mutex> lock(g_createTempTriggerMutex);
     std::map<std::string, bool> tableInfos;
     int errCode = GetTableInfos(db, tableInfos);
     if (errCode != E_OK) {
@@ -2007,6 +2017,10 @@ DB_API DistributedDB::DBStatus UnLock(const std::string &tableName, const std::v
 
 DB_API void RegisterDbHook(sqlite3 *db)
 {
+    if (db == nullptr) {
+        LOGE("[RegisterDbHook] db is invalid.");
+        return;
+    }
     std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
     sqlite3_wal_hook(db, LogCommitHookCallback, db);
     sqlite3_rollback_hook(db, RollbackHookCallback, db);
@@ -2014,6 +2028,10 @@ DB_API void RegisterDbHook(sqlite3 *db)
 
 DB_API void UnregisterDbHook(sqlite3 *db)
 {
+    if (db == nullptr) {
+        LOGE("[UnregisterDbHook] db is invalid.");
+        return;
+    }
     std::lock_guard<std::mutex> lock(g_registerSqliteHookMutex);
     sqlite3_wal_hook(db, nullptr, db);
     sqlite3_rollback_hook(db, nullptr, db);

@@ -579,13 +579,13 @@ void CloudStorageUtils::MergeDownloadAsset(std::map<std::string, Assets> &downlo
 {
     for (auto &items: mergeAssets) {
         auto downloadItem = downloadAssets.find(items.first);
-        if (downloadItem == downloadAssets.end()) { // LCOV_EXCL_BR_LINE
+        if (downloadItem == downloadAssets.end()) {
             continue;
         }
         std::map<std::string, size_t> beCoveredAssetsMap = GenAssetsIndexMap(items.second);
         for (const Asset &asset: downloadItem->second) {
             auto it = beCoveredAssetsMap.find(asset.name);
-            if (it == beCoveredAssetsMap.end()) { // LCOV_EXCL_BR_LINE
+            if (it == beCoveredAssetsMap.end()) {
                 continue;
             }
             items.second[it->second] = asset;

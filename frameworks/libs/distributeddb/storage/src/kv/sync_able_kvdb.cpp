@@ -548,6 +548,7 @@ void SyncAbleKvDB::StartCloudSyncer()
     {
         std::lock_guard<std::mutex> autoLock(cloudSyncerLock_);
         if (cloudSyncer_ != nullptr) {
+            cloudSyncer_->CleanAllWaterMark(); // clean watermark in memory
             return;
         }
         cloudSyncer_ = new (std::nothrow) CloudSyncer(

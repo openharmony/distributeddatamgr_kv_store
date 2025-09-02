@@ -37,7 +37,7 @@ int CloudStorageUtils::BoolToVector(const VBucket &vBucket, const Field &field, 
 {
     (void)collateType;
     bool val = false;
-    if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) { // LCOV_EXCL_BR_LINE
+    if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
         return -E_CLOUD_ERROR;
     }
     DBCommon::StringToVector(std::to_string(val ? 1 : 0), value);
@@ -49,7 +49,7 @@ int CloudStorageUtils::DoubleToVector(const VBucket &vBucket, const Field &field
 {
     (void)collateType;
     double val = 0.0;
-    if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) { // LCOV_EXCL_BR_LINE
+    if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
         return -E_CLOUD_ERROR;
     }
     std::ostringstream s;
@@ -79,11 +79,11 @@ int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, 
     std::vector<uint8_t> &value)
 {
     (void)collateType;
-    if (field.type == TYPE_INDEX<Bytes>) { // LCOV_EXCL_BR_LINE
+    if (field.type == TYPE_INDEX<Bytes>) {
         return CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, value);
     } else if (field.type == TYPE_INDEX<Asset>) {
         Asset val;
-        if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) { // LCOV_EXCL_BR_LINE
+        if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
             return -E_CLOUD_ERROR;
         }
 #ifdef RDB_CLIENT

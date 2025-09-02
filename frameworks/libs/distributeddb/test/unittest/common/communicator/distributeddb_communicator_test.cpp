@@ -1456,7 +1456,7 @@ HWTEST_F(DistributedDBCommunicatorTest, AbnormalCommunicatorTest001, TestSize.Le
 
 /**
   * @tc.name: CheckInFragmentNoTest001
-  * @tc.desc: Test CheckInFragmentNo func.
+  * @tc.desc: Test CheckInFragmentNo fun.
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: tiansimiao

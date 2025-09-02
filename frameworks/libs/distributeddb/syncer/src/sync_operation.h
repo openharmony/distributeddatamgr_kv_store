@@ -59,6 +59,7 @@ public:
         OP_DENIED_SQL,
         OP_NOTADB_OR_CORRUPTED,
         OP_DB_CLOSING,
+        OP_NEED_CORRECT_TARGET_USER,
     };
 
     using UserCallback = std::function<void(std::map<std::string, int>)>;

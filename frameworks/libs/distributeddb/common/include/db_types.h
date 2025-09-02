@@ -65,6 +65,7 @@ struct DataItem {
     static constexpr uint64_t UPDATE_FLAG = 0X20;
 };
 
+using KvStoreNbPublishAction = std::function<void (const Entry &local, const Entry *sync, bool isLocalLastest)>;
 struct PragmaPublishInfo {
     Key key;
     bool deleteLocal = false;
@@ -184,5 +185,9 @@ struct DeviceTimeInfo {
 using ObserverAction =
     std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
 
+enum class CompressAlgorithm : uint8_t {
+    NONE = 0,
+    ZLIB = 1
+};
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

@@ -164,6 +164,9 @@ void DistributedDBStorageRegisterConflictTest::TearDownTestCase(void)
         DBConstant::SINGLE_SUB_DIR) != 0) {
         LOGE("rm test db files error!");
     }
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
 }
 
 void DistributedDBStorageRegisterConflictTest::SetUp(void)

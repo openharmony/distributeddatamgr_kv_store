@@ -79,11 +79,7 @@ private:
 
     int RecoverPrehandle(int dbType, const std::string &dir, const std::string &fileName);
 
-    int RemoveDbDir(const std::string &dir, int dbType, bool isNeedDelDir = true);
-
     static int GetWorkDir(const KvDBProperties &property, std::string &workDir);
-
-    int RemoveDbFiles(const std::string &dir, const std::vector<std::string> &dbNameList, bool isNeedDelDir = true);
 
     static void InitImportFileInfo(ImportFileInfo &info, const KvDBProperties &property);
 

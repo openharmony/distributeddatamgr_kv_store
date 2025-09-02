@@ -80,6 +80,7 @@ protected:
 
     int ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
 
+    uint32_t GetLastSessionId() const;
 private:
     struct SendMessage {
         uint32_t sessionId = 0u;
@@ -147,6 +148,7 @@ private:
     ISyncInterface *GetAndIncSyncInterface() const;
     static int CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage, int32_t remoteSecLabel,
         uint32_t remoteVersion);
+    int RetryRequest(Message *inMsg);
 
     mutable std::mutex taskLock_;
     std::map<std::string, std::deque<uint32_t>> searchTaskQueue_; // key is device, value is sessionId queue
@@ -170,6 +172,8 @@ private:
     std::atomic<bool> closed_;
 
     std::condition_variable clearCV_;  // msgQueueLock_
+
+    std::map<uint32_t, uint32_t> retryTimes_;
 };
 }
 #endif

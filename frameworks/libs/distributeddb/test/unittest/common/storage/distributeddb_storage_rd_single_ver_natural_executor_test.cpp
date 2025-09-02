@@ -21,6 +21,7 @@
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
 #include "rd_single_ver_natural_store.h"
 #include "rd_single_ver_natural_store_connection.h"
+#include "rd_single_ver_storage_executor.h"
 #include "kvdb_pragma.h"
 #include "storage_engine_manager.h"
 
@@ -68,6 +69,9 @@ void DistributedDBStorageRdSingleVerNaturalExecutorTest::SetUpTestCase(void)
 void DistributedDBStorageRdSingleVerNaturalExecutorTest::TearDownTestCase(void)
 {
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR);
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
 }
 
 void DistributedDBStorageRdSingleVerNaturalExecutorTest::SetUp(void)
@@ -574,5 +578,22 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, ExecutorCache004, T
         CipherType::DEFAULT, password, cacheDir, EngineState::CACHEDB), -E_NOT_SUPPORT);
     EXPECT_EQ(g_handle->MigrateLocalData(), -E_NOT_SUPPORT);
     EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: MoveToTest001
+  * @tc.desc: Test MoveTo and InnerMoveToHead func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: tiansimiao
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, MoveToTest001, TestSize.Level1)
+{
+    int position = 1;
+    int currPosition = -1;
+    GRD_ResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_nullHandle->MoveTo(position, resultSet, currPosition), -E_INVALID_ARGS);
+    currPosition = 0;
+    EXPECT_EQ(g_nullHandle->MoveTo(position, resultSet, currPosition), -E_INVALID_ARGS);
 }
 #endif // USE_RD_KERNEL

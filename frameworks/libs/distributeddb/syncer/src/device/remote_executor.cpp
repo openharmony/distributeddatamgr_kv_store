@@ -441,6 +441,7 @@ void RemoteExecutor::TryExecuteTaskInLock(const std::string &device)
         deviceWorkingSet_[device].insert(sessionId);
         LOGD("[RemoteExecutor][RemoteQuery] RemoteQuery execute taskId=%" PRIu32, taskMap_[sessionId].taskId);
         StartTimer(taskMap_[sessionId].timeout, sessionId);
+        retryTimes_[sessionId] = 0u;
     }
     int errCode = RequestStart(sessionId);
     if (errCode != E_OK) {
@@ -719,6 +720,7 @@ int RemoteExecutor::ClearTaskInfo(uint32_t sessionId, Task &task)
         task = taskMap_[sessionId];
         taskMap_.erase(sessionId);
         deviceWorkingSet_[task.target].erase(sessionId);
+        retryTimes_.erase(sessionId);
     }
     RemoveTimer(sessionId);
     return E_OK;
@@ -777,8 +779,34 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     return E_OK;
 }
 
+int RemoteExecutor::RetryRequest(Message *inMsg)
+{
+    uint32_t sessionId = inMsg->GetSessionId();
+    {
+        std::lock_guard<std::mutex> autoLock(taskLock_);
+        if (retryTimes_.find(sessionId) == retryTimes_.end() || retryTimes_[sessionId] >= MANUAL_RETRY_TIMES) {
+            LOGE("[RemoteExecutor][RetryRequest] retry request start times=%u", retryTimes_[sessionId]);
+            return -E_NO_TRUSTED_USER;
+        }
+        retryTimes_[sessionId]++;
+    }
+    int errCode = RequestStart(sessionId);
+    if (errCode != E_OK) {
+        LOGE("[RemoteExecutor][RetryRequest] retry request start failed errCode=%d", errCode);
+    }
+    return errCode;
+}
+
 void RemoteExecutor::ReceiveMessageInner(const std::string &targetDev, Message *inMsg)
 {
+    if (inMsg->GetErrorNo() == E_NEED_CORRECT_TARGET_USER && inMsg->GetMessageType() == TYPE_RESPONSE) {
+        if (RetryRequest(inMsg) != E_OK) {
+            DoFinished(inMsg->GetSessionId(), -inMsg->GetErrorNo());
+        }
+        delete inMsg;
+        inMsg = nullptr;
+        return;
+    }
     int errCode = E_OK;
     if (inMsg->IsFeedbackError() && IsPacketValid(inMsg->GetSessionId())) {
         DoFinished(inMsg->GetSessionId(), -inMsg->GetErrorNo());
@@ -1043,5 +1071,10 @@ int32_t RemoteExecutor::GetTaskCount() const
 {
     std::lock_guard<std::mutex> autoLock(taskLock_);
     return static_cast<int32_t>(taskMap_.size()); // max taskMap_ size is 32
+}
+
+uint32_t RemoteExecutor::GetLastSessionId() const
+{
+    return lastSessionId_;
 }
 }
