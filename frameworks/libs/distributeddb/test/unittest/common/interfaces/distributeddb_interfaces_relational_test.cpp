@@ -2102,7 +2102,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest007, T
         int64_t actualStatus = sqlite3_column_int64(stmt, 3); // index 3 is status
         EXPECT_EQ(actualFlag, static_cast<int64_t>(LogInfoFlag::FLAG_LOCAL) |
             static_cast<int64_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY));
-        EXPECT_EQ(actualExtendVal, "");
+        EXPECT_EQ(actualExtendVal, "{}");
         EXPECT_EQ(actualCursor, actualCount);
         EXPECT_EQ(actualStatus, 0);
     }

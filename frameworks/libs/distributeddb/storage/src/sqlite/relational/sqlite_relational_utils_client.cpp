@@ -215,7 +215,7 @@ std::string SQLiteRelationalUtils::GetExtendValue(const TrackerTable &trackerTab
         extendValue.pop_back();
         extendValue += ")";
     } else {
-        extendValue = "''";
+        extendValue = "'{}'";
     }
     return extendValue;
 }

@@ -201,7 +201,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTable(sqlite3 *db, co
     std::string calPrimaryKeyHash = logMgrPtr->CalcPrimaryKeyHash("a.", tableInfo, identity);
     std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + rowid + ", '', '', " + currentLocalTimeStr +
         " + " + rowid + ", " + currentLocalTimeStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash +
-        ", '', '', '', '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
+        ", '', '{}', '', '', '', 0 FROM '" + tableName + "' AS a WHERE 1=1;";
     errCode = trackerTable.ReBuildTempTrigger(db, TriggerMode::TriggerModeEnum::INSERT, [db, &sql]() {
         int ret = SQLiteUtils::ExecuteRawSQL(db, sql);
         if (ret != E_OK) {

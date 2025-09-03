@@ -132,19 +132,54 @@ HWTEST_F(DistributedDBRDBUpgradeTest, UpgradeTracker002, TestSize.Level0)
      * @tc.steps: step2. Insert local data and log update extend_field to empty str.
      * @tc.expected: step2. Ok
      */
-    int64_t chkCnt = 1;
+    int chkCnt = 10;
     InsertLocalDBData(0, chkCnt, info1);
     std::string sql = "UPDATE " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + " SET extend_field=''";
     EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    sql = "UPDATE " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + " SET extend_field='{}' where data_key > 5";
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
     EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
-        " json_valid(extend_field) = 0"), chkCnt);
+        " json_valid(extend_field) = 0 OR json_extract(extend_field, '$') = '{}'"), chkCnt);
     /**
      * @tc.steps: step3. Set tracker again and check log.
      * @tc.expected: step3. Ok
      */
     EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
     EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
-        " json_valid(extend_field) = 0"), 0);
+        " json_valid(extend_field) = 0 OR json_extract(extend_field, '$') = '{}'"), 0);
+}
+
+/**
+ * @tc.name: UpgradeTracker003
+ * @tc.desc: Test extend col names was not set.
+ * @tc.type: FUNC
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBUpgradeTest, UpgradeTracker003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
+     */
+    ASSERT_NO_FATAL_FAILURE(InitUpgradeDelegate());
+    auto info1 = GetStoreInfo1();
+    EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
+    /**
+     * @tc.steps: step2. Insert local data and not set extend col names.
+     * @tc.expected: step2. Ok
+     */
+    int chkCnt = 10;
+    InsertLocalDBData(0, chkCnt, info1);
+    auto trackerSchema = GetAllTrackerSchema(info1, {DEVICE_SYNC_TABLE});
+    auto store = GetDelegate(info1);
+    ASSERT_NE(store, nullptr);
+    for (const auto &trackerTable : trackerSchema) {
+        auto temp = trackerTable;
+        temp.extendColNames = {};
+        EXPECT_EQ(store->SetTrackerTable(temp), E_OK);
+    }
+    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
+        " json_extract(extend_field, '$') = '{}'"), chkCnt);
 }
 
 /**

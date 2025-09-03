@@ -1163,7 +1163,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      * @tc.expected: step3. Return OK.
      */
     sql = "select count(*) from " + DBCommon::GetLogTableName(TABLE_NAME2) +
-        " where extend_field is NULL " + " AND cursor is NULL";
+        " where extend_field is NULL OR cursor is NULL OR json_extract(extend_field, '$') = '{}'";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
 
@@ -1174,7 +1174,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
     schema.extendColNames = {EXTEND_COL_NAME3};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     sql = "select count(*) from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 +
-        "_log where extend_field is NULL " + " AND cursor is NULL";
+        "_log where extend_field is NULL OR cursor is NULL OR json_extract(extend_field, '$') = '{}'";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     CloseStore();

@@ -806,6 +806,9 @@ int TableInfo::CheckTrackerTable()
             return -E_SCHEMA_MISMATCH;
         }
     }
+    if (trackerTable_.GetExtendNames().empty()) {
+        LOGW("[%s [%zu]] extend col not set.", tableName.c_str(), nameLength);
+    }
     for (const auto &colName : trackerTable_.GetExtendNames()) {
         if (colName.empty()) {
             LOGE("[%s [%zu]] extend col cannot be empty.", tableName.c_str(), nameLength);
