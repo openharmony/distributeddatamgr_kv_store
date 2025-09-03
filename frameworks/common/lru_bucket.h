@@ -18,12 +18,13 @@
 
 #include <map>
 #include <mutex>
-#include <list>
-
+#include <vector>
 namespace OHOS {
 template<typename _Key, typename _Tp>
 class LRUBucket {
 public:
+    using LRUMemento = std::pair<std::vector<_Key>, std::vector<_Tp>>;
+
     LRUBucket(size_t capacity)
         : size_(0), capacity_(capacity) {}
 
@@ -38,6 +39,33 @@ public:
         while (size_ > 0) {
             PopBack();
         }
+    }
+
+    bool Initialize(const LRUMemento &memento)
+    {
+        auto &[keys, values] = memento;
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        while (size_ > 0) {
+            PopBack();
+        }
+
+        if (capacity_ < keys.size()) {
+            capacity_ = keys.size();
+        }
+
+        size_t i = 0;
+        for (auto &key : keys) {
+            auto *node = new(std::nothrow) Node(i < values.size() ? values[i] : _Tp());
+            i++;
+            if (node == nullptr) {
+                return false;
+            }
+
+            Insert(&head_, node);
+            auto pair = indexes_.emplace(key, node);
+            node->iterator_ = pair.first;
+        }
+        return true;
     }
 
     size_t Size() const
@@ -68,7 +96,7 @@ public:
         std::lock_guard<decltype(mutex_)> lock(mutex_);
         auto it = indexes_.find(key);
         if (it != indexes_.end()) {
-            if (isLRU) {
+            if (isLRU && !IsLRUHeader(it->second)) {
                 // move node from the list;
                 Remove(it->second);
                 // insert node to the head
@@ -78,6 +106,26 @@ public:
             return true;
         }
         return false;
+    }
+
+    /**
+     * The time complexity is O(log(index size))
+     **/
+    std::pair<bool, bool> Contains(const _Key &key, bool isLRU = true)
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        auto it = indexes_.find(key);
+        if (it != indexes_.end()) {
+            if ((isLRU && !IsLRUHeader(it->second))) {
+                // move node from the list;
+                Remove(it->second);
+                // insert node to the head
+                Insert(&head_, it->second);
+                return { true, true };
+            }
+            return { true, false };
+        }
+        return { false, false };
     }
 
     /**
@@ -170,6 +218,12 @@ public:
         return false;
     }
 
+    LRUMemento DumpMemento()
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        return ToMemento();
+    }
+
 private:
     struct Node final {
         using iterator = typename std::map<_Key, Node *>::iterator;
@@ -216,7 +270,27 @@ private:
         delete node;
     }
 
-    mutable std::recursive_mutex mutex_;
+    bool IsLRUHeader(Node *node)
+    {
+        return (node == head_.next_ || node == &head_);
+    }
+
+    std::pair<std::vector<_Key>, std::vector<_Tp>> ToMemento()
+    {
+        std::pair<std::vector<_Key>, std::vector<_Tp>> memento;
+        auto &[keys, values] = memento;
+        auto current = head_.prev_;
+        size_t i = 0;
+        while (current != &head_ && i < size_) {
+            keys.emplace_back(current->iterator_->first);
+            values.emplace_back(current->value_);
+            current = current->prev_;
+            i++;
+        }
+        return memento;
+    }
+
+    mutable std::mutex mutex_;
     std::map<_Key, Node *> indexes_;
     Node head_;
     size_t size_;
