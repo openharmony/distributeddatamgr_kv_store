@@ -21,17 +21,17 @@
 namespace DistributedDB {
 namespace {
 const uint32_t MAX_RETAIN_CAPACITY = 67108864; // 64 M bytes
-const uint32_t MAX_RETAIN_TIME = 10; // 10 s
+const uint32_t MAX_RETAIN_PERIOD_COUNT = 2; // One period is RETAIN_SURVAIL_PERIOD_IN_MILLISECOND.
 const uint32_t MAX_RETAIN_FRAME_SIZE = 33554432; // 32 M bytes
 const uint32_t MAX_RETAIN_FRAME_PER_LABEL_PER_TARGET = 5; // Allow 5 frame per communicator per source target
-const int RETAIN_SURVAIL_PERIOD_IN_MILLISECOND = 1000; // Period is 1 s
+const int RETAIN_SURVAIL_PERIOD_IN_MILLISECOND = 10000; // Period is 10 s
 inline void LogRetainInfo(const std::string &logPrefix, const LabelType &label, const std::string &target,
     uint64_t order, const RetainWork &work)
 {
-    LOGI("%s : Label=%.3s, target=%s{private}, retainOrder=%" PRIu64 ", frameId=%" PRIu32 ", remainTime=%" PRIu32
+    LOGI("%s : Label=%.3s, target=%s{private}, retainOrder=%" PRIu64 ", frameId=%" PRIu32 ", checkTime=%" PRIu32
         ", frameSize=%" PRIu32 ", remoteDbVersion=%" PRIu16 ".",
         logPrefix.c_str(), VEC_TO_STR(label), target.c_str(), ULL(order),
-        work.frameId, work.remainTime, work.buffer->GetSize(), work.remoteDbVersion);
+        work.frameId, work.checkTime, work.buffer->GetSize(), work.remoteDbVersion);
 }
 }
 
@@ -86,7 +86,8 @@ void FrameRetainer::RetainFrame(const FrameInfo &inFrame)
     if (inFrame.buffer == nullptr) {
         return; // Never gonna happen
     }
-    RetainWork work{inFrame.buffer, inFrame.sendUser, inFrame.frameId, MAX_RETAIN_TIME, inFrame.remoteDbVersion};
+    RetainWork work{inFrame.buffer, inFrame.sendUser, inFrame.frameId, MAX_RETAIN_PERIOD_COUNT,
+        inFrame.remoteDbVersion};
     if (work.buffer->GetSize() > MAX_RETAIN_FRAME_SIZE) {
         LOGE("[Retainer][Retain] Frame size=%u over limit=%u.", work.buffer->GetSize(), MAX_RETAIN_FRAME_SIZE);
         delete work.buffer;
@@ -155,9 +156,9 @@ void FrameRetainer::DecreaseRemainTimeAndDiscard(const LabelType &label,
     std::pair<const std::string, std::map<uint64_t, RetainWork>> &eachTarget, std::set<uint64_t> &frameToDiscard)
 {
     for (auto &eachFrame : eachTarget.second) {
-        // Decrease remainTime and discard if need. The remainTime will not be zero before decrease.
-        eachFrame.second.remainTime--;
-        if (eachFrame.second.remainTime != 0) {
+        // Decrease checkTime and discard if need. The checkTime will not be zero before decrease.
+        eachFrame.second.checkTime--;
+        if (eachFrame.second.checkTime != 0) {
             continue;
         }
         LogRetainInfo("[Retainer][Surveil] DISCARD", label, eachTarget.first, eachFrame.first,
