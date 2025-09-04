@@ -98,7 +98,7 @@ public:
 
     void ResetRetryCount();
 
-    int32_t GetRetryCount(const std::string &dev) const;
+    int32_t GetRetryCount(const std::string &dev, bool isRetryTask) const;
 private:
     // Working in a dedicated thread
     void SendDataRoutine();
@@ -159,11 +159,11 @@ private:
 
     void ResetFrameRecordIfNeed(const uint32_t frameId, const uint32_t mtu);
 
-    void RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId);
+    void RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId, bool isRetryTask);
 
-    void RetrySendTask(const std::string &target, uint64_t sendSequenceId);
+    void RetrySendTask(const std::string &target, uint64_t sendSequenceId, bool isRetryTask);
 
-    bool IsRetryOutOfLimit(const std::string &target);
+    bool IsRetryOutOfLimit(const std::string &target, bool isRetryTask);
 
     int32_t GetNextRetryInterval(const std::string &target, int32_t currentRetryCount);
 
@@ -237,7 +237,7 @@ private:
     std::map<uint32_t, FrameSendRecord> sendRecord_;
 
     mutable std::mutex retryCountMutex_;
-    std::map<std::string, int32_t> retryCount_;
+    std::map<std::string, std::map<bool, int32_t>> retryCount_; // dev, isRetryTask, count
 
     std::mutex sendSequenceMutex_;
     std::map<std::string, uint64_t> sendSequence_;

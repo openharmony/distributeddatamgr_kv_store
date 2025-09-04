@@ -410,7 +410,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         }
     }
     if (errCode == -E_WAIT_RETRY) {
-        RetrySendTaskIfNeed(inTask.dstTarget, currentSendSequenceId);
+        RetrySendTaskIfNeed(inTask.dstTarget, currentSendSequenceId, inTask.isRetryTask);
     }
     if (taskNeedFinalize) {
         TaskFinalizer(inTask, errCode);
@@ -1109,31 +1109,31 @@ void CommunicatorAggregator::ResetFrameRecordIfNeed(const uint32_t frameId, cons
     }
 }
 
-void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId)
+void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId, bool isRetryTask)
 {
-    if (IsRetryOutOfLimit(target)) {
-        LOGD("[CommAggr] Retry send task is out of limit! target is %s{private}", target.c_str());
+    if (IsRetryOutOfLimit(target, isRetryTask)) {
+        LOGI("[CommAggr] Retry send task is out of limit! target is %.3s", target.c_str());
         scheduler_.InvalidSendTask(target);
         std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-        retryCount_[target] = 0;
+        retryCount_[target][isRetryTask] = 0;
     } else {
-        RetrySendTask(target, sendSequenceId);
+        RetrySendTask(target, sendSequenceId, isRetryTask);
         if (sendSequenceId != GetSendSequenceId(target)) {
-            LOGD("[CommAggr] %.3s Send sequence id has changed", target.c_str());
+            LOGI("[CommAggr] %.3s Send sequence id has changed", target.c_str());
             return;
         }
         scheduler_.DelayTaskByTarget(target);
     }
 }
 
-void CommunicatorAggregator::RetrySendTask(const std::string &target, uint64_t sendSequenceId)
+void CommunicatorAggregator::RetrySendTask(const std::string &target, uint64_t sendSequenceId, bool isRetryTask)
 {
     int32_t currentRetryCount = 0;
     {
         std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-        retryCount_[target]++;
-        currentRetryCount = retryCount_[target];
-        LOGD("[CommAggr] Target %s{private} retry count is %" PRId32, target.c_str(), currentRetryCount);
+        retryCount_[target][isRetryTask]++;
+        currentRetryCount = retryCount_[target][isRetryTask];
+        LOGI("[CommAggr] Target %.3s retry count is %" PRId32, target.c_str(), currentRetryCount);
     }
     TimerId timerId = 0u;
     RefObject::IncObjRef(this);
@@ -1149,10 +1149,10 @@ void CommunicatorAggregator::RetrySendTask(const std::string &target, uint64_t s
     }, nullptr, timerId);
 }
 
-bool CommunicatorAggregator::IsRetryOutOfLimit(const std::string &target)
+bool CommunicatorAggregator::IsRetryOutOfLimit(const std::string &target, bool isRetryTask)
 {
     std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    return retryCount_[target] >= MAX_SEND_RETRY;
+    return retryCount_[target][isRetryTask] >= MAX_SEND_RETRY;
 }
 
 int32_t CommunicatorAggregator::GetNextRetryInterval(const std::string &target, int32_t currentRetryCount)
@@ -1236,17 +1236,21 @@ void CommunicatorAggregator::ResetRetryCount()
 void CommunicatorAggregator::ResetRetryCount(const std::string &dev)
 {
     std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    retryCount_[dev] = 0;
+    retryCount_[dev].clear();
 }
 
-int32_t CommunicatorAggregator::GetRetryCount(const std::string &dev) const
+int32_t CommunicatorAggregator::GetRetryCount(const std::string &dev, bool isRetryTask) const
 {
     std::lock_guard<std::mutex> autoLock(retryCountMutex_);
     auto iter = retryCount_.find(dev);
     if (iter == retryCount_.end()) {
         return 0;
     }
-    return iter->second;
+    auto countIter = iter->second.find(isRetryTask);
+    if (countIter == iter->second.end()) {
+        return 0;
+    }
+    return countIter->second;
 }
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB
