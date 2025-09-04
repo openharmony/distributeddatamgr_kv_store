@@ -18,7 +18,7 @@
 #include <gtest/gtest.h>
 
 #include "log_print.h"
-#include "runtime_context.h"
+#include "thread_pool_stub.h"
 
 using namespace testing::ext;
 using namespace testing;
@@ -480,5 +480,39 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool001, TestSize.Level1)
         LOGD("end wait all task finished");
     }
     RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/**
+ * @tc.name: TaskPool002
+ * @tc.desc: Test pool stub schedule task
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBThreadPoolTest, TaskPool002, TestSize.Level1)
+{
+    ThreadPoolStub::GetInstance().SetThreadPool(nullptr);
+    ThreadPoolStub::GetInstance().ShrinkMemory(std::string(""));
+    TaskId currentId = 0;
+    EXPECT_CALL(*threadPoolPtr_, Execute(_)).WillRepeatedly([&currentId](const Task &task) {
+        if (task != nullptr) {
+            task();
+        }
+        return ++currentId;
+    });
+    ThreadPoolStub::GetInstance().SetThreadPool(threadPoolPtr_);
+    ThreadPoolStub::GetInstance().ScheduleTask([]() {
+        LOGD("exec task ok");
+    });
+    ThreadPoolStub::GetInstance().ShrinkMemory(std::string(""));
+    ThreadPoolStub::GetInstance().ScheduleQueuedTask(std::string("qu"), []() {
+        LOGD("exec task ok");
+    });
+    ThreadPoolStub::GetInstance().SetThreadPool(nullptr);
+    ThreadPoolStub::GetInstance().ScheduleTask([]() {
+        LOGD("exec task ok");
+    });
+    TaskId expId = 2;
+    EXPECT_EQ(currentId, expId);
 }
 }
