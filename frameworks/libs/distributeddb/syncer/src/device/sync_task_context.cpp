@@ -542,6 +542,7 @@ bool SyncTaskContext::IsCommNormal() const
 
 void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId, bool isDirectEnd)
 {
+    bool isRetryTask = IsRetryTask();
     {
         RefObject::AutoLock lock(this);
         if ((sessionId != requestSessionId_) || (requestSessionId_ == 0)) {
@@ -549,7 +550,7 @@ void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId, b
         }
 
         if (errCode == E_OK) {
-            if (IsRetryTask()) {
+            if (isRetryTask) {
                 SetCommFailErrCode(errCode);
             }
             // when communicator sent message failed, the state machine will get the error and exit this sync task
