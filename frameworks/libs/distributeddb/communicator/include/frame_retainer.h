@@ -39,7 +39,7 @@ struct RetainWork {
     SerialBuffer *buffer = nullptr;
     std::string sendUser;
     uint32_t frameId = 0u;
-    uint32_t remainTime = 0u; // in second
+    uint32_t checkTime = 0u; // message buffer will be erased when the checkTime drops to zero.
     uint16_t remoteDbVersion = 0u;
 };
 
