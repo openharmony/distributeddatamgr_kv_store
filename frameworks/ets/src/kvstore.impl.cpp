@@ -103,7 +103,7 @@ private:
     std::vector<FieldNode> fields_;
     string defaultValue_ = "";
     bool isNullable_ = false;
-    uint32_t valueType_ = ValueType::INVALID;
+    int32_t valueType_ = ValueType::INVALID;
 };
 
 class SchemaImpl {
@@ -164,8 +164,8 @@ public:
 private:
     FieldNode rootNode_ = make_holder<FieldNodeImpl, FieldNode>();
     array<taihe::string> indexes_ = {};
-    uint32_t mode_ = SCHEMA_MODE_SLOPPY;
-    uint32_t skip_ = 0;
+    int32_t mode_ = SCHEMA_MODE_SLOPPY;
+    int32_t skip_ = 0;
 };
 
 char* MallocCString(const std::string& origin)
@@ -382,11 +382,13 @@ CONTEXT_MODE GetContextMode(ani_env* env, ani_object context)
     auto env = ::taihe::get_env();
     if (GetContextMode(env, reinterpret_cast<ani_object>(config.context)) == STAGE) {
         auto context = OHOS::AbilityRuntime::GetStageModeContext(env, reinterpret_cast<ani_object>(config.context));
-        param.area = context->GetArea();
-        param.baseDir = context->GetDatabaseDir();
-        auto hapInfo = context->GetHapModuleInfo();
-        if (hapInfo != nullptr) {
-            param.hapName = hapInfo->moduleName;
+        if (context != nullptr) {
+            param.area = context->GetArea();
+            param.baseDir = context->GetDatabaseDir();
+            auto hapInfo = context->GetHapModuleInfo();
+            if (hapInfo != nullptr) {
+                param.hapName = hapInfo->moduleName;
+            }
         }
     } else {
         ZLOGE("ContextMode is not STAGE!");
