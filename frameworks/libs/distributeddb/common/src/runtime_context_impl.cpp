@@ -22,18 +22,14 @@
 #include "kv_store_errno.h"
 #include "log_print.h"
 #include "network_adapter.h"
+#include "thread_pool_stub.h"
 
 namespace DistributedDB {
-#ifdef RUNNING_ON_TESTCASE
-static std::atomic_uint taskID = 0;
-#endif
-
 RuntimeContextImpl::RuntimeContextImpl()
     : adapter_(nullptr),
       communicatorAggregator_(nullptr),
       mainLoop_(nullptr),
       currentTimerId_(0),
-      taskPool_(nullptr),
       taskPoolReportsTimerId_(0),
       timeTickMonitor_(nullptr),
       systemApiAdapter_(nullptr),
@@ -52,11 +48,7 @@ RuntimeContextImpl::~RuntimeContextImpl()
         RemoveTimer(taskPoolReportsTimerId_, true);
         taskPoolReportsTimerId_ = 0;
     }
-    if (taskPool_ != nullptr) { // LCOV_EXCL_BR_LINE
-        taskPool_->Stop();
-        taskPool_->Release(taskPool_);
-        taskPool_ = nullptr;
-    }
+    StopTaskPool();
     if (mainLoop_ != nullptr) { // LCOV_EXCL_BR_LINE
         mainLoop_->Stop();
         mainLoop_->KillAndDecObjRef(mainLoop_);
@@ -264,57 +256,18 @@ void RuntimeContextImpl::RemoveTimer(TimerId timerId, bool wait)
 // Task interfaces.
 int RuntimeContextImpl::ScheduleTask(const TaskAction &task)
 {
-    if (ScheduleTaskByThreadPool(task) == E_OK) {
-        return E_OK;
-    }
-    std::lock_guard<std::mutex> autoLock(taskLock_);
-    int errCode = PrepareTaskPool();
-    if (errCode != E_OK) {
-        LOGE("Schedule task failed, fail to prepare task pool.");
-        return errCode;
-    }
-#ifdef RUNNING_ON_TESTCASE
-    auto id = taskID++;
-    LOGI("Schedule task succeed, ID:%u", id);
-    return taskPool_->Schedule([task, id] {
-        LOGI("Execute task, ID:%u", id);
-        task();
-    });
-#else
-    return taskPool_->Schedule(task);
-#endif
+    return ThreadPoolStub::GetInstance().ScheduleTask(task);
 }
 
 int RuntimeContextImpl::ScheduleQueuedTask(const std::string &queueTag,
     const TaskAction &task)
 {
-    if (ScheduleTaskByThreadPool(task) == E_OK) {
-        return E_OK;
-    }
-    std::lock_guard<std::mutex> autoLock(taskLock_);
-    int errCode = PrepareTaskPool();
-    if (errCode != E_OK) {
-        LOGE("Schedule queued task failed, fail to prepare task pool.");
-        return errCode;
-    }
-#ifdef RUNNING_ON_TESTCASE
-    auto id = taskID++;
-    LOGI("Schedule queued task succeed, ID:%u", id);
-    return taskPool_->Schedule(queueTag, [task, id] {
-        LOGI("Execute queued task, ID:%u", id);
-        task();
-    });
-#else
-    return taskPool_->Schedule(queueTag, task);
-#endif
+    return ThreadPoolStub::GetInstance().ScheduleQueuedTask(queueTag, task);
 }
 
 void RuntimeContextImpl::ShrinkMemory(const std::string &description)
 {
-    std::lock_guard<std::mutex> autoLock(taskLock_);
-    if (taskPool_ != nullptr) { // LCOV_EXCL_BR_LINE
-        taskPool_->ShrinkMemory(description);
-    }
+    return ThreadPoolStub::GetInstance().ShrinkMemory(description);
 }
 
 NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const TimeChangedAction &action,
@@ -358,28 +311,6 @@ int RuntimeContextImpl::PrepareLoop(IEventLoop *&loop)
 
     mainLoop_ = loop;
     RefObject::IncObjRef(loop); // ref 1 returned to caller.
-    return E_OK;
-}
-
-int RuntimeContextImpl::PrepareTaskPool()
-{
-    if (taskPool_ != nullptr) {
-        return E_OK;
-    }
-
-    int errCode = E_OK;
-    TaskPool *taskPool = TaskPool::Create(MAX_TP_THREADS, MIN_TP_THREADS, errCode);
-    if (taskPool == nullptr) {
-        return errCode;
-    }
-
-    errCode = taskPool->Start();
-    if (errCode != E_OK) {
-        taskPool->Release(taskPool);
-        return errCode;
-    }
-
-    taskPool_ = taskPool;
     return E_OK;
 }
 
@@ -797,12 +728,7 @@ std::map<std::string, std::string> RuntimeContextImpl::GetPermissionCheckParam(c
 
 void RuntimeContextImpl::StopTaskPool()
 {
-    std::lock_guard<std::mutex> autoLock(taskLock_);
-    if (taskPool_ != nullptr) {
-        taskPool_->Stop();
-        TaskPool::Release(taskPool_);
-        taskPool_ = nullptr;
-    }
+    return ThreadPoolStub::GetInstance().StopTaskPool();
 }
 
 void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
@@ -990,25 +916,12 @@ bool RuntimeContextImpl::ExistTranslateDevIdCallback() const
 
 void RuntimeContextImpl::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool)
 {
-    std::unique_lock<std::shared_mutex> writeLock(threadPoolLock_);
-    threadPool_ = threadPool;
-    LOGD("[RuntimeContext] Set thread pool finished");
+    ThreadPoolStub::GetInstance().SetThreadPool(threadPool);
 }
 
 std::shared_ptr<IThreadPool> RuntimeContextImpl::GetThreadPool() const
 {
-    std::shared_lock<std::shared_mutex> readLock(threadPoolLock_);
-    return threadPool_;
-}
-
-int RuntimeContextImpl::ScheduleTaskByThreadPool(const DistributedDB::TaskAction &task) const
-{
-    std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
-    if (threadPool == nullptr) {
-        return -E_NOT_SUPPORT;
-    }
-    (void)threadPool->Execute(task);
-    return E_OK;
+    return ThreadPoolStub::GetInstance().GetThreadPool();
 }
 
 int RuntimeContextImpl::SetTimerByThreadPool(int milliSeconds, const TimerAction &action,

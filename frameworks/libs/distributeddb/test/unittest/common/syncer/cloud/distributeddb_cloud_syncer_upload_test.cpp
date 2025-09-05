@@ -28,8 +28,6 @@ using namespace DistributedDBUnitTest;
 
 namespace {
 
-constexpr auto TABLE_NAME_1 = "tableName1";
-constexpr auto CLOUD_WATER_MARK = "tableName1";
 const Asset ASSET_COPY = { .version = 1,
     .name = "Phone",
     .assetId = "0",

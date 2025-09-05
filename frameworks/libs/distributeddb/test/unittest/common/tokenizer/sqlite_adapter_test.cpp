@@ -100,7 +100,6 @@ static void SQLTest(const char *sql)
     }
 }
 
-static int g_rank = 0;
 static const char *g_dbPath = "test.db";
 
 /**
@@ -118,8 +117,6 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest001, TestSize.Level0)
     // Save the connection result
     int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
     HandleRc(g_sqliteDb, rc);
-
-    auto before = Clock::now();
 
     rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
     HandleRc(g_sqliteDb, rc);

@@ -19,7 +19,6 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
-#include "concurrent_adapter.h"
 #include "data_compression.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
@@ -753,8 +752,7 @@ int RelationalSyncAbleStorage::GetCompressionAlgo(std::set<CompressAlgorithm> &a
 int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
     const RelationalObserverAction &action)
 {
-    ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
-    ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
+    std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
     auto it = dataChangeCallbackMap_.find(connectionId);
     if (it != dataChangeCallbackMap_.end()) {
         if (it->second.find(observer) != it->second.end()) {
@@ -779,8 +777,7 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
         EraseDataChangeCallback(connectionId);
         return E_OK;
     }
-    ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
-    ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
+    std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
     auto it = dataChangeCallbackMap_.find(connectionId);
     if (it != dataChangeCallbackMap_.end()) {
         auto action = it->second.find(observer);
@@ -824,15 +821,14 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
 {
     IncObjRef(this);
     int taskErrCode =
-        ConcurrentAdapter::ScheduleTask([this, deviceName, changedData, isChangedData, origin] () mutable {
+        RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData, origin] () mutable {
             LOGD("begin to trigger relational observer.");
-            ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
-            ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
+            std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
             for (const auto &item : dataChangeCallbackMap_) {
                 ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, origin);
             }
             DecObjRef(this);
-        }, &dataChangeCallbackMap_);
+        });
     if (taskErrCode != E_OK) {
         LOGE("TriggerObserverAction scheduletask retCode=%d", taskErrCode);
         DecObjRef(this);
@@ -1475,16 +1471,12 @@ std::string RelationalSyncAbleStorage::GetIdentify() const
 
 void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
 {
-    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId] () mutable {
-        ConcurrentAdapter::AdapterAutoLock(dataChangeDeviceMutex_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(dataChangeDeviceMutex_); });
-        auto it = dataChangeCallbackMap_.find(connectionId);
-        if (it != dataChangeCallbackMap_.end()) {
-            dataChangeCallbackMap_.erase(it);
-            LOGI("erase all observer, %" PRIu64, connectionId);
-        }
-    }, nullptr, &dataChangeCallbackMap_);
-    ADAPTER_WAIT(handle);
+    std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        dataChangeCallbackMap_.erase(it);
+        LOGI("erase all observer for this delegate.");
+    }
 }
 
 void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmtToken) const

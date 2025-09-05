@@ -37,8 +37,6 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
-constexpr const char *DB_SUFFIX = ".db";
-constexpr const char *STORE_ID = "Relational_Store_ID";
 constexpr const char *CREATE_TABLE_A_SQL =
     "CREATE TABLE IF NOT EXISTS worker_a(" \
     "id TEXT PRIMARY KEY," \

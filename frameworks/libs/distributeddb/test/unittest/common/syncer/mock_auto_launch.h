@@ -18,7 +18,6 @@
 
 #include <gmock/gmock.h>
 #include "auto_launch.h"
-#include "concurrent_adapter.h"
 #include "res_finalizer.h"
 
 namespace DistributedDB {
@@ -26,8 +25,7 @@ class MockAutoLaunch : public AutoLaunch {
 public:
     void SetAutoLaunchItem(const std::string &identify, const std::string &userId, const AutoLaunchItem &item)
     {
-        ConcurrentAdapter::AdapterAutoLock(extLock_);
-        ResFinalizer finalizer([this]() { ConcurrentAdapter::AdapterAutoUnLock(extLock_); });
+        std::lock_guard<std::mutex> lock(extLock_);
         extItemMap_[identify][userId] = item;
     }
 

@@ -27,7 +27,6 @@
 #include "icommunicator_aggregator.h"
 #include "lock_status_observer.h"
 #include "subscribe_recorder.h"
-#include "task_pool.h"
 #include "time_tick_monitor.h"
 #include "user_change_monitor.h"
 
@@ -193,17 +192,12 @@ public:
 
     void ClearOnlineLabel() override;
 private:
-    static constexpr int MAX_TP_THREADS = 10;  // max threads of the task pool.
-    static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.
     static constexpr int TASK_POOL_REPORTS_INTERVAL = 10000;   // task pool reports its state every 10 seconds.
 
     int PrepareLoop(IEventLoop *&loop);
-    int PrepareTaskPool();
     int AllocTimerId(IEvent *evTimer, TimerId &timerId);
     std::shared_ptr<DBStatusAdapter> GetDBStatusAdapter();
     std::shared_ptr<SubscribeRecorder> GetSubscribeRecorder();
-
-    int ScheduleTaskByThreadPool(const TaskAction &task) const;
 
     int SetTimerByThreadPool(int milliSeconds, const TimerAction &action,
         const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId);
@@ -230,9 +224,6 @@ private:
     TimerId currentTimerId_;
     std::map<TimerId, IEvent *> timers_;
 
-    // Task pool
-    std::mutex taskLock_;
-    TaskPool *taskPool_;
     TimerId taskPoolReportsTimerId_;
 
     // TimeTick
@@ -279,9 +270,6 @@ private:
     mutable std::mutex translateToDeviceIdLock_;
     TranslateToDeviceIdCallback translateToDeviceIdCallback_;
     std::map<std::string, std::map<std::string, std::string>> deviceIdCache_; // cache <uuid, <appId, newDeviceId>>
-
-    mutable std::shared_mutex threadPoolLock_;
-    std::shared_ptr<IThreadPool> threadPool_;
 
     mutable std::mutex timerTaskLock_;
     std::map<TimerId, TaskId> taskIds_;

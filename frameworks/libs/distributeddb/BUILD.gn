@@ -66,9 +66,6 @@ config("distrdb_config") {
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]
   }
-  if (is_ohos) {
-    defines += [ "USE_FFRT" ]
-  }
   if (kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
   }
@@ -122,7 +119,6 @@ ohos_shared_library("distributeddb") {
 
   external_deps = [
     "c_utils:utils",
-    "ffrt:libffrt",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
@@ -243,7 +239,6 @@ config("distributeddb_client_config") {
     defines += [ "TRACE_SQLITE_EXECUTE" ]
   }
   if (is_ohos) {
-    defines += [ "USE_FFRT" ]
     defines += [ "RDB_CLIENT" ]
   }
   if (kv_store_cloud) {
@@ -276,7 +271,6 @@ ohos_shared_library("distributeddb_client") {
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
-    "ffrt:libffrt",
     "hilog:libhilog",
     "jsoncpp:jsoncpp",
   ]

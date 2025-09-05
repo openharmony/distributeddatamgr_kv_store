@@ -25,7 +25,6 @@
 #include <vector>
 
 #include "cloud/cloud_db_constant.h"
-#include "concurrent_adapter.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "knowledge_source_utils.h"
@@ -33,7 +32,7 @@
 #include "param_check_utils.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
-#include "runtime_context.h"
+#include "thread_pool_stub.h"
 #include "sqlite_utils.h"
 
 // using the "sqlite3sym.h" in OHOS
@@ -989,7 +988,7 @@ void ClientObserverCallback(const std::string &hashFileName)
     auto it = g_clientChangedDataMap.find(hashFileName);
     if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
         ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
-        ConcurrentAdapter::ScheduleTask([clientObserver, clientChangedData] {
+        (void)DistributedDB::ThreadPoolStub::GetInstance().ScheduleTask([clientObserver, clientChangedData] {
             ClientChangedData taskClientChangedData = clientChangedData;
             clientObserver(taskClientChangedData);
         });
@@ -2079,9 +2078,6 @@ DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableNa
 
 void Clean(bool isOpenSslClean)
 {
-#ifdef USE_FFRT
-    ConcurrentAdapter::Stop();
-#endif
     if (isOpenSslClean) {
         OPENSSL_cleanup();
     }

@@ -1181,3 +1181,81 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties001, TestSize.L
     ASSERT_NO_FATAL_FAILURE(GetAutoLaunchPropertiesTest(DBTypeInner::DB_KV));
     ASSERT_NO_FATAL_FAILURE(GetAutoLaunchPropertiesTest(DBTypeInner::DB_RELATION));
 }
+
+/**
+ * @tc.name: GetAutoLaunchProperties002
+ * @tc.desc: test autoLaunch when Properties invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties002, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. SetAutoLaunchRequestCallback
+     * @tc.expected: step1. success.
+     */
+    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    ASSERT_TRUE(observer != nullptr);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
+        DBTypeInner::DB_KV);
+    LabelType label(g_identifierA.begin(), g_identifierA.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(label);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+
+    /**
+     * @tc.steps: step2. close conn
+     * @tc.expected: step2. success.
+     */
+    DBProperties dbProperties;
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties);
+    std::string hId = DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0);
+    dbProperties.SetStringProp(DBProperties::IDENTIFIER_DATA, hId);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties);
+    dbProperties.SetStringProp(DBProperties::USER_ID, USER_ID);
+    ASSERT_NO_FATAL_FAILURE(RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties));
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
+    delete observer;
+}
+
+/**
+ * @tc.name: GetAutoLaunchProperties003
+ * @tc.desc: test autoLaunch with invalid properties
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties003, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. SetAutoLaunchRequestCallback
+     * @tc.expected: step1. success.
+     */
+    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    ASSERT_TRUE(observer != nullptr);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
+        DBTypeInner::DB_KV);
+    LabelType label(g_identifierA.begin(), g_identifierA.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(label);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+
+    /**
+     * @tc.steps: step2. close conn
+     * @tc.expected: step2. success.
+     */
+    DBProperties dbProperties;
+    std::string hId = DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0);
+    dbProperties.SetStringProp(DBProperties::IDENTIFIER_DATA, hId);
+    dbProperties.SetStringProp(DBProperties::USER_ID, USER_ID);
+    int closeId = 5;
+    dbProperties.SetIntProp(DBProperties::AUTO_LAUNCH_ID, closeId);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties);
+    closeId = 1;
+    dbProperties.SetIntProp(DBProperties::AUTO_LAUNCH_ID, closeId);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_RELATION, dbProperties);
+    ASSERT_NO_FATAL_FAILURE(RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties));
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
+    delete observer;
+}

@@ -19,7 +19,6 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
-#include "concurrent_adapter.h"
 #include "data_compression.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
