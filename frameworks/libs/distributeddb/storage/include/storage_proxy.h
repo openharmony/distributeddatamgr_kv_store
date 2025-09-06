@@ -190,10 +190,10 @@ public:
     bool IsExistTableContainAssets();
 
     bool GetTransactionExeFlag();
+
+    Timestamp EraseNanoTime(Timestamp localTime);
 protected:
     void Init();
-
-    static Timestamp EraseNanoTime(Timestamp localTime);
 private:
     ICloudSyncStorageInterface *store_;
     mutable std::shared_mutex storeMutex_;

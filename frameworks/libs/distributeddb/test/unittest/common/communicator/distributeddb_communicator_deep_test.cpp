@@ -24,6 +24,8 @@
 #include "network_adapter.h"
 #include "message.h"
 #include "mock_process_communicator.h"
+#include "protocol_proto.h"
+#include "res_finalizer.h"
 #include "serial_buffer.h"
 
 using namespace std;
@@ -1490,4 +1492,71 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, DoOnSendEndByTaskIfNeedTest002, Test
     EXPECT_EQ(aggregator->ScheduleSendTask(dstTarget, inBuff, inType, config, onEnd), E_OK);
     inBuff = nullptr; // inBuff was deleted in ScheduleSendTask func
     aggregator->Finalize();
+}
+
+void TriggerSendMsg(const std::shared_ptr<CommunicatorAggregator> &aggregator, const OnSendEnd &onEnd)
+{
+    Message *msg = BuildRegedTinyMessage();
+    ASSERT_NE(msg, nullptr);
+    int error = E_OK;
+    // if error is not E_OK , null pointer will be returned
+    std::shared_ptr<ExtendHeaderHandle> extendHandle;
+    SerialBuffer *buffer = ProtocolProto::ToSerialBuffer(msg, extendHandle, false, error);
+    ASSERT_NE(buffer, nullptr);
+    std::string dstTarget = DEVICE_NAME_B;
+    FrameType inType = FrameType::APPLICATION_MESSAGE;
+    TaskConfig config;
+    config.timeout = 1000; // timeout is 1000ms
+    error = aggregator->ScheduleSendTask(dstTarget, buffer, inType, config, onEnd);
+    if (error == E_OK) {
+        delete msg;
+        msg = nullptr;
+    } else {
+        delete buffer;
+        buffer = nullptr;
+    }
+}
+
+/**
+ * @tc.name: SendFailed001
+ * @tc.desc: Test send data failed.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, SendFailed001, TestSize.Level0)
+{
+    std::condition_variable cv;
+    std::mutex endMutex;
+    bool sendEnd = false;
+    OnSendEnd onEnd = [&cv, &endMutex, &sendEnd](int, bool) {
+        std::lock_guard<std::mutex> autoLock(endMutex);
+        sendEnd = true;
+        cv.notify_all();
+    };
+    const std::shared_ptr<DBStatusAdapter> statusAdapter = std::make_shared<DBStatusAdapter>();
+    ASSERT_NE(statusAdapter, nullptr);
+    auto adapterStub = std::make_shared<AdapterStub>(DEVICE_NAME_A);
+    std::atomic<int> count;
+    adapterStub->ForkSendBytes([&count]() {
+        int current = count++;
+        return current == 0 ? -E_WAIT_RETRY : -E_INTERNAL_ERROR;
+    });
+
+    IAdapter *adapterPtr = adapterStub.get();
+    ASSERT_NE(adapterPtr, nullptr);
+    auto aggregator = std::make_shared<CommunicatorAggregator>();
+    ASSERT_NE(aggregator, nullptr);
+    EXPECT_EQ(aggregator->Initialize(adapterPtr, statusAdapter), E_OK);
+    ResFinalizer finalizer([aggregator]() {
+        aggregator->Finalize();
+    });
+    ASSERT_NO_FATAL_FAILURE(TriggerSendMsg(aggregator, onEnd));
+    LOGI("[SendFailed001] Begin wait send end");
+    std::unique_lock<std::mutex> uniqueLock(endMutex);
+    cv.wait_for(uniqueLock, std::chrono::seconds(5), [&sendEnd]() { // wait max 5s
+        return sendEnd;
+    });
+    LOGI("[SendFailed001] End wait send end");
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B), 0);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_A), 0);
 }
