@@ -1489,4 +1489,53 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload011, Te
     EXPECT_NE(downloadCount, 0);
     virtualAssetLoader_->ForkBatchDownload(nullptr);
 }
+
+/**
+ * @tc.name: AsyncAbnormalDownload012
+ * @tc.desc: Test complex async download.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload012, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set max download task 1
+     * @tc.expected: step1. ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = 1;
+    config.maxDownloadAssetsCount = 1;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+    /**
+     * @tc.steps: step2. Insert cloud data and sync
+     * @tc.expected: step2. ok
+     */
+    const int cloudCount = 1;
+    auto schema = GetSchema();
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
+    virtualAssetLoader_->SetDownloadStatus(DB_ERROR);
+    CloudSyncOption option = GetAsyncCloudSyncOption();
+    RelationalTestUtils::CloudBlockSync(option, delegate_);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // 1 is second to wait
+    /**
+     * @tc.steps: step3. Update asset then sync to check notify count
+     * @tc.expected: step3. ok
+     */
+    EXPECT_EQ(sqlite3_exec(db_, "UPDATE AsyncDownloadAssetsTest SET assets_1 = NULL, asset_1 = NULL", nullptr,
+        nullptr, nullptr), SQLITE_OK);
+    virtualCloudDb_->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // 2 is second to wait
+    });
+    RelationalStoreObserverUnitTest *observer1 = new (std::nothrow) RelationalStoreObserverUnitTest();
+    EXPECT_NE(observer1, nullptr);
+    EXPECT_EQ(delegate_->RegisterObserver(observer1), OK);
+    virtualAssetLoader_->SetDownloadStatus(OK);
+    RelationalTestUtils::CloudBlockSync(option, delegate_);
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // 3 is second to wait
+    int expCnt = 1;
+    EXPECT_EQ(observer1->GetCloudCallCount(), expCnt);
+    EXPECT_EQ(delegate_->UnRegisterObserver(observer1), OK);
+    delete observer1;
+}
 }
