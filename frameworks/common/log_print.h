@@ -102,41 +102,41 @@ namespace ConnectInner {
 #define ZLOGD(fmt, ...)                                                   \
     do {                                                                  \
         auto lable = LogLabel();                                          \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_DEBUG)) {       \
+        if (!HiLogIsLoggable(lable.domain, LOG_TAG, LOG_DEBUG)) {         \
             break;                                                        \
         }                                                                 \
-        ((void)HILOG_IMPL(lable.type, LOG_DEBUG, lable.domain, lable.tag, \
-            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
+        ((void)HILOG_IMPL(lable.type, LOG_DEBUG, lable.domain, LOG_TAG,   \
+            "%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));            \
     } while (0)
 
 #define ZLOGI(fmt, ...)                                                   \
     do {                                                                  \
         auto lable = LogLabel();                                          \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_INFO)) {        \
+        if (!HiLogIsLoggable(lable.domain, LOG_TAG, LOG_INFO)) {          \
             break;                                                        \
         }                                                                 \
-        ((void)HILOG_IMPL(lable.type, LOG_INFO, lable.domain, lable.tag,  \
-            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
+        ((void)HILOG_IMPL(lable.type, LOG_INFO, lable.domain, LOG_TAG,    \
+            "%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));            \
     } while (0)
 
 #define ZLOGW(fmt, ...)                                                   \
     do {                                                                  \
         auto lable = LogLabel();                                          \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_WARN)) {        \
+        if (!HiLogIsLoggable(lable.domain, LOG_TAG, LOG_WARN)) {          \
             break;                                                        \
         }                                                                 \
-        ((void)HILOG_IMPL(lable.type, LOG_WARN, lable.domain, lable.tag,  \
-            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
+        ((void)HILOG_IMPL(lable.type, LOG_WARN, lable.domain, LOG_TAG,    \
+            "%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));            \
     } while (0)
 
 #define ZLOGE(fmt, ...)                                                   \
     do {                                                                  \
         auto lable = LogLabel();                                          \
-        if (!HiLogIsLoggable(lable.domain, lable.tag, LOG_ERROR)) {       \
+        if (!HiLogIsLoggable(lable.domain, LOG_TAG, LOG_ERROR)) {         \
             break;                                                        \
         }                                                                 \
-        ((void)HILOG_IMPL(lable.type, LOG_ERROR, lable.domain, lable.tag, \
-            LOG_TAG "::%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));  \
+        ((void)HILOG_IMPL(lable.type, LOG_ERROR, lable.domain, LOG_TAG,   \
+            "%{public}s: " fmt, __FUNCTION__, ##__VA_ARGS__));            \
     } while (0)                                   \
 
 #else
