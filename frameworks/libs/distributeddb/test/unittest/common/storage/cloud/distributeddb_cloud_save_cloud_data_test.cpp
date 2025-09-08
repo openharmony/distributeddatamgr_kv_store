@@ -283,7 +283,8 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gidStr;
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo), expectCode);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, true, dataInfoWithLog, assetInfo),
+            expectCode);
         if (expectCode == E_OK) {
             if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
                 int64_t val = -1;
@@ -297,12 +298,6 @@ namespace {
             } else {
                 EXPECT_EQ(dataInfoWithLog.primaryKeys.size(), 0u);
             }
-            Timestamp eraseTime = dataInfoWithLog.logInfo.timestamp / CloudDbConstant::TEN_THOUSAND *
-                CloudDbConstant::TEN_THOUSAND;
-            Timestamp eraseWTime = dataInfoWithLog.logInfo.wTimestamp / CloudDbConstant::TEN_THOUSAND *
-                CloudDbConstant::TEN_THOUSAND;
-            EXPECT_EQ(dataInfoWithLog.logInfo.timestamp, eraseTime);
-            EXPECT_EQ(dataInfoWithLog.logInfo.wTimestamp, eraseWTime);
         }
         EXPECT_EQ(storageProxy->Commit(), E_OK);
     }

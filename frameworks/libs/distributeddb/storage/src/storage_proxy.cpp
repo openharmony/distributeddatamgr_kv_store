@@ -263,10 +263,6 @@ int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const V
     }
 
     int errCode = store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, useTransaction, dataInfoWithLog, assetInfo);
-    if (errCode == E_OK) {
-        dataInfoWithLog.logInfo.timestamp = EraseNanoTime(dataInfoWithLog.logInfo.timestamp);
-        dataInfoWithLog.logInfo.wTimestamp = EraseNanoTime(dataInfoWithLog.logInfo.wTimestamp);
-    }
     if ((dataInfoWithLog.logInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) != 0) {
         assetInfo.clear();
     }

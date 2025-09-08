@@ -1804,6 +1804,8 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         return errCode;
     }
+    logInfo.logInfo.timestamp = storageProxy_->EraseNanoTime(logInfo.logInfo.timestamp);
+    logInfo.logInfo.wTimestamp = storageProxy_->EraseNanoTime(logInfo.logInfo.wTimestamp);
     std::string hashKey(logInfo.logInfo.hashKey.begin(), logInfo.logInfo.hashKey.end());
     if (hashKey.empty()) {
         return errCode;
