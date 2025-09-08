@@ -320,4 +320,299 @@ HWTEST_F(LRUBucketTest, update_several, TestSize.Level0)
     ASSERT_TRUE(bucket_.Get("test_8", value));
     ASSERT_TRUE(bucket_.Get("test_7", value));
 }
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: contains the key and change the lru position.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, contains_with_change, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+        "deviceId5", "deviceId6", "deviceId7", "deviceId8", "deviceId9",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId0");
+    ASSERT_TRUE(exists);
+    ASSERT_TRUE(changed);
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    std::vector<std::string> keyTag = {
+        "deviceId1", "deviceId2", "deviceId3", "deviceId4", "deviceId5",
+        "deviceId6", "deviceId7", "deviceId8", "deviceId9", "deviceId0",
+    };
+    std::vector<uint32_t> valTag = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
+    EXPECT_EQ(keyMemo, keyTag);
+    EXPECT_EQ(valMemo, valTag);
+
+    std::tie(exists, changed) = bucket.Contains("deviceId5");
+    ASSERT_TRUE(exists);
+    ASSERT_TRUE(changed);
+    std::tie(keyMemo, valMemo) = bucket.DumpMemento();
+    keyTag = {
+        "deviceId1", "deviceId2", "deviceId3", "deviceId4", "deviceId6",
+        "deviceId7", "deviceId8", "deviceId9", "deviceId0", "deviceId5",
+    };
+    valTag = { 1, 2, 3, 4, 6, 7, 8, 9, 0, 5 };
+    EXPECT_EQ(keyMemo, keyTag);
+    EXPECT_EQ(valMemo, valTag);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: contains the key and change the lru position.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, contains_with_change_base5, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId0");
+    ASSERT_TRUE(exists);
+    ASSERT_TRUE(changed);
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    std::vector<std::string> keyTag = {
+        "deviceId1", "deviceId2", "deviceId3", "deviceId4", "deviceId0",
+    };
+    std::vector<uint32_t> valTag = { 1, 2, 3, 4, 0 };
+    EXPECT_EQ(keyMemo, keyTag);
+    EXPECT_EQ(valMemo, valTag);
+
+    std::tie(exists, changed) = bucket.Contains("deviceId3");
+    ASSERT_TRUE(exists);
+    ASSERT_TRUE(changed);
+    std::tie(keyMemo, valMemo) = bucket.DumpMemento();
+    keyTag = {
+        "deviceId1", "deviceId2", "deviceId4", "deviceId0", "deviceId3",
+    };
+    valTag = { 1, 2, 4, 0, 3 };
+    EXPECT_EQ(keyMemo, keyTag);
+    EXPECT_EQ(valMemo, valTag);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: contains the key and not change the lru position.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, contains_with_no_change, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+        "deviceId5", "deviceId6", "deviceId7", "deviceId8", "deviceId9",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId9");
+    ASSERT_TRUE(exists);
+    ASSERT_FALSE(changed);
+    auto [keyMemo, valueMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keys);
+    EXPECT_EQ(valueMemo, values);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: contains the key and not change the lru position.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, contains_with_no_change_base5, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId4");
+    ASSERT_TRUE(exists);
+    ASSERT_FALSE(changed);
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keys);
+    EXPECT_EQ(valMemo, values);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: not contains the key.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, not_contains, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+        "deviceId5", "deviceId6", "deviceId7", "deviceId8", "deviceId9",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId10");
+    ASSERT_FALSE(exists);
+    ASSERT_FALSE(changed);
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keys);
+    EXPECT_EQ(valMemo, values);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: not contains the key.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, not_contains_base5, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId10");
+    ASSERT_FALSE(exists);
+    ASSERT_FALSE(changed);
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keys);
+    EXPECT_EQ(valMemo, values);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: not contains the key and set the new value.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, not_contains_and_set, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+        "deviceId5", "deviceId6", "deviceId7", "deviceId8", "deviceId9",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId10");
+    ASSERT_FALSE(exists);
+    ASSERT_FALSE(changed);
+    success = bucket.Set("deviceId10", 10);
+    ASSERT_TRUE(success);
+    std::vector<std::string> keyTag = {
+        "deviceId1", "deviceId2", "deviceId3", "deviceId4", "deviceId5",
+        "deviceId6", "deviceId7", "deviceId8", "deviceId9", "deviceId10",
+    };
+    std::vector<uint32_t> valTag = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keyTag);
+    EXPECT_EQ(valMemo, valTag);
+}
+
+/**
+ * @tc.name: Contains
+ * @tc.desc: not contains the key and set the new value.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, not_contains_and_set_base5, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [exists, changed] = bucket.Contains("deviceId10");
+    ASSERT_FALSE(exists);
+    ASSERT_FALSE(changed);
+    success = bucket.Set("deviceId10", 10);
+    ASSERT_TRUE(success);
+    std::vector<std::string> result = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4", "deviceId10",
+    };
+    std::vector<uint32_t> valResult = { 0, 1, 2, 3, 4, 10 };
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, result);
+    EXPECT_EQ(valMemo, valResult);
+    success = bucket.Set("deviceId4", 4);
+    ASSERT_TRUE(success);
+    result = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId10", "deviceId4",
+    };
+    valResult = { 0, 1, 2, 3, 10, 4 };
+    std::tie(keyMemo, valMemo) = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, result);
+    EXPECT_EQ(valMemo, valResult);
+}
+
+/**
+ * @tc.name: Initialize
+ * @tc.desc: use the Memento to init the lru.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, initialize, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+        "deviceId5", "deviceId6", "deviceId7", "deviceId8", "deviceId9",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keys);
+    EXPECT_EQ(valMemo, values);
+}
+
+/**
+ * @tc.name: Initialize
+ * @tc.desc: use the Memento to init the lru.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(LRUBucketTest, initialize_not_enough, TestSize.Level0)
+{
+    std::vector<std::string> keys = {
+        "deviceId0", "deviceId1", "deviceId2", "deviceId3", "deviceId4",
+    };
+    std::vector<uint32_t> values = { 0, 1, 2, 3, 4 };
+    LRUBucket<std::string, uint32_t> bucket{ TEST_CAPACITY };
+    auto success = bucket.Initialize({ keys, values });
+    ASSERT_TRUE(success);
+    EXPECT_EQ(5, bucket.Size());
+    EXPECT_EQ(TEST_CAPACITY, bucket.Capacity());
+    auto [keyMemo, valMemo] = bucket.DumpMemento();
+    EXPECT_EQ(keyMemo, keys);
+    EXPECT_EQ(valMemo, values);
+}
 } // namespace OHOS::Test
