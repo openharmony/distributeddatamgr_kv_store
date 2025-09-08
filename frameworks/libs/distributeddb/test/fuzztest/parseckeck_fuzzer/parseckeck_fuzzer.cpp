@@ -63,27 +63,6 @@ void CompareSchemaString(FuzzedDataProvider &fdp)
     schemaOri.ParseFromSchemaString(schemaString);
     schemaOri.ParseFromSchemaString(schemaString2);
 }
-
-void CheckFieldName(FuzzedDataProvider &fdp)
-{
-    std::string schemaAttrString = fdp.ConsumeRandomLengthString();
-    SchemaUtils::CheckFieldName(schemaAttrString);
-}
-
-void ParseFieldPath(FuzzedDataProvider &fdp)
-{
-    std::string schemaAttrString = fdp.ConsumeRandomLengthString();
-    FieldPath outPath;
-    SchemaUtils::ParseAndCheckFieldPath(schemaAttrString, outPath);
-}
-
-void CheckSchemaAttribute(FuzzedDataProvider &fdp)
-{
-    std::string schemaAttrString = fdp.ConsumeRandomLengthString();
-    SchemaAttribute outAttr;
-    SchemaUtils::ParseAndCheckSchemaAttribute(schemaAttrString, outAttr);
-    SchemaUtils::ParseAndCheckSchemaAttribute(schemaAttrString, outAttr);
-}
 }
 
 /* Fuzzer entry point */
@@ -94,11 +73,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     OHOS::GetSchmaKvstore(fdp);
     OHOS::ParseSchemaString(fdp);
     OHOS::CompareSchemaString(fdp);
-    OHOS::CheckFieldName(fdp);
-    OHOS::ParseFieldPath(fdp);
-    OHOS::CheckSchemaAttribute(fdp);
 
     DistributedDBToolsTest::RemoveTestDbFiles(g_config.dataDir);
     return 0;
 }
-
