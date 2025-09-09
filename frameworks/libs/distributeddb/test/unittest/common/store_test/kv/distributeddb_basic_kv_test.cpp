@@ -149,4 +149,42 @@ HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet001, TestSize.Level0)
     EXPECT_EQ(store2->Get({'k'}, actualValue3), OK);
     EXPECT_EQ(actualValue3, expectValue);
 }
+
+/**
+ * @tc.name: WhitelistKvGet002
+ * @tc.desc: Test Get if isinwhite
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet002, TestSize.Level0)
+{
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    Value expectValue = {'v'};
+    EXPECT_EQ(store1->Put({'k'}, expectValue), OK);
+    Value actualValue;
+    EXPECT_EQ(store1->Get({'k'}, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+
+    EXPECT_EQ(store1->StartTransaction(), OK);
+    EXPECT_EQ(store1->Put({'k'}, expectValue), OK);
+    EXPECT_EQ(store1->Get({'k'}, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    EXPECT_EQ(store1->Commit(), OK);
+
+    auto storeInfo2 = GetStoreInfo2();
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+    EXPECT_EQ(store2->Put({'k'}, expectValue), OK);
+    EXPECT_EQ(store2->Get({'k'}, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+
+    EXPECT_EQ(store2->StartTransaction(), OK);
+    EXPECT_EQ(store2->Put({'k'}, expectValue), OK);
+    EXPECT_EQ(store2->Get({'k'}, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    EXPECT_EQ(store2->Commit(), OK);
+}
 } // namespace DistributedDB

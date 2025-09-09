@@ -70,7 +70,7 @@ public:
 
     AutoLaunch() = default;
 
-    ~AutoLaunch();
+    virtual ~AutoLaunch();
 
     DISABLE_COPY_ASSIGN_MOVE(AutoLaunch);
 
