@@ -620,7 +620,7 @@ bool JsonCommon::IsArrayMatch(const JsonObject &src, const JsonObject &target, i
 }
 
 bool JsonCommon::IsObjectItemMatch(const JsonObject &srcItem, const JsonObject &item, int &isAlreadyMatched,
-    bool &isCollapse, int &isMatchFlag)
+    bool &isCollapse, bool &isMatchFlag)
 {
     if (srcItem.GetType() == JsonObject::Type::JSON_ARRAY && item.GetType() == JsonObject::Type::JSON_ARRAY &&
         !isAlreadyMatched) {
@@ -654,7 +654,7 @@ bool JsonCommon::IsObjectItemMatch(const JsonObject &srcItem, const JsonObject &
 }
 
 bool JsonCommon::JsonEqualJudge(const JsonFieldPath &itemPath, const JsonObject &src, const JsonObject &item,
-    bool &isCollapse, int &isMatchFlag)
+    bool &isCollapse, bool &isMatchFlag)
 {
     int errCode = E_OK;
     JsonObject srcItem = src.FindItemPowerMode(itemPath, errCode);
@@ -685,7 +685,7 @@ bool JsonCommon::JsonEqualJudge(const JsonFieldPath &itemPath, const JsonObject 
 bool JsonCommon::IsJsonNodeMatch(const JsonObject &src, const JsonObject &target, int &errCode)
 {
     errCode = E_OK;
-    int isMatchFlag = true;
+    bool isMatchFlag = true;
     JsonObjectIterator(target, {}, [&src, &isMatchFlag, &errCode](const JsonFieldPath &path, const JsonObject &item) {
         int isAlreadyMatched = 0;
         bool isCollapse = false;
