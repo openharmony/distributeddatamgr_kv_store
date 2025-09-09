@@ -101,7 +101,7 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     DBDfxAdapter::StartTracing();
     bool isInWhitelist = IsInWhitelist();
     // need to check if the transaction started
-    if (!isInWhitelist || (isInWhitelist && transactionExeFlag_.load())) {
+    if (!isInWhitelist || transactionExeFlag_.load()) {
         {
             std::lock_guard<std::mutex> lock(transactionMutex_);
             if (writeHandle_ != nullptr) {
