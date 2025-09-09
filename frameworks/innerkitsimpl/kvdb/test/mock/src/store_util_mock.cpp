@@ -143,4 +143,12 @@ StoreUtil::DBMode StoreUtil::GetDBMode(SyncMode syncMode)
     DBMode dbMode = DBMode::SYNC_MODE_PULL_ONLY;
     return dbMode;
 }
+
+void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target)
+{
+}
+
+void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileName)
+{
+}
 } // namespace OHOS::DistributedKv
