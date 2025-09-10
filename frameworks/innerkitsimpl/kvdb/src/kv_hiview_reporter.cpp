@@ -326,7 +326,7 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
     std::string reporterDir = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId, reporterDir);
     reporterDir = path + "/kvdb/" + reporterDir + "/";
-    return reporterDir;
+    return StoreUtil::Anonymous(reporterDir).c_str();
 }
 
 std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &eventInfo)
