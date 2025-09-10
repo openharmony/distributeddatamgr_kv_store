@@ -119,6 +119,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     auto status = napi_queue_async_work_with_qos(env, aCtx->work, napi_qos_user_initiated);
     if (status != napi_ok) {
         napi_get_undefined(env, &promise);
+        napi_reject_deferred(env, aCtx->deferred, promise);
         delete aCtx;
     }
     return promise;
