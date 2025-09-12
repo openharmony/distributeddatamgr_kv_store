@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,15 +12,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "win_glibc.h"
-namespace OHOS {
-__attribute__((visibility("default"))) int pthread_setname_np(int tid, const char *name)
+
+#ifndef MOCK_XATTR_H
+#define MOCK_XATTR_H
+
+inline  ssize_t getxattr(const char *path, const char *name, void *value, unsigned long size, int sizea, int sizeb)
 {
     return 0;
 }
 
-__attribute__((visibility("default"))) int pthread_self()
+inline  int setxattr(const char *path, const char *name, void const* value, unsigned long size, int sizea, int sizeb)
 {
     return 0;
 }
+
+inline  ssize_t getxattr(const char *path, const char *name, void *value, size_t size)
+{
+    return 0;
 }
+
+inline  int setxattr(const char *path, const char *name, const void *value, size_t size, int flags)
+{
+    return 0;
+}
+#endif // MOCK_XATTR_H

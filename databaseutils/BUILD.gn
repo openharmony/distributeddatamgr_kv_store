@@ -24,48 +24,66 @@ config("database_utils_config") {
 config("database_utils_public_config") {
   visibility = [ ":*" ]
   include_dirs = [ "include" ]
-  if (use_platform_win || use_platforn_mac || is_ios || is_mac) {
-    include_dirs += [
-      "${kv_store_base_path}/databaseutils/mock/include",
-    ]
+  if (use_platform_win || use_platforn_mac || is_ios || is_android) {
+    include_dirs += ["${kv_store_base_path}/kvstoremock/interfaces/mock",
+                     "${kv_store_base_path}/kvstoremock/interfaces/mock/base"]
   }
 }
 
 base_sources = [ "src/acl.cpp" ]
 
-ohos_shared_library("database_utils") {
-  branch_protector_ret = "pac_ret"
-  sources = base_sources
-  if (use_platform_win) {
-    defines = [ "IS_WINDOWS" ]
-    cflags = [ "-includewin_glibc.h" ]
-    deps = [
-      "//third_party/bounds_checking_function:libsec_static",
-    ]
-    sources += [ "mock/src/win_glibc.cpp"]
-  } else if (use_platforn_mac) {
-    defines = [ "_MACOS" ]
-    cflags = [ "-includemac_glibc.h" ]
-    deps = [
-      "//third_party/bounds_checking_function:libsec_static",
-    ]
-    sources += [ "mock/src/mac_glibc.cpp"]
-  } else {
-    sanitize = {
-      ubsan = true
-      boundary_sanitize = true
-      cfi = true
-      cfi_cross_dso = true
-      debug = false
+if (is_ios || is_android) {
+  ohos_static_library("database_utils") {
+    branch_protector_ret = "pac_ret"
+    sources = base_sources
+    configs = [ ":database_utils_config" ]
+    cflags_cc = [ "-fvisibility=hidden" ]
+    public_configs = [ ":database_utils_public_config" ]
+    deps = []
+    if (is_arkui_x) {
+      deps += [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_${target_os}" ]
+    } else {
+      external_deps = [ "hilog:libhilog" ]
     }
+    public_external_deps = [ "bounds_checking_function:libsec_shared" ]
+    subsystem_name = "distributeddatamgr"
+    part_name = "kv_store"
   }
+} else {
+  ohos_shared_library("database_utils") {
+    branch_protector_ret = "pac_ret"
+    sources = base_sources
+    if (use_platform_win) {
+      defines = [ "IS_WINDOWS" ]
+      cflags = [ "-includewin_glibc.h" ]
+      deps = [
+        "//third_party/bounds_checking_function:libsec_static",
+      ]
+      sources += [ "${kv_store_base_path}/kvstoremock/interfaces/mock/win_glibc.cpp"]
+    } else if (use_platforn_mac) {
+      defines = [ "_MACOS" ]
+      cflags = [ "-includemac_glibc.h" ]
+      deps = [
+        "//third_party/bounds_checking_function:libsec_static",
+      ]
+      sources += [ "${kv_store_base_path}/kvstoremock/interfaces/mock/mac_glibc.cpp"]
+    } else {
+      sanitize = {
+        ubsan = true
+        boundary_sanitize = true
+        cfi = true
+        cfi_cross_dso = true
+        debug = false
+      }
+    }
 
-  innerapi_tags = [ "platformsdk" ]
-  configs = [ ":database_utils_config" ]
-  cflags_cc = [ "-fvisibility=hidden" ]
-  public_configs = [ ":database_utils_public_config" ]
-  external_deps = [ "hilog:libhilog" ]
-  public_external_deps = [ "bounds_checking_function:libsec_shared" ]
-  subsystem_name = "distributeddatamgr"
-  part_name = "kv_store"
+    innerapi_tags = [ "platformsdk" ]
+    configs = [ ":database_utils_config" ]
+    cflags_cc = [ "-fvisibility=hidden" ]
+    public_configs = [ ":database_utils_public_config" ]
+    external_deps = [ "hilog:libhilog" ]
+    public_external_deps = [ "bounds_checking_function:libsec_shared" ]
+    subsystem_name = "distributeddatamgr"
+    part_name = "kv_store"
+  }
 }
