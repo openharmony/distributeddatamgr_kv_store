@@ -568,11 +568,6 @@ TimeOffset SyncAbleKvDB::GetLocalTimeOffset()
     return syncer_.GetLocalTimeOffset();
 }
 
-std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
-{
-    return {};
-}
-
 int32_t SyncAbleKvDB::GetTaskCount()
 {
     int32_t taskCount = 0;
@@ -625,6 +620,11 @@ int SyncAbleKvDB::PreClose()
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
+std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
+{
+    return {};
+}
+
 void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)
 {

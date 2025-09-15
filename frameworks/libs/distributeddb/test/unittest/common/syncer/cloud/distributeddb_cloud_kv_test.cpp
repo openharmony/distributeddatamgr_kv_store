@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 
 #include "cloud/cloud_db_constant.h"
@@ -2681,3 +2682,4 @@ HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest004, TestSize.Level1)
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 }
+#endif // USE_DISTRIBUTEDDB_CLOUD

@@ -643,24 +643,35 @@ TimeOffset SQLiteSingleVerNaturalStore::GetLocalTimeOffsetForCloud()
 
 int SQLiteSingleVerNaturalStore::RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action)
 {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     if (sqliteCloudKvStore_ == nullptr) {
         return -E_INTERNAL_ERROR;
     }
     sqliteCloudKvStore_->RegisterObserverAction(observer, action);
+#endif
     return E_OK;
 }
 
 int SQLiteSingleVerNaturalStore::UnRegisterObserverAction(const KvStoreObserver *observer)
 {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     if (sqliteCloudKvStore_ == nullptr) {
         return -E_INTERNAL_ERROR;
     }
     sqliteCloudKvStore_->UnRegisterObserverAction(observer);
+#endif
     return E_OK;
 }
 
+void SQLiteSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    std::unique_lock<std::shared_mutex> lock(dataInterceptorMutex_);
+    receiveDataInterceptor_ = interceptor;
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteSingleVerNaturalStore::GetCloudVersion(const std::string &device,
     std::map<std::string, std::string> &versionMap)
 {
@@ -669,12 +680,6 @@ int SQLiteSingleVerNaturalStore::GetCloudVersion(const std::string &device,
         return -E_INTERNAL_ERROR;
     }
     return sqliteCloudKvStore_->GetCloudVersion(device, versionMap);
-}
-
-void SQLiteSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
-{
-    std::unique_lock<std::shared_mutex> lock(dataInterceptorMutex_);
-    receiveDataInterceptor_ = interceptor;
 }
 
 int SQLiteSingleVerNaturalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
@@ -698,15 +703,72 @@ CloudSyncConfig SQLiteSingleVerNaturalStore::GetCloudSyncConfig() const
     }
     return sqliteCloudKvStore_->GetCloudSyncConfig();
 }
+#endif
 
 int SQLiteSingleVerNaturalStore::OperateDataStatus(uint32_t dataOperator)
 {
-    std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
-    if (sqliteCloudKvStore_ == nullptr) {
-        LOGE("[SingleVerNStore] DB is null when operate data status");
-        return -E_INTERNAL_ERROR;
+    LOGI("[SingleVerNStore] OperateDataStatus %" PRIu32, dataOperator);
+    if ((dataOperator & static_cast<uint32_t>(DataOperator::UPDATE_TIME)) == 0 &&
+        (dataOperator & static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)) == 0) {
+        return E_OK;
     }
-    return sqliteCloudKvStore_->OperateDataStatus(dataOperator);
+
+    Timestamp currentRawTime = GetCurrentTimestamp();
+    TimeOffset timeOffset = GetLocalTimeOffsetForCloud();
+    Timestamp currentSysTime = static_cast<Timestamp>(static_cast<TimeOffset>(currentRawTime) - timeOffset);
+    auto currentVirtualTime = std::to_string(currentRawTime);
+    auto currentTime = std::to_string(currentSysTime);
+
+    auto [errCode, handle] = GetStorageExecutor(true);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore][OperateDataStatus] Get handle failed: %d", errCode);
+        return errCode;
+    }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore][OperateDataStatus] Start transaction failed %d when operate data status", errCode);
+        RecycleStorageExecutor(handle);
+        return errCode;
+    }
+    errCode = OperateDataStatus(handle, currentVirtualTime, currentTime, dataOperator);
+    if (errCode == E_OK) {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore][OperateDataStatus] Commit failed %d when operate data status", errCode);
+        }
+    } else {
+        int ret = handle->Rollback();
+        if (ret != E_OK) {
+            LOGE("[SingleVerNStore][OperateDataStatus] Rollback failed %d when operate data status", ret);
+        }
+    }
+    RecycleStorageExecutor(handle);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStore::OperateDataStatus(SQLiteSingleVerStorageExecutor *handle,
+    const std::string &currentVirtualTime, const std::string &currentTime, uint32_t dataOperator)
+{
+    sqlite3 *db = nullptr;
+    int errCode = handle->GetDbHandle(db);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore][OperateDataStatus] Get db failed %d when operate data status", errCode);
+        return errCode;
+    }
+    if ((dataOperator & static_cast<uint32_t>(DataOperator::UPDATE_TIME)) != 0) {
+        errCode = SQLiteUtils::UpdateLocalDataModifyTime(db, currentVirtualTime, currentTime);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore][OperateDataStatus] Update local data modify time failed: %d", errCode);
+            return errCode;
+        }
+    }
+    if ((dataOperator & static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)) != 0) {
+        errCode = SQLiteUtils::UpdateLocalDataCloudFlag(db);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore][OperateDataStatus] Update local data cloud flag failed: %d", errCode);
+        }
+    }
+    return errCode;
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD

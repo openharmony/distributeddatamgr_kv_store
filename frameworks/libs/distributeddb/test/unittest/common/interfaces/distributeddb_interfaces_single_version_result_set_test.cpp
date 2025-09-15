@@ -558,9 +558,11 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVerNaturalStor
     Timestamp stamp = 0;
     storeObj.GetMaxTimestamp(stamp);
     CloudSyncConfig config;
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     EXPECT_EQ(storeObj.SetCloudSyncConfig(config), -E_INTERNAL_ERROR);
     std::map<std::string, std::string> versionMap;
     EXPECT_EQ(storeObj.GetCloudVersion("", versionMap), -E_INTERNAL_ERROR);
+#endif
     EXPECT_EQ(storeObj.UnRegisterObserverAction(nullptr), -E_INTERNAL_ERROR);
     ObserverAction action;
     EXPECT_EQ(storeObj.RegisterObserverAction(nullptr, action), -E_INTERNAL_ERROR);

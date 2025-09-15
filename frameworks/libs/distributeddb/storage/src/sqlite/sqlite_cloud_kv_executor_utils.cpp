@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 #include "sqlite_cloud_kv_executor_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
@@ -1657,3 +1658,4 @@ void SqliteCloudKvExecutorUtils::MarkUploadSuccessInner(const FillGidParam &para
     }
 }
 }
+#endif // USE_DISTRIBUTEDDB_CLOUD

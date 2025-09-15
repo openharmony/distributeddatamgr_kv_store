@@ -262,6 +262,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, ExportBusy001, TestSiz
     g_store->ReEnableConnection(OperatePerm::NORMAL_WRITE);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: GetCloudSyncConfigTest001
  * @tc.desc: Test GetCloudSyncConfig interface of RdSingleVerNaturalStore
@@ -275,5 +276,6 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, GetCloudSyncConfigTest
     CloudSyncConfig config = g_store->GetCloudSyncConfig();
     EXPECT_EQ(config.isSupportEncrypt, false);
 }
+#endif
 }
 #endif // USE_RD_KERNEL

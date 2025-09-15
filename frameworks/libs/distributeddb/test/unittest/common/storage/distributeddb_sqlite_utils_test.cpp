@@ -568,6 +568,7 @@ HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalBranchErrAfterClose, TestSize.Lev
     EXPECT_EQ(-SQLITE_MISUSE, SQLiteUtils::CheckTableExists(g_db, tableName, isEmpty));
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: AbnormalSqliteCloudKvExecutorUtilsTest001
  * @tc.desc: Test sqlite cloud kv executor utils abnormal
@@ -606,6 +607,7 @@ HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalSqliteCloudKvExecutorUtilsTest001
     EXPECT_NE(ret, E_OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
+#endif
 
 /**
  * @tc.name: CheckIntegrityTest001

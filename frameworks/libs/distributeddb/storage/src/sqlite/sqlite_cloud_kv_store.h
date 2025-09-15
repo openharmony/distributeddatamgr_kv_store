@@ -14,6 +14,7 @@
  */
 #ifndef SQLITE_CLOUD_STORE_H
 #define SQLITE_CLOUD_STORE_H
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 
 #include "icloud_sync_storage_interface.h"
 #include "cloud/cloud_upload_recorder.h"
@@ -121,8 +122,6 @@ public:
 
     std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
         int64_t beginTime) override;
-
-    int OperateDataStatus(uint32_t dataOperator);
 private:
     std::pair<sqlite3 *, SQLiteSingleVerStorageExecutor *> GetTransactionDbHandleAndMemoryStatus(bool isWrite);
 
@@ -133,9 +132,6 @@ private:
     bool CheckSchema(std::map<std::string, DataBaseSchema> schema);
 
     int ReviseOneLocalModTime(sqlite3_stmt *stmt, const ReviseModTimeInfo &data, bool isMemory);
-
-    int OperateDataStatusInner(SQLiteSingleVerStorageExecutor *handle, const std::string &currentVirtualTime,
-        const std::string &currentTime, uint32_t dataOperator);
 
     int CommitForAsyncDownload();
 
@@ -163,4 +159,5 @@ private:
     CloudUploadRecorder recorder_;
 };
 }
+#endif // USE_DISTRIBUTEDDB_CLOUD
 #endif // SQLITE_CLOUD_STORE_H

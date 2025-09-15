@@ -591,6 +591,7 @@ void RdSingleVerNaturalStore::SetReceiveDataInterceptor(const DataInterceptor &i
 {
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 CloudSyncConfig RdSingleVerNaturalStore::GetCloudSyncConfig() const
 {
     // Implement the pure virtual function in the base class SyncAbleKvDB.
@@ -598,4 +599,5 @@ CloudSyncConfig RdSingleVerNaturalStore::GetCloudSyncConfig() const
     CloudSyncConfig config;
     return config;
 }
+#endif
 } // namespace DistributedDB

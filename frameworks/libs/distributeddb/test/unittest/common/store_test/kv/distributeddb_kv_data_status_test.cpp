@@ -218,6 +218,37 @@ HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus004, TestSize.Level0)
     EXPECT_EQ(entries.size(), 0u); // 0 record
 }
 
+/**
+ * @tc.name: OperateDataStatus005
+ * @tc.desc: Test operate data status args.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus005, TestSize.Level0)
+{
+    auto store1 = GetDelegate(GetStoreInfo1());
+    ASSERT_NE(store1, nullptr);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME)), OK);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)), OK);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME) |
+        static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)), OK);
+    EXPECT_EQ(store1->OperateDataStatus(0), OK);
+}
+
+/**
+ * @tc.name: OperateDataStatus006
+ * @tc.desc: Test operate data status invalid args.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus006, TestSize.Level0)
+{
+    SQLiteSingleVerNaturalStore store;
+    EXPECT_EQ(store.OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME)), -E_INVALID_DB);
+    SQLiteSingleVerStorageExecutor handle(nullptr, false, false);
+    EXPECT_EQ(SQLiteSingleVerNaturalStore::OperateDataStatus(&handle, "", "", 0), -E_NOT_FOUND);
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: CloudOperateDataStatus001

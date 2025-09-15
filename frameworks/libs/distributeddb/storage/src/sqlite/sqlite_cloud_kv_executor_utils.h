@@ -15,6 +15,7 @@
 
 #ifndef SQLITE_CLOUD_KV_EXECUTOR_UTILS_H
 #define SQLITE_CLOUD_KV_EXECUTOR_UTILS_H
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 
 #include "cloud/cloud_db_types.h"
 
@@ -175,4 +176,5 @@ private:
         size_t dataIndex);
 };
 }
+#endif // USE_DISTRIBUTEDDB_CLOUD
 #endif // SQLITE_CLOUD_KV_EXECUTOR_UTILS_H

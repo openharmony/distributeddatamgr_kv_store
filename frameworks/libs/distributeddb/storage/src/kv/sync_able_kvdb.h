@@ -109,10 +109,10 @@ public:
 
     int32_t GetTaskCount();
 
-    virtual CloudSyncConfig GetCloudSyncConfig() const = 0;
-
     int PreClose() override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
+    virtual CloudSyncConfig GetCloudSyncConfig() const = 0;
+
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
     int SetCloudDB(const std::map<std::string, std::shared_ptr<ICloudDb>> &cloudDBs);
@@ -156,10 +156,11 @@ protected:
     int CleanAllWaterMark();
 #endif
 protected:
+    bool ExchangeClosePending(bool expected);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 
-    bool ExchangeClosePending(bool expected);
-#ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual bool CheckSchemaSupportForCloudSync() const;
 #endif
 private:

@@ -225,23 +225,28 @@ public:
 
     int UnRegisterObserverAction(const KvStoreObserver *observer);
 
-    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
-
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
-
-    int SetCloudSyncConfig(const CloudSyncConfig &config);
-
-    CloudSyncConfig GetCloudSyncConfig() const override;
 
     uint64_t GetTimestampFromDB() override;
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     // for test mock
     const SqliteCloudKvStore* GetCloudKvStore()
     {
         return sqliteCloudKvStore_;
     }
 
+    int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
+
+    int SetCloudSyncConfig(const CloudSyncConfig &config);
+
+    CloudSyncConfig GetCloudSyncConfig() const override;
+#endif
+
     int OperateDataStatus(uint32_t dataOperator);
+
+    static int OperateDataStatus(SQLiteSingleVerStorageExecutor *handle, const std::string &currentVirtualTime,
+        const std::string &currentTime, uint32_t dataOperator);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int ClearCloudWatermark();
@@ -252,9 +257,9 @@ protected:
 
     void ReleaseResources();
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     std::map<std::string, DataBaseSchema> GetDataBaseSchemas() override;
 
-#ifdef USE_DISTRIBUTEDDB_CLOUD
     ICloudSyncStorageInterface *GetICloudSyncInterface() const override;
 
     bool CheckSchemaSupportForCloudSync() const override;
@@ -361,8 +366,10 @@ private:
     mutable std::shared_mutex abortHandleMutex_;
     OperatePerm abortPerm_;
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     mutable std::mutex cloudStoreMutex_;
     SqliteCloudKvStore *sqliteCloudKvStore_;
+#endif
 
     Timestamp lastLocalSysTime_ = 0ULL;
 };
