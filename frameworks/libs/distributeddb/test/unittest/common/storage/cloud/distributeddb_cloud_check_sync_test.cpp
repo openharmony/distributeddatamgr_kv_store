@@ -144,6 +144,9 @@ void BlockCompensatedSync(const Query &query, RelationalStoreDelegate *delegate,
     std::condition_variable cv;
     bool finish = false;
     auto callback = [&processCallback, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        if (processCallback != nullptr) {
+            processCallback(process);
+        }
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 {
@@ -152,9 +155,6 @@ void BlockCompensatedSync(const Query &query, RelationalStoreDelegate *delegate,
                 }
                 cv.notify_one();
             }
-        }
-        if (processCallback != nullptr) {
-            processCallback(process);
         }
     };
     CloudSyncOption option;
