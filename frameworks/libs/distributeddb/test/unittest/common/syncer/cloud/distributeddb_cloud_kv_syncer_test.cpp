@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 
 #include "cloud/cloud_db_constant.h"
@@ -1166,3 +1167,4 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, UploadBlockTest001, TestSize.Level0)
     BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
 }
 }
+#endif // USE_DISTRIBUTEDDB_CLOUD

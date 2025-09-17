@@ -175,8 +175,12 @@ SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
       pushDataInterceptor_(nullptr),
       receiveDataInterceptor_(nullptr),
       maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT),
+#ifdef USE_DISTRIBUTEDDB_CLOUD
       abortPerm_(OperatePerm::NORMAL_PERM),
       sqliteCloudKvStore_(nullptr)
+#else
+      abortPerm_(OperatePerm::NORMAL_PERM)
+#endif
 {}
 
 SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
@@ -1291,12 +1295,13 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
             SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT));
         notificationConflictEventsRegistered_ = false;
     }
-
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     {
         std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
         RefObject::KillAndDecObjRef(sqliteCloudKvStore_);
         sqliteCloudKvStore_ = nullptr;
     }
+#endif
     {
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
@@ -1534,7 +1539,7 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
         LOGE("Init the sqlite storage engine failed:%d", errCode);
         return errCode;
     }
-
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     if (sqliteCloudKvStore_ != nullptr) {
         return E_OK;
@@ -1543,6 +1548,7 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
     if (sqliteCloudKvStore_ == nullptr) {
         return E_OUT_OF_MEMORY;
     }
+#endif
     return E_OK;
 }
 
@@ -2143,12 +2149,12 @@ bool SQLiteSingleVerNaturalStore::CheckSchemaSupportForCloudSync() const
     }
     return true;
 }
-#endif
 
 std::map<std::string, DataBaseSchema> SQLiteSingleVerNaturalStore::GetDataBaseSchemas()
 {
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);
     return sqliteCloudKvStore_->GetDataBaseSchemas();
 }
+#endif
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

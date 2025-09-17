@@ -147,7 +147,9 @@ public:
 
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     CloudSyncConfig GetCloudSyncConfig() const override;
+#endif
 private:
     int PreCheckRdImport(std::string &storePath);
 

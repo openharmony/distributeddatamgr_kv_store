@@ -218,6 +218,87 @@ HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus004, TestSize.Level0)
     EXPECT_EQ(entries.size(), 0u); // 0 record
 }
 
+/**
+ * @tc.name: OperateDataStatus005
+ * @tc.desc: Test operate data status args.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus005, TestSize.Level0)
+{
+    auto store1 = GetDelegate(GetStoreInfo1());
+    ASSERT_NE(store1, nullptr);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME)), OK);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)), OK);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME) |
+        static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD)), OK);
+    EXPECT_EQ(store1->OperateDataStatus(0), OK);
+}
+
+/**
+ * @tc.name: OperateDataStatus006
+ * @tc.desc: Test operate data status invalid args.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus006, TestSize.Level0)
+{
+    SQLiteSingleVerNaturalStore store;
+    EXPECT_EQ(store.OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME)), -E_INVALID_DB);
+    SQLiteSingleVerStorageExecutor handle(nullptr, false, false);
+    EXPECT_EQ(SQLiteSingleVerNaturalStore::OperateDataStatus(&handle, "", "", 0), -E_NOT_FOUND);
+}
+
+/**
+ * @tc.name: OperateDataStatus007
+ * @tc.desc: Test operate data status with empty db.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus007, TestSize.Level0)
+{
+    auto path = GetTestDir() + "/OperateDataStatus007.db";
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(path);
+    ASSERT_NE(db, nullptr);
+    std::string sql = std::string("CREATE TABLE IF NOT EXISTS ") + DBConstant::KV_SYNC_TABLE_NAME +
+        "(key int primary key)";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    sql = "CREATE TABLE IF NOT EXISTS naturalbase_kv_aux_sync_data_log(key int primary key)";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    SQLiteSingleVerStorageExecutor handle(db, false, false);
+    auto errCode = SQLiteSingleVerNaturalStore::OperateDataStatus(&handle, "", "",
+        static_cast<uint32_t>(DataOperator::UPDATE_TIME));
+    EXPECT_EQ(errCode, -1); // -1 is inner error
+    errCode = SQLiteSingleVerNaturalStore::OperateDataStatus(&handle, "", "",
+        static_cast<uint32_t>(DataOperator::RESET_UPLOAD_CLOUD));
+    EXPECT_EQ(errCode, -1); // -1 is inner error
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: OperateDataStatus008
+ * @tc.desc: Test operate data status when db was error.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus008, TestSize.Level0)
+{
+    auto info1 = GetStoreInfo1();
+    auto store1 = GetDelegate(info1);
+    ASSERT_NE(store1, nullptr);
+    std::string dir;
+    ASSERT_EQ(KvStoreDelegateManager::GetDatabaseDir(info1.storeId, info1.appId, info1.userId, dir), OK);
+    auto path = GetTestDir() + "/" + dir + "/single_ver/main/gen_natural_store.db";
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(path);
+    ASSERT_NE(db, nullptr);
+    std::string sql = "DROP TABLE IF EXISTS sync_data";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    sql = "CREATE TABLE IF NOT EXISTS sync_data(key int primary key)";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    EXPECT_EQ(store1->OperateDataStatus(static_cast<uint32_t>(DataOperator::UPDATE_TIME)), DB_ERROR);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: CloudOperateDataStatus001

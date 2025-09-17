@@ -1121,6 +1121,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreResultSetTe
     EXPECT_EQ(kvStoreObj.GetRow(data), NOT_SUPPORT);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: AbnormalKvStoreTest003
   * @tc.desc: Test SqliteCloudKvStore interface when para is invalid.
@@ -1168,4 +1169,5 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest003, Te
     kvStoreObj.SetUser(user);
     EXPECT_EQ(kvStoreObj.GetCloudTableSchema(tableName, tableSchema), -E_SCHEMA_MISMATCH);
 }
+#endif
 }
