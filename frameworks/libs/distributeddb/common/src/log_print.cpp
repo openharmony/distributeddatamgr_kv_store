@@ -25,10 +25,9 @@
 #include "hilog/log.h"
 
 namespace DistributedDB {
-Logger *Logger::logHandler = nullptr;
+std::shared_ptr<Logger> Logger::logHandler = nullptr;
+std::shared_mutex Logger::logMutex;
 const std::string Logger::PRIVATE_TAG = "s{private}";
-static std::mutex g_logInstanceLock;
-static std::atomic<Logger *> g_logInstance = nullptr;
 
 class HiLogger : public Logger {
 public:
@@ -65,42 +64,33 @@ public:
     }
 };
 
-Logger *Logger::GetInstance()
+std::shared_ptr<Logger> Logger::GetInstance()
 {
-    // For Double-Checked Locking, we need check logInstance twice
-    if (g_logInstance == nullptr) {
-        std::lock_guard<std::mutex> lock(g_logInstanceLock);
-        if (g_logInstance == nullptr) {
-            // Here, we new logInstance to print log, if new failed, we can do nothing.
-            g_logInstance = new (std::nothrow) HiLogger;
+    std::shared_ptr<Logger> inst = nullptr;
+    {
+        std::shared_lock<std::shared_mutex> readLock(logMutex);
+        if (logHandler != nullptr) {
+            inst = logHandler;
+            return inst;
         }
     }
-    return g_logInstance;
+    {
+        std::unique_lock<std::shared_mutex> writeLock(logMutex);
+        if (logHandler != nullptr) {
+            inst = logHandler;
+            return inst;
+        }
+        inst = std::make_shared<HiLogger>();
+        logHandler = inst;
+    }
+    LOGI("[TimeHelper] init");
+    return logHandler;
 }
 
 void Logger::DeleteInstance()
 {
-    std::lock_guard<std::mutex> lock(g_logInstanceLock);
-    if (g_logInstance == nullptr) {
-        return;
-    }
-    delete g_logInstance.load();
-    g_logInstance = nullptr;
-    logHandler = nullptr;
-}
-
-void Logger::RegisterLogger(Logger *logger)
-{
-    static std::mutex logHandlerLock;
-    if (logger == nullptr) {
-        return;
-    }
-    if (logHandler == nullptr) {
-        std::lock_guard<std::mutex> lock(logHandlerLock);
-        if (logHandler == nullptr) {
-            logHandler = logger;
-        }
-    }
+    std::unique_lock<std::shared_mutex> writeLock(logMutex);
+    logHandler.reset();
 }
 
 void Logger::Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...)
@@ -125,15 +115,7 @@ void Logger::Log(Level level, const std::string &tag, const char *func, int line
         msg = logBuff;
     }
     va_end(argList);
-    if (logHandler != nullptr) {
-        logHandler->Print(level, tag, msg);
-        return;
-    }
-
-    Logger::RegisterLogger(Logger::GetInstance());
-    if (logHandler != nullptr) {
-        logHandler->Print(level, tag, msg);
-    }
+    Logger::GetInstance()->Print(level, tag, msg);
 }
 
 void Logger::PreparePrivateLog(const char *format, std::string &outStrFormat)
