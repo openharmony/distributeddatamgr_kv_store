@@ -1965,13 +1965,41 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FuncExceptionTest001, Te
  */
 HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest001, TestSize.Level0)
 {
-    Logger *loggerInstance = Logger::GetInstance();
+    auto loggerInstance = Logger::GetInstance();
     ASSERT_NE(loggerInstance, nullptr);
     Clean(true);
     Clean(false);
     loggerInstance = nullptr;
-    Logger *newLoggerInstance = Logger::GetInstance();
+    auto newLoggerInstance = Logger::GetInstance();
     ASSERT_NE(newLoggerInstance, nullptr);
+}
+
+/**
+ * @tc.name: CleanTest002
+ * @tc.desc: Test concurrent clean
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest002, TestSize.Level2)
+{
+    size_t loopTimes = 5000;
+    std::thread t1 ([loopTimes]() {
+        for (size_t i = 0; i < loopTimes; i++) {
+            sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+            EXPECT_NE(db, nullptr);
+            EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+            Clean(true);
+        }
+    });
+
+    for (size_t i = 0; i < loopTimes; i++) {
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID_1 + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+    t1.join();
+    Clean(true);
 }
 
 /**
@@ -1999,6 +2027,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CreateTempTriggerTest001
     EXPECT_EQ(CreateDataChangeTempTrigger(db), OK);
     Clean(false);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    Clean(true);
 }
 
 /**
