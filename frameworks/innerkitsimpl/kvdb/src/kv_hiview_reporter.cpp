@@ -18,16 +18,16 @@
 #include "kv_hiview_reporter.h"
 #include <chrono>
 #include <ctime>
-#include <fcntl.h>
 #include <iomanip>
 #include <sstream>
-#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "concurrent_map.h"
 #include "hisysevent_c.h"
 #include "log_print.h"
-#include "store_util.h"
 #include "types.h"
+#include "store_util.h"
 
 namespace OHOS::DistributedKv {
 static constexpr int MAX_TIME_BUF_LEN = 32;
@@ -301,7 +301,6 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
         ZLOGW("Creat corrupted flg fail, flgname=%{public}s, errno=%{public}d",
             StoreUtil::Anonymous(flagFilename).c_str(), errno);
         return;
-
     }
     close(fd);
 }
@@ -326,7 +325,7 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
     std::string reporterDir = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId, reporterDir);
     reporterDir = path + "/kvdb/" + reporterDir + "/";
-    return StoreUtil::Anonymous(reporterDir).c_str();
+    return reporterDir;
 }
 
 std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &eventInfo)
