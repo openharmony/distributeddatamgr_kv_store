@@ -923,7 +923,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(RelationalSyncDat
         return ProcessMissQueryData(item, inserter, saveStmt.rmDataStmt, saveStmt.rmLogStmt);
     }
     if (!isExist && ((item.flag & DataItem::DELETE_FLAG) != 0)) {
-        LOGI("[RelationalStorageExecutor][SaveSyncDataItem] Delete non-exist data. Nothing to save.");
+        inserter.IncNonExistDelCnt();
         return E_OK;
     }
     bool isUpdate = isExist && mode_ == DistributedTableMode::COLLABORATION;
@@ -962,6 +962,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItems(RelationalSyncDa
         // Need not reset rmDataStmt and rmLogStmt here.
         return saveStmt.ResetStatements(false);
     });
+    inserter.DfxPrintLog();
 
     int ret = saveStmt.ResetStatements(true);
     return errCode != E_OK ? errCode : ret;

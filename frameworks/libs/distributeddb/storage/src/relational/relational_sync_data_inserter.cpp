@@ -565,4 +565,17 @@ int RelationalSyncDataInserter::GetQueryLogByFieldStmt(sqlite3 *db, sqlite3_stmt
     }
     return errCode;
 }
+
+void RelationalSyncDataInserter::IncNonExistDelCnt()
+{
+    nonExistDelCnt_++;
+}
+
+void RelationalSyncDataInserter::DfxPrintLog() const
+{
+    if (nonExistDelCnt_ > 0) {
+        LOGI("[RelationalStorageExecutor][SaveSyncDataItem] Delete non-exist data. Nothing to save, cnt:" PRIu32 ".",
+            nonExistDelCnt_);
+    }
+}
 } // namespace DistributedDB
