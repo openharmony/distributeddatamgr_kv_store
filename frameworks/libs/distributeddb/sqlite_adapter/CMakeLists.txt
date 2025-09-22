@@ -45,3 +45,5 @@ add_library(customtokenizer SHARED ${SOURCE_FILES})
 target_link_libraries(customtokenizer PUBLIC sqlite3 securec)
 
 target_include_directories(customtokenizer PUBLIC include)
+
+install(TARGETS customtokenizer LIBRARY DESTINATION lib)

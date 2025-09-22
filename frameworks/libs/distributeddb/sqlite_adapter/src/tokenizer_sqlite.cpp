@@ -27,16 +27,76 @@ using namespace CNTokenizer;
 typedef struct Fts5TokenizerParam {
     uint32_t magicCode = 0;
     GRD_CutScene cutScene = DEFAULT;
+    bool caseSensitive = true;
 } Fts5TokenizerParamT;
 
 static std::mutex g_mtx;
 static uint32_t g_refCount = 0;
 constexpr int FTS5_MAX_VERSION = 2;
-constexpr int CUSTOM_TOKENIZER_PARAM_NUM = 2;
 constexpr int MAGIC_CODE = 0x12345678;
 constexpr const char *CUT_SCENE_PARAM_NAME = "cut_mode";
 constexpr const char *CUT_SCENE_SHORT_WORDS = "short_words";
 constexpr const char *CUT_SCENE_DEFAULT = "default";
+constexpr const char *CUT_CASE_SENSITIVE = "case_sensitive";
+
+int AnalyzeCutMode(std::string &value, Fts5TokenizerParamT *para)
+{
+    if (value == CUT_SCENE_SHORT_WORDS) {
+        para->cutScene = SEARCH;
+    } else if (value == CUT_SCENE_DEFAULT) {
+        para->cutScene = DEFAULT;
+    } else {
+        sqlite3_log(SQLITE_ERROR, "invalid arg value of cut scene");
+        return SQLITE_ERROR;
+    }
+    return SQLITE_OK;
+}
+
+int AnalyzeCaseSensitive(std::string &value, Fts5TokenizerParamT *para)
+{
+    if (value == "1") {
+        para->caseSensitive = true;
+    } else if (value == "0") {
+        para->caseSensitive = false;
+    } else {
+        sqlite3_log(SQLITE_ERROR, "invalid arg value of case sensitive");
+        return SQLITE_ERROR;
+    }
+    return SQLITE_OK;
+}
+
+int ParseArgs(const char **azArg, int nArg, Fts5TokenizerParamT *para)
+{
+    if (nArg == 0) {
+        return SQLITE_OK;
+    }
+    // 检查参数个数是否为偶数
+    if (nArg % 2 != 0) { // 通过模2校验是否为偶数
+        sqlite3_log(SQLITE_ERROR, "|Parse Args| invalid args num %d", nArg);
+        return SQLITE_ERROR; // 参数数量不匹配
+    }
+    int ret = SQLITE_OK;
+    for (int i = 0; i < nArg - 1; i += 2) { // kv对 一次解析2个
+        if (azArg[i] == nullptr || azArg[i + 1] == nullptr) {
+            sqlite3_log(SQLITE_ERROR, "|Parse Args| azArg[i] null");
+            return SQLITE_ERROR;
+        }
+        std::string key = std::string(azArg[i]);
+        std::string value = std::string(azArg[i + 1]);
+        if (key == CUT_SCENE_PARAM_NAME) {
+            ret = AnalyzeCutMode(value, para);
+        } else if (key == CUT_CASE_SENSITIVE) {
+            ret = AnalyzeCaseSensitive(value, para);
+        } else {
+            sqlite3_log(SQLITE_ERROR, "invalid key");
+            ret = SQLITE_ERROR;
+        }
+        if (ret != SQLITE_OK) {
+            return ret;
+        }
+    }
+    return SQLITE_OK;
+}
 
 int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Fts5Tokenizer **ppOut)
 {
@@ -44,28 +104,11 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
     std::lock_guard<std::mutex> lock(g_mtx);
     auto *pFts5TokenizerParam = new Fts5TokenizerParamT;
     pFts5TokenizerParam->magicCode = MAGIC_CODE;
-    if (nArg != 0 && nArg != CUSTOM_TOKENIZER_PARAM_NUM) {
-        sqlite3_log(SQLITE_ERROR, "invalid args num");
+    int ret = ParseArgs(azArg, nArg, pFts5TokenizerParam);
+    if (ret != SQLITE_OK) {
+        sqlite3_log(ret, "Parse Args wrong");
         delete pFts5TokenizerParam;
-        return SQLITE_ERROR;
-    }
-    if (nArg == CUSTOM_TOKENIZER_PARAM_NUM) {
-        std::string paramKey = std::string(azArg[0]);
-        std::string paramValue = std::string(azArg[1]);
-        if (paramKey != CUT_SCENE_PARAM_NAME) {
-            sqlite3_log(SQLITE_ERROR, "invalid arg name");
-            delete pFts5TokenizerParam;
-            return SQLITE_ERROR;
-        }
-        if (paramValue == CUT_SCENE_SHORT_WORDS) {
-            pFts5TokenizerParam->cutScene = SEARCH;
-        } else if (paramValue == CUT_SCENE_DEFAULT) {
-            pFts5TokenizerParam->cutScene = DEFAULT;
-        } else {
-            sqlite3_log(SQLITE_ERROR, "invalid arg value of cut scene");
-            delete pFts5TokenizerParam;
-            return SQLITE_ERROR;
-        }
+        return ret;
     }
     g_refCount++;
     if (g_refCount != 1) {  // 说明已经初始化过了，直接返回
@@ -74,7 +117,7 @@ int fts5_customtokenizer_xCreate(void *sqlite3, const char **azArg, int nArg, Ft
     }
 
     GRD_TokenizerParamT param = {CUT_MMSEG, EXTRACT_TF_IDF};
-    int ret = GRD_TokenizerInit(NULL, NULL, param);
+    ret = GRD_TokenizerInit(NULL, NULL, param);
     if (ret != GRD_OK) {
         sqlite3_log(ret, "GRD_TokenizerInit wrong");
         delete pFts5TokenizerParam;
@@ -119,6 +162,7 @@ int fts5_customtokenizer_xTokenize(
         return GRD_FAILED_MEMORY_ALLOCATE;
     }
     GRD_CutOptionT option = {false, pFts5TokenizerParam->cutScene};
+    option.toLowerCase = !pFts5TokenizerParam->caseSensitive;
     GRD_WordEntryListT *entryList = nullptr;
     int ret = GRD_TokenizerCut(ptr, option, &entryList);
     if (ret != GRD_OK) {
