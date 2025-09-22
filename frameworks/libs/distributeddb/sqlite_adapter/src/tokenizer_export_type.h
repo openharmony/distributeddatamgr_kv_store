@@ -72,6 +72,7 @@ typedef struct GRD_TokenizerParam {
 typedef struct GRD_CutOption {
     bool needPreProcess;
     GRD_CutSceneE cutScene;
+    bool toLowerCase;
 } GRD_CutOptionT;
 
 #define EXTRACT_USE_POS_WEIGHT 1
