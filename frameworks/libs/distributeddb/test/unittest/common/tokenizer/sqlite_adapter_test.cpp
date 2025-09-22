@@ -344,3 +344,75 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest004, TestSize.Level0)
     SQLTest(SQLDROP);
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
+
+/**
+ * @tc.name: SqliteAdapterTest008
+ * @tc.desc: Test case Sensitive
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: whs
+ */
+HWTEST_F(SqliteAdapterTest, SqliteAdapterTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare db
+     * @tc.expected: step1. OK.
+     */
+    // Save any error messages
+    char *zErrMsg = nullptr;
+
+    // Save the connection result
+    int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    HandleRc(g_sqliteDb, rc);
+
+    rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
+    HandleRc(g_sqliteDb, rc);
+
+    rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step2. create table
+     * @tc.expected: step2. OK.
+     */
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(content, tokenize = 'customtokenizer cut_mode "
+                 "short_words case_sensitive 0')";
+    rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step3. insert records
+     * @tc.expected: step3. OK.
+     */
+    std::vector<std::string> records = {
+        "电子邮件",
+        "这是一封电子邮件",
+        "这是一封关于少数民族的电子邮件",
+        "华中师范大学是一所位于武汉市的全日制综合性师范大学",
+        "中华人民共和国",
+        "武汉市长江大桥Wuhan Yangtze River Bridge是武汉市最长的桥"
+    };
+    for (const auto &record : records) {
+        std::string insertSql = "insert into example values('" + record + "');";
+        SQLTest(insertSql.c_str());
+    }
+    /**
+     * @tc.steps: step4. test cut for short words
+     * @tc.expected: step4. OK.
+     */
+    std::vector<std::pair<std::string, int>> expectResult = {
+        {"电子", 3}, {"邮件", 3}, {"电子邮件", 3}, {"少数", 1}, {"民族", 1}, {"少数民族", 1}, {"华中", 1},
+        {"中师", 1}, {"师范", 1}, {"共和", 1}, {"共和国", 1}, {"人民共和国", 0}, {"Yangtze", 1}, {"Wuhan", 1},
+        {"市长", 0}, {"yangtze", 1}, {"WUHAN", 1}, {"river", 1},
+    };
+    // 平台没有so导致失败，直接跳过测试
+    if (!g_needSkip) {
+        for (const auto &[word, expectMatchNum] : expectResult) {
+            std::string querySql = "SELECT count(*) FROM example WHERE content MATCH '" + word + "';";
+            EXPECT_EQ(sqlite3_exec(g_sqliteDb, querySql.c_str(), QueryCallback,
+                reinterpret_cast<void*>(expectMatchNum), nullptr), SQLITE_OK);
+        }
+    }
+
+    const char *SQLDROP = "DROP TABLE IF EXISTS example;";
+    SQLTest(SQLDROP);
+    EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
+}
