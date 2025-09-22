@@ -17,16 +17,18 @@ config("database_utils_config") {
   visibility = [ ":*" ]
   include_dirs = [
     "include",
-    "${kv_store_base_path}/frameworks/common",
+    "${kv_store_base_path}/frameworks/common"
   ]
 }
 
 config("database_utils_public_config") {
   visibility = [ ":*" ]
   include_dirs = [ "include" ]
-  if (use_platform_win || use_platforn_mac || is_ios || is_android) {
-    include_dirs += ["${kv_store_base_path}/kvstoremock/interfaces/mock",
-                     "${kv_store_base_path}/kvstoremock/interfaces/mock/base"]
+  if (use_platform_win || use_platform_mac || is_ios || is_android) {
+    include_dirs += [
+      "${kv_store_base_path}/kvstoremock/interfaces/mock",
+      "${kv_store_base_path}/kvstoremock/interfaces/mock/common"
+    ]
   }
 }
 
@@ -39,12 +41,7 @@ if (is_ios || is_android) {
     configs = [ ":database_utils_config" ]
     cflags_cc = [ "-fvisibility=hidden" ]
     public_configs = [ ":database_utils_public_config" ]
-    deps = []
-    if (is_arkui_x) {
-      deps += [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_${target_os}" ]
-    } else {
-      external_deps = [ "hilog:libhilog" ]
-    }
+    deps = [ "${kv_store_base_path}/kvstoremock/interfaces/mock:build_module" ]
     public_external_deps = [ "bounds_checking_function:libsec_shared" ]
     subsystem_name = "distributeddatamgr"
     part_name = "kv_store"
@@ -53,21 +50,7 @@ if (is_ios || is_android) {
   ohos_shared_library("database_utils") {
     branch_protector_ret = "pac_ret"
     sources = base_sources
-    if (use_platform_win) {
-      defines = [ "IS_WINDOWS" ]
-      cflags = [ "-includewin_glibc.h" ]
-      deps = [
-        "//third_party/bounds_checking_function:libsec_static",
-      ]
-      sources += [ "${kv_store_base_path}/kvstoremock/interfaces/mock/win_glibc.cpp"]
-    } else if (use_platforn_mac) {
-      defines = [ "_MACOS" ]
-      cflags = [ "-includemac_glibc.h" ]
-      deps = [
-        "//third_party/bounds_checking_function:libsec_static",
-      ]
-      sources += [ "${kv_store_base_path}/kvstoremock/interfaces/mock/mac_glibc.cpp"]
-    } else {
+    if (is_ohos) {
       sanitize = {
         ubsan = true
         boundary_sanitize = true
@@ -76,11 +59,11 @@ if (is_ios || is_android) {
         debug = false
       }
     }
-
     innerapi_tags = [ "platformsdk" ]
     configs = [ ":database_utils_config" ]
     cflags_cc = [ "-fvisibility=hidden" ]
     public_configs = [ ":database_utils_public_config" ]
+    deps = [ "${kv_store_base_path}/kvstoremock/interfaces/mock:build_module" ]
     external_deps = [ "hilog:libhilog" ]
     public_external_deps = [ "bounds_checking_function:libsec_shared" ]
     subsystem_name = "distributeddatamgr"

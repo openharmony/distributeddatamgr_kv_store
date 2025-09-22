@@ -15,7 +15,7 @@ import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 group("build_module") {
   deps = [ ":distributeddata_inner_executor" ]
-  if (!use_platform_win && !use_platforn_mac) {
+  if (!use_platform_win && !use_platform_mac) {
     deps += [
       ":distributeddata_client_sync",
       ":distributeddata_inner",
@@ -225,13 +225,15 @@ config("distributeddata_common_public_config") {
 
   if (use_platform_win) {
     cflags = [ "-includewin_glibc.h" ]
-  } else if (use_platforn_mac || is_ios || is_mac) {
+  } else if (use_platform_mac || is_ios || is_mac) {
     cflags = [ "-includemac_glibc.h" ]
   }
 
-  if (use_platform_win || use_platforn_mac || is_ios || is_mac) {
+  if (use_platform_win || use_platform_mac || is_ios || is_mac) {
     include_dirs += [
-      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common",
+      "${kv_store_base_path}/kvstoremock/interfaces/mock/win/include",
+      "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/include"
     ]
   }
 }
@@ -250,11 +252,11 @@ ohos_static_library("distributeddata_inner_executor") {
 
   if (use_platform_win) {
     sources = [
-      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/win_glibc.cpp",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/win/src/win_glibc.cpp",
     ]
-  } else if (use_platforn_mac || is_ios || is_mac) {
+  } else if (use_platform_mac || is_ios || is_mac) {
     sources = [
-      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/mac_glibc.cpp",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/mac/src/mac_glibc.cpp",
     ]
   }
   subsystem_name = "distributeddatamgr"

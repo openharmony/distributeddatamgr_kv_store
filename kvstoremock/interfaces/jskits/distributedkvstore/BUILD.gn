@@ -24,11 +24,11 @@ gen_js_obj("distributed_kvstore_js") {
 
 group("build_module") {
   deps = []
-  if (use_platform_win || use_platforn_mac) {
+  if (use_platform_win || use_platform_mac) {
     deps += [ ":distributedkvstore" ]
   }
 }
-if (use_platform_win || use_platforn_mac) {
+if (use_platform_win || use_platform_mac) {
   ohos_shared_library("distributedkvstore") {
     include_dirs = [
       "//third_party/libuv/include",
@@ -38,8 +38,9 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/include",
       "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
       "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/base",
-      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/win/include",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/mac/include",
       "//commonlibrary/c_utils/base/include",
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
       "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/framework/include/utils",
@@ -54,7 +55,7 @@ if (use_platform_win || use_platforn_mac) {
     sources = [
       "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
       "../../../frameworks/jskitsimpl/distributedkvstore/src/js_util_mock.cpp",
-      "../../../interfaces/mock/log_print.cpp",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common/log_print.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
@@ -87,7 +88,7 @@ if (use_platform_win || use_platforn_mac) {
       deps += [
         "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
       ]
-    } else if (use_platforn_mac) {
+    } else if (use_platform_mac) {
       defines = [ "_MACOS" ]
       deps +=
           [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
