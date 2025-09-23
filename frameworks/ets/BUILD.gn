@@ -44,9 +44,9 @@ taihe_shared_library("kvstore_framework_taihe_native") {
   sources = get_target_outputs(":run_taihe")
   include_dirs = [
     "${kv_store_base_path}/frameworks/common",
-    "${kv_store_base_path}/frameworks/jskitsimpl/distributeddata/include",
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributeddata/include",
   ]
   sources += [
     "src/ani_constructor.cpp",
