@@ -88,6 +88,9 @@ public:
     ChangedData &GetChangedData();
 
     std::vector<FieldInfo> GetRemoteFields() const;
+
+    void IncNonExistDelCnt();
+    void DfxPrintLog() const;
 private:
 
     int GetInsertStatement(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -109,6 +112,7 @@ private:
     std::string insertTableName_; // table name to save sync data
     DistributedTableMode mode_ = DistributedTableMode::SPLIT_BY_DEVICE;
     ChangedData data_;
+    uint32_t nonExistDelCnt_ = 0u;
 };
 }
 #endif // RELATIONAL_SYNC_DATA_INSERTER_H
