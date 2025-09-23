@@ -81,7 +81,8 @@
         "zlib",
         "data_share",
         "openssl",
-        "sqlite"
+        "sqlite",
+        "bounds_checking_function"
       ]
     },
     "build": {
@@ -94,7 +95,8 @@
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
-        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils"
+        "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils",
+        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock:build_module"
       ],
       "inner_kits": [
         {

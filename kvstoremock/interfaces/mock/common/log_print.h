@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -57,4 +57,4 @@ private:
 #define ZLOGW(...) Logger::Log(Logger::Level::LEVEL_WARN, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
 #define ZLOGE(...) Logger::Log(Logger::Level::LEVEL_ERROR, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
 #define ZLOGF(...) Logger::Log(Logger::Level::LEVEL_FATAL, LOG_TAG_KV, __FILE_NAME__, __LINE__, __VA_ARGS__)
-#endif // DISTRIBUTEDDB_LOG_PRINT_H
+#endif // DISTRIBUTEDDATA__MOCK_LOG_PRINT_H

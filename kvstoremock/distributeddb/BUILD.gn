@@ -83,7 +83,7 @@ config("distrdb_public_config") {
 
 group("build_module") {
   deps = []
-  if (use_platform_win || use_platforn_mac) {
+  if (use_platform_win || use_platform_mac) {
     deps += [ ":distributeddb" ]
   }
 }
@@ -108,7 +108,7 @@ config("distrdb_config") {
   ]
   if (use_platform_win) {
     defines += [ "OS_TYPE_WINDOWS" ]
-  } else if (use_platforn_mac) {
+  } else if (use_platform_mac) {
     defines += [ "OS_TYPE_MAC" ]
   }
 }
@@ -132,7 +132,7 @@ ohos_shared_library("distributeddb_mock") {
     deps += [
       "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
     ]
-  } else if (use_platforn_mac) {
+  } else if (use_platform_mac) {
     deps +=
         [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }

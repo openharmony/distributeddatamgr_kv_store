@@ -15,7 +15,7 @@ import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 group("build_module") {
   deps = []
-  if (!use_platform_win && !use_platforn_mac) {
+  if (!use_platform_win && !use_platform_mac) {
     deps += [ ":distributeddata_mgr" ]
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,10 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef MAC_GLIBC_H
-#define MAC_GLIBC_H
-#include <thread>
+#include "mac_glibc.h"
 namespace OHOS {
-__attribute__((visibility("default"))) int pthread_setname_np(std::thread::native_handle_type tid, const char *name);
+__attribute__((visibility("default"))) int pthread_setname_np(std::thread::native_handle_type tid, const char *name)
+{
+    (void) tid;
+    return ::pthread_setname_np(name);
 }
-#endif // MAC_GLIBC_H
+}
