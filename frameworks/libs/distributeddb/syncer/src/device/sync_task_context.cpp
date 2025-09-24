@@ -267,11 +267,12 @@ int SyncTaskContext::GetNextTarget(uint32_t timeout)
 {
     MoveToNextTarget(timeout);
     int checkErrCode = RunPermissionCheck(GetPermissionCheckFlag(IsAutoSync(), GetMode()));
-    if (checkErrCode != E_OK) {
+    if (checkErrCode == -E_FINISHED) {
+        SetOperationStatus(SyncOperation::OP_FINISHED_ALL);
+    } else if (checkErrCode != E_OK) {
         SetOperationStatus(SyncOperation::OP_PERMISSION_CHECK_FAILED);
-        return checkErrCode;
     }
-    return E_OK;
+    return checkErrCode;
 }
 
 uint32_t SyncTaskContext::GetSyncId() const
@@ -774,20 +775,34 @@ void SyncTaskContext::Dump(int fd)
         deviceId_.c_str(), totalSyncTaskCount, autoSyncTaskCount, reponseTaskCount);
 }
 
-int SyncTaskContext::RunPermissionCheck(uint8_t flag) const
+int SyncTaskContext::RunPermissionCheck(uint8_t flag)
 {
     std::string appId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
     std::string userId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
     std::string storeId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
     std::string subUserId = syncInterface_->GetDbProperties().GetStringProp(DBProperties::SUB_USER, "");
     int32_t instanceId = syncInterface_->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
-    int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(
-        { userId, appId, storeId, deviceId_, subUserId, instanceId }, flag);
-    if (errCode != E_OK) {
-        LOGE("[SyncTaskContext] RunPermissionCheck not pass errCode:%d, flag:%d, %s{private}",
-            errCode, flag, deviceId_.c_str());
+    auto checkRet = RuntimeContext::GetInstance()->RunPermissionCheck(
+        { userId, appId, storeId, deviceId_, subUserId, instanceId }, syncInterface_->GetProperty(), flag);
+    if (!checkRet.isPass) {
+        return -E_NOT_PERMIT;
     }
-    return errCode;
+    if (checkRet.ret != DataFlowCheckRet::DENIED_SEND) {
+        return E_OK;
+    }
+    int mode = SyncOperation::TransferSyncMode(mode_);
+    if (mode == SyncModeType::PUSH || mode == SyncModeType::AUTO_PUSH) {
+        LOGW("[SyncTaskContext] skip push by denied send");
+        return -E_FINISHED;
+    }
+    if (mode_ == SyncModeType::PUSH_AND_PULL) {
+        LOGW("[SyncTaskContext] change mode from PUSH_AND_PULL to PULL");
+        SetMode(SyncModeType::PULL);
+    } else if (mode_ == SyncModeType::QUERY_PUSH_PULL) {
+        LOGW("[SyncTaskContext] change mode from QUERY_PUSH_PULL to QUERY_PULL");
+        SetMode(SyncModeType::QUERY_PULL);
+    }
+    return E_OK;
 }
 
 uint8_t SyncTaskContext::GetPermissionCheckFlag(bool isAutoSync, int syncMode)

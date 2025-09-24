@@ -20,7 +20,7 @@
 #include "relational_store_connection.h"
 
 namespace DistributedDB {
-class RelationalStoreDelegateImpl final : public RelationalStoreDelegate {
+class RelationalStoreDelegateImpl : public RelationalStoreDelegate {
 public:
     RelationalStoreDelegateImpl() = default;
     ~RelationalStoreDelegateImpl() override;
@@ -96,6 +96,8 @@ public:
     DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
 #endif
     int32_t GetDeviceSyncTaskCount() override;
+
+    DBStatus SetProperty(const Property &property) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

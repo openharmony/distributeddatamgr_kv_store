@@ -1590,6 +1590,22 @@ void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, Distribu
     }
 }
 
+DistributedDB::Entry DistributedDBToolsUnitTest::GetK1V1()
+{
+    DistributedDB::Entry entry;
+    entry.key = {'k', '1'};
+    entry.value = {'v', '1'};
+    return entry;
+}
+
+DistributedDB::Entry DistributedDBToolsUnitTest::GetK2V2()
+{
+    DistributedDB::Entry entry;
+    entry.key = {'k', '2'};
+    entry.value = {'v', '2'};
+    return entry;
+}
+
 std::pair<int, uint64_t> RelationalTestUtils::GetMaxTimestamp(sqlite3 *db, const std::string &oriTable)
 {
     std::pair<int, uint64_t> res;

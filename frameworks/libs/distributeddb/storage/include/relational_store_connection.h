@@ -102,6 +102,8 @@ public:
     virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 
     virtual int32_t GetDeviceSyncTaskCount() = 0;
+
+    virtual int SetProperty(const Property &property) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

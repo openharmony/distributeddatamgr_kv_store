@@ -572,15 +572,21 @@ int RDBGeneralUt::EncryptedDb(sqlite3 *db)
 
 void RDBGeneralUt::RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet)
 {
+    std::shared_ptr<ResultSet> resultSet = nullptr;
+    RemoteQuery(from, to, sql, expectRet, resultSet);
+    EXPECT_NE(resultSet, nullptr);
+}
+
+void RDBGeneralUt::RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet,
+    std::shared_ptr<ResultSet> &resultSet)
+{
     auto store = GetDelegate(from);
     ASSERT_NE(store, nullptr);
     auto toDevice  = GetDevice(to);
     ASSERT_FALSE(toDevice.empty());
     RemoteCondition condition;
     condition.sql = sql;
-    std::shared_ptr<ResultSet> resultSet = nullptr;
     EXPECT_EQ(store->RemoteQuery(toDevice, condition, DBConstant::MAX_TIMEOUT, resultSet), expectRet);
-    EXPECT_NE(resultSet, nullptr);
 }
 
 int RDBGeneralUt::PutMetaData(const StoreInfo &store, const Key &key, const Value &value)

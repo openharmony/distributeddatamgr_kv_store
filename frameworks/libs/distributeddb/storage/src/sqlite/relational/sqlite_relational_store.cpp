@@ -1989,5 +1989,14 @@ RelationalSchemaObject SQLiteRelationalStore::GetSchemaObj() const
     }
     return storageEngine_->GetSchemaInfo();
 }
+
+int SQLiteRelationalStore::SetProperty(const Property &property)
+{
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    storageEngine_->SetProperty(property);
+    return E_OK;
+}
 } // namespace DistributedDB
 #endif

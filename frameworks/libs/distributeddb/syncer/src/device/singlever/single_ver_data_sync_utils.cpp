@@ -197,17 +197,11 @@ void SingleVerDataSyncUtils::TranslateErrCodeIfNeed(int mode, uint32_t version, 
     }
 }
 
-int SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
-    const std::string &label, const DataRequestPacket *packet)
+PermissionCheckRet SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context,
+    const SyncGenericInterface* storage, const std::string &label, const DataRequestPacket *packet)
 {
     int mode = SyncOperation::TransferSyncMode(packet->GetMode());
     return RunPermissionCheckInner(context, storage, label, packet, mode);
-}
-
-int SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
-    const std::string &label, int mode)
-{
-    return RunPermissionCheckInner(context, storage, label, nullptr, mode);
 }
 
 bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskContext *context,
@@ -482,7 +476,7 @@ SyncTimeRange SingleVerDataSyncUtils::GetSyncDataTimeRange(SyncType syncType, Wa
     return SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(inData, localMark, deleteMark, isUpdate);
 }
 
-int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskContext *context,
+PermissionCheckRet SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskContext *context,
     const SyncGenericInterface* storage, const std::string &label, const DataRequestPacket *packet, int mode)
 {
     PermissionCheckParam param;
@@ -492,12 +486,7 @@ int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskConte
     if (packet != nullptr) {
         param.extraConditions = packet->GetExtraConditions();
     }
-    int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(param, flag);
-    if (errCode != E_OK) {
-        LOGE("[DataSync][RunPermissionCheck] check failed flag=%" PRIu8 ",dev=%s", flag,
-            STR_MASK(context->GetDeviceId()));
-    }
-    return errCode;
+    return RuntimeContext::GetInstance()->RunPermissionCheck(param, storage->GetProperty(), flag);
 }
 
 std::pair<TimeOffset, TimeOffset> SingleVerDataSyncUtils::GetTimeOffsetFromRequestMsg(const Message *message)

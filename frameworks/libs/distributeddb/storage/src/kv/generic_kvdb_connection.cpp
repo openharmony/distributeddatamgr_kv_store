@@ -472,4 +472,13 @@ int GenericKvDBConnection::SetDeviceSyncNotify([[gnu::unused]] DeviceSyncEvent e
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::SetProperty(const Property &property)
+{
+    if (kvDB_ == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    kvDB_->SetProperty(property);
+    return E_OK;
+}
 }

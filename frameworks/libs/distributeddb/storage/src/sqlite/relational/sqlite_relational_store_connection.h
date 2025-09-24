@@ -86,6 +86,8 @@ public:
     int OperateDataStatus(uint32_t dataOperator) override;
 
     int32_t GetDeviceSyncTaskCount() override;
+
+    int SetProperty(const Property &property) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

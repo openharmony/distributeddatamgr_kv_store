@@ -205,9 +205,14 @@ void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *
         LOGW("[RemoteExecutor][ParseOneRequestMessage] closed");
         return;
     }
-    int errCode = CheckPermissions(device, inMsg);
+    bool isDeniedSend = false;
+    int errCode = CheckPermissions(device, inMsg, isDeniedSend);
     if (errCode != E_OK) {
         (void)ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
+        return;
+    }
+    if (isDeniedSend) {
+        (void)ResponseFailed(E_OK, inMsg->GetSessionId(), 1, device); // sequenceId always 1
         return;
     }
     errCode = SendRemoteExecutorData(device, inMsg);
@@ -216,7 +221,7 @@ void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *
     }
 }
 
-int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
+int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg, bool &isDeniedSend)
 {
     SyncGenericInterface *storage = static_cast<SyncGenericInterface *>(GetAndIncSyncInterface());
     if (storage == nullptr) {
@@ -229,12 +234,16 @@ int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
     std::string storeId = storage->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
     std::string subUseId = storage->GetDbProperties().GetStringProp(DBProperties::SUB_USER, "");
     int32_t instanceId = syncInterface_->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
-    int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(
-        { userId, appId, storeId, device, subUseId, instanceId }, CHECK_FLAG_SEND);
-    if (errCode != E_OK) {
-        LOGE("[RemoteExecutor][CheckPermissions] check permission errCode = %d.", errCode);
+    auto checkRet = RuntimeContext::GetInstance()->RunPermissionCheck(
+        { userId, appId, storeId, device, subUseId, instanceId }, syncInterface_->GetProperty(), CHECK_FLAG_SEND);
+    if (!checkRet.isPass) {
         storage->DecRefCount();
-        return errCode;
+        return -E_NOT_PERMIT;
+    }
+    if (checkRet.ret == DataFlowCheckRet::DENIED_SEND) {
+        storage->DecRefCount();
+        isDeniedSend = true;
+        return E_OK;
     }
     const auto *packet = inMsg->GetObject<ISyncPacket>();
     if (packet == nullptr) {
@@ -243,7 +252,7 @@ int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
         return -E_INVALID_ARGS;
     }
     const auto *requestPacket = static_cast<const RemoteExecutorRequestPacket *>(packet);
-    errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel(), requestPacket->GetVersion());
+    int errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel(), requestPacket->GetVersion());
     storage->DecRefCount();
     return errCode;
 }

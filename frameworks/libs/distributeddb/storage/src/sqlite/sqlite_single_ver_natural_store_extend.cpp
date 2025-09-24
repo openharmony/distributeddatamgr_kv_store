@@ -821,4 +821,10 @@ std::function<int(void)> SQLiteSingleVerNaturalStore::ClearCloudWatermarkInner()
     };
 }
 #endif
+
+Property SQLiteSingleVerNaturalStore::GetProperty() const
+{
+    std::lock_guard<std::mutex> autoLock(propertyMutex_);
+    return property_;
+}
 }

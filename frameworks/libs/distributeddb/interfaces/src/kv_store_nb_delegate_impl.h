@@ -28,7 +28,7 @@
 #include "kv_store_nb_delegate.h"
 
 namespace DistributedDB {
-class KvStoreNbDelegateImpl final : public KvStoreNbDelegate {
+class KvStoreNbDelegateImpl : public KvStoreNbDelegate {
 public:
     KvStoreNbDelegateImpl(IKvDBConnection *conn, const std::string &storeId);
     ~KvStoreNbDelegateImpl() override;
@@ -205,6 +205,7 @@ public:
 
     void SetHandle(void *handle);
 
+    DBStatus SetProperty(const Property &property) override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

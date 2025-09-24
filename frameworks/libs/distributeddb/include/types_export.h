@@ -22,6 +22,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace DistributedDB {
@@ -42,6 +43,9 @@ using Value = std::vector<uint8_t>;
 
 using AssetsMap = std::map<std::string, std::set<std::string>>;
 using AssetsGroupMap = std::map<uint32_t, AssetsMap>;
+using Nil = std::monostate;
+using PropertyType = std::variant<Nil, uint32_t, std::string>;
+using Property = std::map<std::string, PropertyType>;
 
 struct Entry {
     Key key;
@@ -167,6 +171,14 @@ using PermissionCheckCallbackV2 = std::function<bool (const std::string &userId,
 using PermissionCheckCallbackV3 = std::function<bool (const PermissionCheckParam &param, uint8_t flag)>;
 
 using PermissionCheckCallbackV4 = std::function<bool (const PermissionCheckParamV4 &param, uint8_t flag)>;
+
+enum class DataFlowCheckRet : uint32_t {
+    DEFAULT = 0, // allow to send and receive data
+    DENIED_SEND = 1, // only allow to receive data
+    BUTT // last ret and it is invalid
+};
+using DataFlowCheckCallback =
+    std::function<DataFlowCheckRet (const PermissionCheckParam &param, const Property &property)>;
 
 using StoreStatusNotifier = std::function<void (std::string userId, std::string appId, std::string storeId,
     const std::string deviceId, bool onlineStatus)>; // status, 1: online, 0: offline

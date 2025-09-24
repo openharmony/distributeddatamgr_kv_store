@@ -631,5 +631,20 @@ int RelationalSyncAbleStorage::GetCompressionOption(bool &needCompressOnSync, ui
         DBConstant::DEFAULT_COMPTRESS_RATE);
     return E_OK;
 }
+
+void RelationalSyncAbleStorage::SetProperty(const Property &property)
+{
+    auto storeId = GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
+    std::lock_guard<std::mutex> autoLock(propertyMutex_);
+    LOGI("RDB set storeId[%s] property from [%zu] to [%zu]", DBCommon::StringMiddleMasking(storeId).c_str(),
+         property_.size(), property.size());
+    property_ = property;
+}
+
+Property RelationalSyncAbleStorage::GetProperty() const
+{
+    std::lock_guard<std::mutex> autoLock(propertyMutex_);
+    return property_;
+}
 }
 #endif

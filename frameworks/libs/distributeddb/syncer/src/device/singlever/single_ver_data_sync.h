@@ -211,7 +211,8 @@ protected:
     int SendReSendPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
         uint32_t sessionId, uint32_t sequenceId);
 
-    int SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutData, SingleVerSyncTaskContext *context);
+    int SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutData, SingleVerSyncTaskContext *context,
+        uint32_t sessionId = 0);
 
     int CheckSchemaStrategy(SingleVerSyncTaskContext *context, const Message *message);
 

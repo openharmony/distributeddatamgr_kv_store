@@ -271,6 +271,10 @@ public:
     bool IsExistTableContainAssets() override;
 
     int GetCompressionOption(bool &needCompressOnSync, uint8_t &compressionRate) const override;
+
+    void SetProperty(const Property &property);
+
+    Property GetProperty() const override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -389,6 +393,9 @@ private:
     std::map<std::string, std::pair<uint64_t, uint64_t>> cursorChangeMap_;
 
     std::mutex cursorChangeMutex_;
+
+    mutable std::mutex propertyMutex_;
+    Property property_;
 };
 }  // namespace DistributedDB
 #endif

@@ -172,6 +172,11 @@ public:
     {
         return E_OK;
     }
+
+    Property GetProperty() const override
+    {
+        return {};
+    }
 };
 }
 #endif // SYNC_GENERIC_INTERFACE_H

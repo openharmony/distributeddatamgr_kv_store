@@ -363,9 +363,18 @@ int RuntimeContextImpl::SetPermissionCheckCallback(const PermissionCheckCallback
     return E_OK;
 }
 
-int RuntimeContextImpl::RunPermissionCheck(const PermissionCheckParam &param, uint8_t flag) const
+int RuntimeContextImpl::SetDataFlowCheckCallback(const DataFlowCheckCallback &callback)
 {
-    bool checkResult = false;
+    std::unique_lock<std::shared_mutex> writeLock(permissionCheckCallbackMutex_);
+    dataFlowCheckCallback_ = callback;
+    LOGI("SetDataFlowCheckCallback ok");
+    return E_OK;
+}
+
+PermissionCheckRet RuntimeContextImpl::RunPermissionCheck(const PermissionCheckParam &param,
+    const Property property, uint8_t flag) const
+{
+    PermissionCheckRet ret;
     std::shared_lock<std::shared_mutex> autoLock(permissionCheckCallbackMutex_);
     if (permissionCheckCallbackV4_) {
         PermissionCheckParamV4 paramV4;
@@ -374,20 +383,26 @@ int RuntimeContextImpl::RunPermissionCheck(const PermissionCheckParam &param, ui
         paramV4.storeId = param.storeId;
         paramV4.deviceId = param.deviceId;
         paramV4.subUserId = param.subUserId;
-        checkResult = permissionCheckCallbackV4_(paramV4, flag);
+        ret.isPass = permissionCheckCallbackV4_(paramV4, flag);
     } else if (permissionCheckCallbackV3_) {
-        checkResult = permissionCheckCallbackV3_(param, flag);
+        ret.isPass = permissionCheckCallbackV3_(param, flag);
     } else if (permissionCheckCallbackV2_) {
-        checkResult = permissionCheckCallbackV2_(param.userId, param.appId, param.storeId, param.deviceId, flag);
+        ret.isPass = permissionCheckCallbackV2_(param.userId, param.appId, param.storeId, param.deviceId, flag);
     } else if (permissionCheckCallback_) {
-        checkResult = permissionCheckCallback_(param.userId, param.appId, param.storeId, flag);
+        ret.isPass = permissionCheckCallback_(param.userId, param.appId, param.storeId, flag);
     } else {
-        return E_OK;
+        ret.isPass = true;
     }
-    if (checkResult) {
-        return E_OK;
+    if (dataFlowCheckCallback_) {
+        ret.ret = dataFlowCheckCallback_(param, property);
     }
-    return -E_NOT_PERMIT;
+    LOGI("RunPermissionCheck userId[%s] appId[%s] storeId[%s] isPass[%d] dataFlow[%d]",
+         DBCommon::StringMiddleMasking(param.userId).c_str(),
+         DBCommon::StringMiddleMasking(param.appId).c_str(),
+         DBCommon::StringMiddleMasking(param.storeId).c_str(),
+         static_cast<int>(ret.isPass),
+         static_cast<int>(ret.ret));
+    return ret;
 }
 
 int RuntimeContextImpl::EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,

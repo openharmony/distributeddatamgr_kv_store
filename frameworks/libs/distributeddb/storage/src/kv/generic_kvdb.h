@@ -136,6 +136,8 @@ public:
     void MarkRebuild() override;
 
     virtual int PreClose();
+
+    void SetProperty(const Property &property);
 protected:
     // Create a connection object, no DB ref increased.
     virtual GenericKvDBConnection *NewConnection(int &errCode) = 0;
@@ -173,6 +175,8 @@ protected:
     PerformanceAnalysis *performance_;
     DatabaseCorruptHandler corruptHandler_;
     DeviceID devId_;
+    mutable std::mutex propertyMutex_;
+    Property property_;
 
 private:
     // Do commit notify in task pool.

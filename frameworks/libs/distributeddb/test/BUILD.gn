@@ -968,6 +968,18 @@ distributeddb_unittest("DistributedDBKVNotifyTest") {
   sources = [ "unittest/common/store_test/kv/distributeddb_kv_notify_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBKvPermissionSyncTest") {
+  sources = [
+    "unittest/common/store_test/kv/distributeddb_kv_permission_sync_test.cpp",
+  ]
+}
+
+distributeddb_unittest("DistributedDBRDBPermissionSyncTest") {
+  sources = [
+    "unittest/common/store_test/rdb/distributeddb_rdb_permission_sync_test.cpp",
+  ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1242,6 +1254,7 @@ group("unittest") {
     ":DistributedDBKvCloudSyncTest",
     ":DistributedDBKvDeviceSyncTest",
     ":DistributedDBKvMultiUserSyncTest",
+    ":DistributedDBKvPermissionSyncTest",
     ":DistributedDBMetaDataTest",
     ":DistributedDBMockSyncModuleTest",
     ":DistributedDBMultiVerP2PSyncTest",
@@ -1256,6 +1269,7 @@ group("unittest") {
     ":DistributedDBRDBKnowledgeClientTest",
     ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRDBMultiUserSyncTest",
+    ":DistributedDBRDBPermissionSyncTest",
     ":DistributedDBRDBUpgradeTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",

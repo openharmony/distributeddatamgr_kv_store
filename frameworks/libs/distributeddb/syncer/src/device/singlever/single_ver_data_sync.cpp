@@ -1093,7 +1093,7 @@ int SingleVerDataSync::SendDataPacket(SyncType syncType, DataRequestPacket *pack
 }
 
 int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutData,
-    SingleVerSyncTaskContext *context)
+    SingleVerSyncTaskContext *context, uint32_t sessionId)
 {
     DataRequestPacket *packet = new (std::nothrow) DataRequestPacket;
     if (packet == nullptr) {
@@ -1104,7 +1104,7 @@ int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutDa
     FillDataRequestPacket(packet, context, syncOutData, ackCode, SyncModeType::RESPONSE_PULL);
 
     if ((ackCode == E_OK || ackCode == SEND_FINISHED) &&
-        SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion())) {
+        SingleVerDataSyncUtils::IsSupportRequestTotal(packet->GetVersion()) && sessionId == 0) {
         uint32_t total = 0u;
         (void)SingleVerDataSyncUtils::GetUnsyncTotal(context, storage_, total);
         LOGD("[SendPullResponseDataPkt] GetUnsyncTotal total=%u", total);
@@ -1128,8 +1128,11 @@ int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutDa
         LOGE("[SendPullResponseDataPkt] set external object failed, errCode=%d", errCode);
         return errCode;
     }
+    if (sessionId == 0) {
+        sessionId = context->GetResponseSessionId();
+    }
     SingleVerDataSyncUtils::SetMessageHeadInfo(*message, TYPE_REQUEST, context->GetDeviceId(),
-        context->GetSequenceId(), context->GetResponseSessionId());
+        context->GetSequenceId(), sessionId);
     SendResetWatchDogPacket(context, packetLen);
     errCode = Send(context, message, nullptr, packetLen);
     if (errCode != E_OK) {
@@ -1345,8 +1348,8 @@ int SingleVerDataSync::RunPermissionCheck(SingleVerSyncTaskContext *context, con
     const DataRequestPacket *packet)
 {
     int mode = SyncOperation::TransferSyncMode(packet->GetMode());
-    int errCode = SingleVerDataSyncUtils::RunPermissionCheck(context, storage_, label_, packet);
-    if (errCode != E_OK) {
+    auto checkRet = SingleVerDataSyncUtils::RunPermissionCheck(context, storage_, label_, packet);
+    if (!checkRet.isPass) {
         if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_EARLIEST) { // ver 101 can't handle this errCode
             (void)SendDataAck(context, message, -E_NOT_PERMIT, 0);
         }
@@ -1369,6 +1372,11 @@ int SingleVerDataSync::RunPermissionCheck(SingleVerSyncTaskContext *context, con
             (void)SendDataAck(context, message, -E_SECURITY_OPTION_CHECK_ERROR, maxSendDataTime);
             return -E_SECURITY_OPTION_CHECK_ERROR;
         }
+    }
+    int errCode = E_OK;
+    if (checkRet.ret == DataFlowCheckRet::DENIED_SEND && ((mode == PUSH_AND_PULL) || (mode == PULL))) {
+        SyncEntry entry;
+        errCode = SendPullResponseDataPkt(SEND_FINISHED, entry, context, packet->GetSessionId());
     }
     return errCode;
 }

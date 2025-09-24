@@ -72,7 +72,8 @@ public:
 
     int SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback) override;
 
-    int RunPermissionCheck(const PermissionCheckParam &param, uint8_t flag) const override;
+    PermissionCheckRet RunPermissionCheck(const PermissionCheckParam &param,
+        const Property property, uint8_t flag) const override;
 
     int EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,
         const AutoLaunchOption &option) override;
@@ -191,9 +192,9 @@ public:
     std::shared_ptr<AssetsDownloadManager> GetAssetsDownloadManager() override;
 
     void ClearOnlineLabel() override;
-private:
-    static constexpr int TASK_POOL_REPORTS_INTERVAL = 10000;   // task pool reports its state every 10 seconds.
 
+    int SetDataFlowCheckCallback(const DataFlowCheckCallback &callback) override;
+private:
     int PrepareLoop(IEventLoop *&loop);
     int AllocTimerId(IEvent *evTimer, TimerId &timerId);
     std::shared_ptr<DBStatusAdapter> GetDBStatusAdapter();
@@ -235,6 +236,7 @@ private:
     PermissionCheckCallbackV2 permissionCheckCallbackV2_;
     PermissionCheckCallbackV3 permissionCheckCallbackV3_;
     PermissionCheckCallbackV4 permissionCheckCallbackV4_;
+    DataFlowCheckCallback dataFlowCheckCallback_;
 
     AutoLaunch autoLaunch_;
 

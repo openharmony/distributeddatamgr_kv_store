@@ -95,7 +95,7 @@ private:
 
     int ReceiveRemoteExecutorAck(const std::string &targetDev, Message *inMsg);
 
-    int CheckPermissions(const std::string &device, Message *inMsg);
+    int CheckPermissions(const std::string &device, Message *inMsg, bool &isDeniedSend);
 
     int SendRemoteExecutorData(const std::string &device, const Message *inMsg);
 
