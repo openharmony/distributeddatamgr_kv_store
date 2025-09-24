@@ -29,6 +29,7 @@ using namespace OHOS::DataShare;
 class BridgeWriter final : public ResultSetBridge::Writer {
 public:
     int AllocRow() override;
+    int FreeLastRow() override;
     int Write(uint32_t column) override;
     int Write(uint32_t column, int64_t value) override;
     int Write(uint32_t column, double value) override;
@@ -62,6 +63,11 @@ Value BridgeWriter::GetValue() const
 int BridgeWriter::AllocRow()
 {
     return allocStatus_;
+}
+
+int BridgeWriter::FreeLastRow()
+{
+    return E_OK;
 }
 
 int BridgeWriter::Write(uint32_t column)
