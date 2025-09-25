@@ -22,5 +22,5 @@ namespace {
 } // namespace
 
 // Since these macros are auto-generate, lint will cause false positive.
-// NOLINTBEGIN
-// NOLINTEND
+NOLINTBEGIN
+NOLINTEND
