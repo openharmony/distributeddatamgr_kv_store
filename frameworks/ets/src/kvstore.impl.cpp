@@ -259,7 +259,7 @@ DistributedKv::Blob DataTypesToKVValue(const ::kvstore::DataTypes value)
         case ::kvstore::DataTypes::tag_t::doubleType: {
             double tmp = double(value.get_doubleType_ref());
             data.push_back(ValueType::DOUBLE);
-            uint8_t* bytes = reinterpret_cast<uint8_t>(&tmp);
+            uint8_t* bytes = reinterpret_cast<uint8_t*>(&tmp);
             data.insert(data.end(), bytes, bytes + sizeof(double));
             break;
         }
