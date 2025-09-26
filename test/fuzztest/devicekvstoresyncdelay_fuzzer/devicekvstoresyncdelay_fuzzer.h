@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-#ifndef SINGLEKVSTORE_FUZZER_H
-#define SINGLEKVSTORE_FUZZER_H
+#ifndef DEVICEKVSTORESYNCDELAY_FUZZER_H
+#define DEVICEKVSTORESYNCDELAY_FUZZER_H
 
-#define FUZZ_PROJECT_NAME "singlekvstore_fuzzer"
+#define FUZZ_PROJECT_NAME "devicekvstoresyncdelay_fuzzer"
 
-#endif // SINGLEKVSTORE_FUZZER_H
+#endif // DEVICEKVSTORESYNCDELAY_FUZZER_H
 
