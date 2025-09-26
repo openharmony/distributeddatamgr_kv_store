@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 
@@ -29,6 +30,8 @@
 using namespace std;
 using namespace testing::ext;
 using namespace DistributedDB;
+
+static const char *g_dbPath = "test.db";
 
 class SqliteAdapterTest : public testing::Test {
 public:
@@ -44,8 +47,12 @@ void SqliteAdapterTest::SetUpTestCase(void)
 void SqliteAdapterTest::TearDownTestCase(void)
 {}
 
+namespace fs = std::filesystem;
+
 void SqliteAdapterTest::SetUp()
-{}
+{
+    fs::remove(g_dbPath);
+}
 
 void SqliteAdapterTest::TearDown()
 {}
@@ -99,8 +106,6 @@ static void SQLTest(const char *sql)
         }
     }
 }
-
-static const char *g_dbPath = "test.db";
 
 /**
  * @tc.name: SqliteAdapterTest001
@@ -414,5 +419,108 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest008, TestSize.Level0)
 
     const char *SQLDROP = "DROP TABLE IF EXISTS example;";
     SQLTest(SQLDROP);
+    EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
+}
+
+/**
+ * @tc.name: SqliteAdapterTest009
+ * @tc.desc: Test case Sensitive highlight
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: whs
+ */
+HWTEST_F(SqliteAdapterTest, SqliteAdapterTest009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare db
+     * @tc.expected: step1. OK.
+     */
+    // Save any error messages
+    char *zErrMsg = nullptr;
+ 
+    // Save the connection result
+    int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    HandleRc(g_sqliteDb, rc);
+ 
+    rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
+    HandleRc(g_sqliteDb, rc);
+ 
+    rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step2. create table
+     * @tc.expected: step2. OK.
+     */
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(name, content, tokenize = 'customtokenizer cut_mode "
+                 "short_words case_sensitive 0')";
+    rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
+    HandleRc(g_sqliteDb, rc);
+ 
+    const char *sqlInsert1 =
+        "INSERT INTO example(name, content) VALUES('文档1', '这是一个测试文档，用于测试中文文本的分词和索引。');";
+    SQLTest(sqlInsert1);
+ 
+    const char *sqlInsert2 =
+        "INSERT INTO example(name, content) VALUES('文档2', '这是一个检测报告，需要仔细查验和核查数据。');";
+    SQLTest(sqlInsert2);
+ 
+    const char *sqlInsert3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
+    SQLTest(sqlInsert3);
+ 
+    const char *sqlQuery1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content "
+                            "FROM example WHERE example MATCH '测试';";
+    SQLTest(sqlQuery1);
+ 
+    EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
+}
+ 
+/**
+ * @tc.name: SqliteAdapterTest009
+ * @tc.desc: Test highlight
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: whs
+ */
+HWTEST_F(SqliteAdapterTest, SqliteAdapterTest010, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare db
+     * @tc.expected: step1. OK.
+     */
+    // Save any error messages
+    char *zErrMsg = nullptr;
+ 
+    // Save the connection result
+    int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    HandleRc(g_sqliteDb, rc);
+ 
+    rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
+    HandleRc(g_sqliteDb, rc);
+ 
+    rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step2. create table
+     * @tc.expected: step2. OK.
+     */
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(name, content, tokenize = 'customtokenizer')";
+    rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
+    HandleRc(g_sqliteDb, rc);
+ 
+    const char *sqlInsert1 =
+        "INSERT INTO example(name, content) VALUES('文档1', '这是一个测试文档，用于测试中文文本的分词和索引。');";
+    SQLTest(sqlInsert1);
+ 
+    const char *sqlInsert2 =
+        "INSERT INTO example(name, content) VALUES('文档2', '这是一个检测报告，需要仔细查验和核查数据。');";
+    SQLTest(sqlInsert2);
+ 
+    const char *sqlInsert3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
+    SQLTest(sqlInsert3);
+ 
+    const char *sqlQuery1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+                            " example WHERE example MATCH '测试';";
+    SQLTest(sqlQuery1);
+ 
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }

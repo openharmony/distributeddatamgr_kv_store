@@ -167,8 +167,7 @@ int fts5_customtokenizer_xTokenize(
         sqlite3_log(GRD_FAILED_MEMORY_ALLOCATE, "CpyStr wrong");
         return GRD_FAILED_MEMORY_ALLOCATE;
     }
-    GRD_CutOptionT option = {false, pFts5TokenizerParam->cutScene};
-    option.toLowerCase = !pFts5TokenizerParam->caseSensitive;
+    GRD_CutOptionT option = {false, pFts5TokenizerParam->cutScene, !pFts5TokenizerParam->caseSensitive};
     GRD_WordEntryListT *entryList = nullptr;
     int ret = GRD_TokenizerCut(ptr, option, &entryList);
     if (ret != GRD_OK) {
@@ -179,9 +178,17 @@ int fts5_customtokenizer_xTokenize(
     GRD_WordEntryT entry;
     int start = 0;  // 词在句子中的起始位置
     int end = 0;    // 词在句子中的结束位置
+    const char *startPos = nullptr;
     while ((ret = GRD_TokenizerNext(entryList, &entry)) == GRD_OK) {
-        start = entry.word - ptr;
+        if (startPos == nullptr) {
+            startPos = entry.word;
+        }
+        start = entry.word - startPos;
         end = start + static_cast<int>(entry.length);
+        if (end > nText || start < 0) {
+            ret = SQLITE_ERROR;
+            break;
+        }
         ret = xToken(pCtx, 0, entry.word, entry.length, start, end);
         if (ret != SQLITE_OK) {
             sqlite3_log(ret, "xToken wrong");
