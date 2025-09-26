@@ -16,27 +16,20 @@ import("//build/config/features.gni")
 import("//build/test.gni")
 
 ##############################fuzztest##########################################
-ohos_fuzztest("SingleKvStoreFuzzTest") {
+ohos_fuzztest("DeviceKvStoreSubscribeFuzzTest") {
   module_out_path = "kv_store/kv_store"
 
-  include_dirs = [
-    "../../../frameworks/common",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
-    "../../../interfaces/innerkits/distributeddata/include",
-  ]
+  include_dirs = []
 
-  fuzz_config_file = "../../../test/fuzztest/singlekvstore_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/devicekvstoresubscribe_fuzzer"
 
   cflags = [
     "-g",
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
-    "-Wno-c99-designator",
   ]
-
-  sources = [ "singlekvstore_fuzzer.cpp" ]
+  sources = [ "devicekvstoresubscribe_fuzzer.cpp" ]
 
   deps = []
 
@@ -53,7 +46,7 @@ group("fuzztest") {
   deps = []
   deps += [
     # deps file
-    ":SingleKvStoreFuzzTest",
+    ":DeviceKvStoreSubscribeFuzzTest",
   ]
 }
 ###############################################################################

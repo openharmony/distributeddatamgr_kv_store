@@ -16,12 +16,12 @@ import("//build/config/features.gni")
 import("//build/test.gni")
 
 ##############################fuzztest##########################################
-ohos_fuzztest("DeviceKvStoreFuzzTest") {
+ohos_fuzztest("DeviceKvStoreRemoveDeviceDataFuzzTest") {
   module_out_path = "kv_store/kv_store"
 
   include_dirs = []
 
-  fuzz_config_file = "../../../test/fuzztest/devicekvstore_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/devicekvstoreremovedevicedata_fuzzer"
 
   cflags = [
     "-g",
@@ -29,7 +29,7 @@ ohos_fuzztest("DeviceKvStoreFuzzTest") {
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
   ]
-  sources = [ "devicekvstore_fuzzer.cpp" ]
+  sources = [ "devicekvstoreremovedevicedata_fuzzer.cpp" ]
 
   deps = []
 
@@ -46,7 +46,7 @@ group("fuzztest") {
   deps = []
   deps += [
     # deps file
-    ":DeviceKvStoreFuzzTest",
+    ":DeviceKvStoreRemoveDeviceDataFuzzTest",
   ]
 }
 ###############################################################################

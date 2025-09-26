@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-#ifndef DEVICEKVSTORE_FUZZER_H
-#define DEVICEKVSTORE_FUZZER_H
+#ifndef DEVICEKVSTORESUBSCRIBEQUERY_FUZZER_H
+#define DEVICEKVSTORESUBSCRIBEQUERY_FUZZER_H
 
-#define FUZZ_PROJECT_NAME "devicekvstore_fuzzer"
+#define FUZZ_PROJECT_NAME "devicekvstoresubscribequery_fuzzer"
 
-#endif // DEVICEKVSTORE_FUZZER_H
+#endif // DEVICEKVSTORESUBSCRIBEQUERY_FUZZER_H
 
