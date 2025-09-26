@@ -231,7 +231,8 @@ char* MallocCString(const std::string& origin)
     if (data[0] == ValueType::STRING) {
         return kvstore::DataTypes::make_stringType(MallocCString(std::string(real.begin(), real.end())));
     } else if (data[0] == ValueType::DOUBLE) {
-        return kvstore::DataTypes::make_doubleType(real[0]);
+        uint64_t tmp4dbl = be64toh(*reinterpret_cast<uint64_t*>(&(real[0])));
+        return kvstore::DataTypes::make_doubleType(*reinterpret_cast<double*>((void*)(&tmp4dbl)));
     } else if (data[0] == ValueType::BYTE_ARRAY) {
         auto arr = ::taihe::array<uint8_t>(::taihe::copy_data_t{}, real.data(), real.size());
         return kvstore::DataTypes::make_arrayType(std::move(arr));
@@ -259,8 +260,9 @@ DistributedKv::Blob DataTypesToKVValue(const ::kvstore::DataTypes value)
         case ::kvstore::DataTypes::tag_t::doubleType: {
             double tmp = double(value.get_doubleType_ref());
             data.push_back(ValueType::DOUBLE);
-            uint8_t* bytes = reinterpret_cast<uint8_t*>(&tmp);
-            data.insert(data.end(), bytes, bytes + sizeof(double));
+            uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp));
+            uint8_t *res = reinterpret_cast<uint8_t*>(&tmp64);
+            data.insert(data.end(), res, res + sizeof(double) / sizeof(uint8_t));
             break;
         }
         case ::kvstore::DataTypes::tag_t::booleanType: {
