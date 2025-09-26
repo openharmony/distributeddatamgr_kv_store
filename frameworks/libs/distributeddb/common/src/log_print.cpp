@@ -83,7 +83,7 @@ std::shared_ptr<Logger> Logger::GetInstance()
         inst = std::make_shared<HiLogger>();
         logHandler = inst;
     }
-    LOGI("[TimeHelper] init");
+    LOGI("[Logger] init");
     return logHandler;
 }
 
