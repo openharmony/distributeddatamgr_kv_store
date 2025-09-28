@@ -45,7 +45,7 @@ if (is_ios || is_android) {
     } else {
       external_deps = [ "hilog:libhilog" ]
     }
-    public_external_deps = [ "bounds_checking_function:libsec_shared" ]
+    public_external_deps = [ "bounds_checking_function:libsec_static" ]
     subsystem_name = "distributeddatamgr"
     part_name = "kv_store"
   }
