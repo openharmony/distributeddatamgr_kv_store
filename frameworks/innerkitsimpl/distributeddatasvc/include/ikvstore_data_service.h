@@ -38,6 +38,7 @@ public:
 
     virtual int32_t Exit(const std::string &featureName) = 0;
 
+    virtual std::pair<int32_t, std::string> GetSelfBundleName() = 0;
 protected:
     static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };

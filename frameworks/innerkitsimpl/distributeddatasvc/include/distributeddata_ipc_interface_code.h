@@ -25,6 +25,7 @@ enum class KvStoreDataServiceInterfaceCode : uint32_t {
     REGISTERCLIENTDEATHOBSERVER,
     CLEAR_APP_STORAGE,
     FEATURE_EXIT,
+    GET_SELF_BUNDLENAME,
     SERVICE_CMD_LAST
 };
 } // namespace OHOS::DistributedKv

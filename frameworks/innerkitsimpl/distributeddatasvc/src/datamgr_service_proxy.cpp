@@ -127,5 +127,10 @@ int32_t DataMgrServiceProxy::Exit(const std::string &featureName)
 {
     return Status::NOT_SUPPORT;
 }
+
+std::pair<int32_t, std::string> DataMgrServiceProxy::GetSelfBundleName()
+{
+    return {Status::NOT_SUPPORT, ""};
+}
 }  // namespace DistributedKv
 }  // namespace OHOS
