@@ -112,45 +112,38 @@ public:
     }
     bool AppendChild(FieldNode child)
     {
-        TH_THROW(std::runtime_error, "appendChild not implemented");
         fields_.push_back(child);
         return true;
     }
 
     string GetDefaultValue()
     {
-        TH_THROW(std::runtime_error, "getDefaultValue not implemented");
         return defaultValue_;
     }
 
     void SetDefaultValue(string_view a)
     {
-        TH_THROW(std::runtime_error, "setDefaultValue not implemented");
         defaultValue_ = a;
     }
 
     bool GetNullable()
     {
-        TH_THROW(std::runtime_error, "getNullable not implemented");
         return isNullable_;
     }
 
     void SetNullable(bool a)
     {
-        TH_THROW(std::runtime_error, "setNullable not implemented");
         isNullable_ = a;
     }
 
     int32_t GetType()
     {
-        TH_THROW(std::runtime_error, "getType not implemented");
         return valueType_;
     }
 
     void SetType(int32_t a)
     {
-        TH_THROW(std::runtime_error, "setType not implemented");
-        a = valueType_;
+        valueType_ = a;
     }
 private:
     std::vector<FieldNode> fields_;
@@ -175,43 +168,36 @@ public:
 
     void SetRoot(weak::FieldNode a)
     {
-        TH_THROW(std::runtime_error, "setRoot not implemented");
         rootNode_ = a;
     }
 
     array<string> GetIndexes()
     {
-        TH_THROW(std::runtime_error, "getIndexes not implemented");
         return indexes_;
     }
 
     void SetIndexes(array_view<string> a)
     {
-        TH_THROW(std::runtime_error, "setIndexes not implemented");
         indexes_ = a;
     }
 
     int32_t GetMode()
     {
-        TH_THROW(std::runtime_error, "getMode not implemented");
         return mode_;
     }
 
     void SetMode(int32_t a)
     {
-        TH_THROW(std::runtime_error, "setMode not implemented");
         mode_ = a;
     }
 
     int32_t GetSkip()
     {
-        TH_THROW(std::runtime_error, "getSkip not implemented");
         return skip_;
     }
 
     void SetSkip(int32_t a)
     {
-        TH_THROW(std::runtime_error, "setSkip not implemented");
         skip_ = a;
     }
 private:
@@ -245,7 +231,8 @@ char* MallocCString(const std::string& origin)
     if (data[0] == ValueType::STRING) {
         return kvstore::DataTypes::make_stringType(MallocCString(std::string(real.begin(), real.end())));
     } else if (data[0] == ValueType::DOUBLE) {
-        return kvstore::DataTypes::make_doubleType(real[0]);
+        uint64_t tmp4dbl = be64toh(*reinterpret_cast<uint64_t*>(&(real[0])));
+        return kvstore::DataTypes::make_doubleType(*reinterpret_cast<double*>((void*)(&tmp4dbl)));
     } else if (data[0] == ValueType::BYTE_ARRAY) {
         auto arr = ::taihe::array<uint8_t>(::taihe::copy_data_t{}, real.data(), real.size());
         return kvstore::DataTypes::make_arrayType(std::move(arr));
@@ -273,7 +260,9 @@ DistributedKv::Blob DataTypesToKVValue(const ::kvstore::DataTypes value)
         case ::kvstore::DataTypes::tag_t::doubleType: {
             double tmp = double(value.get_doubleType_ref());
             data.push_back(ValueType::DOUBLE);
-            data.push_back(static_cast<double>(tmp));
+            uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp));
+            uint8_t *res = reinterpret_cast<uint8_t*>(&tmp64);
+            data.insert(data.end(), res, res + sizeof(double) / sizeof(uint8_t));
             break;
         }
         case ::kvstore::DataTypes::tag_t::booleanType: {
@@ -370,9 +359,9 @@ private:
 
 class KVManagerImpl {
 public:
-    KVManagerImpl(string bunleName, std::shared_ptr<ContextParam> param)
+    KVManagerImpl(string bundleName, std::shared_ptr<ContextParam> param)
     {
-        bundleName_ = bunleName;
+        bundleName_ = bundleName;
         param_ = param;
     }
     OHOS::DistributedKv::DistributedKvDataManager kvDataManager_ {};
@@ -398,6 +387,9 @@ public:
         if (status == OHOS::DistributedKv::DATA_CORRUPTED) {
             kvOptions.rebuild = true;
             status = kvDataManager_.GetSingleKvStore(kvOptions, appId, kvStoreId, kvStore);
+        }
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
         }
         if (options.kvStoreType.has_value() && options.kvStoreType.value() == 1) {
             auto nativeKVStore = make_holder<SingleKVStoreImpl, SingleKVStore>();
