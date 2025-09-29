@@ -28,6 +28,8 @@ public:
     int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId) override;
 
     int32_t Exit(const std::string &featureName) override;
+
+    std::pair<int32_t, std::string> GetSelfBundleName() override;
 private:
     static inline BrokerDelegator<DataMgrServiceProxy> delegator_;
 };
