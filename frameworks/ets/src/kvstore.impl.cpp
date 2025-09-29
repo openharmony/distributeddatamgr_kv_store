@@ -236,8 +236,10 @@ char* MallocCString(const std::string& origin)
     } else if (data[0] == ValueType::BYTE_ARRAY) {
         auto arr = ::taihe::array<uint8_t>(::taihe::copy_data_t{}, real.data(), real.size());
         return kvstore::DataTypes::make_arrayType(std::move(arr));
+    } else if (real.size() >= 1) {
+        return kvstore::DataTypes::make_booleanType(real[0]);
     }
-    return kvstore::DataTypes::make_booleanType(real[0]);
+    return kvstore::DataTypes::make_booleanType(0);
 }
 
 DistributedKv::Blob DataTypesToKVValue(const ::kvstore::DataTypes value)
