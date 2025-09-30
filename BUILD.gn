@@ -52,6 +52,16 @@ group("fuzztest") {
   deps = []
   deps += [
     "test/fuzztest/blob_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstorecapenabled_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstorecaprange_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoreget_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetcount_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetcountquery_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetentriesprefix_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetentriesquery_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetresultset_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetresultsetprefix_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstoregetresultsetquery_fuzzer:fuzztest",
     "test/fuzztest/devicekvstoreput_fuzzer:fuzztest",
     "test/fuzztest/devicekvstoreputbatch_fuzzer:fuzztest",
     "test/fuzztest/devicekvstoreremovedevicedata_fuzzer:fuzztest",
