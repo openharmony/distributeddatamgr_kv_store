@@ -24,7 +24,7 @@
 #include "task_queue.h"
 #include "time_tick_monitor.h"
 #include "user_change_monitor.h"
-#include "runtime_context_impl.h"
+#include "schema_utils.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -821,5 +821,24 @@ HWTEST_F(DistributedDBCommonTest, AbnormalTrackerTableTest, TestSize.Level1)
     std::string str3 = *extendNames.begin();
     EXPECT_TRUE(str3.compare(0, str3.length(), colName) == 0);
     EXPECT_EQ(trackerObj1.IsChanging(schema), true);
+}
+
+/**
+ * @tc.name: SchemaUtilsTest001
+ * @tc.desc: Test LockStatusObserver interfaces.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, SchemaUtilsTest001, TestSize.Level0)
+{
+    SchemaAttribute outAttr;
+    outAttr.type = FieldType::LEAF_FIELD_LONG;
+    std::string value = "LONG,DEFAULT 100";
+    int errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(outAttr.defaultValue.longValue, 100);
+    value = "LONG,DEFAULT +- ";
+    errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 }
 }
