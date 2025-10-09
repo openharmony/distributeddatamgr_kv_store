@@ -61,6 +61,10 @@ public:
     {
         syncer_.LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
+    int CallSetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+    {
+        return syncer_.SetDeviceSyncNotify(event, notifier);
+    }
     int Close()
     {
         return syncer_.Close(true);
@@ -96,6 +100,11 @@ public:
     void DecRefCount() override
     {
         RefObject::DecObjRef(this);
+    }
+
+    int TestSetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+    {
+        return TestKvDb::CallSetDeviceSyncNotify(event, notifier);
     }
 };
 
@@ -333,6 +342,7 @@ void SyncLifeTest003()
     std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
     std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
     syncDBInterface->TestSetIdentifier(identifierVec);
+    EXPECT_EQ(syncDBInterface->TestSetDeviceSyncNotify(DeviceSyncEvent::REMOTE_PULL_STARTED, nullptr), -E_NOT_INIT);
     syncDBInterface->Initialize();
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
     syncDBInterface->TestLocalChange();
@@ -1865,9 +1875,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery003, TestSize.Level1)
     ASSERT_NE(communicator, nullptr);
     uint32_t count = 0u;
     EXPECT_CALL(*communicator, SendMessage(testing::_, testing::_, testing::_, testing::_)).WillRepeatedly(
-        [&count](const std::string &, const DistributedDB::Message *, const SendConfig &, const OnSendEnd &) {
+        [&count](const std::string &, const DistributedDB::Message *msg, const SendConfig &, const OnSendEnd &sendEnd) {
             std::this_thread::sleep_for(std::chrono::seconds(1)); // mock one msg execute 1 s
             count++;
+            delete msg;
+            sendEnd(E_OK, true);
             return E_OK;
     });
     executor->Initialize(&storage, communicator);

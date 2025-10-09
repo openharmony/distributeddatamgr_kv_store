@@ -244,5 +244,14 @@ struct StoreInfo {
     }
 };
 using TranslateToDeviceIdCallback = std::function<std::string (const std::string &oriDevId, const StoreInfo &info)>;
+
+struct DeviceSyncNotifyInfo {
+    std::string deviceId;
+};
+
+enum class DeviceSyncEvent : int {
+    REMOTE_PULL_STARTED = 0
+};
+using DeviceSyncNotifier = std::function<void (const DeviceSyncNotifyInfo &info)>;
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_EXPORT_H

@@ -108,6 +108,8 @@ public:
     virtual int32_t GetRemoteQueryTaskCount() = 0;
 
     virtual bool ExchangeClosePending(bool expected) = 0;
+
+    virtual void SetRemotePullStartNotify(const DeviceSyncNotifier &notifier) = 0;
 protected:
     ~ISyncEngine() override {};
 };

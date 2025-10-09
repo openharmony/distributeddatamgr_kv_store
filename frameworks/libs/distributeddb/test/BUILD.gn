@@ -964,6 +964,10 @@ distributeddb_unittest("DistributedDBKvCloudSyncTest") {
       [ "unittest/common/store_test/kv/distributeddb_kv_cloud_sync_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBKVNotifyTest") {
+  sources = [ "unittest/common/store_test/kv/distributeddb_kv_notify_test.cpp" ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1234,6 +1238,7 @@ group("unittest") {
     ":DistributedDBJsonPrecheckUnitTest",
     ":DistributedDBKVCompressTest",
     ":DistributedDBKVDataStatusTest",
+    ":DistributedDBKVNotifyTest",
     ":DistributedDBKvCloudSyncTest",
     ":DistributedDBKvDeviceSyncTest",
     ":DistributedDBKvMultiUserSyncTest",
@@ -1338,8 +1343,8 @@ group("distributeddatamgr_fuzztest") {
     "fuzztest/kvdelegatemanager_fuzzer:fuzztest",
     "fuzztest/kvstoreresultset_fuzzer:fuzztest",
     "fuzztest/nbdelegate_fuzzer:fuzztest",
-    "fuzztest/parseckeck_fuzzer:fuzztest",
     "fuzztest/parsecheckfield_fuzzer:fuzztest",
+    "fuzztest/parseckeck_fuzzer:fuzztest",
     "fuzztest/query_fuzzer:fuzztest",
     "fuzztest/querycompare_fuzzer:fuzztest",
     "fuzztest/queryin_fuzzer:fuzztest",

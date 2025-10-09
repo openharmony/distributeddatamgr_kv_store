@@ -1437,4 +1437,13 @@ void KvStoreNbDelegateImpl::SetHandle(void *handle)
     dlHandle_ = handle;
 #endif
 }
+
+DBStatus KvStoreNbDelegateImpl::SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->SetDeviceSyncNotify(event, notifier));
+}
 } // namespace DistributedDB

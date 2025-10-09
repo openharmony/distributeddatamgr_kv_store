@@ -1024,7 +1024,6 @@ int SingleVerDataSync::DataRequestRecvInner(SingleVerSyncTaskContext *context, c
         return errCode;
     }
     SingleVerDataSyncUtils::UpdateSyncProcess(context, packet);
-
     if (pullEndWatermark > 0 && !storage_->IsReadable()) { // pull mode
         pullEndWatermark = 0;
         errCode = SendDataAck(context, message, -E_EKEYREVOKED, dataTime.endTime);

@@ -16,6 +16,7 @@
 #ifndef SYNC_TASK_CONTEXT_H
 #define SYNC_TASK_CONTEXT_H
 
+#include <atomic>
 #include <list>
 #include <mutex>
 
@@ -224,6 +225,10 @@ public:
     int GetCommErrCode() const;
 
     void SetCommFailErrCode(int errCode);
+
+    void RegOnRemotePullStart(const std::function<void(std::string)> &callback) override;
+
+    void NotifyRemotePullStart();
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 
@@ -258,11 +263,11 @@ protected:
     std::list<ISyncTarget *> responseTargetQueue_;
     SyncOperation *syncOperation_;
     mutable std::mutex operationLock_;
-    volatile uint32_t syncId_;
-    volatile int mode_;
-    volatile bool isAutoSync_;
-    volatile int status_;
-    volatile int taskExecStatus_;
+    std::atomic<uint32_t> syncId_;
+    std::atomic<int> mode_;
+    std::atomic<bool> isAutoSync_;
+    std::atomic<int> status_;
+    std::atomic<int> taskExecStatus_;
     std::string deviceId_;
     std::string targetUserId_;
     std::string syncActionName_;
@@ -302,6 +307,9 @@ protected:
     volatile uint32_t negotiationCount_;
     volatile bool isAutoSubscribe_;
 
+    mutable std::mutex remotePullMutex_;
+    std::function<void(std::string)> remotePullNotifier_;
+    
     // For global ISyncTaskContext Set, used by CommErrCallback.
     static std::mutex synTaskContextSetLock_;
     static std::set<ISyncTaskContext *> synTaskContextSet_;

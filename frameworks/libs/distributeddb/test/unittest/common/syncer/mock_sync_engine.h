@@ -39,6 +39,16 @@ public:
     {
         return SyncEngine::FindSyncTaskContext(target, isNeedCorrectUserId);
     }
+
+    ExtendInfo CallGetExtendInfo()
+    {
+        return GetExtendInfo();
+    }
+
+    ISyncInterface *GetSyncInterface() const
+    {
+        return syncInterface_;
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_SYNC_ENGINE_H
