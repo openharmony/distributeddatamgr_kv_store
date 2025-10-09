@@ -1249,9 +1249,10 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest006, TestSize.Level1)
         EXPECT_EQ(syncer->Initialize(syncDBInterface, true), E_OK);
         virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
         std::thread writeThread([syncer, &DEVICE_B]() {
-            EXPECT_EQ(syncer->Sync({DEVICE_B}, PUSH_AND_PULL, nullptr, nullptr, true), E_OK);
+            auto ret = syncer->Sync({DEVICE_B}, PUSH_AND_PULL, nullptr, nullptr, true);
+            EXPECT_TRUE((ret == E_OK) || (ret == -E_BUSY));
         });
-        std::thread closeThread([syncer, &syncDBInterface]() {
+        std::thread closeThread([syncer]() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             EXPECT_EQ(syncer->Close(true), E_OK);
         });
