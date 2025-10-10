@@ -1195,7 +1195,7 @@ int CloudSyncer::UploadVersionRecordIfNeed(const UploadParam &uploadParam)
     InnerProcessInfo processInfo;
     Info info;
     std::vector<VBucket> copyRecord = batchData.record;
-    WaterMark waterMark;
+    WaterMark waterMark = 0;
     CloudSyncUtils::GetWaterMarkAndUpdateTime(batchData.extend, waterMark);
     errCode = isInsert ? BatchInsert(info, uploadData, processInfo) : BatchUpdate(info, uploadData, processInfo);
     batchData.record = copyRecord;
