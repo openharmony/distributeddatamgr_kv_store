@@ -436,7 +436,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
             if (auto observerPtr = observer.lock()) {
                 observerPtr->OnChange(data);
             } else {
-               LOGW("[KvStoreNbDelegate][RegisterDeviceObserver] observer released"); 
+               LOGW("[KvStoreNbDelegate][RegisterDeviceObserver] observer released");
             }
         },
         errCode);
@@ -484,7 +484,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned i
             if (auto observerPtr = observer.lock()) {
                 observerPtr->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
             } else {
-               LOGW("[KvStoreNbDelegate][RegisterCloudObserver] observer released"); 
+                LOGW("[KvStoreNbDelegate][RegisterCloudObserver] observer released");
             }
         }
     };
