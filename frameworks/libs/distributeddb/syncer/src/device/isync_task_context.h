@@ -196,6 +196,8 @@ public:
     virtual bool IsRetryTask() const = 0;
 
     virtual bool IsSavingTask(uint32_t timeout) const = 0;
+
+    virtual void RegOnRemotePullStart(const std::function<void(std::string)> &callback) = 0;
 protected:
     virtual ~ISyncTaskContext() {};
 };

@@ -125,12 +125,17 @@ KvStoreNbDelegate *KVGeneralUt::GetDelegate(const DistributedDB::StoreInfo &info
 
 void KVGeneralUt::BlockPush(const StoreInfo &from, const StoreInfo &to, DBStatus expectRet)
 {
+    BlockDeviceSync(from, to, SyncMode::SYNC_MODE_PUSH_ONLY, expectRet);
+}
+
+void KVGeneralUt::BlockDeviceSync(const StoreInfo &from, const StoreInfo &to, SyncMode mode, DBStatus expectRet)
+{
     auto fromStore = GetDelegate(from);
     ASSERT_NE(fromStore, nullptr);
     auto toDevice  = GetDevice(to);
     ASSERT_FALSE(toDevice.empty());
     std::map<std::string, DBStatus> syncRet;
-    tool_.SyncTest(fromStore, {toDevice}, SyncMode::SYNC_MODE_PUSH_ONLY, syncRet);
+    tool_.SyncTest(fromStore, {toDevice}, mode, syncRet);
     for (const auto &item : syncRet) {
         EXPECT_EQ(item.second, expectRet);
     }

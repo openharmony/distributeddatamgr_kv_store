@@ -201,6 +201,8 @@ public:
 
     DBStatus OperateDataStatus(uint32_t dataOperator) override;
 
+    DBStatus SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
+
     void SetHandle(void *handle);
 
 private:

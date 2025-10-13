@@ -457,4 +457,13 @@ int SyncAbleKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &int
     kvDB->SetReceiveDataInterceptor(interceptor);
     return E_OK;
 }
+
+int SyncAbleKvDBConnection::SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+{
+    auto *kvDB = GetDB<SyncAbleKvDB>();
+    if (kvDB == nullptr) {
+        return -E_INVALID_CONNECTION;
+    }
+    return kvDB->SetDeviceSyncNotify(event, notifier);
+}
 }

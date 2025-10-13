@@ -1314,4 +1314,24 @@ bool GenericSyncer::ExchangeClosePending(bool expected)
     RefObject::DecObjRef(syncEngine);
     return res;
 }
+
+int GenericSyncer::SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+{
+    if (event != DeviceSyncEvent::REMOTE_PULL_STARTED) {
+        LOGE("[GenericSyncer] Invalid device sync event[%d]", static_cast<int>(event));
+        return -E_INVALID_ARGS;
+    }
+    ISyncEngine *syncEngine = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (syncEngine_ == nullptr) {
+            return -E_NOT_INIT;
+        }
+        syncEngine = syncEngine_;
+        RefObject::IncObjRef(syncEngine);
+    }
+    syncEngine->SetRemotePullStartNotify(notifier);
+    RefObject::DecObjRef(syncEngine);
+    return E_OK;
+}
 } // namespace DistributedDB

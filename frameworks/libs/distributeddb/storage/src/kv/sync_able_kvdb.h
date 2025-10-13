@@ -119,6 +119,8 @@ public:
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback);
 #endif
+
+    int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier);
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

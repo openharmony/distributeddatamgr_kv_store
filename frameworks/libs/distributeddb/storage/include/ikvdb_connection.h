@@ -174,6 +174,8 @@ public:
     virtual int ClearCloudWatermark() = 0;
 
     virtual int OperateDataStatus(uint32_t dataOperator) = 0;
+
+    virtual int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) = 0;
 };
 } // namespace DistributedDB
 

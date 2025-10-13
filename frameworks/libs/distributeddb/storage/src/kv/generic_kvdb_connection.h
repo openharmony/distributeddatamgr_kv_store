@@ -116,6 +116,8 @@ public:
     int ClearCloudWatermark() override;
 
     int OperateDataStatus(uint32_t dataOperator) override;
+
+    int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

@@ -297,4 +297,12 @@ bool SyncerProxy::ExchangeClosePending(bool expected)
     }
     return syncer_->ExchangeClosePending(expected);
 }
+
+int SyncerProxy::SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->SetDeviceSyncNotify(event, notifier);
+}
 } // namespace DistributedDB

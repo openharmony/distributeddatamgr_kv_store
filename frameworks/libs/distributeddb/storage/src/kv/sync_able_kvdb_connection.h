@@ -50,6 +50,8 @@ public:
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
 #endif
+
+    int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
 protected:
     int DisableManualSync();
 

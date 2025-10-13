@@ -466,4 +466,10 @@ int GenericKvDBConnection::OperateDataStatus([[gnu::unused]] uint32_t dataOperat
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::SetDeviceSyncNotify([[gnu::unused]] DeviceSyncEvent event,
+    [[gnu::unused]] const DeviceSyncNotifier &notifier)
+{
+    return -E_NOT_SUPPORT;
+}
 }

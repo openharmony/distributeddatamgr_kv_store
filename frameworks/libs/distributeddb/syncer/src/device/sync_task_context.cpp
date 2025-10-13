@@ -615,7 +615,7 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
         }
         requestSessionId_ = GenerateRequestSessionId();
         LOGI("[SyncTaskContext][copyTarget] mode=%d,syncId=%d,isAutoSync=%d,isRetry=%d,dev=%s{private}",
-            mode_, syncId_, isAutoSync_, syncTaskRetryStatus_, deviceId_.c_str());
+            mode_.load(), syncId_.load(), isAutoSync_.load(), syncTaskRetryStatus_, deviceId_.c_str());
         DBDfxAdapter::StartAsyncTrace(syncActionName_, static_cast<int>(syncId_));
     } else {
         isAutoSync_ = false;
@@ -887,5 +887,25 @@ void SyncTaskContext::SetErrCodeWhenWaitTimeOut(int errCode)
     } else {
         SetCommFailErrCode(errCode);
     }
+}
+
+void SyncTaskContext::RegOnRemotePullStart(const std::function<void(std::string)> &callback)
+{
+    std::lock_guard<std::mutex> autoLock(remotePullMutex_);
+    remotePullNotifier_ = callback;
+}
+
+void SyncTaskContext::NotifyRemotePullStart()
+{
+    std::function<void(std::string)> notifier;
+    {
+        std::lock_guard<std::mutex> autoLock(remotePullMutex_);
+        if (remotePullNotifier_ == nullptr) {
+            LOGE("[SyncTaskContext] Notifier is null when remote pull start");
+            return;
+        }
+        notifier = remotePullNotifier_;
+    }
+    notifier(deviceId_);
 }
 } // namespace DistributedDB

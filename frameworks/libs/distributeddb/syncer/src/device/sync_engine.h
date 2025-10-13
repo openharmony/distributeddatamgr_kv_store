@@ -141,6 +141,8 @@ public:
     int32_t GetRemoteQueryTaskCount() override;
 
     bool ExchangeClosePending(bool expected) override;
+
+    void SetRemotePullStartNotify(const DeviceSyncNotifier &notifier) override;
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext(const ISyncInterface &syncInterface) = 0;
@@ -156,14 +158,18 @@ protected:
     void SetSyncInterface(ISyncInterface *syncInterface);
 
     ISyncTaskContext *GetSyncTaskContext(const DeviceSyncTarget &target, int &errCode);
-
-    std::mutex storageMutex_;
+    void NotifyRemotePullStart(const std::string &dev);
+    ExtendInfo GetExtendInfo() const;
+    
+    mutable std::mutex storageMutex_;
     ISyncInterface *syncInterface_;
     // Used to store all send sync task infos (such as pull sync response, and push sync request)
     std::map<DeviceSyncTarget, ISyncTaskContext *> syncTaskContextMap_;
     std::mutex contextMapLock_;
     std::shared_ptr<SubscribeManager> subManager_;
     std::function<void(const InternalSyncParma &param)> queryAutoSyncCallback_;
+    std::mutex pullStartNotifierMutex_;
+    DeviceSyncNotifier pullStartNotifier_;
 
 private:
 

@@ -1023,6 +1023,7 @@ void SingleVerSyncStateMachine::AddPullResponseTarget(const Message *inMsg, Wate
         LOGE("[StateMachine][AddPullResponseTarget] pullEndWatermark is 0!");
         return;
     }
+    context_->NotifyRemotePullStart();
     if (context_->GetResponseSessionId() == sessionId || context_->FindResponseSyncTarget(sessionId)) {
         LOGI("[StateMachine][AddPullResponseTarget] task is already running");
         return;

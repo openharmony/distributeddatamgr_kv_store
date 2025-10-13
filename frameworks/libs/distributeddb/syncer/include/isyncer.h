@@ -142,6 +142,8 @@ public:
     virtual int32_t GetTaskCount() = 0;
 
     virtual bool ExchangeClosePending(bool expected) = 0;
+
+    virtual int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) = 0;
 };
 } // namespace DistributedDB
 

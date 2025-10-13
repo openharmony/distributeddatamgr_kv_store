@@ -332,6 +332,15 @@ public:
     {
         return OK;
     }
+
+    // Set a notifier callback, it will be called when event {@link DeviceSyncEvent} happened.
+    // If set nullptr, means unregister the notifier.
+    // If repeat set, subject to the last time.
+    DB_API virtual DBStatus SetDeviceSyncNotify([[gnu::unused]] DeviceSyncEvent event,
+        [[gnu::unused]] const DeviceSyncNotifier &notifier)
+    {
+        return OK;
+    }
 };
 } // namespace DistributedDB
 

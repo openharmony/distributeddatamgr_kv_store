@@ -738,4 +738,9 @@ bool SyncAbleKvDB::CheckSchemaSupportForCloudSync() const
     return true; // default is valid
 }
 #endif
+
+int SyncAbleKvDB::SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
+{
+    return syncer_.SetDeviceSyncNotify(event, notifier);
+}
 }

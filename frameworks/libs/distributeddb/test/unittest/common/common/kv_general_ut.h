@@ -31,6 +31,7 @@ protected:
     void SetOption(const KvStoreNbDelegate::Option &option);
     KvStoreNbDelegate *GetDelegate(const StoreInfo &info) const;
     void BlockPush(const StoreInfo &from, const StoreInfo &to, DBStatus expectRet = DBStatus::OK);
+    void BlockDeviceSync(const StoreInfo &from, const StoreInfo &to, SyncMode mode, DBStatus expectRet);
     DBStatus SetCloud(KvStoreNbDelegate *&delegate, bool invalidSchema = false);
     static DataBaseSchema GetDataBaseSchema(bool invalidSchema);
     DBStatus GetDeviceEntries(KvStoreNbDelegate *delegate, const std::string &deviceId, bool isSelfDevice,

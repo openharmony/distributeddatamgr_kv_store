@@ -683,6 +683,9 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContext(const DeviceSyncTarget &target,
         storage->DecRefCount();
     });
     context->RegOnSyncTask([this, context] { return ExecSyncTask(context); });
+    context->RegOnRemotePullStart([this](const std::string &dev) {
+        NotifyRemotePullStart(dev);
+    });
     return context;
 }
 
@@ -1496,5 +1499,62 @@ void SyncEngine::CorrectTargetUserId(std::map<DeviceSyncTarget, ISyncTaskContext
     it = syncTaskContextMap_.erase(it);
     context->SetTargetUserId(newTargetUserId);
     syncTaskContextMap_[{targetDev, newTargetUserId}] = context;
+}
+
+void SyncEngine::SetRemotePullStartNotify(const DeviceSyncNotifier &notifier)
+{
+    ExtendInfo extendInfo = GetExtendInfo();
+    std::lock_guard<std::mutex> autoLock(pullStartNotifierMutex_);
+    pullStartNotifier_ = notifier;
+    LOGI("[SyncEngine] Set remote pull notify finished appId[%s] userId[%s] storeId[%s]",
+        DBCommon::StringMiddleMasking(extendInfo.appId).c_str(),
+        DBCommon::StringMiddleMasking(extendInfo.userId).c_str(),
+        DBCommon::StringMiddleMasking(extendInfo.storeId).c_str());
+}
+
+void SyncEngine::NotifyRemotePullStart(const std::string &dev)
+{
+    ExtendInfo extendInfo = GetExtendInfo();
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, dev, extendInfo]() {
+        DeviceSyncNotifier notifier;
+        {
+            std::lock_guard<std::mutex> autoLock(pullStartNotifierMutex_);
+            if (pullStartNotifier_ == nullptr) {
+                RefObject::DecObjRef(this);
+                return;
+            }
+            notifier = pullStartNotifier_;
+        }
+        notifier({dev});
+        LOGI("[SyncEngine] Notifier remote pull start appId[%s] userId[%s] storeId[%s]",
+            DBCommon::StringMiddleMasking(extendInfo.appId).c_str(),
+            DBCommon::StringMiddleMasking(extendInfo.userId).c_str(),
+            DBCommon::StringMiddleMasking(extendInfo.storeId).c_str());
+        RefObject::DecObjRef(this);
+    });
+    if (errCode != E_OK) {
+        RefObject::DecObjRef(this);
+    }
+    LOGI("[SyncEngine] Schedule notifier remote pull errCode[%d] appId[%s] userId[%s] storeId[%s]", errCode,
+        DBCommon::StringMiddleMasking(extendInfo.appId).c_str(),
+        DBCommon::StringMiddleMasking(extendInfo.userId).c_str(),
+        DBCommon::StringMiddleMasking(extendInfo.storeId).c_str());
+}
+
+ExtendInfo SyncEngine::GetExtendInfo() const
+{
+    ExtendInfo extendInfo;
+    std::lock_guard<std::mutex> storeLock(storageMutex_);
+    if (syncInterface_ == nullptr) {
+        LOGE("[SyncEngine] Storage is null");
+        return extendInfo;
+    }
+    DBProperties properties = syncInterface_->GetDbProperties();
+    extendInfo.appId = properties.GetStringProp(DBProperties::APP_ID, "");
+    extendInfo.userId = properties.GetStringProp(DBProperties::USER_ID, "");
+    extendInfo.storeId = properties.GetStringProp(DBProperties::STORE_ID, "");
+    extendInfo.subUserId = properties.GetStringProp(DBProperties::SUB_USER, "");
+    return extendInfo;
 }
 } // namespace DistributedDB
