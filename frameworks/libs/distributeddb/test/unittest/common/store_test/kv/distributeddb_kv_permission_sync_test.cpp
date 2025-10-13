@@ -33,6 +33,7 @@ protected:
     void CheckData(const StoreInfo &info, const Entry &expectEntry, DBStatus status);
     static constexpr const char *DEVICE_A = "DEVICE_A";
     static constexpr const char *DEVICE_B = "DEVICE_B";
+    std::atomic<uint64_t> callbackCount_ = 0;
 };
 
 void DistributedDBKvPermissionSyncTest::SetUp()
@@ -43,8 +44,9 @@ void DistributedDBKvPermissionSyncTest::SetUp()
     auto storeInfo2 = GetStoreInfo2();
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo2, DEVICE_B), E_OK);
     ASSERT_NO_FATAL_FAILURE(PrepareData());
-    RuntimeConfig::SetDataFlowCheckCallback([storeInfo1, storeInfo2](const PermissionCheckParam &param,
+    RuntimeConfig::SetDataFlowCheckCallback([storeInfo1, storeInfo2, this](const PermissionCheckParam &param,
         const Property &property) {
+        callbackCount_++;
         if (param.storeId == storeInfo2.storeId) {
             EXPECT_EQ(property.size(), 1);
             return DataFlowCheckRet::DEFAULT;
@@ -56,6 +58,7 @@ void DistributedDBKvPermissionSyncTest::SetUp()
 
 void DistributedDBKvPermissionSyncTest::TearDown()
 {
+    callbackCount_ = 0;
     RuntimeConfig::SetDataFlowCheckCallback(nullptr);
     PermissionCheckCallbackV4 callbackV4 = nullptr;
     RuntimeConfig::SetPermissionCheckCallback(callbackV4);
@@ -189,6 +192,7 @@ HWTEST_F(DistributedDBKvPermissionSyncTest, KVPermissionSync005, TestSize.Level0
         DBStatus::OK);
     EXPECT_NO_FATAL_FAILURE(CheckData(GetStoreInfo1(), DistributedDBToolsUnitTest::GetK1V1(), OK));
     EXPECT_NO_FATAL_FAILURE(CheckData(GetStoreInfo2(), DistributedDBToolsUnitTest::GetK1V1(), NOT_FOUND));
+    EXPECT_EQ(callbackCount_.load(), 3); // check callback 3 times
 }
 
 /**
