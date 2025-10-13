@@ -40,7 +40,7 @@ void GetAutoLaunchOption(FuzzedDataProvider &fdp, AutoLaunchOption &option)
 {
     std::string randomStr = fdp.ConsumeRandomLengthString();
     option.schema = randomStr;
-    option.observer = nullptr;
+    option.observer.reset();
     option.notifier = nullptr;
     option.storeObserver = nullptr;
 }

@@ -40,7 +40,6 @@ using namespace DistributedDBDataGenerator;
 namespace DistributeddbNbObserver {
 const int CHANGED_ZERO_TIME = 0;
 const int CHANGED_ONE_TIME = 1;
-const int STORE_NUM = 2;
 
 const unsigned int ANY_RECORDS_NUM_START = 1;
 const unsigned int ANY_RECORDS_NUM_END = 1000;

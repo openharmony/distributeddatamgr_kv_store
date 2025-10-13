@@ -47,7 +47,7 @@ struct Option {
 #endif // endif of RELEASE_MODE_V2
 #ifdef RELEASE_MODE_V3
     DistributedDB::SecurityOption secOption;
-    DistributedDB::KvStoreObserver *observer = nullptr;
+    std::weak_ptr<DistributedDB::KvStoreObserver> observer;
     DistributedDB::Key key;
     unsigned int mode = 0;
     int conflictType = 0;
@@ -67,7 +67,8 @@ struct Option {
 #ifdef RELEASE_MODE_V3
     Option(bool createIfNecessary, bool isMemoryDb, bool isEncryptedDb, const DistributedDB::CipherType &cipher,
         const std::vector<uint8_t> &passwd, const DistributedDB::SecurityOption &secOption,
-        DistributedDB::KvStoreObserver *observer, const DistributedDB::KvStoreNbConflictNotifier &notifier)
+        const std::weak_ptr<DistributedDB::KvStoreObserver> &observer,
+        const DistributedDB::KvStoreNbConflictNotifier &notifier)
         : createIfNecessary(createIfNecessary), isMemoryDb(isMemoryDb), isEncryptedDb(isEncryptedDb),
           cipher(cipher), passwd(passwd), secOption(secOption), observer(observer), notifier(notifier)
     {
