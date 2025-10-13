@@ -1344,15 +1344,9 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
      * @tc.steps: step3. start subthread to import the backup file.
      * @tc.expected: step3. start successfully.
      */
-    std::atomic<bool> readyFlag(false);
-    readyFlag.store(false);
-    std::condition_variable backupVar;
-    thread subThread([&singleFileName, &passwd, &readyFlag, &backupVar]() {
+    thread subThread([&singleFileName, &passwd]() {
         EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
-        readyFlag.store(true);
-        backupVar.notify_one();
     });
-    subThread.detach();
 
     /**
      * @tc.steps: step4. import the backup file during the subthread is importing with empty password.
@@ -1362,6 +1356,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportTest001, TestSize.Lev
     std::this_thread::sleep_for(std::chrono::microseconds(millsecondsPerSecond));
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
 
+    subThread.join();
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }

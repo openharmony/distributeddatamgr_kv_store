@@ -786,7 +786,7 @@ int StorageProxy::GetLocalDataCount(const std::string &tableName, int &dataCount
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         LOGE("[StorageProxy] no store found when get local data");
-        return false;
+        return -E_INVALID_DB;
     }
     return store_->GetLocalDataCount(tableName, dataCount, logicDeleteDataCount);
 }
