@@ -180,9 +180,14 @@ int SchemaUtils::TransToLong(const std::string &defaultContent, SchemaAttribute 
     if (defaultContent.empty()) {
         return -E_SCHEMA_PARSE_FAIL;
     }
+    auto defaultPos = defaultContent.find_first_not_of("+- ");
+    if (defaultPos >= defaultContent.size()) {
+        LOGE("Default value without +-");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
     int64_t transRes = strtoll(defaultContent.c_str(), nullptr, 10); // 10: decimal
     std::string resReview = std::to_string(transRes);
-    if (defaultContent.compare(defaultContent.find_first_not_of("+- "), defaultContent.size(),
+    if (defaultContent.compare(defaultPos, defaultContent.size(),
         resReview, resReview.find_first_not_of("+- "), resReview.size()) == 0) {
         // Check the sign of the number
         if ((defaultContent[0] == '-' && resReview[0] == '-') ||
