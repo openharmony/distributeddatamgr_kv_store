@@ -64,22 +64,22 @@ int KvDBWindowedResultSet::MoveToLast()
 
 bool KvDBWindowedResultSet::IsFirst() const
 {
-    return -E_NOT_SUPPORT;
+    return false;
 }
 
 bool KvDBWindowedResultSet::IsLast() const
 {
-    return -E_NOT_SUPPORT;
+    return false;
 }
 
 bool KvDBWindowedResultSet::IsBeforeFirst() const
 {
-    return -E_NOT_SUPPORT;
+    return false;
 }
 
 bool KvDBWindowedResultSet::IsAfterLast() const
 {
-    return -E_NOT_SUPPORT;
+    return false;
 }
 
 int KvDBWindowedResultSet::GetEntry(Entry &entry) const
