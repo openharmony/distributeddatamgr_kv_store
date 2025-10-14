@@ -73,17 +73,6 @@ static constexpr ErrorCode ERROR_CODE_MSGS[] = {
     { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
-static constexpr bool IsIncreasing()
-{
-    for (size_t i = 1; i < sizeof(ERROR_CODE_MSGS) / sizeof(ErrorCode); i++) {
-        if (ERROR_CODE_MSGS[i].status <= ERROR_CODE_MSGS[i - 1].status) {
-            return false;
-        }
-    }
-    return true;
-}
-static_assert(IsIncreasing());
-
 const std::optional<ErrorCode> GetErrorCode(int32_t errorCode)
 {
     auto code = ErrorCode{ errorCode, -1, "" };
@@ -123,51 +112,44 @@ public:
     }
     bool AppendChild(FieldNode child)
     {
-        TH_THROW(std::runtime_error, "appendChild not implemented");
         fields_.push_back(child);
         return true;
     }
 
     string GetDefaultValue()
     {
-        TH_THROW(std::runtime_error, "getDefaultValue not implemented");
         return defaultValue_;
     }
 
     void SetDefaultValue(string_view a)
     {
-        TH_THROW(std::runtime_error, "setDefaultValue not implemented");
         defaultValue_ = a;
     }
 
     bool GetNullable()
     {
-        TH_THROW(std::runtime_error, "getNullable not implemented");
         return isNullable_;
     }
 
     void SetNullable(bool a)
     {
-        TH_THROW(std::runtime_error, "setNullable not implemented");
         isNullable_ = a;
     }
 
     int32_t GetType()
     {
-        TH_THROW(std::runtime_error, "getType not implemented");
         return valueType_;
     }
 
     void SetType(int32_t a)
     {
-        TH_THROW(std::runtime_error, "setType not implemented");
-        a = valueType_;
+        valueType_ = a;
     }
 private:
     std::vector<FieldNode> fields_;
     string defaultValue_ = "";
     bool isNullable_ = false;
-    uint32_t valueType_ = ValueType::INVALID;
+    int32_t valueType_ = ValueType::INVALID;
 };
 
 class SchemaImpl {
@@ -186,50 +168,43 @@ public:
 
     void SetRoot(weak::FieldNode a)
     {
-        TH_THROW(std::runtime_error, "setRoot not implemented");
         rootNode_ = a;
     }
 
     array<string> GetIndexes()
     {
-        TH_THROW(std::runtime_error, "getIndexes not implemented");
         return indexes_;
     }
 
     void SetIndexes(array_view<string> a)
     {
-        TH_THROW(std::runtime_error, "setIndexes not implemented");
         indexes_ = a;
     }
 
     int32_t GetMode()
     {
-        TH_THROW(std::runtime_error, "getMode not implemented");
         return mode_;
     }
 
     void SetMode(int32_t a)
     {
-        TH_THROW(std::runtime_error, "setMode not implemented");
         mode_ = a;
     }
 
     int32_t GetSkip()
     {
-        TH_THROW(std::runtime_error, "getSkip not implemented");
         return skip_;
     }
 
     void SetSkip(int32_t a)
     {
-        TH_THROW(std::runtime_error, "setSkip not implemented");
         skip_ = a;
     }
 private:
     FieldNode rootNode_ = make_holder<FieldNodeImpl, FieldNode>();
     array<taihe::string> indexes_ = {};
-    uint32_t mode_ = SCHEMA_MODE_SLOPPY;
-    uint32_t skip_ = 0;
+    int32_t mode_ = SCHEMA_MODE_SLOPPY;
+    int32_t skip_ = 0;
 };
 
 char* MallocCString(const std::string& origin)
@@ -284,7 +259,8 @@ DistributedKv::Blob DataTypesToKVValue(const ::kvstore::DataTypes value)
         case ::kvstore::DataTypes::tag_t::doubleType: {
             double tmp = double(value.get_doubleType_ref());
             data.push_back(ValueType::DOUBLE);
-            data.push_back(static_cast<double>(tmp));
+            uint8_t* bytes = reinterpret_cast<uint8_t>(&tmp);
+            data.insert(data.end(), bytes, bytes + sizeof(double));
             break;
         }
         case ::kvstore::DataTypes::tag_t::booleanType: {
@@ -381,9 +357,9 @@ private:
 
 class KVManagerImpl {
 public:
-    KVManagerImpl(string bunleName, std::shared_ptr<ContextParam> param)
+    KVManagerImpl(string bundleName, std::shared_ptr<ContextParam> param)
     {
-        bundleName_ = bunleName;
+        bundleName_ = bundleName;
         param_ = param;
     }
     OHOS::DistributedKv::DistributedKvDataManager kvDataManager_ {};
@@ -409,6 +385,9 @@ public:
         if (status == OHOS::DistributedKv::DATA_CORRUPTED) {
             kvOptions.rebuild = true;
             status = kvDataManager_.GetSingleKvStore(kvOptions, appId, kvStoreId, kvStore);
+        }
+        if (status != Status::SUCCESS) {
+            ThrowErrCode(status);
         }
         if (options.kvStoreType.has_value() && options.kvStoreType.value() == 1) {
             auto nativeKVStore = make_holder<SingleKVStoreImpl, SingleKVStore>();
@@ -455,11 +434,13 @@ CONTEXT_MODE GetContextMode(ani_env* env, ani_object context)
     auto env = ::taihe::get_env();
     if (GetContextMode(env, reinterpret_cast<ani_object>(config.context)) == STAGE) {
         auto context = OHOS::AbilityRuntime::GetStageModeContext(env, reinterpret_cast<ani_object>(config.context));
-        param.area = context->GetArea();
-        param.baseDir = context->GetDatabaseDir();
-        auto hapInfo = context->GetHapModuleInfo();
-        if (hapInfo != nullptr) {
-            param.hapName = hapInfo->moduleName;
+        if (context != nullptr) {
+            param.area = context->GetArea();
+            param.baseDir = context->GetDatabaseDir();
+            auto hapInfo = context->GetHapModuleInfo();
+            if (hapInfo != nullptr) {
+                param.hapName = hapInfo->moduleName;
+            }
         }
     } else {
         ZLOGE("ContextMode is not STAGE!");
