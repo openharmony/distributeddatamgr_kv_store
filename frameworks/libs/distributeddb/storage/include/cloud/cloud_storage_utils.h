@@ -212,6 +212,8 @@ public:
 
     static void SaveChangedDataByType(const DataValue &dataValue, Type &value);
 
+    static int ConvertLogToLocal(sqlite3 *dbHandle,
+        const std::string &tableName, const std::vector<std::string> &gids);
 private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 

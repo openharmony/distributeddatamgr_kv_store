@@ -128,6 +128,7 @@ protected:
     void CheckAssetStatusNormal();
     void UpdateCloudAssets(Asset &asset, Assets &assets, const std::string &version);
     void CheckUploadAbnormal(OpType opType, int64_t expCnt, bool isCompensated = false);
+    void CheckRecordNotFound(bool isLocalWin);
     sqlite3 *db = nullptr;
     VirtualCommunicatorAggregator *communicatorAggregator_ = nullptr;
 };
@@ -455,6 +456,65 @@ void DistributedDBCloudSyncerLockTest::CheckUploadAbnormal(OpType opType, int64_
     }
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(expCnt), nullptr), SQLITE_OK);
+}
+
+void DistributedDBCloudSyncerLockTest::CheckRecordNotFound(bool isLocalWin)
+{
+    /**
+     * @tc.steps:step1. insert cloud and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. update local data status to unlocking
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " SET status = 2";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    if (isLocalWin) {
+        sql = "UPDATE " + ASSETS_TABLE_NAME + " SET name = id";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    } else {
+        UpdateCloudDBData(0, cloudCount, 0, 0, ASSETS_TABLE_NAME);
+        CallSync(option);
+    }
+    sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " SET status = 1";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. Compensated Sync and fork query contains not found
+     * @tc.expected: step3. return ok.
+     */
+    int callCnt = 0;
+    g_virtualCloudDb->ForkAfterQueryResult([&](VBucket &extend, std::vector<VBucket> &data) {
+        callCnt++;
+        size_t expCnt = 10u;
+        if (callCnt == 1) {
+            EXPECT_EQ(data.size(), expCnt);
+            if (data.size() < expCnt) {
+                return DBStatus::CLOUD_ERROR;
+            }
+            int errIndex = 4;
+            data[errIndex].insert_or_assign(CloudDbConstant::ERROR_FIELD,
+                static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND));
+        }
+        return DBStatus::QUERY_END;
+    });
+    option.compensatedSyncOnly = true;
+    CallSync(option);
+
+    /**
+     * @tc.steps:step4. Check sync success
+     * @tc.expected: step4. return ok.
+     */
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " where status = 0;";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
 }
 
 /**
@@ -1547,6 +1607,148 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, TaskIdTest001, TestSize.Level1)
     });
     CallSync(option);
     g_virtualCloudDb->ForkQuery(nullptr);
+}
+
+/**
+ * @tc.name: RecordNotFoundTest001
+ * @tc.desc: Test query return not found when the cloud data is relatively new
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RecordNotFoundTest001, TestSize.Level1)
+{
+    EXPECT_NO_FATAL_FAILURE(CheckRecordNotFound(false));
+}
+
+/**
+ * @tc.name: RecordNotFoundTest002
+ * @tc.desc: Test query return not found when the local data is relatively new
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RecordNotFoundTest002, TestSize.Level1)
+{
+    EXPECT_NO_FATAL_FAILURE(CheckRecordNotFound(true));
+}
+
+/**
+ * @tc.name: RecordNotFoundTest003
+ * @tc.desc: Test query return not found for all data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RecordNotFoundTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. insert cloud and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. update local data status to unlocking
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " SET status = 2";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    UpdateCloudDBData(0, cloudCount, 0, 0, ASSETS_TABLE_NAME);
+    CallSync(option);
+    sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " SET status = 1";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. Compensated Sync and fork query contains not found
+     * @tc.expected: step3. return ok.
+     */
+    int callCnt = 0;
+    g_virtualCloudDb->ForkAfterQueryResult([&](VBucket &extend, std::vector<VBucket> &data) {
+        callCnt++;
+        if (callCnt == 1) {
+            for (size_t errIndex = 0; errIndex < data.size(); errIndex++) {
+                data[errIndex].insert_or_assign(CloudDbConstant::ERROR_FIELD,
+                    static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND));
+            }
+        }
+        return DBStatus::QUERY_END;
+    });
+    int uploadCnt = 0;
+    g_virtualCloudDb->ForkUpload([&uploadCnt](const std::string &tableName, VBucket &extend) {
+        uploadCnt++;
+    });
+    option.compensatedSyncOnly = true;
+    CallSync(option);
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
+    g_virtualCloudDb->ForkUpload(nullptr);
+    EXPECT_EQ(uploadCnt, cloudCount);
+}
+
+/**
+ * @tc.name: RecordNotFoundTest004
+ * @tc.desc: Test query return error when record contanis not found
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerLockTest, RecordNotFoundTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. insert cloud and sync
+     * @tc.expected: step1. return ok.
+     */
+    int cloudCount = 10;
+    InsertCloudDBData(0, cloudCount, 0, ASSETS_TABLE_NAME);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME }), LockAction::INSERT);
+    CallSync(option);
+
+    /**
+     * @tc.steps:step2. update local data status to unlocking
+     * @tc.expected: step2. return ok.
+     */
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " SET status = 2";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    UpdateCloudDBData(0, cloudCount, 0, 0, ASSETS_TABLE_NAME);
+    CallSync(option);
+    sql = "UPDATE " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " SET status = 1";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. Compensated Sync and fork query contains not found
+     * @tc.expected: step3. return ok.
+     */
+    int callCnt = 0;
+    g_virtualCloudDb->ForkAfterQueryResult([&](VBucket &extend, std::vector<VBucket> &data) {
+        callCnt++;
+        size_t expCnt = 10u;
+        if (callCnt == 1) {
+            EXPECT_EQ(data.size(), expCnt);
+            if (data.size() < expCnt) {
+                return DBStatus::CLOUD_ERROR;
+            }
+            int errIndex = 4;
+            data[errIndex].insert_or_assign(CloudDbConstant::ERROR_FIELD,
+                static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND));
+            return DBStatus::CLOUD_ERROR;
+        }
+        return DBStatus::CLOUD_ERROR;
+    });
+    option.compensatedSyncOnly = true;
+    CallSync(option);
+
+    /**
+     * @tc.steps:step4. Check sync stop.
+     * @tc.expected: step4. return ok.
+     */
+    int expRow = 1;
+    sql = "select count(*) from " + DBCommon::GetLogTableName(ASSETS_TABLE_NAME) + " where cloud_gid = '';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(expRow), nullptr), SQLITE_OK);
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
 }
 } // namespace
 #endif // RELATIONAL_STORE

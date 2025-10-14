@@ -192,6 +192,8 @@ public:
     bool GetTransactionExeFlag();
 
     Timestamp EraseNanoTime(Timestamp localTime);
+
+    void FilterDownloadRecordNotFound(const std::string &tableName, DownloadData &downloadData);
 protected:
     void Init();
 private:

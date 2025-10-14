@@ -846,4 +846,33 @@ bool StorageProxy::GetTransactionExeFlag()
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     return transactionExeFlag_.load();
 }
+
+void StorageProxy::FilterDownloadRecordNotFound(const std::string &tableName, DownloadData &downloadData)
+{
+    std::vector<std::string> gids;
+    for (auto data = downloadData.data.begin(); data != downloadData.data.end();) {
+        if (!DBCommon::IsCloudRecordNotFound(*data)) {
+            ++data;
+            continue;
+        }
+        std::string gid;
+        (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, *data, gid);
+        if (!gid.empty()) {
+            gids.push_back(gid);
+            data = downloadData.data.erase(data);
+        } else {
+            ++data;
+        }
+    }
+    if (gids.empty()) {
+        return;
+    }
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[FilterDownloadRecordNotFound] store is null");
+        return;
+    }
+    LOGW("Download data from cloud contains record not found.");
+    (void)store_->ConvertLogToLocal(tableName, gids);
+}
 }

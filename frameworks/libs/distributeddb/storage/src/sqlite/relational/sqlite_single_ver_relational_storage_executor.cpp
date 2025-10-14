@@ -1979,5 +1979,11 @@ void SQLiteSingleVerRelationalStorageExecutor::SetTableMode(DistributedTableMode
 {
     mode_ = mode;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::ConvertLogToLocal(const std::string &tableName,
+    const std::vector<std::string> &gids)
+{
+    return CloudStorageUtils::ConvertLogToLocal(dbHandle_, tableName, gids);
+}
 } // namespace DistributedDB
 #endif

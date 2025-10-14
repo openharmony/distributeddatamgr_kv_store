@@ -20,6 +20,7 @@
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
 #include "db_common.h"
+#include "res_finalizer.h"
 #include "runtime_context.h"
 
 namespace DistributedDB {
@@ -1512,5 +1513,45 @@ void CloudStorageUtils::SaveChangedDataByType(const DataValue &dataValue, Type &
             LOGE("[CloudStorageUtils] save changed failed, wrong storage type :%" PRIu32, dataValue.GetType());
             return;
     }
+}
+
+int CloudStorageUtils::ConvertLogToLocal(sqlite3 *dbHandle, const std::string &tableName,
+    const std::vector<std::string> &gids)
+{
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
+        " SET cloud_gid = '', flag = flag | 0x02 WHERE cloud_gid IN (";
+    for (size_t i = 0; i < gids.size(); i++) {
+        sql += "?,";
+    }
+    sql.pop_back();
+    sql += ");";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[CloudStorageUtils][ConvertLogToLocal]Get stmt failed: %d, tableName: %s, length: %zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return errCode;
+    }
+    ResFinalizer finalizer([&stmt] {
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+    });
+    int index = 0;
+    for (const auto &gid : gids) {
+        index++;
+        errCode = SQLiteUtils::BindTextToStatement(stmt, index, gid);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("[CloudStorageUtils][ConvertLogToLocal]step failed: %d, tableName: %s, length: %zu",
+            errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        return errCode;
+    }
+    auto count = sqlite3_changes64(dbHandle);
+    LOGI("[CloudStorageUtils][ConvertLogToLocal] cnt:%zu, %" PRIu64, gids.size(), count);
+    return E_OK;
 }
 }
