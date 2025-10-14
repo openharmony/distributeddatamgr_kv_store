@@ -837,9 +837,20 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync002, Te
     ASSERT_NE(delegatePtr1, nullptr);
 
     std::map<std::string, DBStatus> result;
+    std::atomic<int> count = 0;
+    RuntimeConfig::SetPermissionCheckCallback([&count](const PermissionCheckParam &param, uint8_t flag) {
+        if (param.storeId == STORE_ID_1) {
+            EXPECT_EQ(param.subUserId, SUB_USER_1);
+            count++;
+        }
+        return true;
+    });
     DBStatus status = g_tool.SyncTest(delegatePtr1, { DEVICE_B }, SYNC_MODE_PUSH_ONLY, result);
     EXPECT_EQ(status, OK);
     EXPECT_EQ(result[DEVICE_B], OK);
+    PermissionCheckCallbackV3 callback = nullptr;
+    RuntimeConfig::SetPermissionCheckCallback(callback);
+    EXPECT_GE(count, 1);
 
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }

@@ -26,6 +26,7 @@ void FillPermissionCheckParam(const SyncGenericInterface* storage, int mode, Per
     param.appId = storage->GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
     param.userId = storage->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
     param.storeId = storage->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
+    param.subUserId = storage->GetDbProperties().GetStringProp(DBProperties::SUB_USER, "");
     param.instanceId = storage->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
     switch (mode) {
         case SyncModeType::PUSH:
