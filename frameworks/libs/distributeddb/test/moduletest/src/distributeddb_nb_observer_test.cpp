@@ -1057,7 +1057,7 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure004, TestSize.Level1)
      * @tc.steps: step1. UnRegister nullpter.
      * @tc.expected: step1. it will be failed to unregister nullptr and return INVALID_ARGS.
      */
-    std::weak_ptr<DistributedDB::KvStoreObserver> observer;
+    std::shared_ptr<DistributedDB::KvStoreObserver> observer;
     DBStatus status = g_nbObserverDelegate->UnRegisterObserver(observer);
 
     EXPECT_EQ(status, INVALID_ARGS);

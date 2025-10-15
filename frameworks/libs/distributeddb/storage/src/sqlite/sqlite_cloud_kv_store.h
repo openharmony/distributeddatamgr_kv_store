@@ -91,9 +91,9 @@ public:
 
     int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
 
-    void RegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer, const ObserverAction &action);
+    void RegisterObserverAction(std::shared_ptr<KvStoreObserver> observer, const ObserverAction &action);
 
-    void UnRegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer);
+    void UnRegisterObserverAction(std::shared_ptr<KvStoreObserver> observer);
 
     int GetCloudVersion(const std::string &device, std::map<std::string, std::string> &versionMap);
 

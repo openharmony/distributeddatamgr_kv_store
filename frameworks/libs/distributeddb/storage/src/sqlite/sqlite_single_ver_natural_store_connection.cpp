@@ -1933,7 +1933,7 @@ int SQLiteSingleVerNaturalStoreConnection::SetCloudDbSchema(const std::map<std::
 }
 #endif
 
-int SQLiteSingleVerNaturalStoreConnection::RegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer,
+int SQLiteSingleVerNaturalStoreConnection::RegisterObserverAction(std::shared_ptr<KvStoreObserver> observer,
     const ObserverAction &action)
 {
     auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
@@ -1944,7 +1944,7 @@ int SQLiteSingleVerNaturalStoreConnection::RegisterObserverAction(const std::wea
     return naturalStore->RegisterObserverAction(observer, action);
 }
 
-int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer)
+int SQLiteSingleVerNaturalStoreConnection::UnRegisterObserverAction(std::shared_ptr<KvStoreObserver> observer)
 {
     auto naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {

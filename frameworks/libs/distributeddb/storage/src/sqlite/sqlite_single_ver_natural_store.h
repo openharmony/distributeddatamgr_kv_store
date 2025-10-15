@@ -221,9 +221,9 @@ public:
 
     int SetCloudDbSchema(const std::map<std::string, DataBaseSchema> &schema);
 
-    int RegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer, const ObserverAction &action);
+    int RegisterObserverAction(std::shared_ptr<KvStoreObserver> observer, const ObserverAction &action);
 
-    int UnRegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer);
+    int UnRegisterObserverAction(std::shared_ptr<KvStoreObserver> observer);
 
     void SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 

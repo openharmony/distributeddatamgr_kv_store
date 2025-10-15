@@ -371,12 +371,12 @@ DBStatus KvStoreNbDelegateImpl::DeleteLocalBatch(const std::vector<Key> &keys)
 }
 
 DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mode,
-    const std::weak_ptr<KvStoreObserver> &observer)
+    std::shared_ptr<KvStoreObserver> observer)
 {
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return INVALID_ARGS;
     }
-    if (observer.lock() == nullptr) {
+    if (observer == nullptr) {
         LOGE("[KvStoreNbDelegate][RegisterObserver] Observer is null");
         return INVALID_ARGS;
     }
@@ -393,7 +393,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
 }
 
 DBStatus KvStoreNbDelegateImpl::CheckDeviceObserver(const Key &key, unsigned int mode,
-    const std::weak_ptr<KvStoreObserver> &observer)
+    std::shared_ptr<KvStoreObserver> observer)
 {
     if (!ParamCheckUtils::CheckObserver(key, mode)) {
         LOGE("[KvStoreNbDelegate][CheckDeviceObserver] Register nb observer by illegal mode or key size!");
@@ -413,7 +413,7 @@ DBStatus KvStoreNbDelegateImpl::CheckDeviceObserver(const Key &key, unsigned int
 }
 
 DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode,
-    const std::weak_ptr<KvStoreObserver> &observer)
+    std::shared_ptr<KvStoreObserver> observer)
 {
     if (conn_->IsTransactionStarted()) {
         LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Transaction unfinished");
@@ -428,12 +428,13 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
 
     int errCode = E_OK;
     auto storeId = storeId_;
+    std::weak_ptr<KvStoreObserver> wkPtr = observer;
     KvDBObserverHandle *observerHandle = conn_->RegisterObserver(
         mode, key,
-        [observer, storeId](const KvDBCommitNotifyData &notifyData) {
+        [wkPtr, storeId](const KvDBCommitNotifyData &notifyData) {
             KvStoreChangedDataImpl data(&notifyData);
             LOGD("[KvStoreNbDelegate][RegisterDeviceObserver] Trigger on change");
-            if (auto observerPtr = observer.lock()) {
+            if (auto observerPtr = wkPtr.lock()) {
                 observerPtr->OnChange(data);
             } else {
                LOGW("[KvStoreNbDelegate][RegisterDeviceObserver] observer released");
@@ -452,7 +453,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
     return OK;
 }
 
-DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(const std::weak_ptr<KvStoreObserver> &observer)
+DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(std::shared_ptr<KvStoreObserver> observer)
 {
     if (cloudObserverMap_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
         LOGE("[KvStoreNbDelegate][CheckCloudObserver] The number of kv cloud observers over limit, storeId[%.3s]",
@@ -467,7 +468,7 @@ DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(const std::weak_ptr<KvStoreOb
 }
 
 DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode,
-    const std::weak_ptr<KvStoreObserver> &observer)
+    std::shared_ptr<KvStoreObserver> observer)
 {
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     DBStatus status = CheckCloudObserver(observer);
@@ -477,11 +478,12 @@ DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned i
     }
 
     auto storeId = storeId_;
-    ObserverAction action = [observer, storeId](
+    std::weak_ptr<KvStoreObserver> wkPtr = observer;
+    ObserverAction action = [wkPtr, storeId](
                                 const std::string &device, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData) {
             LOGD("[KvStoreNbDelegate][RegisterCloudObserver] Trigger on change");
-            if (auto observerPtr = observer.lock()) {
+            if (auto observerPtr = wkPtr.lock()) {
                 observerPtr->OnChange(Origin::ORIGIN_CLOUD, device, std::move(changedData));
             } else {
                 LOGW("[KvStoreNbDelegate][RegisterCloudObserver] observer released");
@@ -498,9 +500,9 @@ DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned i
     return OK;
 }
 
-DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const std::weak_ptr<KvStoreObserver> &observer)
+DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(std::shared_ptr<KvStoreObserver> observer)
 {
-    if (observer.lock() == nullptr) {
+    if (observer == nullptr) {
         return INVALID_ARGS;
     }
 
@@ -517,7 +519,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const std::weak_ptr<KvStoreOb
     return devRet;
 }
 
-DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const std::weak_ptr<KvStoreObserver> &observer)
+DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(std::shared_ptr<KvStoreObserver> observer)
 {
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = observerMap_.find(observer);
@@ -536,7 +538,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const std::weak_ptr<KvS
     return OK;
 }
 
-DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(const std::weak_ptr<KvStoreObserver> &observer)
+DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(std::shared_ptr<KvStoreObserver> observer)
 {
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = cloudObserverMap_.find(observer);

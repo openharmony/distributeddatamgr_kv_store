@@ -128,8 +128,8 @@ bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)
         LOGE("Invalid conflict type, conflict type is [%d]", option.conflictType);
         return false;
     }
-    if ((option.observer.lock() != nullptr && !ParamCheckUtils::CheckObserver(option.key, option.mode)) ||
-        (option.observer.lock() == nullptr && (!option.key.empty() || option.mode != 0))) {
+    if ((option.observer != nullptr && !ParamCheckUtils::CheckObserver(option.key, option.mode)) ||
+        (option.observer == nullptr && (!option.key.empty() || option.mode != 0))) {
         LOGE("Invalid observer param, observer mode is [%u]", option.mode);
         return false;
     }
@@ -236,7 +236,7 @@ DBStatus KvStoreDelegateManager::SetObserverNotifier(
     KvStoreNbDelegate *kvStore, const KvStoreNbDelegate::Option &option)
 {
     DBStatus status;
-    if (option.observer.lock() != nullptr) {
+    if (option.observer != nullptr) {
         status = kvStore->RegisterObserver(option.key, option.mode, option.observer);
         if (status != OK) {
             LOGE("[KvStoreMgr] RegisterObserver failed.");

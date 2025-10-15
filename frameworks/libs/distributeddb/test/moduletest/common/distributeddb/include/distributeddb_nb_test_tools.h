@@ -47,7 +47,7 @@ struct Option {
 #endif // endif of RELEASE_MODE_V2
 #ifdef RELEASE_MODE_V3
     DistributedDB::SecurityOption secOption;
-    std::weak_ptr<DistributedDB::KvStoreObserver> observer;
+    std::shared_ptr<DistributedDB::KvStoreObserver> observer;
     DistributedDB::Key key;
     unsigned int mode = 0;
     int conflictType = 0;
@@ -67,7 +67,7 @@ struct Option {
 #ifdef RELEASE_MODE_V3
     Option(bool createIfNecessary, bool isMemoryDb, bool isEncryptedDb, const DistributedDB::CipherType &cipher,
         const std::vector<uint8_t> &passwd, const DistributedDB::SecurityOption &secOption,
-        const std::weak_ptr<DistributedDB::KvStoreObserver> &observer,
+        std::shared_ptr<DistributedDB::KvStoreObserver> observer,
         const DistributedDB::KvStoreNbConflictNotifier &notifier)
         : createIfNecessary(createIfNecessary), isMemoryDb(isMemoryDb), isEncryptedDb(isEncryptedDb),
           cipher(cipher), passwd(passwd), secOption(secOption), observer(observer), notifier(notifier)
@@ -233,10 +233,10 @@ public:
 
     static DistributedDB::DBStatus RegisterObserver(DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate,
         const DistributedDB::Key &key, unsigned int mode,
-        const std::weak_ptr<DistributedDB::KvStoreObserver> &observer);
+        std::shared_ptr<DistributedDB::KvStoreObserver> observer);
 
     static DistributedDB::DBStatus UnRegisterObserver(DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate,
-        const std::weak_ptr<DistributedDB::KvStoreObserver> &observer);
+        std::shared_ptr<DistributedDB::KvStoreObserver> observer);
     static bool CloseNbAndRelease(DistributedDB::KvStoreDelegateManager *&manager,
         DistributedDB::KvStoreNbDelegate *&delegate);
     static bool ModifyDatabaseFile(const std::string &fileDir);

@@ -641,7 +641,7 @@ TimeOffset SQLiteSingleVerNaturalStore::GetLocalTimeOffsetForCloud()
     return GetLocalTimeOffset();
 }
 
-int SQLiteSingleVerNaturalStore::RegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer,
+int SQLiteSingleVerNaturalStore::RegisterObserverAction(std::shared_ptr<KvStoreObserver> observer,
     const ObserverAction &action)
 {
 #ifdef USE_DISTRIBUTEDDB_CLOUD
@@ -654,7 +654,7 @@ int SQLiteSingleVerNaturalStore::RegisterObserverAction(const std::weak_ptr<KvSt
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStore::UnRegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer)
+int SQLiteSingleVerNaturalStore::UnRegisterObserverAction(std::shared_ptr<KvStoreObserver> observer)
 {
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     std::lock_guard<std::mutex> autoLock(cloudStoreMutex_);

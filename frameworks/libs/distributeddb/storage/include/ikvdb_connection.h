@@ -153,10 +153,10 @@ public:
 
     virtual int32_t GetTaskCount() = 0;
 
-    virtual int RegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer,
+    virtual int RegisterObserverAction(std::shared_ptr<KvStoreObserver> observer,
         const ObserverAction &action) = 0;
 
-    virtual int UnRegisterObserverAction(const std::weak_ptr<KvStoreObserver> &observer) = 0;
+    virtual int UnRegisterObserverAction(std::shared_ptr<KvStoreObserver> observer) = 0;
 
     virtual void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) = 0;
 
