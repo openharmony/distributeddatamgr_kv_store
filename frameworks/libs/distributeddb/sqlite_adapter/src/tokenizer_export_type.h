@@ -91,6 +91,7 @@ typedef struct GRD_WordEntry {
     uint32_t length;
     char partOfSpeech[GRD_TOKENIZER_POS_LEN + 1];
     double idf;
+    uint32_t offset;
 } GRD_WordEntryT;
 
 #ifdef __cplusplus

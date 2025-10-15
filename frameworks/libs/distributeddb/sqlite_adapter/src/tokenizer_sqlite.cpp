@@ -178,15 +178,12 @@ int fts5_customtokenizer_xTokenize(
     GRD_WordEntryT entry;
     int start = 0;  // 词在句子中的起始位置
     int end = 0;    // 词在句子中的结束位置
-    const char *startPos = nullptr;
     while ((ret = GRD_TokenizerNext(entryList, &entry)) == GRD_OK) {
-        if (startPos == nullptr) {
-            startPos = entry.word;
-        }
-        start = entry.word - startPos;
+        start = static_cast<int>(entry.offset);
         end = start + static_cast<int>(entry.length);
         if (end > nText || start < 0) {
             ret = SQLITE_ERROR;
+            sqlite3_log(SQLITE_ERROR, "|fts5 custom tokenizer xTokenize| offset wrong");
             break;
         }
         ret = xToken(pCtx, 0, entry.word, entry.length, start, end);

@@ -524,3 +524,56 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest010, TestSize.Level0)
  
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
+
+/**
+ * @tc.name: SqliteAdapterTest011
+ * @tc.desc: Test case Sensitive
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: whs
+ */
+HWTEST_F(SqliteAdapterTest, SqliteAdapterTest011, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare db
+     * @tc.expected: step1. OK.
+     */
+    // Save any error messages
+    char *zErrMsg = nullptr;
+ 
+    // Save the connection result
+    int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    HandleRc(g_sqliteDb, rc);
+ 
+    rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
+    HandleRc(g_sqliteDb, rc);
+ 
+    rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step2. create table
+     * @tc.expected: step2. OK.
+     */
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(name, content, "
+                 "tokenize = 'customtokenizer cut_mode short_words case_sensitive 0')";
+    rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
+    HandleRc(g_sqliteDb, rc);
+ 
+    const char *sqlInsert1 = "INSERT INTO example(name, content) VALUES('卡拉ok', "
+                             "'\"C语言设计c++C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌C++卡拉ok卡拉OK\"');";
+    SQLTest(sqlInsert1);
+ 
+    const char *sqlQuery1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+                            " example WHERE example MATCH '\"C++\"';";
+    SQLTest(sqlQuery1);
+ 
+    const char *sqlQuery2 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+                            " example WHERE example MATCH '\"卡拉OK\"';";
+    SQLTest(sqlQuery2);
+ 
+    const char *sqlQuery3 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+                            " example WHERE example MATCH '\"qq号\"';";
+    SQLTest(sqlQuery3);
+ 
+    EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
+}
