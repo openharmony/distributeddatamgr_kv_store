@@ -216,17 +216,18 @@ private:
     void OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
         const DeviceSyncProcessCallback &onProcess) const;
 
-    DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode, std::shared_ptr<KvStoreObserver> observer);
+    DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode,
+        const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus RegisterCloudObserver(const Key &key, unsigned int mode, std::shared_ptr<KvStoreObserver> observer);
+    DBStatus RegisterCloudObserver(const Key &key, unsigned int mode, const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus UnRegisterDeviceObserver(std::shared_ptr<KvStoreObserver> observer);
+    DBStatus UnRegisterDeviceObserver(const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus UnRegisterCloudObserver(std::shared_ptr<KvStoreObserver> observer);
+    DBStatus UnRegisterCloudObserver(const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus CheckDeviceObserver(const Key &key, unsigned int mode, std::shared_ptr<KvStoreObserver> observer);
+    DBStatus CheckDeviceObserver(const Key &key, unsigned int mode, const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus CheckCloudObserver(std::shared_ptr<KvStoreObserver> observer);
+    DBStatus CheckCloudObserver(const std::shared_ptr<KvStoreObserver> &observer);
 
     IKvDBConnection *conn_;
     std::string storeId_;

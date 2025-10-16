@@ -393,7 +393,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
 }
 
 DBStatus KvStoreNbDelegateImpl::CheckDeviceObserver(const Key &key, unsigned int mode,
-    std::shared_ptr<KvStoreObserver> observer)
+    const std::shared_ptr<KvStoreObserver> &observer)
 {
     if (!ParamCheckUtils::CheckObserver(key, mode)) {
         LOGE("[KvStoreNbDelegate][CheckDeviceObserver] Register nb observer by illegal mode or key size!");
@@ -413,7 +413,7 @@ DBStatus KvStoreNbDelegateImpl::CheckDeviceObserver(const Key &key, unsigned int
 }
 
 DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned int mode,
-    std::shared_ptr<KvStoreObserver> observer)
+    const std::shared_ptr<KvStoreObserver> &observer)
 {
     if (conn_->IsTransactionStarted()) {
         LOGE("[KvStoreNbDelegate][RegisterDeviceObserver] Transaction unfinished");
@@ -453,7 +453,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterDeviceObserver(const Key &key, unsigned 
     return OK;
 }
 
-DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(std::shared_ptr<KvStoreObserver> observer)
+DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(const std::shared_ptr<KvStoreObserver> &observer)
 {
     if (cloudObserverMap_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
         LOGE("[KvStoreNbDelegate][CheckCloudObserver] The number of kv cloud observers over limit, storeId[%.3s]",
@@ -468,7 +468,7 @@ DBStatus KvStoreNbDelegateImpl::CheckCloudObserver(std::shared_ptr<KvStoreObserv
 }
 
 DBStatus KvStoreNbDelegateImpl::RegisterCloudObserver(const Key &key, unsigned int mode,
-    std::shared_ptr<KvStoreObserver> observer)
+    const std::shared_ptr<KvStoreObserver> &observer)
 {
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     DBStatus status = CheckCloudObserver(observer);
@@ -519,7 +519,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(std::shared_ptr<KvStoreObserv
     return devRet;
 }
 
-DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(std::shared_ptr<KvStoreObserver> observer)
+DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(const std::shared_ptr<KvStoreObserver> &observer)
 {
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = observerMap_.find(observer);
@@ -538,7 +538,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterDeviceObserver(std::shared_ptr<KvStore
     return OK;
 }
 
-DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(std::shared_ptr<KvStoreObserver> observer)
+DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(const std::shared_ptr<KvStoreObserver> &observer)
 {
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = cloudObserverMap_.find(observer);
