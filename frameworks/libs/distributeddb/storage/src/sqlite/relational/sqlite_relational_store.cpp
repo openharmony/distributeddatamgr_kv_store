@@ -15,7 +15,9 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_relational_store.h"
 
+#include <random>
 #include "cloud/cloud_storage_utils.h"
+#include "cloud_sync_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_dump_helper.h"
@@ -27,7 +29,7 @@
 #include "sqlite_relational_utils.h"
 #include "sqlite_relational_store_connection.h"
 #include "storage_engine_manager.h"
-#include "cloud_sync_utils.h"
+#include "time_helper.h"
 
 namespace DistributedDB {
 namespace {
@@ -1364,6 +1366,9 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
         if (errCode != -E_IGNORE_DATA) {
             return errCode;
         }
+        if (!IsDailyTrackerIntegrityRepair(trackerSchema.tableName)) {
+            return E_OK;
+        }
         auto *handle = GetHandle(true, errCode);
         if (handle != nullptr) {
             handle->CheckAndCreateTrigger(tableInfo);
@@ -1375,6 +1380,8 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
             ReleaseHandle(handle);
         }
         CleanDirtyLogIfNeed(trackerSchema.tableName);
+        LOGI("[RelationalStore] tracker check finish [%s length[%u]]",
+            DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.length());
         return E_OK;
     }
     errCode = sqliteStorageEngine_->UpdateExtendField(trackerSchema);
@@ -1997,6 +2004,49 @@ int SQLiteRelationalStore::SetProperty(const Property &property)
     }
     storageEngine_->SetProperty(property);
     return E_OK;
+}
+
+bool SQLiteRelationalStore::IsDailyTrackerIntegrityRepair(const std::string &tableName)
+{
+    std::string keyStr = CloudDbConstant::TRACKER_CHECK_PREFIX + tableName;
+    const Key key(keyStr.begin(), keyStr.end());
+    Value value;
+    int errCode = storageEngine_->GetMetaData(key, value);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGW("[RDBStore] get tracker intergrity check time failed %d", errCode);
+        return false;
+    }
+    int64_t lastTimeMs = 0;
+    if (!value.empty()) {
+        int64_t result = std::strtoll(std::string(value.begin(), value.end()).c_str(),
+            nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
+        if (errno != ERANGE && result != LLONG_MIN && result != LLONG_MAX) {
+            lastTimeMs = result;
+        }
+    }
+    uint64_t curTimeNs = 0;
+    errCode = TimeHelper::GetSysCurrentRawTime(curTimeNs);
+    if (errCode != E_OK) {
+        LOGW("[RDBStore] get cur time failed %d", errCode);
+        return false;
+    }
+    int64_t curTimeMs = curTimeNs / CloudDbConstant::TEN_THOUSAND;
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<int64_t> dis(CloudDbConstant::ONE_DAY_MS, CloudDbConstant::ONE_DAY_MS +
+        CloudDbConstant::ONE_DAY_MS);
+    int64_t ranDelayMs = dis(gen);
+    if (std::abs(curTimeMs - lastTimeMs) < ranDelayMs) {
+        return false;
+    }
+    std::vector<uint8_t> curTimeVal;
+    DBCommon::StringToVector(std::to_string(curTimeMs), curTimeVal);
+    errCode = storageEngine_->PutMetaData(key, curTimeVal);
+    if (errCode != E_OK) {
+        LOGW("[RDBStore] save tracker intergrity check time failed %d", errCode);
+        return false;
+    }
+    return true;
 }
 } // namespace DistributedDB
 #endif

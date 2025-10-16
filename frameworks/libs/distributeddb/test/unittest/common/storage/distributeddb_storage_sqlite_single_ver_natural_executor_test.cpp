@@ -462,7 +462,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
     EXPECT_EQ(executor->GetMaxVersionInCacheDb(version), E_OK);
     std::string hashDev = DBCommon::TransferHashString("device1");
     EXPECT_EQ(executor->RemoveDeviceDataInCacheMode(hashDev, true, 0u), E_OK);
-    sqlite3_close_v2(sqlHandle);
+    executor = nullptr;
     sqlHandle = nullptr;
 }
 
@@ -972,10 +972,14 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     EXPECT_EQ(executor->MigrateLocalData(), SQL_STATE_ERR);
     executor->SetAttachMetaMode(true);
     EXPECT_EQ(executor->MigrateSyncDataByVersion(0u, syncData, items), SQL_STATE_ERR);
+    executor = nullptr;
+    sqlHandle = nullptr;
 
     /**
      * @tc.steps: step3. Change executor to MAIN_ATTACH_CACHE
      */
+    EXPECT_EQ(SQLiteUtils::OpenDatabase({g_testDir + g_databaseName, false, false}, sqlHandle), E_OK);
+    ASSERT_NE(sqlHandle, nullptr);
     auto executor2 = std::make_unique<SQLiteSingleVerStorageExecutor>(
         sqlHandle, false, false, ExecutorState::MAIN_ATTACH_CACHE);
     ASSERT_NE(executor2, nullptr);
@@ -986,7 +990,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     EXPECT_EQ(executor2->GetMinVersionCacheData(items, version), SQL_STATE_ERR);
     EXPECT_EQ(executor2->GetMaxVersionInCacheDb(version), SQL_STATE_ERR);
     EXPECT_EQ(executor2->MigrateLocalData(), SQL_STATE_ERR);
-    sqlite3_close_v2(sqlHandle);
+    executor2 = nullptr;
     sqlHandle = nullptr;
 }
 
@@ -1128,7 +1132,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);
     dataItem.flag = DataItem::DELETE_FLAG;
     EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);
-    sqlite3_close_v2(db);
+    executor = nullptr;
 }
 
 /**
