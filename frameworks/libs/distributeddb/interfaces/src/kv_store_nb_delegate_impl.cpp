@@ -1446,4 +1446,13 @@ DBStatus KvStoreNbDelegateImpl::SetDeviceSyncNotify(DeviceSyncEvent event, const
     }
     return TransferDBErrno(conn_->SetDeviceSyncNotify(event, notifier));
 }
+
+DBStatus KvStoreNbDelegateImpl::SetProperty(const Property &property)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->SetProperty(property));
+}
 } // namespace DistributedDB

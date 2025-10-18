@@ -248,7 +248,7 @@ protected:
 
     virtual void SaveLastPushTaskExecStatus(int finalStatus);
 
-    int RunPermissionCheck(uint8_t flag) const;
+    int RunPermissionCheck(uint8_t flag);
 
     SyncOperation *GetAndIncSyncOperation() const;
 

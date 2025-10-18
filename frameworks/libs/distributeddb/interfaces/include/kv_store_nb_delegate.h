@@ -341,6 +341,12 @@ public:
     {
         return OK;
     }
+
+    // Use for DataFlowCheckCallback
+    DB_API virtual DBStatus SetProperty(const Property &property)
+    {
+        return OK;
+    }
 };
 } // namespace DistributedDB
 

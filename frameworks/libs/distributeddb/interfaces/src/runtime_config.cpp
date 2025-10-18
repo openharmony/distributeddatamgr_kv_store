@@ -204,5 +204,10 @@ DBStatus RuntimeConfig::SetAsyncDownloadAssetsConfig(const AsyncDownloadAssetsCo
     return TransferDBErrno(RuntimeContext::GetInstance()->GetAssetsDownloadManager()
         ->SetAsyncDownloadAssetsConfig(config));
 }
+
+DBStatus RuntimeConfig::SetDataFlowCheckCallback(const DataFlowCheckCallback &callback)
+{
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetDataFlowCheckCallback(callback));
+}
 } // namespace DistributedDB
 #endif

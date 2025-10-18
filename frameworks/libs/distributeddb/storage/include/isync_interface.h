@@ -73,6 +73,8 @@ public:
     virtual int GetSecurityOption(SecurityOption &option) const = 0;
 
     virtual int IsSupportSubscribe() const = 0;
+
+    virtual Property GetProperty() const = 0;
 };
 } // namespace DistributedDB
 

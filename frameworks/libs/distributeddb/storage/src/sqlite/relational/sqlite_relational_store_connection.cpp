@@ -535,5 +535,15 @@ int32_t SQLiteRelationalStoreConnection::GetDeviceSyncTaskCount()
     }
     return store->GetDeviceSyncTaskCount();
 }
+
+int SQLiteRelationalStoreConnection::SetProperty(const Property &property)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when set property.");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetProperty(property);
+}
 }
 #endif

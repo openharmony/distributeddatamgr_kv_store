@@ -195,7 +195,7 @@ protected:
 
     int DoAbilitySyncIfNeed(SingleVerSyncTaskContext *context, const Message *message, bool isControlMsg = false);
 
-    int DataRequestRecvPre(SingleVerSyncTaskContext *context, const Message *message);
+    int DataRequestRecvPre(SingleVerSyncTaskContext *context, const Message *message, bool &isDeniedSend);
 
     void GetPullEndWatermark(const SingleVerSyncTaskContext *context, const DataRequestPacket *packet,
         WaterMark &pullEndWatermark) const;
@@ -204,14 +204,15 @@ protected:
         const std::vector<uint64_t> &reserved);
 
     int RunPermissionCheck(SingleVerSyncTaskContext *context, const Message *message,
-        const DataRequestPacket *packet);
+        const DataRequestPacket *packet, bool &isDeniedSend);
 
     void SendResetWatchDogPacket(SingleVerSyncTaskContext *context, uint32_t packetLen);
 
     int SendReSendPacket(DataRequestPacket *packet, SingleVerSyncTaskContext *context,
         uint32_t sessionId, uint32_t sequenceId);
 
-    int SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutData, SingleVerSyncTaskContext *context);
+    int SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutData, SingleVerSyncTaskContext *context,
+        uint32_t sessionId = 0);
 
     int CheckSchemaStrategy(SingleVerSyncTaskContext *context, const Message *message);
 

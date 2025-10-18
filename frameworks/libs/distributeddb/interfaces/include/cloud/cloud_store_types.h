@@ -102,7 +102,6 @@ struct Asset {
             (status == asset.status) && (timestamp == asset.timestamp);
     }
 };
-using Nil = std::monostate;
 using Assets = std::vector<Asset>;
 using Bytes = std::vector<uint8_t>;
 using Entries = std::map<std::string, std::string>;

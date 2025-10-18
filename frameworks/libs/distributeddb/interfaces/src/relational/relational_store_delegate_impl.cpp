@@ -608,5 +608,14 @@ int32_t RelationalStoreDelegateImpl::GetDeviceSyncTaskCount()
     LOGI("[RelationalStore Delegate] Get device sync task count %" PRId32, count);
     return count;
 }
+
+DBStatus RelationalStoreDelegateImpl::SetProperty(const Property &property)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for set property.");
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->SetProperty(property));
+}
 } // namespace DistributedDB
 #endif

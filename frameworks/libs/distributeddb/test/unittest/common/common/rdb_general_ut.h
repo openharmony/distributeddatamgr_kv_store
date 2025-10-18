@@ -95,6 +95,8 @@ protected:
         DBStatus expectRet);
 
     void RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet);
+    void RemoteQuery(const StoreInfo &from, const StoreInfo &to, const std::string &sql, DBStatus expectRet,
+        std::shared_ptr<ResultSet> &resultSet);
 
     int PutMetaData(const StoreInfo &store, const Key &key, const Value &value);
 

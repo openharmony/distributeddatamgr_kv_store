@@ -264,6 +264,8 @@ protected:
 
     bool CheckSchemaSupportForCloudSync() const override;
 #endif
+
+    Property GetProperty() const override;
 private:
 
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);

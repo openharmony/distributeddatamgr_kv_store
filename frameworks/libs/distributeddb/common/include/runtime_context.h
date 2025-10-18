@@ -89,7 +89,8 @@ public:
 
     virtual int SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback) = 0;
 
-    virtual int RunPermissionCheck(const PermissionCheckParam &param, uint8_t flag) const = 0;
+    virtual PermissionCheckRet RunPermissionCheck(const PermissionCheckParam &param,
+        const Property property, uint8_t flag) const = 0;
 
     virtual int EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,
         const AutoLaunchOption &option) = 0;
@@ -210,6 +211,8 @@ public:
     virtual std::shared_ptr<AssetsDownloadManager> GetAssetsDownloadManager() = 0;
 
     virtual void ClearOnlineLabel() = 0;
+
+    virtual int SetDataFlowCheckCallback(const DataFlowCheckCallback &callback) = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

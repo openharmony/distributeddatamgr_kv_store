@@ -431,4 +431,13 @@ int GenericKvDB::PreClose()
     // it will not cause busy when close db, only to verify the last conn
     return -E_BUSY;
 }
+
+void GenericKvDB::SetProperty(const Property &property)
+{
+    auto storeId = MyProp().GetStringProp(KvDBProperties::STORE_ID, "");
+    std::lock_guard<std::mutex> autoLock(propertyMutex_);
+    LOGI("KV set storeId[%s] property from [%zu] to [%zu]", DBCommon::StringMiddleMasking(storeId).c_str(),
+        property_.size(), property.size());
+    property_ = property;
+}
 } // namespace DistributedDB

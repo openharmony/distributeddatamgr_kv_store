@@ -86,6 +86,8 @@ public:
     DB_API static void SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate> &dataTranslate);
 
     DB_API static DBStatus SetAsyncDownloadAssetsConfig(const AsyncDownloadAssetsConfig &config);
+
+    DB_API static DBStatus SetDataFlowCheckCallback(const DataFlowCheckCallback &callback);
 private:
     static std::mutex communicatorMutex_;
     static std::mutex multiUserMutex_;

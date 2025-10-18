@@ -189,5 +189,10 @@ enum class CompressAlgorithm : uint8_t {
     NONE = 0,
     ZLIB = 1
 };
+
+struct PermissionCheckRet {
+    bool isPass = false; // run permission check res
+    DataFlowCheckRet ret = DataFlowCheckRet::DEFAULT;
+};
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

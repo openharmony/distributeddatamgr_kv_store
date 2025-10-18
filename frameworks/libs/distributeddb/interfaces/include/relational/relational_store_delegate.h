@@ -173,6 +173,12 @@ public:
     {
         return 0;
     }
+
+    // Use for DataFlowCheckCallback
+    DB_API virtual DBStatus SetProperty(const Property &property)
+    {
+        return OK;
+    }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

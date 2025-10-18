@@ -241,6 +241,10 @@ public:
 
     static void BlockSync(DistributedDB::KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,
         DistributedDB::CloudSyncOption option, DistributedDB::DBStatus expectSyncResult = DistributedDB::DBStatus::OK);
+
+    static DistributedDB::Entry GetK1V1();
+
+    static DistributedDB::Entry GetK2V2();
 private:
     static int OpenMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 

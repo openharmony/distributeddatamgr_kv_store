@@ -19,6 +19,7 @@
 #include "single_ver_data_packet.h"
 #include "single_ver_data_sync.h"
 #include "single_ver_sync_task_context.h"
+#include "types_export.h"
 namespace DistributedDB {
 class SingleVerDataSyncUtils {
 public:
@@ -43,11 +44,8 @@ public:
 
     static void TranslateErrCodeIfNeed(int mode, uint32_t version, int &errCode);
 
-    static int RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
+    static PermissionCheckRet RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, const DataRequestPacket *packet);
-
-    static int RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
-        const std::string &label, int mode);
 
     static bool CheckPermitReceiveData(const SingleVerSyncTaskContext *context, const ICommunicator *communicator,
         const SyncGenericInterface *storage);
@@ -118,8 +116,8 @@ public:
     static QuerySyncObject GetQueryFromDataRequest(const DataRequestPacket &packet,
         const SingleVerSyncTaskContext &context, uint32_t sessionId);
 private:
-    static int RunPermissionCheckInner(const SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
-        const std::string &label, const DataRequestPacket *packet, int mode);
+    static PermissionCheckRet RunPermissionCheckInner(const SingleVerSyncTaskContext *context,
+        const SyncGenericInterface* storage, const std::string &label, const DataRequestPacket *packet, int mode);
 };
 }
 #endif // SINGLE_VER_DATA_SYNC_UTIL_H
