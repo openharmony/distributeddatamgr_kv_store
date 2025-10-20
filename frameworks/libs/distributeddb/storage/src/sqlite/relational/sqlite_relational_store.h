@@ -213,6 +213,8 @@ protected:
 
     void CleanDirtyLogIfNeed(const std::string &tableName) const;
 
+    bool IsDailyTrackerIntegrityRepair(const std::string &tableName);
+
     RelationalSchemaObject GetSchemaObj() const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function

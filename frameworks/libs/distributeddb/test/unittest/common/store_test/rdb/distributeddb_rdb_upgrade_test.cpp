@@ -132,11 +132,12 @@ HWTEST_F(DistributedDBRDBUpgradeTest, UpgradeTracker002, TestSize.Level0)
      * @tc.steps: step2. Insert local data and log update extend_field to empty str.
      * @tc.expected: step2. Ok
      */
-    InsertLocalDBData(0, 1, info1);
+    int64_t chkCnt = 1;
+    InsertLocalDBData(0, chkCnt, info1);
     std::string sql = "UPDATE " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + " SET extend_field=''";
     EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
     EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
-        " json_valid(extend_field) = 0"), 1);
+        " json_valid(extend_field) = 0"), chkCnt);
     /**
      * @tc.steps: step3. Set tracker again and check log.
      * @tc.expected: step3. Ok
@@ -144,5 +145,15 @@ HWTEST_F(DistributedDBRDBUpgradeTest, UpgradeTracker002, TestSize.Level0)
     EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
     EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
         " json_valid(extend_field) = 0"), 0);
+
+    /**
+     * @tc.steps: step4. Set tracker again and check log.
+     * @tc.expected: step4. Due to not being processed within 24 hours since last time.
+     */
+    sql = "UPDATE " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + " SET extend_field=''";
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
+    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
+        " json_valid(extend_field) = 0 OR json_extract(extend_field, '$') = '{}'"), chkCnt);
 }
 }

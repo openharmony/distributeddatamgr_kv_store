@@ -17,6 +17,7 @@
 #define CLOUD_DB_CONSTANT_H
 
 #include "cloud/cloud_store_types.h"
+#include <chrono>
 
 namespace DistributedDB {
 class CloudDbConstant {
@@ -74,6 +75,8 @@ public:
 
     static constexpr const char *FLAG_ONLY_MODE_NOTIFY = "RESERVE#ALL_CLOUDDATA";
 
+    static constexpr const char *TRACKER_CHECK_PREFIX = "tracker_check_";
+
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp
     static constexpr const uint32_t TEN_THOUSAND = 10000;
@@ -100,6 +103,10 @@ public:
     static constexpr const uint32_t ON_CHANGE_P2P = 0x2;
     static constexpr const uint32_t ON_CHANGE_KNOWLEDGE = 0x4;
     static constexpr const uint32_t ON_CHANGE_CLOUD = 0x8;
+
+    static constexpr const int64_t ONE_DAY_MS = 24 * 3600 * 1000;
+
+    static constexpr std::chrono::milliseconds DFX_TIME_THRESHOLD = std::chrono::milliseconds(1000);
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H
