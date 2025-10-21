@@ -28,7 +28,7 @@ int VirtualSqliteRelationalStore::CallCheckTrackerTable(const TrackerSchema &tra
 
 void VirtualSqliteRelationalStore::CallCleanDirtyLogIfNeed(const std::string &tableName) const
 {
-    CleanDirtyLogIfNeed(tableName);
+    CleanDirtyLogIfNeed(tableName, nullptr);
 }
 
 RelationalSchemaObject VirtualSqliteRelationalStore::CallGetSchemaObj() const
