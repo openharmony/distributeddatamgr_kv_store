@@ -276,6 +276,8 @@ public:
     int IsTableOnceDropped(const std::string &tableName, bool &onceDropped);
 
     void RecoverNullExtendLog(const TrackerSchema &trackerSchema, const TrackerTable &table);
+
+    int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids);
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);

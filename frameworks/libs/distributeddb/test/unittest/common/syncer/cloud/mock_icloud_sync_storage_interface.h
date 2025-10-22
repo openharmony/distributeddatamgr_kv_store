@@ -58,6 +58,7 @@ public:
     MOCK_METHOD0(GetDownloadAssetTable, std::pair<int, std::vector<std::string>>(void));
     MOCK_METHOD2(GetDownloadAssetRecords, std::pair<int, std::vector<std::string>>(const std::string &, int64_t));
     MOCK_METHOD0(IsExistTableContainAssets, bool(void));
+    MOCK_METHOD2(ConvertLogToLocal, int(const std::string &, const std::vector<std::string> &));
 };
 
 }

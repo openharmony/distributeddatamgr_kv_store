@@ -321,6 +321,11 @@ public:
     {
         return false;
     }
+
+    virtual int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids)
+    {
+        return E_OK;
+    }
 };
 }
 

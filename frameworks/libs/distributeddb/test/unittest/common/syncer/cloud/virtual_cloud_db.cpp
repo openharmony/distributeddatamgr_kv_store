@@ -301,6 +301,9 @@ DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, st
         extend[g_cursorField] = increPrefix_;
         return OK;
     }
+    if (forkAfterQueryResult_) {
+        return forkAfterQueryResult_(extend, data);
+    }
     return (data.empty() || data.size() < static_cast<size_t>(queryLimit_)) ? QUERY_END : OK;
 }
 
@@ -682,5 +685,10 @@ void VirtualCloudDb::ForkInsertConflict(const std::function<DBStatus(const std::
     std::vector<CloudData> &)> &forkUploadFunc)
 {
     forkUploadConflictFunc_ = forkUploadFunc;
+}
+
+void VirtualCloudDb::ForkAfterQueryResult(const std::function<DBStatus(VBucket &, std::vector<VBucket> &)> &func)
+{
+    forkAfterQueryResult_ = func;
 }
 }

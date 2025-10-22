@@ -646,5 +646,19 @@ Property RelationalSyncAbleStorage::GetProperty() const
     std::lock_guard<std::mutex> autoLock(propertyMutex_);
     return property_;
 }
+
+int RelationalSyncAbleStorage::ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] Get handle failed when clear cloud gid: %d", errCode);
+        return errCode;
+    }
+
+    errCode =  handle->ConvertLogToLocal(tableName, gids);
+    ReleaseHandle(handle);
+    return errCode;
+}
 }
 #endif

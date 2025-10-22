@@ -275,6 +275,8 @@ public:
     void SetProperty(const Property &property);
 
     Property GetProperty() const override;
+
+    int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

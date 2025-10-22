@@ -1426,6 +1426,7 @@ int CloudSyncer::QueryCloudData(TaskId taskId, const std::string &tableName, std
         return ret;
     }
     ret = cloudDB_.Query(tableName, extend, downloadData.data);
+    storageProxy_->FilterDownloadRecordNotFound(tableName, downloadData);
     if ((ret == E_OK || ret == -E_QUERY_END) && downloadData.data.empty()) {
         if (extend[CloudDbConstant::CURSOR_FIELD].index() != TYPE_INDEX<std::string>) {
             LOGE("[CloudSyncer] cursor type is not valid=%d", extend[CloudDbConstant::CURSOR_FIELD].index());
