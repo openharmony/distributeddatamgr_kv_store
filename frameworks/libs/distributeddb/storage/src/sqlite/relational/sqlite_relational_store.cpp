@@ -466,7 +466,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
     } else {
-        CleanDirtyLogIfNeed(tableName);
+        CleanDirtyLogIfNeed(tableName, nullptr);
     }
     if (schemaChanged) {
         LOGD("Notify schema changed.");
@@ -1366,22 +1366,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
         if (errCode != -E_IGNORE_DATA) {
             return errCode;
         }
-        if (!IsDailyTrackerIntegrityRepair(trackerSchema.tableName)) {
-            return E_OK;
-        }
-        auto *handle = GetHandle(true, errCode);
-        if (handle != nullptr) {
-            handle->CheckAndCreateTrigger(tableInfo);
-            // Try clear historical mismatched log, which usually do not occur and apply to tracker table only.
-            if (isNoTableInSchema) {
-                handle->ClearLogOfMismatchedData(trackerSchema.tableName);
-            }
-            handle->RecoverNullExtendLog(trackerSchema, tableInfo.GetTrackerTable());
-            ReleaseHandle(handle);
-        }
-        CleanDirtyLogIfNeed(trackerSchema.tableName);
-        LOGI("[RelationalStore] tracker check finish [%s length[%u]]",
-            DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.length());
+        TrackerIntegrityRepair(trackerSchema, tableInfo, isNoTableInSchema);
         return E_OK;
     }
     errCode = sqliteStorageEngine_->UpdateExtendField(trackerSchema);
@@ -1393,7 +1378,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (isNoTableInSchema) {
         errCode = sqliteStorageEngine_->SetTrackerTable(trackerSchema, tableInfo, isFirstCreate);
         if (errCode == E_OK) {
-            CleanDirtyLogIfNeed(trackerSchema.tableName);
+            CleanDirtyLogIfNeed(trackerSchema.tableName, nullptr);
         }
         return errCode;
     }
@@ -1952,13 +1937,16 @@ int32_t SQLiteRelationalStore::GetDeviceSyncTaskCount() const
     return syncAbleEngine_->GetDeviceSyncTaskCount();
 }
 
-void SQLiteRelationalStore::CleanDirtyLogIfNeed(const std::string &tableName) const
+void SQLiteRelationalStore::CleanDirtyLogIfNeed(const std::string &tableName,
+    SQLiteSingleVerRelationalStorageExecutor *handle) const
 {
     int errCode = E_OK;
-    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        LOGW("[RDBStore][ClearDirtyLog] Get handle failed %d", errCode);
-        return;
+        handle = GetHandle(true, errCode);
+        if (handle == nullptr) {
+            LOGW("[RDBStore][ClearDirtyLog] Get handle failed %d", errCode);
+            return;
+        }
     }
     ResFinalizer finalizer([this, handle]() {
         SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
@@ -2047,6 +2035,35 @@ bool SQLiteRelationalStore::IsDailyTrackerIntegrityRepair(const std::string &tab
         return false;
     }
     return true;
+}
+
+void SQLiteRelationalStore::TrackerIntegrityRepair(const TrackerSchema &trackerSchema,
+    const TableInfo &tableInfo, bool isNoTableInSchema)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGW("[TrackerIntegrityRepair] get handle failed:%d", errCode);
+        return;
+    }
+    handle->CheckAndCreateTrigger(tableInfo);
+    ReleaseHandle(handle);
+    if (!IsDailyTrackerIntegrityRepair(trackerSchema.tableName)) {
+        return;
+    }
+    handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGW("[TrackerIntegrityRepair] get handle err:%d", errCode);
+        return;
+    }
+    // Try clear historical mismatched log, which usually do not occur and apply to tracker table only.
+    if (isNoTableInSchema) {
+        handle->ClearLogOfMismatchedData(trackerSchema.tableName);
+    }
+    handle->RecoverNullExtendLog(trackerSchema, tableInfo.GetTrackerTable());
+    CleanDirtyLogIfNeed(trackerSchema.tableName, handle);
+    LOGI("[TrackerIntegrityRepair] check finish [%s length[%u]]",
+        DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.length());
 }
 } // namespace DistributedDB
 #endif

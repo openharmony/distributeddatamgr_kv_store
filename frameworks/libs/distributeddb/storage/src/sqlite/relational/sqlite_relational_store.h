@@ -211,7 +211,10 @@ protected:
 
     int OperateDataStatusInner(const std::vector<std::string> &tables, uint64_t virtualTime) const;
 
-    void CleanDirtyLogIfNeed(const std::string &tableName) const;
+    void CleanDirtyLogIfNeed(const std::string &tableName, SQLiteSingleVerRelationalStorageExecutor *handle) const;
+
+    void TrackerIntegrityRepair(const TrackerSchema &trackerSchema, const TableInfo &tableInfo,
+        bool isNoTableInSchema);
 
     bool IsDailyTrackerIntegrityRepair(const std::string &tableName);
 
