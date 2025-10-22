@@ -403,10 +403,10 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
             break;
         } else if (errCode != E_OK) {
             LOGE("[CommAggr][SendPackets] SendBytes totally fail, errCode=%d.", errCode);
+            ResetRetryCount(inTask.dstTarget);
             break;
         } else {
-            std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-            retryCount_[inTask.dstTarget] = 0;
+            ResetRetryCount(inTask.dstTarget);
         }
     }
     if (errCode == -E_WAIT_RETRY) {
@@ -1231,6 +1231,22 @@ void CommunicatorAggregator::ResetRetryCount()
 {
     std::lock_guard<std::mutex> autoLock(retryCountMutex_);
     retryCount_.clear();
+}
+
+void CommunicatorAggregator::ResetRetryCount(const std::string &dev)
+{
+    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+    retryCount_[dev] = 0;
+}
+
+int32_t CommunicatorAggregator::GetRetryCount(const std::string &dev) const
+{
+    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+    auto iter = retryCount_.find(dev);
+    if (iter == retryCount_.end()) {
+        return 0;
+    }
+    return iter->second;
 }
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB
