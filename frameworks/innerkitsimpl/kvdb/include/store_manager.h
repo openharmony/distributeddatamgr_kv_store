@@ -16,8 +16,8 @@
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
 
 #include "concurrent_map.h"
-#include "single_kvstore.h"
 #include "kv_hiview_reporter.h"
+#include "single_kvstore.h"
 #include "store_factory.h"
 #include "switch_observer_bridge.h"
 
