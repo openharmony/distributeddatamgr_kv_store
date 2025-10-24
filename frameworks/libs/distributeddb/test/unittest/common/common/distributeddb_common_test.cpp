@@ -825,7 +825,7 @@ HWTEST_F(DistributedDBCommonTest, AbnormalTrackerTableTest, TestSize.Level1)
 
 /**
  * @tc.name: SchemaUtilsTest001
- * @tc.desc: Test LockStatusObserver interfaces.
+ * @tc.desc: Test parse invalid schema.
  * @tc.type: FUNC
  * @tc.author: zqq
  */
@@ -838,6 +838,31 @@ HWTEST_F(DistributedDBCommonTest, SchemaUtilsTest001, TestSize.Level0)
     EXPECT_EQ(errCode, E_OK);
     EXPECT_EQ(outAttr.defaultValue.longValue, 100);
     value = "LONG,DEFAULT +- ";
+    errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+}
+
+/**
+ * @tc.name: SchemaUtilsTest002
+ * @tc.desc: Test parse invalid schema.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, SchemaUtilsTest002, TestSize.Level0)
+{
+    SchemaAttribute outAttr;
+    outAttr.type = FieldType::LEAF_FIELD_INTEGER;
+    std::string value = "INTEGER,DEFAULT 100";
+    int errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(outAttr.defaultValue.integerValue, 100);
+    value = "INTEGER,DEFAULT +- ";
+    errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    value = "INTEGER,DEFAULT 10000000000 ";
+    errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    value = "INTEGER,DEFAULT -10000000000 ";
     errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
     EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 }
