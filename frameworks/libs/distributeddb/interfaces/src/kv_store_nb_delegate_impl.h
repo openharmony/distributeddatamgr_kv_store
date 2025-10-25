@@ -73,9 +73,10 @@ public:
     DBStatus UnpublishToLocal(const Key &key, bool deletePublic, bool updateTimestamp) override;
 
     // Observer interfaces
-    DBStatus RegisterObserver(const Key &key, unsigned int mode, KvStoreObserver *observer) override;
+    DBStatus RegisterObserver(const Key &key, unsigned int mode,
+        std::shared_ptr<KvStoreObserver> observer) override;
 
-    DBStatus UnRegisterObserver(const KvStoreObserver *observer) override;
+    DBStatus UnRegisterObserver(std::shared_ptr<KvStoreObserver> observer) override;
 
     DBStatus RemoveDeviceData(const std::string &device) override;
 
@@ -218,17 +219,18 @@ private:
     void OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
         const DeviceSyncProcessCallback &onProcess) const;
 
-    DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+    DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode,
+        const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus RegisterCloudObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+    DBStatus RegisterCloudObserver(const Key &key, unsigned int mode, const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus UnRegisterDeviceObserver(const KvStoreObserver *observer);
+    DBStatus UnRegisterDeviceObserver(const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus UnRegisterCloudObserver(const KvStoreObserver *observer);
+    DBStatus UnRegisterCloudObserver(const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus CheckDeviceObserver(const Key &key, unsigned int mode, KvStoreObserver *observer);
+    DBStatus CheckDeviceObserver(const Key &key, unsigned int mode, const std::shared_ptr<KvStoreObserver> &observer);
 
-    DBStatus CheckCloudObserver(KvStoreObserver *observer);
+    DBStatus CheckCloudObserver(const std::shared_ptr<KvStoreObserver> &observer);
 
     IKvDBConnection *conn_;
     std::string storeId_;
@@ -238,8 +240,10 @@ private:
     void *dlHandle_ = nullptr;
 #endif
     std::mutex observerMapLock_;
-    std::map<const KvStoreObserver *, const KvDBObserverHandle *> observerMap_;
-    std::map<const KvStoreObserver *, unsigned int> cloudObserverMap_;
+    std::map<std::weak_ptr<KvStoreObserver>, const KvDBObserverHandle *,
+        std::owner_less<std::weak_ptr<KvStoreObserver>>> observerMap_;
+    std::map<std::weak_ptr<KvStoreObserver>, unsigned int,
+        std::owner_less<std::weak_ptr<KvStoreObserver>>> cloudObserverMap_;
 };
 } // namespace DistributedDB
 

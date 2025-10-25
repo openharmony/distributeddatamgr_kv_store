@@ -95,9 +95,9 @@ public:
 
     int32_t GetTaskCount() override;
 
-    int RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action) override;
+    int RegisterObserverAction(const std::shared_ptr<KvStoreObserver> &observer, const ObserverAction &action) override;
 
-    int UnRegisterObserverAction(const KvStoreObserver *observer) override;
+    int UnRegisterObserverAction(const std::shared_ptr<KvStoreObserver> &observer) override;
 
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
 

@@ -366,10 +366,11 @@ void AutoLaunch::ObserverFunc(const KvDBCommitNotifyData &notifyData, const std:
         appId = properties->GetStringProp(KvDBProperties::APP_ID, "");
         storeId = properties->GetStringProp(KvDBProperties::STORE_ID, "");
     }
-    if (autoLaunchItem.observer != nullptr) {
+    auto observer = autoLaunchItem.observer.lock();
+    if (observer != nullptr) {
         LOGI("[AutoLaunch] do user observer");
         KvStoreChangedDataImpl data(&notifyData);
-        (autoLaunchItem.observer)->OnChange(data);
+        observer->OnChange(data);
     }
     LOGI("[AutoLaunch] in observer autoLaunchItem.isWriteOpenNotified:%d", autoLaunchItem.isWriteOpenNotified);
 
@@ -835,10 +836,11 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
         }
         autoLaunchItem = extItemMap_[identifier][userId];
     }
-    if (autoLaunchItem.observer != nullptr) {
+    auto observer = autoLaunchItem.observer.lock();
+    if (observer != nullptr) {
         LOGD("[AutoLaunch] do user observer");
         KvStoreChangedDataImpl data(&notifyData);
-        autoLaunchItem.observer->OnChange(data);
+        observer->OnChange(data);
     }
 
     {

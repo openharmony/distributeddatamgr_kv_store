@@ -443,13 +443,13 @@ DistributedDB::DBStatus DistributedDBNbTestTools::DeleteLocalBatch(DistributedDB
 }
 
 DistributedDB::DBStatus DistributedDBNbTestTools::RegisterObserver(DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate,
-    const DistributedDB::Key &key, unsigned int mode, DistributedDB::KvStoreObserver *observer)
+    const DistributedDB::Key &key, unsigned int mode, std::shared_ptr<DistributedDB::KvStoreObserver> observer)
 {
     return kvStoreNbDelegate.RegisterObserver(key, mode, observer);
 }
 
 DistributedDB::DBStatus DistributedDBNbTestTools::UnRegisterObserver(
-    DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate, const DistributedDB::KvStoreObserver *observer)
+    DistributedDB::KvStoreNbDelegate &kvStoreNbDelegate, std::shared_ptr<DistributedDB::KvStoreObserver> observer)
 {
     return kvStoreNbDelegate.UnRegisterObserver(observer);
 }

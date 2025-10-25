@@ -499,7 +499,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch003, TestS
      * @tc.steps: step1. register observer
      * @tc.expected: step1. Get result OK
      */
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_NE(observer, nullptr);
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer), OK);
     /**
@@ -508,7 +508,6 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch003, TestS
      */
     EXPECT_EQ(g_kvNbDelegatePtr->Rekey(g_passwd2), BUSY);
     // finilize logic
-    delete observer;
     observer = nullptr;
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), OK);

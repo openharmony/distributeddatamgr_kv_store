@@ -515,13 +515,14 @@ std::pair<sqlite3 *, SQLiteSingleVerStorageExecutor *> SqliteCloudKvStore::GetTr
     return {db, transactionHandle_};
 }
 
-void SqliteCloudKvStore::RegisterObserverAction(const KvStoreObserver *observer, const ObserverAction &action)
+void SqliteCloudKvStore::RegisterObserverAction(const std::shared_ptr<KvStoreObserver> &observer,
+    const ObserverAction &action)
 {
     std::lock_guard<std::mutex> autoLock(observerMapMutex_);
     cloudObserverMap_[observer] = action;
 }
 
-void SqliteCloudKvStore::UnRegisterObserverAction(const KvStoreObserver *observer)
+void SqliteCloudKvStore::UnRegisterObserverAction(const std::shared_ptr<KvStoreObserver> &observer)
 {
     std::lock_guard<std::mutex> autoLock(observerMapMutex_);
     cloudObserverMap_.erase(observer);

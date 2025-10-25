@@ -40,7 +40,6 @@ using namespace DistributedDBDataGenerator;
 namespace DistributeddbNbObserver {
 const int CHANGED_ZERO_TIME = 0;
 const int CHANGED_ONE_TIME = 1;
-const int STORE_NUM = 2;
 
 const unsigned int ANY_RECORDS_NUM_START = 1;
 const unsigned int ANY_RECORDS_NUM_END = 1000;
@@ -104,17 +103,17 @@ void DistributeddbNbObserverTest::TearDown(void)
 
 void RegisterAndUnRegisterObserver(ConcurParam* paramsPtr)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     DBStatus status = g_nbObserverDelegate->RegisterObserver(
-        paramsPtr->entryPtr_->key, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        paramsPtr->entryPtr_->key, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(
-        paramsPtr->entryPtr_->key, OBSERVER_CHANGES_NATIVE, &observerSync);
+        paramsPtr->entryPtr_->key, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -166,19 +165,19 @@ void ConcurOperThread(ConcurParam* args)
  */
 HWTEST_F(DistributeddbNbObserverTest, RegisterData001, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     /**
      * @tc.steps: step1. register local observer1 use OBSERVER_CHANGES_LOCAL_ONLY mode.
      * @tc.expected: step1. register success.
      */
-    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. register sync observer2 use OBSERVER_CHANGES_NATIVE.
      * @tc.expected: step2. register success.
      */
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step3. verify that if observer1 will be triggered when put (KEY_1, VALUE_1) to local db.
@@ -187,10 +186,10 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData001, TestSize.Level1)
     EXPECT_EQ((g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1)), OK);
     vector<DistributedDB::Entry> insertLocalEntries;
     insertLocalEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, INSERT_LIST, insertLocalEntries));
     vector<DistributedDB::Entry> insertNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerLocal->Clear();
     /**
      * @tc.steps: step4. verify that if observer1 will be triggered when delete (KEY_1, VALUE_1) from local db.
      * @tc.expected: step4. observer1 will be response but observer2 won't.
@@ -198,34 +197,34 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData001, TestSize.Level1)
     EXPECT_EQ((g_nbObserverDelegate->DeleteLocal(KEY_1)), OK);
     vector<DistributedDB::Entry> deleteLocalEntries;
     deleteLocalEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
     /**
      * @tc.steps: step5. verify that if observer2 will be triggered when put (KEY_1, VALUE_1) to sync db.
      * @tc.expected: step5. observer2 will be response but observer1 won't.
      */
     EXPECT_EQ((g_nbObserverDelegate->Put(KEY_1, VALUE_1)), OK);
     insertLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     insertNativeEntries.clear();
     insertNativeEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, INSERT_LIST, insertNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, INSERT_LIST, insertNativeEntries));
+    observerSync->Clear();
     /**
      * @tc.steps: step6. verify that if observer2 will be triggered when delete (KEY_1, VALUE_1) from sync db.
      * @tc.expected: step6. observer1 will be response but observer2 won't.
      */
     EXPECT_EQ((g_nbObserverDelegate->Delete(KEY_1)), OK);
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     deleteNativeEntries.clear();
     deleteNativeEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
-    g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
-    g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
+    g_nbObserverDelegate->UnRegisterObserver(observerLocal);
+    g_nbObserverDelegate->UnRegisterObserver(observerSync);
 }
 
 void CheckObserverAllLocalValue(KvStoreObserverImpl &observerLocal)
@@ -273,16 +272,16 @@ void CheckObserverAllLocalValue(KvStoreObserverImpl &observerLocal)
  */
 HWTEST_F(DistributeddbNbObserverTest, RegisterData002, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     /**
      * @tc.steps: step1. register local observerLocal use empty key KEY_EMPTY.
      * @tc.expected: step1. register success.
      */
-    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
 
-    CheckObserverAllLocalValue(observerLocal);
+    CheckObserverAllLocalValue(*observerLocal);
 
     /**
      * @tc.steps: step5. put one entry (KEY_1, VALUE_1) to sync db.
@@ -291,8 +290,8 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData002, TestSize.Level1)
     status = g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     EXPECT_EQ(status, OK);
     vector<DistributedDB::Entry> insertNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerSync->Clear();
 
     /**
      * @tc.steps: step6. put one entry (KEY_2, VALUE_2) to sync db.
@@ -301,8 +300,8 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData002, TestSize.Level1)
     status = g_nbObserverDelegate->Put(KEY_2, VALUE_2);
     EXPECT_EQ(status, OK);
     insertNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerSync->Clear();
 
     /**
      * @tc.steps: step7. delete one entry from sync db where key = KEY_1.
@@ -311,10 +310,10 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData002, TestSize.Level1)
     status = g_nbObserverDelegate->Delete(KEY_1);
     EXPECT_EQ(status, OK);
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
 
-    g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     g_nbObserverDelegate->DeleteLocal(KEY_2);
     g_nbObserverDelegate->Delete(KEY_2);
 }
@@ -378,28 +377,28 @@ void CheckObserverAllNativeValue(KvStoreObserverImpl &observerLocal, KvStoreObse
  */
 HWTEST_F(DistributeddbNbObserverTest, RegisterData003, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     /**
      * @tc.steps: step1. register sync observerSync use empty key KEY_EMPTY.
      * @tc.expected: step1. register success.
      */
-    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, &observerSync);
+    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
 
-    CheckObserverAllNativeValue(observerLocal, observerSync);
+    CheckObserverAllNativeValue(*observerLocal, *observerSync);
 
     status = g_nbObserverDelegate->Put(KEY_2, VALUE_2);
     vector<DistributedDB::Entry> updateNativeEntries;
     updateNativeEntries.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, UPDATE_LIST, updateNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, UPDATE_LIST, updateNativeEntries));
+    observerSync->Clear();
 
     EXPECT_EQ(g_nbObserverDelegate->Put(KEY_2, VALUE_3), OK);
     updateNativeEntries.clear();
     updateNativeEntries.push_back(ENTRY_2_3);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, UPDATE_LIST, updateNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, UPDATE_LIST, updateNativeEntries));
+    observerSync->Clear();
 
     /**
      * @tc.steps: step7. delete one entry from sync db where key = KEY_1.
@@ -408,10 +407,10 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData003, TestSize.Level1)
     EXPECT_EQ(g_nbObserverDelegate->Delete(KEY_1), OK);
     vector<DistributedDB::Entry> deleteNativeEntries;
     deleteNativeEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
 
-    g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    g_nbObserverDelegate->UnRegisterObserver(observerSync);
     g_nbObserverDelegate->DeleteLocal(KEY_2);
     g_nbObserverDelegate->Delete(KEY_2);
 }
@@ -425,20 +424,20 @@ HWTEST_F(DistributeddbNbObserverTest, RegisterData003, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, UnRegister001, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     /**
      * @tc.steps: step1. register local observerLocal use key = KEY_1.
      * @tc.expected: step1. register success.
      */
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. register sync observerSync use  key = KEY_2.
      * @tc.expected: step2. register success.
      */
-    status = g_nbObserverDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step3. put one entries (KEY_2, VALUE_2) to local db.
@@ -446,10 +445,10 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister001, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->PutLocal(KEY_2, VALUE_2), OK);
     vector<DistributedDB::Entry> insertLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     vector<DistributedDB::Entry> insertNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step4. delete one entries from local db where key = KEY_2.
@@ -457,10 +456,10 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister001, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->DeleteLocal(KEY_2), OK);
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step5. put one entries (KEY_1, VALUE_1) to sync db.
@@ -468,10 +467,10 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister001, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->Put(KEY_1, VALUE_1), OK);
     insertLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     insertNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerSync->Clear();
 
     /**
      * @tc.steps: step6. delete one entries from sync db where key = KEY_1.
@@ -479,12 +478,12 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister001, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->Delete(KEY_1), OK);
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     deleteNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
-    g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
-    g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
+    g_nbObserverDelegate->UnRegisterObserver(observerLocal);
+    g_nbObserverDelegate->UnRegisterObserver(observerSync);
 }
 
 /*
@@ -496,20 +495,20 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister001, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, UnRegister002, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
     g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step1. UnRegister local observer of KEY_1.
      * @tc.expected: step1. UnRegister success.
      */
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. delete one entries from local db where key = KEY_1.
@@ -517,9 +516,9 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister002, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->DeleteLocal(KEY_1), OK);
     vector<DistributedDB::Entry> deleteLocalEntries, deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step3. delete one entries from sync db where key = KEY_1.
@@ -529,11 +528,11 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister002, TestSize.Level1)
     EXPECT_EQ(g_nbObserverDelegate->Delete(KEY_1), OK);
     deleteNativeEntries.clear();
     deleteNativeEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
-    observerSync.Clear();
-    g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    observerSync->Clear();
+    g_nbObserverDelegate->UnRegisterObserver(observerSync);
 }
 
 /*
@@ -545,20 +544,20 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister002, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, UnRegister003, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
     g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_TRUE(status == OK);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_TRUE(status == OK);
     /**
      * @tc.steps: step1. UnRegister sync observer of KEY_1.
      * @tc.expected: step1. UnRegister success.
      */
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_TRUE(status == OK);
     /**
      * @tc.steps: step2. delete one entries from local db where key = KEY_1.
@@ -568,10 +567,10 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister003, TestSize.Level1)
     EXPECT_TRUE(g_nbObserverDelegate->DeleteLocal(KEY_1) == OK);
     vector<DistributedDB::Entry> deleteLocalEntry;
     deleteLocalEntry.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntry));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntry));
     vector<DistributedDB::Entry> deleteNativeEntry;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntry));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntry));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step3. delete one entries from sync db where key = KEY_1.
@@ -579,11 +578,11 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister003, TestSize.Level1)
      */
     EXPECT_TRUE(g_nbObserverDelegate->Delete(KEY_1) == OK);
     deleteLocalEntry.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntry));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntry));
     deleteNativeEntry.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntry));
-    observerSync.Clear();
-    g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntry));
+    observerSync->Clear();
+    g_nbObserverDelegate->UnRegisterObserver(observerLocal);
 }
 
 /*
@@ -595,20 +594,20 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister003, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, UnRegister004, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
     g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step1. UnRegister local observer of KEY_EMPTY.
      * @tc.expected: step1. UnRegister success.
      */
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. delete one entries from local db where key = KEY_1.
@@ -616,10 +615,10 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister004, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->DeleteLocal(KEY_1), OK);
     vector<DistributedDB::Entry> insertLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     vector<DistributedDB::Entry> insertNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step3. delete one entries from sync db where key = KEY_1.
@@ -628,12 +627,12 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister004, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->Delete(KEY_1), OK);
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
     deleteNativeEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
-    g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
+    g_nbObserverDelegate->UnRegisterObserver(observerSync);
 }
 
 /*
@@ -645,20 +644,20 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister004, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, UnRegister005, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
     g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step1. UnRegister sync observer of KEY_EMPTY.
      * @tc.expected: step1. UnRegister success.
      */
-    EXPECT_EQ(g_nbObserverDelegate->UnRegisterObserver(&observerSync), OK);
+    EXPECT_EQ(g_nbObserverDelegate->UnRegisterObserver(observerSync), OK);
     /**
      * @tc.steps: step2. delete one entries from local db where key = KEY_1.
      * @tc.expected: step2. observerLocal will be response and got record (KEY_1, VALUE_1)
@@ -667,10 +666,10 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister005, TestSize.Level1)
     EXPECT_EQ(g_nbObserverDelegate->DeleteLocal(KEY_1), OK);
     vector<DistributedDB::Entry> deleteLocalEntries;
     deleteLocalEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step3. delete one entries from sync db where key = KEY_1.
@@ -678,11 +677,11 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister005, TestSize.Level1)
      */
     EXPECT_EQ(g_nbObserverDelegate->Delete(KEY_1), OK);
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     deleteNativeEntries.clear();
-    g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    g_nbObserverDelegate->UnRegisterObserver(observerLocal);
 }
 
 /*
@@ -694,38 +693,42 @@ HWTEST_F(DistributeddbNbObserverTest, UnRegister005, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, ParamCheck001, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3, observer4, observer;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer4 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer = std::make_shared<KvStoreObserverImpl>();
 
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observer1);
+        g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observer1);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer2);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer2);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_FOREIGN, &observer3);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_FOREIGN, observer3);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_1,
-        OBSERVER_CHANGES_FOREIGN | OBSERVER_CHANGES_NATIVE, &observer4);
+        OBSERVER_CHANGES_FOREIGN | OBSERVER_CHANGES_NATIVE, observer4);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step1. Register observer with the mode is not in (1, 2, 3, 4).
      * @tc.expected: step1. Register failed and return INVALID_ARGS.
      */
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 0, &observer); // invalid mode number 0
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 0, observer); // invalid mode number 0
     EXPECT_EQ(status, INVALID_ARGS);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 5, &observer); // invalid mode number 5
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 5, observer); // invalid mode number 5
     EXPECT_EQ(status, INVALID_ARGS);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, -1, &observer); // invalid mode number -1
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, -1, observer); // invalid mode number -1
     EXPECT_EQ(status, INVALID_ARGS);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 2147483647, &observer); // invalid mode number 2147483647
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 2147483647, observer); // invalid mode number 2147483647
     EXPECT_EQ(status, INVALID_ARGS);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, -2147483648, &observer); // invalid mode number -2147483648
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, -2147483648, observer); // invalid mode number -2147483648
     EXPECT_EQ(status, INVALID_ARGS);
-    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 999, &observer); // invalid mode number 999
+    status = g_nbObserverDelegate->RegisterObserver(KEY_1, 999, observer); // invalid mode number 999
     EXPECT_EQ(status, INVALID_ARGS);
-    g_nbObserverDelegate->UnRegisterObserver(&observer1);
-    g_nbObserverDelegate->UnRegisterObserver(&observer2);
-    g_nbObserverDelegate->UnRegisterObserver(&observer3);
-    g_nbObserverDelegate->UnRegisterObserver(&observer4);
+    g_nbObserverDelegate->UnRegisterObserver(observer1);
+    g_nbObserverDelegate->UnRegisterObserver(observer2);
+    g_nbObserverDelegate->UnRegisterObserver(observer3);
+    g_nbObserverDelegate->UnRegisterObserver(observer4);
 }
 
 /*
@@ -741,53 +744,58 @@ HWTEST_F(DistributeddbNbObserverTest, ParamCheck002, TestSize.Level1)
     eKey1.assign(ONE_K_LONG_STRING, (uint8_t)'a');
     eKey2.assign(ONE_K_LONG_STRING + 1, (uint8_t)'b');
     eKey3 = { 'a', 'b', 'c', 'D', 'E', 'F', '2', '4', '5', 199, 1, 255, 0 };
-    KvStoreObserverImpl observer1, observer2, observer3, observer4, observer5, observer6;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer4 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer5 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer6 = std::make_shared<KvStoreObserverImpl>();
 
     /**
      * @tc.steps: step1. Register local observer with the key = eKey1 size of which is 1024.
      * @tc.expected: step1. Register success.
      */
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(eKey1, OBSERVER_CHANGES_LOCAL_ONLY, &observer1);
+        g_nbObserverDelegate->RegisterObserver(eKey1, OBSERVER_CHANGES_LOCAL_ONLY, observer1);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. Register local observer with the key = eKey2 size of which is 1025.
      * @tc.expected: step2. Register failed and return INVALID_ARGS.
      */
-    status = g_nbObserverDelegate->RegisterObserver(eKey2, OBSERVER_CHANGES_LOCAL_ONLY, &observer2);
+    status = g_nbObserverDelegate->RegisterObserver(eKey2, OBSERVER_CHANGES_LOCAL_ONLY, observer2);
     EXPECT_EQ(status, INVALID_ARGS);
     /**
      * @tc.steps: step3. Register local observer with the key = eKey3 which contains
      *    [a-zA-Z0-9], [\0-\255], chinese and latins.
      * @tc.expected: step3. Register failed and return INVALID_ARGS.
      */
-    status = g_nbObserverDelegate->RegisterObserver(eKey3, OBSERVER_CHANGES_LOCAL_ONLY, &observer3);
+    status = g_nbObserverDelegate->RegisterObserver(eKey3, OBSERVER_CHANGES_LOCAL_ONLY, observer3);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step4. Register sync observer with the key = eKey1 size of which is 1024.
      * @tc.expected: step4. Register success.
      */
-    status = g_nbObserverDelegate->RegisterObserver(eKey1, OBSERVER_CHANGES_NATIVE, &observer4);
+    status = g_nbObserverDelegate->RegisterObserver(eKey1, OBSERVER_CHANGES_NATIVE, observer4);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step5. Register local observer with the key = eKey2 size of which is 1025.
      * @tc.expected: step5. Register failed and return INVALID_ARGS.
      */
-    status = g_nbObserverDelegate->RegisterObserver(eKey2, OBSERVER_CHANGES_NATIVE, &observer5);
+    status = g_nbObserverDelegate->RegisterObserver(eKey2, OBSERVER_CHANGES_NATIVE, observer5);
     EXPECT_EQ(status, INVALID_ARGS);
     /**
      * @tc.steps: step6. Register local observer with the key = eKey3 which contains
      *    [a-zA-Z0-9], [\0-\255], chinese and latins.
      * @tc.expected: step6. Register failed and return INVALID_ARGS.
      */
-    status = g_nbObserverDelegate->RegisterObserver(eKey3, OBSERVER_CHANGES_NATIVE, &observer6);
+    status = g_nbObserverDelegate->RegisterObserver(eKey3, OBSERVER_CHANGES_NATIVE, observer6);
     EXPECT_EQ(status, OK);
-    g_nbObserverDelegate->UnRegisterObserver(&observer1);
-    g_nbObserverDelegate->UnRegisterObserver(&observer2);
-    g_nbObserverDelegate->UnRegisterObserver(&observer3);
-    g_nbObserverDelegate->UnRegisterObserver(&observer4);
-    g_nbObserverDelegate->UnRegisterObserver(&observer5);
-    g_nbObserverDelegate->UnRegisterObserver(&observer6);
+    g_nbObserverDelegate->UnRegisterObserver(observer1);
+    g_nbObserverDelegate->UnRegisterObserver(observer2);
+    g_nbObserverDelegate->UnRegisterObserver(observer3);
+    g_nbObserverDelegate->UnRegisterObserver(observer4);
+    g_nbObserverDelegate->UnRegisterObserver(observer5);
+    g_nbObserverDelegate->UnRegisterObserver(observer6);
 }
 
 void CheckPressureActionInNative(KvStoreObserverImpl &observerLocal, KvStoreObserverImpl &observerSync)
@@ -852,25 +860,25 @@ void CheckPressureActionInNative(KvStoreObserverImpl &observerLocal, KvStoreObse
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure001, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     /**
      * @tc.steps: step1. Register local observer with the key = KEY_A_1 which do not exist in db.
      * @tc.expected: step1. Register success.
      */
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_A_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_A_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. Register sync observer with the key = KEY_EMPTY.
      * @tc.expected: step2. Register success.
      */
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
-    CheckPressureActionInNative(observerLocal, observerSync);
+    CheckPressureActionInNative(*observerLocal, *observerSync);
 
     /**
      * @tc.steps: step7. delete one entries from local db where key = KEY_1.
@@ -879,10 +887,10 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure001, TestSize.Level1)
     status = g_nbObserverDelegate->DeleteLocal(KEY_1);
     EXPECT_EQ(status, OK);
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step8. delete one entries from sync db where key = KEY_1.
@@ -892,15 +900,15 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure001, TestSize.Level1)
     status = g_nbObserverDelegate->Delete(KEY_1);
     EXPECT_EQ(status, OK);
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     deleteNativeEntries.clear();
     deleteNativeEntries.push_back(ENTRY_1_2);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -962,24 +970,24 @@ void CheckPressureActionInLocal(KvStoreObserverImpl &observerLocal, KvStoreObser
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure002, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     /**
      * @tc.steps: step1. Register local observer with the key = KEY_EMPTY.
      * @tc.expected: step1. Register success.
      */
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step2. Register sync observer with the key = KEY_A_1 which do not exist in db.
      * @tc.expected: step2. Register success.
      */
-    status = g_nbObserverDelegate->RegisterObserver(KEY_A_1, OBSERVER_CHANGES_NATIVE, &observerSync);
+    status = g_nbObserverDelegate->RegisterObserver(KEY_A_1, OBSERVER_CHANGES_NATIVE, observerSync);
     EXPECT_EQ(status, OK);
 
-    CheckPressureActionInLocal(observerLocal, observerSync);
+    CheckPressureActionInLocal(*observerLocal, *observerSync);
 
     /**
      * @tc.steps: step7. delete one entries from local db where key = KEY_1.
@@ -991,10 +999,10 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure002, TestSize.Level1)
     vector<DistributedDB::Entry> deleteLocalEntries;
     DistributedDB::Entry entry = { KEY_1, VALUE_2 };
     deleteLocalEntries.push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step8. delete one entries from sync db where key = KEY_1.
@@ -1003,13 +1011,13 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure002, TestSize.Level1)
     status = g_nbObserverDelegate->Delete(KEY_1);
     EXPECT_EQ(status, OK);
     deleteNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
-    observerSync.Clear();
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    observerSync->Clear();
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -1022,17 +1030,17 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure002, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure003, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     /**
      * @tc.steps: step1. UnRegister local and sync Observer.
      * @tc.expected: step1. it will be both failed to unregister observerLocal and observerSync.
      */
-    DBStatus status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    DBStatus status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, NOT_FOUND);
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, NOT_FOUND);
 }
 
@@ -1049,7 +1057,8 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure004, TestSize.Level1)
      * @tc.steps: step1. UnRegister nullpter.
      * @tc.expected: step1. it will be failed to unregister nullptr and return INVALID_ARGS.
      */
-    DBStatus status = g_nbObserverDelegate->UnRegisterObserver(nullptr);
+    std::shared_ptr<DistributedDB::KvStoreObserver> observer;
+    DBStatus status = g_nbObserverDelegate->UnRegisterObserver(observer);
 
     EXPECT_EQ(status, INVALID_ARGS);
 }
@@ -1106,52 +1115,52 @@ void CheckPressureActionAfterUnregister(KvStoreObserverImpl &observerLocal, KvSt
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure005, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     DBStatus status =
-        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
     /**
      * @tc.steps: step1. UnRegister local and sync observer the first time.
      * @tc.expected: step1. it will be both success to unregister observerLocal and observerSync.
      */
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 
     /**
      * @tc.steps: step2. UnRegister local and sync observer the second time.
      * @tc.expected: step2. both failed to unregister observerLocal and observerSync, and return NOT_FOUND.
      */
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, NOT_FOUND);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, NOT_FOUND);
 
     /**
      * @tc.steps: step3. UnRegister local and sync observer the third time.
      * @tc.expected: step3. both failed to unregister observerLocal and observerSync, and return NOT_FOUND.
      */
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, NOT_FOUND);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, NOT_FOUND);
 
-    CheckPressureActionAfterUnregister(observerLocal, observerSync);
+    CheckPressureActionAfterUnregister(*observerLocal, *observerSync);
 
     status = g_nbObserverDelegate->Delete(KEY_1);
     EXPECT_EQ(status, OK);
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
 }
 
 /*
@@ -1163,8 +1172,8 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure005, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure006, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     DBStatus status = g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->Put(KEY_1, VALUE_1);
@@ -1175,15 +1184,15 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure006, TestSize.Level1)
      * @tc.expected: step1. Register and unregister observerLocal and observerSync success each time.
      */
     for (unsigned int opCnt = NB_OPERATION_CNT_START; opCnt < NB_OPERATION_CNT_END; ++opCnt) {
-        status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
         EXPECT_EQ(status, OK);
         status = g_nbObserverDelegate->RegisterObserver(KEY_1,
-            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
         EXPECT_EQ(status, OK);
 
-        status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+        status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
         EXPECT_EQ(status, OK);
-        status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+        status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
         EXPECT_EQ(status, OK);
     }
 
@@ -1245,7 +1254,8 @@ void CheckPressureForRepeatAction(KvStoreObserverImpl &observerLocal, KvStoreObs
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure007, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal, observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     DBStatus status = g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
@@ -1255,14 +1265,14 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure007, TestSize.Level1)
      * @tc.expected: step1. Register observerLocal and observerSync success first time and failed later.
      */
     for (unsigned int opCnt = NB_OPERATION_CNT_START; opCnt < NB_OPERATION_CNT_END; ++opCnt) {
-        status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        status = g_nbObserverDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
             EXPECT_EQ(status, ALREADY_SET);
         }
         status = g_nbObserverDelegate->RegisterObserver(KEY_1,
-            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
@@ -1270,11 +1280,11 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure007, TestSize.Level1)
         }
     }
 
-    CheckPressureForRepeatAction(observerLocal, observerSync);
+    CheckPressureForRepeatAction(*observerLocal, *observerSync);
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -1334,15 +1344,15 @@ void CheckPressureForLocalRepeat(KvStoreObserverImpl &observerLocal, KvStoreObse
 HWTEST_F(DistributeddbNbObserverTest, Pressure008, TestSize.Level1)
 {
     DBStatus status;
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     /**
      * @tc.steps: step1. Register a local observer of key KEY_EMPTY 5 times repeatedly.
      * @tc.expected: step1. Register observerLocal success first time and failed later.
      */
     for (unsigned int opCnt = NB_OPERATION_CNT_START; opCnt < NB_OPERATION_CNT_END; ++opCnt) {
-        status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
@@ -1351,25 +1361,25 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure008, TestSize.Level1)
     }
 
     vector< vector<DistributedDB::Entry> > entries(6); // 6 element
-    CheckPressureForLocalRepeat(observerLocal, observerSync, entries);
+    CheckPressureForLocalRepeat(*observerLocal, *observerSync, entries);
 
     status = g_nbObserverDelegate->Put(KEY_1, VALUE_2);
     EXPECT_EQ(status, OK);
     entries[UPDATE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
     entries[UPDATE_NATIVE].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_NATIVE]));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_NATIVE]));
+    observerSync->Clear();
 
     status = g_nbObserverDelegate->Delete(KEY_1);
     EXPECT_EQ(status, OK);
     entries[DELETE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
     entries[DELETE_NATIVE].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
 }
 
@@ -1422,8 +1432,8 @@ void CheckPressureForNativeRepeat(KvStoreObserverImpl &observerLocal, KvStoreObs
 HWTEST_F(DistributeddbNbObserverTest, Pressure009, TestSize.Level1)
 {
     DBStatus status;
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     /**
      * @tc.steps: step1. Register a sync observer of key KEY_EMPTY 5 times repeatedly.
@@ -1431,7 +1441,7 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure009, TestSize.Level1)
      */
     for (unsigned int opCnt = NB_OPERATION_CNT_START; opCnt < NB_OPERATION_CNT_END; ++opCnt) {
         status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
@@ -1440,28 +1450,28 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure009, TestSize.Level1)
     }
 
     vector< vector<DistributedDB::Entry> > entries(6); // 6 element
-    CheckPressureForNativeRepeat(observerLocal, observerSync, entries);
+    CheckPressureForNativeRepeat(*observerLocal, *observerSync, entries);
 
     status = g_nbObserverDelegate->Put(KEY_1, VALUE_2);
     EXPECT_EQ(status, OK);
     entries[UPDATE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
     entries[UPDATE_NATIVE].clear();
     DistributedDB::Entry entry = { KEY_1, VALUE_2 };
     entries[UPDATE_NATIVE].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, UPDATE_LIST, entries[UPDATE_NATIVE]));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, UPDATE_LIST, entries[UPDATE_NATIVE]));
+    observerSync->Clear();
 
     status = g_nbObserverDelegate->Delete(KEY_1);
     EXPECT_EQ(status, OK);
     entries[DELETE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
     entries[DELETE_NATIVE].clear();
     entries[DELETE_NATIVE].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -1474,14 +1484,14 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure009, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure012, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
     /**
@@ -1490,21 +1500,21 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure012, TestSize.Level1)
      */
     g_nbObserverDelegate->PutLocal(KEY_EMPTY, VALUE_1);
     vector<DistributedDB::Entry> insertLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     vector<DistributedDB::Entry> insertNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerLocal->Clear();
 
     g_nbObserverDelegate->Put(KEY_EMPTY, VALUE_1);
     insertLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     insertNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -1517,14 +1527,14 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure012, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure013, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
 
     DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
     /**
@@ -1533,21 +1543,21 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure013, TestSize.Level1)
      */
     g_nbObserverDelegate->DeleteLocal(KEY_1);
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerLocal->Clear();
 
     g_nbObserverDelegate->Delete(KEY_1);
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     deleteNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -1560,15 +1570,15 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure013, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure014, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     g_nbObserverDelegate->PutLocal(KEY_1, VALUE_1);
     g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
     /**
@@ -1579,10 +1589,10 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure014, TestSize.Level1)
     vector<DistributedDB::Entry> updateLocalEntries;
     DistributedDB::Entry entry = { KEY_1, VALUE_1 };
     updateLocalEntries.push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ONE_TIME, UPDATE_LIST, updateLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ONE_TIME, UPDATE_LIST, updateLocalEntries));
     vector<DistributedDB::Entry> updateNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, UPDATE_LIST, updateNativeEntries));
-    observerLocal.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, UPDATE_LIST, updateNativeEntries));
+    observerLocal->Clear();
 
     /**
      * @tc.steps: step2. put a record (KEY_1, VALUE_1) to sync db and check observerSync.
@@ -1590,15 +1600,15 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure014, TestSize.Level1)
      */
     g_nbObserverDelegate->Put(KEY_1, VALUE_1);
     updateLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, UPDATE_LIST, updateLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, UPDATE_LIST, updateLocalEntries));
     updateNativeEntries.clear();
     updateNativeEntries.push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, UPDATE_LIST, updateNativeEntries));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, UPDATE_LIST, updateNativeEntries));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->DeleteLocal(KEY_1);
     EXPECT_EQ(status, OK);
@@ -1662,11 +1672,12 @@ void CheckPressureAfterClose(KvStoreObserverImpl &observerLocal, KvStoreObserver
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure015, TestSize.Level1)
 {
-    KvStoreObserverImpl observerLocal, observerSync;
-    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
+    DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
     /**
@@ -1690,12 +1701,12 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure015, TestSize.Level1)
     ASSERT_TRUE(g_nbObserverManager != nullptr && g_nbObserverDelegate != nullptr);
 
     vector< vector<DistributedDB::Entry> > entries(6); // 6 element
-    CheckPressureAfterClose(observerLocal, observerSync, entries);
+    CheckPressureAfterClose(*observerLocal, *observerSync, entries);
 
     vector<DistributedDB::Entry> insertLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, insertLocalEntries));
     vector<DistributedDB::Entry> insertNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, INSERT_LIST, insertNativeEntries));
 }
 
 void CheckPressureAfterReopen(KvStoreObserverImpl &observerLocal, KvStoreObserverImpl &observerSync,
@@ -1758,12 +1769,13 @@ void CheckPressureAfterReopen(KvStoreObserverImpl &observerLocal, KvStoreObserve
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure016, TestSize.Level2)
 {
-    KvStoreObserverImpl observerSync, observerLocal;
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
     DBStatus status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     /**
      * @tc.steps: step1. close db.
@@ -1788,33 +1800,33 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure016, TestSize.Level2)
     }
     ASSERT_TRUE(g_nbObserverManager != nullptr && g_nbObserverDelegate != nullptr);
     vector< vector<DistributedDB::Entry> > entries(6); // 6 element
-    CheckPressureAfterClose(observerLocal, observerSync, entries);
+    CheckPressureAfterClose(*observerLocal, *observerSync, entries);
 
     /**
      * @tc.steps: step3. register observerLocal and observerSync on key = KEY_EMPTY again.
      * @tc.expected: step3. register success.
      */
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
-    CheckPressureAfterReopen(observerLocal, observerSync, entries);
+    CheckPressureAfterReopen(*observerLocal, *observerSync, entries);
 
     status = g_nbObserverDelegate->Delete(KEY_1);
     entries[DELETE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
     entries[DELETE_NATIVE].clear();
     DistributedDB::Entry entry = { KEY_1, VALUE_2 };
     entries[DELETE_NATIVE].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
-    observerSync.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
+    observerSync->Clear();
 
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = g_nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = g_nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 }
 
@@ -1827,12 +1839,13 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure016, TestSize.Level2)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure017, TestSize.Level2)
 {
-    KvStoreObserverImpl observerSync, observerLocal;
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
     DBStatus registerStatus = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(registerStatus, OK);
     registerStatus = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(registerStatus, OK);
 
     /**
@@ -1849,9 +1862,9 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure017, TestSize.Level2)
      * @tc.expected: step2. neither the local observer nor the sync observer was triggered.
      */
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
 
     if (g_option.isMemoryDb) {
         g_nbObserverDelegate = DistributedDBNbTestTools::GetNbDelegateSuccess(g_nbObserverManager,
@@ -1874,13 +1887,13 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure017, TestSize.Level2)
  */
 HWTEST_F(DistributeddbNbObserverTest, Pressure018, TestSize.Level2)
 {
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     DBStatus statusLocal = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(statusLocal, OK);
     DBStatus statusSync = g_nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(statusSync, OK);
 
     /**
@@ -1890,9 +1903,9 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure018, TestSize.Level2)
     EXPECT_EQ(g_nbObserverManager->CloseKvStore(g_nbObserverDelegate), OK);
     g_nbObserverDelegate = nullptr;
     vector<DistributedDB::Entry> deleteLocalEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     vector<DistributedDB::Entry> deleteNativeEntries;
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
 
     if (!g_option.isMemoryDb) {
         DBStatus status = g_nbObserverManager->DeleteKvStore(STORE_ID_1);
@@ -1901,9 +1914,9 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure018, TestSize.Level2)
     delete g_nbObserverManager;
     g_nbObserverManager = nullptr;
     deleteLocalEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocal, CHANGED_ZERO_TIME, DELETE_LIST, deleteLocalEntries));
     deleteNativeEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observerSync, CHANGED_ZERO_TIME, DELETE_LIST, deleteNativeEntries));
 
     RemoveDir(DIRECTOR);
     g_nbObserverDelegate = DistributedDBNbTestTools::GetNbDelegateSuccess(g_nbObserverManager,
@@ -1911,54 +1924,56 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure018, TestSize.Level2)
     ASSERT_TRUE(g_nbObserverManager != nullptr && g_nbObserverDelegate != nullptr);
 }
 
-void CheckPressureAcrossDatabase(vector<KvStoreNbDelegate *> &nbDelegateVec, KvStoreObserverImpl *observerLocals,
-    KvStoreObserverImpl *observerSyncs, vector< vector<DistributedDB::Entry> > &entries, unsigned int &opCnt)
+void CheckPressureAcrossDatabase(vector<KvStoreNbDelegate *> &nbDelegateVec,
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> &observerLocals,
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> &observerSyncs,
+    vector< vector<DistributedDB::Entry> > &entries, unsigned int &opCnt)
 {
     DBStatus status = nbDelegateVec[opCnt]->PutLocal(KEY_1, VALUE_1);
     EXPECT_EQ(status, OK);
     DistributedDB::Entry entry = { KEY_1, VALUE_1 };
     entries[INSERT_LOCAL].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerLocals[opCnt], CHANGED_ONE_TIME, INSERT_LIST, entries[INSERT_LOCAL]));
-    EXPECT_TRUE(VerifyObserverResult(observerSyncs[opCnt], CHANGED_ZERO_TIME, INSERT_LIST, entries[INSERT_NATIVE]));
-    observerLocals[opCnt].Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerLocals[opCnt], CHANGED_ONE_TIME, INSERT_LIST, entries[INSERT_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerSyncs[opCnt], CHANGED_ZERO_TIME, INSERT_LIST, entries[INSERT_NATIVE]));
+    observerLocals[opCnt]->Clear();
     status = nbDelegateVec[opCnt]->Put(KEY_1, VALUE_1);
     EXPECT_EQ(status, OK);
     entries[INSERT_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocals[opCnt], CHANGED_ZERO_TIME, INSERT_LIST, entries[INSERT_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocals[opCnt], CHANGED_ZERO_TIME, INSERT_LIST, entries[INSERT_LOCAL]));
     entries[INSERT_NATIVE].clear();
     entries[INSERT_NATIVE].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSyncs[opCnt], CHANGED_ONE_TIME, INSERT_LIST, entries[INSERT_NATIVE]));
+    EXPECT_TRUE(VerifyObserverResult(*observerSyncs[opCnt], CHANGED_ONE_TIME, INSERT_LIST, entries[INSERT_NATIVE]));
     entries[INSERT_NATIVE].clear();
-    observerSyncs[opCnt].Clear();
+    observerSyncs[opCnt]->Clear();
     status = nbDelegateVec[opCnt]->PutLocal(KEY_1, VALUE_2);
     EXPECT_EQ(status, OK);
     entry.value = VALUE_2;
     entries[UPDATE_LOCAL].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerLocals[opCnt], CHANGED_ONE_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
-    EXPECT_TRUE(VerifyObserverResult(observerSyncs[opCnt], CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_NATIVE]));
-    observerLocals[opCnt].Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerLocals[opCnt], CHANGED_ONE_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerSyncs[opCnt], CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_NATIVE]));
+    observerLocals[opCnt]->Clear();
     status = nbDelegateVec[opCnt]->Put(KEY_1, VALUE_2);
     EXPECT_EQ(status, OK);
     entries[UPDATE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocals[opCnt], CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocals[opCnt], CHANGED_ZERO_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
     entries[UPDATE_LOCAL].clear();
     entries[UPDATE_LOCAL].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSyncs[opCnt], CHANGED_ONE_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerSyncs[opCnt], CHANGED_ONE_TIME, UPDATE_LIST, entries[UPDATE_LOCAL]));
     entries[UPDATE_LOCAL].clear();
-    observerSyncs[opCnt].Clear();
+    observerSyncs[opCnt]->Clear();
     EXPECT_EQ((nbDelegateVec[opCnt]->DeleteLocal(KEY_1)), OK);
     entries[DELETE_LOCAL].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerLocals[opCnt], CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
-    EXPECT_TRUE(VerifyObserverResult(observerSyncs[opCnt], CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
-    observerLocals[opCnt].Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observerLocals[opCnt], CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerSyncs[opCnt], CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
+    observerLocals[opCnt]->Clear();
     EXPECT_EQ((nbDelegateVec[opCnt]->Delete(KEY_1)), OK);
     entries[DELETE_LOCAL].clear();
-    EXPECT_TRUE(VerifyObserverResult(observerLocals[opCnt], CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
+    EXPECT_TRUE(VerifyObserverResult(*observerLocals[opCnt], CHANGED_ZERO_TIME, DELETE_LIST, entries[DELETE_LOCAL]));
     entries[DELETE_NATIVE].clear();
     entries[DELETE_NATIVE].push_back(entry);
-    EXPECT_TRUE(VerifyObserverResult(observerSyncs[opCnt], CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
+    EXPECT_TRUE(VerifyObserverResult(*observerSyncs[opCnt], CHANGED_ONE_TIME, DELETE_LIST, entries[DELETE_NATIVE]));
     entries[DELETE_NATIVE].clear();
-    observerSyncs[opCnt].Clear();
+    observerSyncs[opCnt]->Clear();
 }
 
 /*
@@ -1982,14 +1997,16 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure019, TestSize.Level2)
      * @tc.steps: step1. register different observer on different stores.
      * @tc.expected: step1. each observer is registered successfully.
      */
-    KvStoreObserverImpl observerLocals[STORE_NUM];
-    KvStoreObserverImpl observerSyncs[STORE_NUM];
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> observerLocals;
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> observerSyncs;
     for (unsigned int opCnt = 0; opCnt < static_cast<unsigned int>(nbDelegateVec.size()); ++opCnt) {
         MST_LOG("opCnt = %d", opCnt);
-        status = nbDelegateVec[opCnt]->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, &observerLocals[opCnt]);
+        observerLocals[opCnt] = std::make_shared<KvStoreObserverImpl>();
+        observerSyncs[opCnt] = std::make_shared<KvStoreObserverImpl>();
+        status = nbDelegateVec[opCnt]->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocals[opCnt]);
         EXPECT_EQ(status, OK);
         status = nbDelegateVec[opCnt]->RegisterObserver(KEY_EMPTY,
-            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSyncs[opCnt]);
+            OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSyncs[opCnt]);
         EXPECT_EQ(status, OK);
     }
 
@@ -2002,9 +2019,9 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure019, TestSize.Level2)
         CheckPressureAcrossDatabase(nbDelegateVec, observerLocals, observerSyncs, entries, opCnt);
     }
     for (unsigned int opCnt = 0; opCnt < static_cast<unsigned int>(nbDelegateVec.size()); ++opCnt) {
-        status = nbDelegateVec[opCnt]->UnRegisterObserver(&observerLocals[opCnt]);
+        status = nbDelegateVec[opCnt]->UnRegisterObserver(observerLocals[opCnt]);
         EXPECT_EQ(status, OK);
-        status = nbDelegateVec[opCnt]->UnRegisterObserver(&observerSyncs[opCnt]);
+        status = nbDelegateVec[opCnt]->UnRegisterObserver(observerSyncs[opCnt]);
         EXPECT_EQ(status, OK);
     }
 
@@ -2145,13 +2162,13 @@ HWTEST_F(DistributeddbNbObserverTest, RekeyNbDb001, TestSize.Level2)
      * @tc.steps: step1. register observer.
      * @tc.expected: step1. register successfully.
      */
-    KvStoreObserverImpl observerLocal;
-    KvStoreObserverImpl observerSync;
+    std::shared_ptr<KvStoreObserverImpl> observerLocal = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observerSync = std::make_shared<KvStoreObserverImpl>();
     DBStatus status = nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_LOCAL_ONLY, &observerLocal);
+        OBSERVER_CHANGES_LOCAL_ONLY, observerLocal);
     EXPECT_EQ(status, OK);
     status = nbObserverDelegate->RegisterObserver(KEY_EMPTY,
-        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
+        OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, observerSync);
     EXPECT_EQ(status, OK);
 
     /**
@@ -2164,9 +2181,9 @@ HWTEST_F(DistributeddbNbObserverTest, RekeyNbDb001, TestSize.Level2)
      * @tc.steps: step3. unregister observer.
      * @tc.expected: step3. unregister successfully.
      */
-    status = nbObserverDelegate->UnRegisterObserver(&observerLocal);
+    status = nbObserverDelegate->UnRegisterObserver(observerLocal);
     EXPECT_EQ(status, OK);
-    status = nbObserverDelegate->UnRegisterObserver(&observerSync);
+    status = nbObserverDelegate->UnRegisterObserver(observerSync);
     EXPECT_EQ(status, OK);
 
     /**

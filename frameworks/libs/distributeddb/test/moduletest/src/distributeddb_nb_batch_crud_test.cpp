@@ -739,7 +739,9 @@ HWTEST_F(DistributeddbNbBatchCrudTest, ComplexData005, TestSize.Level2)
  */
 HWTEST_F(DistributeddbNbBatchCrudTest, Observer001, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries1, entries2;
     entries1.push_back(ENTRY_1);
     entries1.push_back(ENTRY_2);
@@ -752,9 +754,9 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer001, TestSize.Level1)
      * mode = OBSERVER_CHANGES_NATIVE.
      * @tc.expected: step1. register successfully.
      */
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer1), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observer2), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, &observer3), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer1), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observer2), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, observer3), OK);
 
     /**
      * @tc.steps: step2. putbatch (k1,v1)(k2,v2) to db and check observer callback.
@@ -763,13 +765,15 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer001, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::PutBatch(*g_nbBatchCrudDelegate, entries1), OK);
     observerCallbackEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME,
+        ListType::INSERT_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
     observerCallbackEntries.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
-    observer1.Clear();
-    observer2.Clear();
-    observer3.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME,
+        ListType::INSERT_LIST, observerCallbackEntries));
+    observer1->Clear();
+    observer2->Clear();
+    observer3->Clear();
 
     /**
      * @tc.steps: step3. putbatch (k2,v3)(k3,v3) to db and check observer callback.
@@ -778,12 +782,15 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer001, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::PutBatch(*g_nbBatchCrudDelegate, entries2), OK);
     observerCallbackEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, ListType::UPDATE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME,
+        ListType::UPDATE_LIST, observerCallbackEntries));
     observerCallbackEntries.push_back(ENTRY_2_3);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, ListType::UPDATE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME,
+        ListType::UPDATE_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
     observerCallbackEntries.push_back(ENTRY_3);
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ONE_TIME,
+        ListType::INSERT_LIST, observerCallbackEntries));
 }
 
 /**
@@ -795,7 +802,9 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer001, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbBatchCrudTest, Observer002, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries1, entryResults;
     entries1.push_back(ENTRY_1);
     entries1.push_back(ENTRY_2);
@@ -818,11 +827,11 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer002, TestSize.Level1)
      * mode = OBSERVER_CHANGES_NATIVE.
      * @tc.expected: step2. register successfully.
      */
-    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer1);
+    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer1);
     EXPECT_EQ(status, OK);
-    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observer2);
+    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observer2);
     EXPECT_EQ(status, OK);
-    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, &observer3);
+    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, observer3);
     EXPECT_EQ(status, OK);
 
     /**
@@ -832,12 +841,12 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer002, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::DeleteBatch(*g_nbBatchCrudDelegate, keys), OK);
     observerCallbackEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
     observerCallbackEntries.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ZERO_TIME, ListType::DELETE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ZERO_TIME, ListType::DELETE_LIST, observerCallbackEntries));
 }
 
 /**
@@ -849,7 +858,9 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer002, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbBatchCrudTest, Observer003, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2, observer3;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries1, entries2;
     entries1.push_back(ENTRY_1);
     entries1.push_back(ENTRY_1_2);
@@ -864,11 +875,11 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer003, TestSize.Level1)
      * mode = OBSERVER_CHANGES_NATIVE.
      * @tc.expected: step1. register successfully.
      */
-    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer1);
+    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer1);
     EXPECT_EQ(status, OK);
-    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observer2);
+    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observer2);
     EXPECT_EQ(status, OK);
-    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, &observer3);
+    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, observer3);
     EXPECT_EQ(status, OK);
 
     /**
@@ -878,13 +889,13 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer003, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::PutBatch(*g_nbBatchCrudDelegate, entries1), OK);
     observerCallbackEntries.push_back(ENTRY_1_2);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
     observerCallbackEntries.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
-    observer1.Clear();
-    observer2.Clear();
-    observer3.Clear();
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
+    observer1->Clear();
+    observer2->Clear();
+    observer3->Clear();
 
     /**
      * @tc.steps: step3. putbatch (k2,v3)(k3,v3) to db and check observer callback.
@@ -893,12 +904,12 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer003, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::PutBatch(*g_nbBatchCrudDelegate, entries2), OK);
     observerCallbackEntries.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, ListType::UPDATE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME, ListType::UPDATE_LIST, observerCallbackEntries));
     observerCallbackEntries.push_back(ENTRY_2_4);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, ListType::UPDATE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, ListType::UPDATE_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
     observerCallbackEntries.push_back(ENTRY_3);
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ONE_TIME, ListType::INSERT_LIST, observerCallbackEntries));
 }
 
 /**
@@ -910,7 +921,8 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer003, TestSize.Level1)
  */
 HWTEST_F(DistributeddbNbBatchCrudTest, Observer004, TestSize.Level1)
 {
-    KvStoreObserverImpl observer1, observer2;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries1, entryResults;
     entries1.push_back(ENTRY_1);
     entries1.push_back(ENTRY_2);
@@ -932,9 +944,9 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer004, TestSize.Level1)
      * @tc.steps: step2. register observer1,observer2 for k1, k2 with mode = OBSERVER_CHANGES_NATIVE.
      * @tc.expected: step2. register successfully.
      */
-    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer1);
+    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer1);
     EXPECT_EQ(status, OK);
-    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observer2);
+    status = g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observer2);
     EXPECT_EQ(status, OK);
 
     /**
@@ -943,10 +955,10 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer004, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::DeleteBatch(*g_nbBatchCrudDelegate, keys), OK);
     observerCallbackEntries.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
     observerCallbackEntries.clear();
     observerCallbackEntries.push_back(ENTRY_2);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, ListType::DELETE_LIST, observerCallbackEntries));
 }
 
 /**
@@ -966,10 +978,11 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer005, TestSize.Level1)
      * @tc.steps: step1. register 8 observers for all key.
      * @tc.expected: step1. register successfully.
      */
-    KvStoreObserverImpl observerNative[OBSERVER_COUNT];
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> observerNative;
     for (int obsCnt = 0; obsCnt < OBSERVER_COUNT; obsCnt++) {
+        observerNative[obsCnt] = std::make_shared<KvStoreObserverImpl>();
         EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE,
-            &observerNative[obsCnt]), OK);
+            observerNative[obsCnt]), OK);
     }
 
     /**
@@ -979,10 +992,11 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer005, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::PutBatch(*g_nbBatchCrudDelegate, entriesBatch), OK);
     for (int index = 0; index < OBSERVER_COUNT; index++) {
-        EXPECT_TRUE(VerifyObserverResult(observerNative[index], CHANGED_ONE_TIME, ListType::INSERT_LIST, entriesBatch));
+        EXPECT_TRUE(VerifyObserverResult(*observerNative[index],
+            CHANGED_ONE_TIME, ListType::INSERT_LIST, entriesBatch));
     }
     for (int index = 0; index < OBSERVER_COUNT; index++) {
-        observerNative[index].Clear();
+        observerNative[index]->Clear();
     }
 
     /**
@@ -992,10 +1006,11 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer005, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::PutBatch(*g_nbBatchCrudDelegate, entriesBatch), OK);
     for (int index = 0; index < OBSERVER_COUNT; index++) {
-        EXPECT_TRUE(VerifyObserverResult(observerNative[index], CHANGED_ONE_TIME, ListType::UPDATE_LIST, entriesBatch));
+        EXPECT_TRUE(VerifyObserverResult(*observerNative[index],
+            CHANGED_ONE_TIME, ListType::UPDATE_LIST, entriesBatch));
     }
     for (int index = 0; index < OBSERVER_COUNT; index++) {
-    observerNative[index].Clear();
+        observerNative[index]->Clear();
     }
 
     /**
@@ -1005,7 +1020,8 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Observer005, TestSize.Level1)
      */
     EXPECT_EQ(DistributedDBNbTestTools::DeleteBatch(*g_nbBatchCrudDelegate, allKeys), OK);
     for (int index = 0; index < OBSERVER_COUNT; index++) {
-        EXPECT_TRUE(VerifyObserverResult(observerNative[index], CHANGED_ONE_TIME, ListType::DELETE_LIST, entriesBatch));
+        EXPECT_TRUE(VerifyObserverResult(*observerNative[index],
+            CHANGED_ONE_TIME, ListType::DELETE_LIST, entriesBatch));
     }
 }
 
@@ -2241,12 +2257,13 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Transaction022, TestSize.Level3)
     KvStoreResultSet *resultSet1 = nullptr;
     KvStoreResultSet *resultSet2 = nullptr;
     EXPECT_EQ(g_nbBatchCrudDelegate->GetEntries(KEY_EMPTY, resultSet1), OK);
-    KvStoreObserverImpl observer1, observer2;
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
     vector<Entry> entries, entriesGot;
     EntrySize entrySize = {KEY_SIX_BYTE, VALUE_ONE_HUNDRED_BYTE};
     GenerateAppointPrefixAndSizeRecords(entries, entrySize, TEN_RECORDS);
 
-    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_K, OBSERVER_CHANGES_NATIVE, &observer1);
+    DBStatus status = g_nbBatchCrudDelegate->RegisterObserver(KEY_K, OBSERVER_CHANGES_NATIVE, observer1);
     EXPECT_EQ(status, OK);
 
     const std::string importPath = DistributedDBConstant::NB_DIRECTOR + "import";
@@ -2269,7 +2286,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Transaction022, TestSize.Level3)
 
     vector<DistributedDB::Entry> observerCheckEntry;
     observerCheckEntry.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, ListType::INSERT_LIST, observerCheckEntry));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME, ListType::INSERT_LIST, observerCheckEntry));
 
     /**
      * @tc.steps: step3. call rekey, import, export interface
@@ -2287,7 +2304,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Transaction022, TestSize.Level3)
      * @tc.expected: step4. all call failed and returned BUSY.
      */
     EXPECT_EQ(g_nbBatchCrudDelegate->GetEntries(KEY_EMPTY, resultSet2), BUSY);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_K, OBSERVER_CHANGES_NATIVE, &observer2), BUSY);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_K, OBSERVER_CHANGES_NATIVE, observer2), BUSY);
 
     /**
      * @tc.steps: step5. close resultSet1 and resultSet2, UnRegister observer1 and observer2.
@@ -2296,8 +2313,8 @@ HWTEST_F(DistributeddbNbBatchCrudTest, Transaction022, TestSize.Level3)
      */
     EXPECT_EQ(g_nbBatchCrudDelegate->CloseResultSet(resultSet1), OK);
     EXPECT_EQ(g_nbBatchCrudDelegate->CloseResultSet(resultSet2), INVALID_ARGS);
-    EXPECT_EQ(g_nbBatchCrudDelegate->UnRegisterObserver(&observer1), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->UnRegisterObserver(&observer2), NOT_FOUND);
+    EXPECT_EQ(g_nbBatchCrudDelegate->UnRegisterObserver(observer1), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->UnRegisterObserver(observer2), NOT_FOUND);
     /**
      * @tc.steps: step6. commit the transaction and check the data in db.
      * @tc.expected: step6. commit succeed and can find entries in DB.
@@ -2320,9 +2337,10 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver001, TestSize.Level1)
      * @tc.steps: step1. Register observer1 and observer2 of k1 and k2 separately and start the transaction.
      * @tc.expected: step1. Register start transaction successfully.
      */
-    KvStoreObserverImpl observer1, observer2;
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer1), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observer2), OK);
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer1), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observer2), OK);
     EXPECT_EQ(g_nbBatchCrudDelegate->StartTransaction(), OK);
 
     /**
@@ -2333,8 +2351,8 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver001, TestSize.Level1)
     EXPECT_EQ(DistributedDBNbTestTools::Put(*g_nbBatchCrudDelegate, KEY_3, VALUE_3), OK);
     vector<DistributedDB::Entry> observerCheckList;
     observerCheckList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, INSERT_LIST, observerCheckList));
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ZERO_TIME, INSERT_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME, INSERT_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ZERO_TIME, INSERT_LIST, observerCheckList));
     /**
      * @tc.steps: step3. update (k1, v1) to (k1, v2) and delete (k3, v3) and check the observers.
      * @tc.expected: step3. update and delete successfully both of the observers can't receive the callback either.
@@ -2342,8 +2360,8 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver001, TestSize.Level1)
     EXPECT_EQ(DistributedDBNbTestTools::Put(*g_nbBatchCrudDelegate, KEY_1, VALUE_2), OK);
     EXPECT_EQ(DistributedDBNbTestTools::Delete(*g_nbBatchCrudDelegate, KEY_3), OK);
     observerCheckList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ZERO_TIME, INSERT_LIST, observerCheckList));
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ZERO_TIME, DELETE_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ZERO_TIME, INSERT_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ZERO_TIME, DELETE_LIST, observerCheckList));
 
     /**
      * @tc.steps: step4. commit the transaction and check the observers.
@@ -2352,9 +2370,9 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver001, TestSize.Level1)
     EXPECT_EQ(g_nbBatchCrudDelegate->Commit(), OK);
     observerCheckList.clear();
     observerCheckList.push_back(ENTRY_1_2);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, INSERT_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, INSERT_LIST, observerCheckList));
     observerCheckList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ZERO_TIME, DELETE_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ZERO_TIME, DELETE_LIST, observerCheckList));
 }
 
 /**
@@ -2373,11 +2391,14 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver002, TestSize.Level1)
      *     and k4 separately and start the transaction.
      * @tc.expected: step1. Register and start transaction successfully.
      */
-    KvStoreObserverImpl observer1, observer2, observer3, observer4;
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, &observer1), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, &observer2), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, &observer3), OK);
-    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_4, OBSERVER_CHANGES_NATIVE, &observer4), OK);
+    std::shared_ptr<KvStoreObserverImpl> observer1 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer2 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer3 = std::make_shared<KvStoreObserverImpl>();
+    std::shared_ptr<KvStoreObserverImpl> observer4 = std::make_shared<KvStoreObserverImpl>();
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_1, OBSERVER_CHANGES_NATIVE, observer1), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_2, OBSERVER_CHANGES_NATIVE, observer2), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, observer3), OK);
+    EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_4, OBSERVER_CHANGES_NATIVE, observer4), OK);
     EXPECT_EQ(g_nbBatchCrudDelegate->StartTransaction(), OK);
 
     /**
@@ -2400,15 +2421,15 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver002, TestSize.Level1)
     vector<DistributedDB::Entry> observerCheckList;
     observerCheckList.clear();
     observerCheckList.push_back(ENTRY_1);
-    EXPECT_TRUE(VerifyObserverResult(observer1, CHANGED_ONE_TIME, DELETE_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer1, CHANGED_ONE_TIME, DELETE_LIST, observerCheckList));
     observerCheckList.clear();
     observerCheckList.push_back(ENTRY_2_3);
-    EXPECT_TRUE(VerifyObserverResult(observer2, CHANGED_ONE_TIME, UPDATE_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer2, CHANGED_ONE_TIME, UPDATE_LIST, observerCheckList));
     observerCheckList.clear();
     observerCheckList.push_back(ENTRY_3);
-    EXPECT_TRUE(VerifyObserverResult(observer3, CHANGED_ONE_TIME, INSERT_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer3, CHANGED_ONE_TIME, INSERT_LIST, observerCheckList));
     observerCheckList.clear();
-    EXPECT_TRUE(VerifyObserverResult(observer4, CHANGED_ZERO_TIME, DELETE_LIST, observerCheckList));
+    EXPECT_TRUE(VerifyObserverResult(*observer4, CHANGED_ZERO_TIME, DELETE_LIST, observerCheckList));
 }
 
 /**
@@ -2427,9 +2448,10 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver003, TestSize.Level1)
      * @tc.steps: step1. Register 8 observers of all keys.
      * @tc.expected: step1. Register successfully.
      */
-    std::vector<KvStoreObserverImpl> observers(OBSERVER_NUM);
+    std::vector<std::shared_ptr<KvStoreObserverImpl>> observers(OBSERVER_NUM);
     for (unsigned long cnt = 0; cnt < OBSERVER_NUM; cnt++) {
-        EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, &observers[cnt]), OK);
+        observers[cnt] = std::make_shared<KvStoreObserverImpl>();
+        EXPECT_EQ(g_nbBatchCrudDelegate->RegisterObserver(KEY_EMPTY, OBSERVER_CHANGES_NATIVE, observers[cnt]), OK);
     }
 
     /**
@@ -2464,13 +2486,13 @@ HWTEST_F(DistributeddbNbBatchCrudTest, TransactionObserver003, TestSize.Level1)
         observerCheckList.push_back(ENTRY_6);
         observerCheckList.push_back(ENTRY_7);
         observerCheckList.push_back(ENTRY_8);
-        EXPECT_TRUE(VerifyObserverResult(observers[cnt], CHANGED_ONE_TIME, INSERT_LIST, observerCheckList));
+        EXPECT_TRUE(VerifyObserverResult(*observers[cnt], CHANGED_ONE_TIME, INSERT_LIST, observerCheckList));
         observerCheckList.clear();
         observerCheckList.push_back(ENTRY_2_3);
-        EXPECT_TRUE(VerifyObserverResult(observers[cnt], CHANGED_ONE_TIME, UPDATE_LIST, observerCheckList));
+        EXPECT_TRUE(VerifyObserverResult(*observers[cnt], CHANGED_ONE_TIME, UPDATE_LIST, observerCheckList));
         observerCheckList.clear();
         observerCheckList.push_back(ENTRY_1);
-        EXPECT_TRUE(VerifyObserverResult(observers[cnt], CHANGED_ONE_TIME, DELETE_LIST, observerCheckList));
+        EXPECT_TRUE(VerifyObserverResult(*observers[cnt], CHANGED_ONE_TIME, DELETE_LIST, observerCheckList));
     }
 }
 

@@ -252,8 +252,8 @@ namespace {
         param.appId   = APP_ID;
         param.storeId = STORE_ID;
         CipherPassword passwd;
-        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
-            0, nullptr};
+        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir,
+                        std::weak_ptr<KvStoreObserver>(), 0, nullptr};
         param.notifier = g_notifier;
         param.option.syncDualTupleMode = true;
         return true;
@@ -269,8 +269,8 @@ namespace {
         param.appId   = APP_ID;
         param.storeId = STORE_ID;
         CipherPassword passwd;
-        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
-                        0, nullptr};
+        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir,
+                        std::weak_ptr<KvStoreObserver>(), 0, nullptr};
         param.notifier = g_notifier;
         param.option.syncDualTupleMode = false;
         return true;

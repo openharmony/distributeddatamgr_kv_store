@@ -211,7 +211,7 @@ void RemoveDeviceDataByMode(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDele
 
 void FuzzCURD(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDelegatePtr)
 {
-    auto observer = new (std::nothrow) KvStoreObserverFuzzTest;
+    std::shared_ptr<KvStoreObserverFuzzTest> observer = std::make_shared<KvStoreObserverFuzzTest>();
     if ((observer == nullptr) || (kvNbDelegatePtr == nullptr)) {
         return;
     }
@@ -237,7 +237,6 @@ void FuzzCURD(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDelegatePtr)
     kvNbDelegatePtr->Rollback();
     kvNbDelegatePtr->Commit();
     kvNbDelegatePtr->UnRegisterObserver(observer);
-    delete observer;
     observer = nullptr;
     kvNbDelegatePtr->PutLocalBatch(tmp);
     kvNbDelegatePtr->DeleteLocalBatch(keys);

@@ -469,9 +469,9 @@ HWTEST_F(DistributedDBCloudKvStoreTest, SyncOptionCheck005, TestSize.Level0)
      * @tc.steps:step1. Register MAX_OBSERVER_COUNT observers.
      * @tc.expected: step1 OK.
      */
-    std::vector<KvStoreObserverUnitTest *> observerList;
+    std::vector<std::shared_ptr<KvStoreObserverUnitTest>> observerList;
     for (int i = 0; i < DBConstant::MAX_OBSERVER_COUNT; i++) {
-        auto *observer = new (std::nothrow) KvStoreObserverUnitTest;
+        std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
         observerList.push_back(observer);
         EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, observer), OK);
     }
@@ -479,18 +479,16 @@ HWTEST_F(DistributedDBCloudKvStoreTest, SyncOptionCheck005, TestSize.Level0)
      * @tc.steps:step2. Register one more observer.
      * @tc.expected: step2 Registration failed, return OVER_MAX_LIMITS.
      */
-    auto *overMaxObserver = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> overMaxObserver = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, overMaxObserver), OVER_MAX_LIMITS);
     /**
      * @tc.steps:step3. UnRegister all observers.
      * @tc.expected: step3 OK.
      */
     EXPECT_EQ(kvDelegatePtrS1_->UnRegisterObserver(overMaxObserver), NOT_FOUND);
-    delete overMaxObserver;
     overMaxObserver = nullptr;
     for (auto &observer : observerList) {
         EXPECT_EQ(kvDelegatePtrS1_->UnRegisterObserver(observer), OK);
-        delete observer;
         observer = nullptr;
     }
 }
@@ -1857,7 +1855,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest001, TestSize.Leve
      * @tc.steps: step2. delegate2 call RegisterObserver with OBSERVER_CHANGES_CLOUD mode
      * @tc.expected: step2. sync with cloud and check data change success
     */
-    auto *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_EQ(kvDelegatePtrS2_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, observer), OK);
     BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
     EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK);
@@ -1872,7 +1870,6 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest001, TestSize.Leve
 
     observer->ResetToZero();
     EXPECT_EQ(kvDelegatePtrS2_->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
 }
 
@@ -1906,7 +1903,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest002, TestSize.Leve
      * @tc.steps: step2. delegate2 call RegisterObserver with OBSERVER_CHANGES_CLOUD | OBSERVER_CHANGES_BRIEF mode
      * @tc.expected: step2. sync with cloud and check data change success
     */
-    auto *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_EQ(kvDelegatePtrS2_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD | OBSERVER_CHANGES_BRIEF, observer), OK);
     BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
     EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK);
@@ -1921,7 +1918,6 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest002, TestSize.Leve
 
     observer->ResetToZero();
     EXPECT_EQ(kvDelegatePtrS2_->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
 }
 
@@ -1938,14 +1934,13 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest003, TestSize.Leve
      * @tc.steps: step1. call RegisterObserver with err mode (out of enum range of 0x100 to 0xF00)
      * @tc.expected: step1. return INVALID_ARGS
     */
-    auto *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     unsigned int errMode = 0x1000;
     EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD | errMode, observer), INVALID_ARGS);
     errMode = 0x110;
     EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD | errMode, observer), INVALID_ARGS);
     errMode = OBSERVER_CHANGES_LOCAL_ONLY;
     EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD | errMode, observer), INVALID_ARGS);
-    delete observer;
     observer = nullptr;
 }
 
@@ -1962,12 +1957,11 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest004, TestSize.Leve
      * @tc.steps: step1. register cloud observer twice
      * @tc.expected: step1. return ALREADY_SET
     */
-    auto *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD | OBSERVER_CHANGES_BRIEF, observer), OK);
     EXPECT_EQ(kvDelegatePtrS1_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, observer), ALREADY_SET);
     observer->ResetToZero();
     EXPECT_EQ(kvDelegatePtrS1_->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
 }
 

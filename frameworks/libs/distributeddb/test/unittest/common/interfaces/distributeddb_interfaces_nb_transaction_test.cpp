@@ -316,11 +316,10 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start004, TestSize.Level4)
     CipherPassword password;
     EXPECT_EQ(g_kvNbDelegatePtr->Rekey(password), BUSY);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(KEY_3, OBSERVER_CHANGES_NATIVE, observer), BUSY);
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), NOT_FOUND);
-    delete observer;
     observer = nullptr;
 
     std::string filePath = g_testDir + "/test.txt";
@@ -507,7 +506,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit004, TestSize.Level1)
     g_mgr.GetKvStore("distributed_nb_transaction_commit004", option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(NULL_KEY, OBSERVER_CHANGES_NATIVE, observer), OK);
     /**
@@ -572,7 +571,6 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit004, TestSize.Level1)
 
     // finilize
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
@@ -666,7 +664,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit006, TestSize.Level1)
 
     EXPECT_TRUE(g_kvNbDelegatePtr->SetConflictNotifier(CONFLICT_ALL, NotifierCallback) == OK);
 
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_TRUE(observer != nullptr);
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(NULL_KEY, OBSERVER_CHANGES_NATIVE, observer), OK);
     /**
@@ -713,7 +711,6 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, commit006, TestSize.Level1)
     // finilize
     g_conflictData.clear();
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), OK);
-    delete observer;
     observer = nullptr;
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);

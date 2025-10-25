@@ -218,7 +218,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch001, Test
     passwdVect = {'p', 's', 'd', '2'};
     CipherPassword passwdOther;
     passwdOther.SetValue(passwdVect.data(), passwdVect.size());
-    AutoLaunchOption launchOption = {true, true, CipherType::DEFAULT, passwdOther, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {true, true, CipherType::DEFAULT, passwdOther, "", false, g_testDir};
     DBStatus status = KvStoreDelegateManager::EnableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId,
         launchOption, nullptr);
     EXPECT_NE(status, OK);
@@ -261,7 +261,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch002, Test
      */
     CipherPassword passwd;
     std::string storeId = "test2";
-    AutoLaunchOption launchOption = {false, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {false, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
     DBStatus status = KvStoreDelegateManager::EnableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId,
         launchOption, nullptr);
     EXPECT_NE(status, OK);
@@ -364,7 +364,7 @@ void TriggerAutoLaunch(const std::string &storeId, bool isWriteCovered)
      */
     PrePutDataIntoDatabase(storeId);
     CipherPassword passwd;
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_NE(observer, nullptr);
 
     AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, observer};
@@ -395,7 +395,6 @@ void TriggerAutoLaunch(const std::string &storeId, bool isWriteCovered)
 
     EXPECT_EQ(KvStoreDelegateManager::DisableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId), OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_FOR_RESPONSE_TIME));
-    delete observer;
     observer = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
 }
@@ -456,7 +455,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch005, Test
      */
     std::string storeId = "test5";
     CipherPassword passwd;
-    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
     DBStatus status = KvStoreDelegateManager::EnableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId, launchOption,
         nullptr);
     EXPECT_EQ(status, OK);
@@ -486,7 +485,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch006, Test
      * @tc.expected: step1. Returns OK.
      */
     CipherPassword passwd;
-    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
     for (int i = 0; i < MAX_AUTO_LAUNCH_NUM; i++) {
         std::string storeId = "store_" + std::to_string(i + 1);
         DBStatus status = KvStoreDelegateManager::EnableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId,
@@ -559,7 +558,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, DisableKvStoreAutoLaunch001, Tes
      * @tc.expected: step1. Returns OK.
      */
     CipherPassword passwd;
-    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
     std::string storeId = "test7";
     DBStatus status = KvStoreDelegateManager::EnableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId, launchOption,
         g_autoLaunchNotifyFunc);
@@ -600,7 +599,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, AutoLaunchLifeCycle001, TestSize
      * @tc.expected: step1. Returns OK.
      */
     CipherPassword passwd;
-    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
     std::string storeId = "test8";
     DBStatus status = KvStoreDelegateManager::EnableKvStoreAutoLaunch(USER_ID1, APP_ID1, storeId, launchOption,
         g_autoLaunchNotifyFunc);
@@ -644,7 +643,7 @@ namespace {
 void DelayAutoLaunchCycle(const std::string &storeId, bool isWrite)
 {
     CipherPassword passwd;
-    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr};
+    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
     /**
      * @tc.steps: step1. Enable the auto launch for 'test8'.
      * @tc.expected: step1. Returns OK.

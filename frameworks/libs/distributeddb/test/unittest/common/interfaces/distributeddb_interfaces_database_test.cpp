@@ -634,7 +634,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore004, TestSize.Level1)
      * @tc.expected: step1. Returns a non-null kvstore and error code is OK.
      */
     KvStoreNbDelegate::Option option = {true, false, false};
-    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     ASSERT_NE(observer, nullptr);
     Key key;
     Value value1;
@@ -675,7 +675,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore004, TestSize.Level1)
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvNbDelegatePtr = nullptr;
-    delete observer;
     observer = nullptr;
     EXPECT_TRUE(g_mgr.DeleteKvStore("distributed_getkvstore_004") == OK);
 }

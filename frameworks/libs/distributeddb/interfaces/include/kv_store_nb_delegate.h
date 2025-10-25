@@ -45,7 +45,7 @@ public:
         std::string schema = "";
         bool createDirByStoreIdOnly = false;
         SecurityOption secOption; // Add data security level parameter
-        KvStoreObserver *observer = nullptr;
+        std::shared_ptr<KvStoreObserver> observer;
         Key key; // The key that needs to be subscribed on obsever, empty means full subscription
         unsigned int mode = 0; // obsever mode
         int conflictType = 0;
@@ -136,10 +136,11 @@ public:
     // There are three mode: native changes of nb syncable kv store,
     //                       synced data changes from remote devices,
     //                       local changes of local kv store.
-    DB_API virtual DBStatus RegisterObserver(const Key &key, unsigned int mode, KvStoreObserver *observer) = 0;
+    DB_API virtual DBStatus RegisterObserver(const Key &key, unsigned int mode,
+        std::shared_ptr<KvStoreObserver> observer) = 0;
 
     // UnRegister the registered observer.
-    DB_API virtual DBStatus UnRegisterObserver(const KvStoreObserver *observer) = 0;
+    DB_API virtual DBStatus UnRegisterObserver(std::shared_ptr<KvStoreObserver> observer) = 0;
 
     // Remove the device data synced from remote.
     DB_API virtual DBStatus RemoveDeviceData(const std::string &device) = 0;

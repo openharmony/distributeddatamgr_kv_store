@@ -302,7 +302,7 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     }
 
     if ((realType & SUBSCRIBE_TYPE_LOCAL) == SUBSCRIBE_TYPE_LOCAL) {
-        auto dbStatus = dbStore_->RegisterObserver({}, mode, bridge.get());
+        auto dbStatus = dbStore_->RegisterObserver({}, mode, bridge);
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
@@ -344,7 +344,7 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
     Status status = SUCCESS;
 
     if ((realType & SUBSCRIBE_TYPE_LOCAL) == SUBSCRIBE_TYPE_LOCAL) {
-        auto dbStatus = dbStore_->UnRegisterObserver(bridge.get());
+        auto dbStatus = dbStore_->UnRegisterObserver(bridge);
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
@@ -783,11 +783,17 @@ int32_t SingleStoreImpl::Close(bool isForce)
     if (ref_ != 0) {
         return ref_;
     }
-
-    observers_.Clear();
     asyncFuncs_.Clear();
     syncObserver_->Clean();
     std::unique_lock<decltype(rwMutex_)> lock(rwMutex_);
+    observers_.ForEach([this](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
+        if (dbStore_ != nullptr) {
+            (void)dbStore_->UnRegisterObserver(pair.second);
+        }
+        (void)pair.second->UnregisterRemoteObserver(SUBSCRIBE_TYPE_ALL);
+        return false;
+    });
+    observers_.Clear();
     dbStore_ = nullptr;
     return ref_;
 }
@@ -848,31 +854,6 @@ Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, cons
     return status;
 }
 
-std::function<void(ObserverBridge *)> SingleStoreImpl::BridgeReleaser()
-{
-    return [this](ObserverBridge *obj) {
-        if (obj == nullptr) {
-            return;
-        }
-        Status status = ALREADY_CLOSED;
-        {
-            std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
-            if (dbStore_ != nullptr) {
-                auto dbStatus = dbStore_->UnRegisterObserver(obj);
-                status = StoreUtil::ConvertStatus(dbStatus);
-            }
-        }
-
-        Status remote = obj->UnregisterRemoteObserver(SUBSCRIBE_TYPE_ALL);
-        if (status != SUCCESS || remote != SUCCESS) {
-            ZLOGE("status:0x%{public}x remote:0x%{public}x observer:0x%{public}x", status, remote,
-                StoreUtil::Anonymous(obj));
-        }
-
-        delete obj;
-    };
-}
-
 std::shared_ptr<ObserverBridge> SingleStoreImpl::PutIn(uint32_t &realType, std::shared_ptr<Observer> observer)
 {
     std::shared_ptr<ObserverBridge> bridge = nullptr;
@@ -888,10 +869,9 @@ std::shared_ptr<ObserverBridge> SingleStoreImpl::PutIn(uint32_t &realType, std::
             }
 
             if (pair.first == 0) {
-                auto release = BridgeReleaser();
                 StoreId storeId{ storeId_ };
                 AppId appId{ appId_ };
-                pair.second = { new ObserverBridge(appId, storeId, subUser_, observer, convertor_), release };
+                pair.second = std::make_shared<ObserverBridge>(appId, storeId, subUser_, observer, convertor_);
             }
             bridge = pair.second;
             realType = (realType & (~pair.first));
