@@ -252,4 +252,61 @@ HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge003, TestSize.Level0)
 
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
+
+/**
+ * @tc.name: SetKnowledge004
+ * @tc.desc: Test set knowledge schema with sort column.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set knowledge source schema when sort column has type int.
+     * @tc.expected: step1. Ok
+     */
+    UtTableSchemaInfo tableInfo = GetTableSchema(KNOWLEDGE_TABLE);
+
+    // add a non-integer field
+    UtFieldInfo field;
+    field.field.colName = "string_field";
+    field.field.type = TYPE_INDEX<std::string>;
+    field.field.primary = false;
+    tableInfo.fieldInfo.push_back(field);
+
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    RDBDataGenerator::InitTableWithSchemaInfo(tableInfo, *db);
+    KnowledgeSourceSchema schema;
+    schema.tableName = KNOWLEDGE_TABLE;
+    schema.columnsToVerify = {};
+    schema.extendColNames.insert("id");
+    schema.knowledgeColNames.insert("int_field1");
+    schema.knowledgeColNames.insert("int_field2");
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    /**
+     * @tc.steps: step2. Set knowledge source schema when sort column not exist.
+     * @tc.expected: step2. INVALID_ARGS
+     */
+    schema.columnsToVerify = {{"processSequence", {"not_exist"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Set knowledge source schema when sort column is not integer.
+     * @tc.expected: step3. INVALID_ARGS
+     */
+    schema.columnsToVerify = {{"processSequence", {"string_field"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step4. Set knowledge source schema when sort column empty.
+     * @tc.expected: step4. OK
+     */
+    schema.columnsToVerify = {{"processSequence", {"", "id", "int_field1"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
 }
