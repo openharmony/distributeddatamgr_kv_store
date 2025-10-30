@@ -16,6 +16,7 @@
 
 #include "db_common.h"
 #include "db_errno.h"
+#include "res_finalizer.h"
 #include "simple_tracker_log_table_manager.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_utils.h"
@@ -47,6 +48,52 @@ TrackerSchema GetTrackerSchema(const KnowledgeSourceSchema &schema)
     trackerSchema.trackerColNames = schema.knowledgeColNames;
     return trackerSchema;
 }
+}
+
+constexpr const char *PROCESS_SEQ_KEY = "processSequence";
+
+int KnowledgeSourceUtils::CheckProcessSequence(sqlite3 *db, const std::string &tableName,
+    const std::string &columnName)
+{
+    // empty column name is ok
+    if (columnName.empty()) {
+        return E_OK;
+    }
+    if (db == nullptr) {
+        return -E_INVALID_DB;
+    }
+    std::string checkColumnSql = "SELECT COUNT(1) FROM pragma_table_info('" + tableName + "')" +
+        " WHERE name = ? AND type LIKE '%int%'";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, checkColumnSql, stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("Get check column statement failed. err=%d", errCode);
+        return errCode;
+    }
+
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed when check column type %d", ret);
+        }
+    });
+
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, columnName);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("Bind column name to statement failed. err=%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    // should always return a row of data
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("Check column type failed. err=%d", errCode);
+        return errCode;
+    }
+    bool isCheckSuccess = (sqlite3_column_int(stmt, 0) == 1);
+    return isCheckSuccess ? E_OK : -E_INVALID_ARGS;
 }
 
 int KnowledgeSourceUtils::SetKnowledgeSourceSchema(sqlite3 *db, const KnowledgeSourceSchema &schema)
@@ -89,16 +136,38 @@ int KnowledgeSourceUtils::CleanDeletedData(sqlite3 *db, const std::string &table
     return errCode;
 }
 
-int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const KnowledgeSourceSchema &schema)
+int KnowledgeSourceUtils::CheckSchemaFields(sqlite3 *db, const KnowledgeSourceSchema &schema)
 {
-    bool isExist = false;
-    auto errCode = SQLiteUtils::CheckTableExists(db, schema.tableName, isExist);
+    bool isCheckSuccess = false;
+    auto errCode = SQLiteUtils::CheckTableExists(db, schema.tableName, isCheckSuccess);
     if (errCode != E_OK) {
         return errCode;
     }
-    if (!isExist) {
+    if (!isCheckSuccess) {
         LOGE("Set not exist table's knowledge schema");
         return -E_INVALID_ARGS;
+    }
+
+    auto it = schema.columnsToVerify.find(PROCESS_SEQ_KEY);
+    if (it == schema.columnsToVerify.end()) {
+        return E_OK;
+    }
+    for (const auto &columnName : it->second) {
+        errCode = CheckProcessSequence(db, schema.tableName, columnName);
+        if (errCode != E_OK) {
+            LOGE("column type not match, name %s, size %zu", DBCommon::StringMiddleMasking(columnName).c_str(),
+                columnName.size());
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const KnowledgeSourceSchema &schema)
+{
+    int errCode = CheckSchemaFields(db, schema);
+    if (errCode != E_OK) {
+        return errCode;
     }
     errCode = InitMeta(db, schema.tableName);
     if (errCode != E_OK) {

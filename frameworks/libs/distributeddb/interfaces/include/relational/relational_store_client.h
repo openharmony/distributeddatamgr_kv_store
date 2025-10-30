@@ -64,6 +64,7 @@ struct KnowledgeSourceSchema {
     std::string tableName;
     std::set<std::string> extendColNames;
     std::set<std::string> knowledgeColNames;
+    std::map<std::string, std::set<std::string>> columnsToVerify;
 };
 }
 

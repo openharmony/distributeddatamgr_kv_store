@@ -28,6 +28,10 @@ public:
 
     static int CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 protected:
+    static int CheckProcessSequence(sqlite3 *db, const std::string &tableName, const std::string &columnName);
+
+    static int CheckSchemaFields(sqlite3 *db, const KnowledgeSourceSchema &schema);
+
     static int SetKnowledgeSourceSchemaInner(sqlite3 *db, const KnowledgeSourceSchema &schema);
 
     static int InitMeta(sqlite3 *db, const std::string &table);
