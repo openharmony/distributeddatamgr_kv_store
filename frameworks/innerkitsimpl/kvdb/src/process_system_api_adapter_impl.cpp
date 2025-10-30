@@ -56,7 +56,10 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::SetSecurityOp
     }
 
     struct stat curStat;
-    stat(filePath.c_str(), &curStat);
+    if (stat(filePath.c_str(), &curStat) != 0) {
+        ZLOGE("stat fail, error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(filePath).c_str());
+        return DBStatus::INVALID_ARGS;
+    }
     if (S_ISDIR(curStat.st_mode)) {
         return DBStatus::NOT_SUPPORT;
     }
@@ -89,7 +92,10 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::GetSecurityOp
     }
 
     struct stat curStat;
-    stat(filePath.c_str(), &curStat);
+    if (stat(filePath.c_str(), &curStat) != 0) {
+        ZLOGE("stat fail, error:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(filePath).c_str());
+        return DBStatus::INVALID_ARGS;
+    }
     if (S_ISDIR(curStat.st_mode)) {
         return DBStatus::NOT_SUPPORT;
     }
