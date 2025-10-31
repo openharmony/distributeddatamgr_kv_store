@@ -38,7 +38,7 @@ public:
     Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser) override;
     Status Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo) override;
     Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) override;
-    Status UnregServiceNotifier(const AppId &appIdd) override;
+    Status UnregServiceNotifier(const AppId &appId) override;
     Status SetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser,
         const KvSyncParam &syncParam) override;
     Status GetSyncParam(const AppId &appId, const StoreId &storeId, int32_t subUser, KvSyncParam &syncParam) override;

@@ -77,9 +77,8 @@ void SwitchObserverBridge::RegisterSwitchObserver()
     switchObservers_.ForEach([&](auto &, auto &switchObserver) {
         if (switchObserver != nullptr) {
             serviceAgent->AddSwitchCallback(switchAppId_, switchObserver);
-            return true;
         }
-        return false;
+        return true;
     });
 }
 

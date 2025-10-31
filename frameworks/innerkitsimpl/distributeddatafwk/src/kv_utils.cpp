@@ -97,6 +97,10 @@ Status KvUtils::GetKeys(const DataShareAbsPredicates &predicates, std::vector<Ke
             ZLOGE("This find operation is failed");
             return Status::NOT_SUPPORT;
         }
+        if (oper.multiParams.empty()) {
+            ZLOGE("operation multi params is empty");
+            return Status::ERROR;
+        }
         auto *val = std::get_if<std::vector<std::string>>(&oper.multiParams[0]);
         if (val == nullptr) {
             continue;

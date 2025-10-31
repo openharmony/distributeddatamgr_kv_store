@@ -792,7 +792,7 @@ void DataQuery::EscapeSpace(std::string &input)
 
 bool DataQuery::ValidateField(const std::string &field)
 {
-    if (field.empty() || field.find(DataQuery::SPECIAL) != std::string::npos) {
+    if (field.empty() || field.find(DataQuery::SPECIAL) != std::string::npos || query_ == nullptr) {
         ZLOGE("Invalid string argument");
         return false;
     }

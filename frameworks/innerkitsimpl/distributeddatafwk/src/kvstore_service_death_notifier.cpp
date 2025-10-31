@@ -77,6 +77,7 @@ sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataServi
         instance.deathRecipientPtr_ = new (std::nothrow) ServiceDeathRecipient();
         if (instance.deathRecipientPtr_ == nullptr) {
             ZLOGW("New KvStoreDeathRecipient failed");
+            instance.kvDataServiceProxy_ = nullptr;
             return nullptr;
         }
     }
