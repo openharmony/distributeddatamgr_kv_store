@@ -178,7 +178,7 @@ int SchemaUtils::TransToLong(const std::string &defaultContent, SchemaAttribute 
         return -E_SCHEMA_PARSE_FAIL;
     }
     auto defaultPos = defaultContent.find_first_not_of("+- ");
-    if (defaultPos >= defaultContent.size()) {
+    if (defaultPos == std::string::npos) {
         LOGE("Default value without +-");
         return -E_SCHEMA_PARSE_FAIL;
     }

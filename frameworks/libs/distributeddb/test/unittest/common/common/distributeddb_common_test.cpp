@@ -865,5 +865,8 @@ HWTEST_F(DistributedDBCommonTest, SchemaUtilsTest002, TestSize.Level0)
     value = "INTEGER,DEFAULT -10000000000 ";
     errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
     EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+    value = "INTEGER,DEFAULT +100";
+    errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
+    EXPECT_EQ(errCode, E_OK);
 }
 }
