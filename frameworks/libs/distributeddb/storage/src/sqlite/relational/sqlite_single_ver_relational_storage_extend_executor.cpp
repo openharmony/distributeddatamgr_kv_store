@@ -1995,70 +1995,22 @@ void SQLiteSingleVerRelationalStorageExecutor::CheckAndCreateTrigger(const Table
 
 void SQLiteSingleVerRelationalStorageExecutor::ClearLogOfMismatchedData(const std::string &tableName)
 {
-    bool isLogTableExist = false;
-    int errCode = SQLiteUtils::CheckTableExists(dbHandle_, DBCommon::GetLogTableName(tableName), isLogTableExist);
-    if (!isLogTableExist) {
+    std::string misDataKeys = SQLiteRelationalUtils::GetMismatchedDataKeys(dbHandle_, tableName);
+    if (misDataKeys.empty()) {
         return;
     }
-    std::string sql = "SELECT data_key from " + DBCommon::GetLogTableName(tableName) + " WHERE data_key NOT IN " +
-        "(SELECT _rowid_ FROM " + tableName + ") AND data_key != -1";
-    sqlite3_stmt *stmt = nullptr;
-    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        LOGW("[RDBExecutor][ClearMisLog] Get stmt failed, %d", errCode);
-        return;
-    }
-    std::vector<int64_t> dataKeys;
-    std::string misDataKeys = "(";
-    errCode = SQLiteUtils::StepWithRetry(stmt, false);
-    while (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        int dataKey = sqlite3_column_int64(stmt, 0);
-        dataKeys.push_back(dataKey);
-        misDataKeys += std::to_string(dataKey) + ",";
-        errCode = SQLiteUtils::StepWithRetry(stmt, false);
-    }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    stmt = nullptr;
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        LOGW("[RDBExecutor][ClearMisLog] Step failed. %d", errCode);
-        return;
-    }
-    if (dataKeys.empty()) {
-        return;
-    }
-    misDataKeys.pop_back();
-    misDataKeys += ")";
-    LOGW("[RDBExecutor][ClearMisLog] Mismatched:%s", misDataKeys.c_str());
-    std::string delSql = "DELETE FROM " + DBCommon::GetLogTableName(tableName) + " WHERE data_key IN " + misDataKeys;
-    errCode = SQLiteUtils::GetStatement(dbHandle_, delSql, stmt);
-    if (errCode != E_OK) {
-        LOGW("[RDBExecutor][ClearMisLog] Get del stmt failed, %d", errCode);
-        return;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt, false);
-    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        LOGW("[RDBExecutor][ClearMisLog] Step del failed, %d", errCode);
-    }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    SQLiteRelationalUtils::DeleteMismatchLog(dbHandle_, tableName, misDataKeys);
 }
 
-void SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLog(const TrackerSchema &trackerSchema,
-    const TrackerTable &table)
+void SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLog(const std::string &tableName,
+    const std::set<std::string> &extendColNames, const std::string &sql)
 {
-    if (trackerSchema.extendColNames.empty()) {
-        return;
-    }
-    std::string sql = "SELECT COUNT(1) FROM " + DBCommon::GetLogTableName(trackerSchema.tableName) +
-        " WHERE (json_valid(extend_field) = 0 OR json_type(extend_field) IS NOT 'object') AND data_key != -1";
-    if (!SQLiteRelationalUtils::ExecuteCheckSql(dbHandle_, sql).second) {
-        return;
-    }
     auto errCode = SQLiteUtils::BeginTransaction(dbHandle_, TransactType::IMMEDIATE);
     if (errCode != E_OK) {
         LOGE("[RDBExecutor][RecoverTracker] Begin transaction fail %d", errCode);
         return;
     }
-    errCode = RecoverNullExtendLogInner(trackerSchema, table);
+    errCode = RecoverNullExtendLogInner(tableName, extendColNames, sql);
     int changeRow = 0;
     if (errCode == E_OK) {
         changeRow = sqlite3_changes(dbHandle_);
@@ -2067,22 +2019,22 @@ void SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLog(const Tracke
         (void)SQLiteUtils::RollbackTransaction(dbHandle_);
     }
     LOGI("[RDBExecutor][RecoverTracker] Recover tracker[%s][%zu] finished[%d] changeRow[%d]",
-        DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size(),
+        DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(),
         errCode, changeRow);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLogInner(const TrackerSchema &trackerSchema,
-    const TrackerTable &table)
+int SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLogInner(const std::string &tableName,
+    const std::set<std::string> &extendColNames, const std::string &sql)
 {
     std::vector<std::function<int()>> actions;
     actions.emplace_back([this]() {
         return SetLogTriggerStatus(false);
     });
-    actions.emplace_back([this, &table]() {
-        return SQLiteUtils::ExecuteRawSQL(dbHandle_, table.GetTempUpdateLogCursorTriggerSql());
+    actions.emplace_back([this, &sql]() {
+        return SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     });
-    actions.emplace_back([this, &trackerSchema]() {
-        return UpdateExtendField(trackerSchema.tableName, trackerSchema.extendColNames,
+    actions.emplace_back([this, &tableName, &extendColNames]() {
+        return UpdateExtendField(tableName, extendColNames,
             " AND (json_valid(log.extend_field) = 0 OR json_type(log.extend_field) IS NOT 'object')");
     });
     actions.emplace_back([this]() {

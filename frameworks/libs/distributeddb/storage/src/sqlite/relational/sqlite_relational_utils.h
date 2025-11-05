@@ -119,6 +119,12 @@ public:
         VBucket &distributedPk);
 
     static int BindOneField(sqlite3_stmt *stmt, int bindIdx, const FieldInfo &fieldInfo, VBucket &distributedPk);
+
+    static std::string GetMismatchedDataKeys(sqlite3 *db, const std::string &tableName);
+
+    static void DeleteMismatchLog(sqlite3 *db, const std::string &tableName, const std::string &misDataKeys);
+
+    static const std::string GetTempUpdateLogCursorTriggerSql(const std::string &tableName);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

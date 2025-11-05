@@ -466,7 +466,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
     } else {
-        CleanDirtyLogIfNeed(tableName, nullptr);
+        CleanDirtyLogIfNeed(tableName);
     }
     if (schemaChanged) {
         LOGD("Notify schema changed.");
@@ -1378,7 +1378,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (isNoTableInSchema) {
         errCode = sqliteStorageEngine_->SetTrackerTable(trackerSchema, tableInfo, isFirstCreate);
         if (errCode == E_OK) {
-            CleanDirtyLogIfNeed(trackerSchema.tableName, nullptr);
+            CleanDirtyLogIfNeed(trackerSchema.tableName);
         }
         return errCode;
     }
@@ -1937,16 +1937,13 @@ int32_t SQLiteRelationalStore::GetDeviceSyncTaskCount() const
     return syncAbleEngine_->GetDeviceSyncTaskCount();
 }
 
-void SQLiteRelationalStore::CleanDirtyLogIfNeed(const std::string &tableName,
-    SQLiteSingleVerRelationalStorageExecutor *handle) const
+void SQLiteRelationalStore::CleanDirtyLogIfNeed(const std::string &tableName) const
 {
     int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        handle = GetHandle(true, errCode);
-        if (handle == nullptr) {
-            LOGW("[RDBStore][ClearDirtyLog] Get handle failed %d", errCode);
-            return;
-        }
+        LOGW("[RDBStore][ClearDirtyLog] Get handle failed %d", errCode);
+        return;
     }
     ResFinalizer finalizer([this, handle]() {
         SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
@@ -1994,76 +1991,74 @@ int SQLiteRelationalStore::SetProperty(const Property &property)
     return E_OK;
 }
 
-bool SQLiteRelationalStore::IsDailyTrackerIntegrityRepair(const std::string &tableName)
-{
-    std::string keyStr = CloudDbConstant::TRACKER_CHECK_PREFIX + tableName;
-    const Key key(keyStr.begin(), keyStr.end());
-    Value value;
-    int errCode = storageEngine_->GetMetaData(key, value);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        LOGW("[RDBStore] get tracker intergrity check time failed %d", errCode);
-        return false;
-    }
-    int64_t lastTimeMs = 0;
-    if (!value.empty()) {
-        int64_t result = std::strtoll(std::string(value.begin(), value.end()).c_str(),
-            nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
-        if (errno != ERANGE && result != LLONG_MIN && result != LLONG_MAX) {
-            lastTimeMs = result;
-        }
-    }
-    uint64_t curTimeNs = 0;
-    errCode = TimeHelper::GetSysCurrentRawTime(curTimeNs);
-    if (errCode != E_OK) {
-        LOGW("[RDBStore] get cur time failed %d", errCode);
-        return false;
-    }
-    int64_t curTimeMs = curTimeNs / CloudDbConstant::TEN_THOUSAND;
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<int64_t> dis(CloudDbConstant::ONE_DAY_MS, CloudDbConstant::ONE_DAY_MS +
-        CloudDbConstant::ONE_DAY_MS);
-    int64_t ranDelayMs = dis(gen);
-    if (std::abs(curTimeMs - lastTimeMs) < ranDelayMs) {
-        return false;
-    }
-    std::vector<uint8_t> curTimeVal;
-    DBCommon::StringToVector(std::to_string(curTimeMs), curTimeVal);
-    errCode = storageEngine_->PutMetaData(key, curTimeVal);
-    if (errCode != E_OK) {
-        LOGW("[RDBStore] save tracker intergrity check time failed %d", errCode);
-        return false;
-    }
-    return true;
-}
-
 void SQLiteRelationalStore::TrackerIntegrityRepair(const TrackerSchema &trackerSchema,
     const TableInfo &tableInfo, bool isNoTableInSchema)
 {
     int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
+    auto *handle = GetHandle(false, errCode);
     if (handle == nullptr) {
-        LOGW("[TrackerIntegrityRepair] get handle failed:%d", errCode);
+        LOGW("[TrackerIntegrityRepair] get read handle failed:%d", errCode);
         return;
     }
-    handle->CheckAndCreateTrigger(tableInfo);
-    ReleaseHandle(handle);
-    if (!IsDailyTrackerIntegrityRepair(trackerSchema.tableName)) {
+    sqlite3 *dbHandle = nullptr;
+    if (handle->GetDbHandle(dbHandle) != E_OK) {
+        ReleaseHandle(handle);
         return;
     }
-    handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        LOGW("[TrackerIntegrityRepair] get handle err:%d", errCode);
-        return;
-    }
+    TrackerTable trackerTable = tableInfo.GetTrackerTable();
+    trackerTable.CheckMissingTrigger(tableInfo, dbHandle);
     // Try clear historical mismatched log, which usually do not occur and apply to tracker table only.
     if (isNoTableInSchema) {
-        handle->ClearLogOfMismatchedData(trackerSchema.tableName);
+        trackerTable.CheckMismatchedDataKeys(dbHandle);
     }
-    handle->RecoverNullExtendLog(trackerSchema, tableInfo.GetTrackerTable());
-    CleanDirtyLogIfNeed(trackerSchema.tableName, handle);
+    if (!trackerSchema.extendColNames.empty()) {
+        trackerTable.CheckNullExtendLog(dbHandle);
+    }
+    auto obj = GetSchemaObj();
+    if (obj.IsSchemaValid()) {
+        trackerTable.CheckExistDirtyLog(dbHandle);
+    }
+    ReleaseHandle(handle);
     LOGI("[TrackerIntegrityRepair] check finish [%s length[%u]]",
         DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.length());
+    TrackerRepairImpl(trackerTable, obj);
+}
+
+void SQLiteRelationalStore::TrackerRepairImpl(TrackerTable &trackerTable, const RelationalSchemaObject &obj)
+{
+    trackerTable.Repair([this, &obj] (const TrackerTable::RepairInfo &repairInfo, const std::string &tableName,
+        const std::set<std::string> &extendColNames) {
+        int errCode = E_OK;
+        auto handle = GetHandle(true, errCode);
+        if (handle == nullptr) {
+            LOGW("[TrackerIntegrityRepair] get write handle failed:%d", errCode);
+            return;
+        }
+        sqlite3 *db = nullptr;
+        if (handle->GetDbHandle(db) != E_OK) {
+            ReleaseHandle(handle);
+            return;
+        }
+        for (const auto &sql : repairInfo.createTriggerSqls) {
+            int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+            if (errCode != E_OK) {
+                LOGW("[%s [%zu]] Failed to recreate trigger, errCode=%d",
+                    DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode);
+            }
+        }
+        if (!repairInfo.misDataKeys.empty()) {
+            SQLiteRelationalUtils::DeleteMismatchLog(db, tableName, repairInfo.misDataKeys);
+        }
+        if (repairInfo.existNullExtend) {
+            handle->RecoverNullExtendLog(tableName, extendColNames,
+                SQLiteRelationalUtils::GetTempUpdateLogCursorTriggerSql(tableName));
+        }
+        if (repairInfo.existDirtyLog) {
+            (void) SQLiteRelationalUtils::CleanDirtyLog(db, tableName, obj);
+        }
+        ReleaseHandle(handle);
+        LOGI("[TrackerIntegrityRepair] repair finish");
+    });
 }
 } // namespace DistributedDB
 #endif
