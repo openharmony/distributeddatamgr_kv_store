@@ -1966,6 +1966,37 @@ HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest004, TestSize.Leve
 }
 
 /**
+ * @tc.name: ObserverDataChangeTest005
+ * @tc.desc: test cloud sync after ovserver released
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudKvStoreTest, ObserverDataChangeTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. delegate1 insert two data and sync with cloud
+     * @tc.expected: step1. insert and sync ok
+    */
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    ASSERT_EQ(kvDelegatePtrS1_->Put(k1, v1), OK);
+    Value actualValue;
+    BlockSync(kvDelegatePtrS1_, OK, g_CloudSyncoption);
+
+    /**
+     * @tc.steps: step2. sync after ovserver released
+     * @tc.expected: step2. sync success
+    */
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
+    EXPECT_EQ(kvDelegatePtrS2_->RegisterObserver({}, OBSERVER_CHANGES_CLOUD, observer), OK);
+    observer = nullptr;
+    BlockSync(kvDelegatePtrS2_, OK, g_CloudSyncoption);
+    EXPECT_EQ(kvDelegatePtrS2_->Get(k1, actualValue), OK);
+    EXPECT_EQ(actualValue, v1);
+}
+
+/**
  * @tc.name: StartTransactionForAsyncDownloadTest001
  * @tc.desc: test StartTransactionForAsyncDownload function
  * @tc.type: FUNC
