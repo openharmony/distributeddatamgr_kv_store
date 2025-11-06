@@ -122,4 +122,63 @@ HWTEST_F(DistributedDBStorageRdSingleVerStorageEngineTest, DataTest001, TestSize
     storageEngine->Release();
     storageEngine = nullptr;
 }
+
+/**
+  * @tc.name: StorageEnginePrintDbFileMsg001
+  * @tc.desc: test when file is not exist
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerStorageEngineTest, StorageEnginePrintDbFileMsg001, TestSize.Level1)
+{
+    // release and print db file msg when db file is not exist
+    RdSingleVerStorageEngine *storageEngine1 = nullptr;
+    GetStorageEngine(storageEngine1);
+    ASSERT_NE(storageEngine1, nullptr);
+    storageEngine1->Release();
+    EXPECT_EQ(storageEngine1->GetEngineState(), EngineState::INVALID);
+    storageEngine1 = nullptr;
+    // release and print db file msg when db wal file is not exist
+    RdSingleVerStorageEngine *storageEngine2 = nullptr;
+    GetStorageEngine(storageEngine2);
+    ASSERT_NE(storageEngine2, nullptr);
+
+    std::string dbPath = "/tmp/test_db";
+    storageEngine2->SetUri(dbPath);
+
+    std::ofstream dbFile(dbPath);
+    dbFile.close();
+    storageEngine2->Release();
+    EXPECT_EQ(storageEngine2->GetEngineState(), EngineState::INVALID);
+    storageEngine2 = nullptr;
+    // release and print db file msg when db shm file is not exist
+    RdSingleVerStorageEngine *storageEngine3 = nullptr;
+    GetStorageEngine(storageEngine3);
+    ASSERT_NE(storageEngine3, nullptr);
+
+    storageEngine3->SetUri(dbPath);
+    std::string walPath = dbPath + "-wal";
+    std::ofstream walFile(walPath);
+    walFile.close();
+    storageEngine3->Release();
+    EXPECT_EQ(storageEngine3->GetEngineState(), EngineState::INVALID);
+    storageEngine3 = nullptr;
+    // release and print db file msg when db dwr file is not exist
+    RdSingleVerStorageEngine *storageEngine4 = nullptr;
+    GetStorageEngine(storageEngine4);
+    ASSERT_NE(storageEngine4, nullptr);
+
+    storageEngine4->SetUri(dbPath);
+    std::string shmPath = dbPath + "-shm";
+    std::ofstream shmFile(shmPath);
+    shmFile.close();
+    storageEngine4->Release();
+    EXPECT_EQ(storageEngine4->GetEngineState(), EngineState::INVALID);
+    storageEngine4 = nullptr;
+    //remove temp file
+    remove(dbPath.c_str());
+    remove(walPath.c_str());
+    remove(shmPath.c_str());
+}
 #endif // USE_RD_KERNEL

@@ -20,6 +20,7 @@
 #include <list>
 #include <mutex>
 #include <shared_mutex>
+#include <sys/stat.h>
 
 #include "db_types.h"
 #include "macro_utils.h"
@@ -96,6 +97,8 @@ public:
 
     OpenDbProperties GetOption() const;
 
+    void SetUri(const std::string &uri);
+
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
 
@@ -107,7 +110,6 @@ protected:
 
     int InitReadWriteExecutors();
 
-    void SetUri(const std::string &uri);
     void SetSQL(const std::vector<std::string> &sql);
     void SetSecurityOption(const SecurityOption &option);
     void SetCreateIfNecessary(bool isCreateIfNecessary);
@@ -147,6 +149,8 @@ private:
     StorageExecutor *FetchReadStorageExecutor(int &errCode, bool isExternal, bool isNeedCreate);
 
     virtual void ClearCorruptedFlag();
+
+    std::string LogAndCheckFileStat(const std::string& filePath, struct stat& fileStat, const std::string& logPrefix);
 
     void PrintDbFileMsg(bool isOpen);
 
