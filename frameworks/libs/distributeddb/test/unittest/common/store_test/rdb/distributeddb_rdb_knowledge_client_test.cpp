@@ -18,6 +18,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "rdb_data_generator.h"
 #include "relational_store_client.h"
+#include "res_finalizer.h"
 #include "sqlite_relational_utils.h"
 #include "table_info.h"
 
@@ -141,6 +142,66 @@ void InsertDBData(const std::string &tableName, int count, sqlite3 *db)
             std::to_string(i) + ',' + std::to_string(i) + ");";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
+}
+
+void UpdateDBData(sqlite3 *db, const std::string &tableName, int key, bool isChange)
+{
+    std::string value = isChange ? std::to_string(key + 1) : std::to_string(key);
+    std::string sql = "UPDATE " + tableName + " SET int_field1 = " + value + ";";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+}
+
+void SetProcessFlag(sqlite3 *db, int key, uint32_t flag)
+{
+    std::string sql = "UPDATE naturalbase_rdb_aux_KNOWLEDGE_TABLE_log SET flag=flag|" + std::to_string(flag) +
+        " WHERE data_key=" + std::to_string(key) + ";";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+}
+
+void CheckFlagAndCursor(sqlite3 *db, const std::string &tableName, int key, uint32_t flag, int64_t cursor)
+{
+    std::string sql = "SELECT flag, cursor FROM naturalbase_rdb_aux_KNOWLEDGE_TABLE_log WHERE data_key=" +
+        std::to_string(key) + ";";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    ASSERT_EQ(errCode, E_OK);
+
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed when check column type %d", ret);
+        }
+    });
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    ASSERT_EQ(errCode, SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+
+    int64_t realFlag = sqlite3_column_int64(stmt, 0);
+    EXPECT_EQ(realFlag, static_cast<int64_t>(flag));
+
+    int64_t realCursor = sqlite3_column_int64(stmt, 1);
+    EXPECT_EQ(realCursor, cursor);
+}
+
+std::string GetOldTriggerSql()
+{
+    std::string updateTrigger = R"(CREATE TRIGGER IF NOT EXISTS naturalbase_rdb_KNOWLEDGE_TABLE_ON_UPDATE AFTER UPDATE
+        ON 'KNOWLEDGE_TABLE'
+        FOR EACH ROW BEGIN
+        UPDATE naturalbase_rdb_aux_metadata SET value=value+1 WHERE
+            key=x'6e61747572616c626173655f7264625f6175785f637572736f725f6b6e6f776c656467655f7461626c65' AND  CASE WHEN
+            ((NEW.int_field1 IS NOT OLD.int_field1) OR (NEW.int_field2 IS NOT OLD.int_field2)) THEN 4 ELSE 0 END;
+        UPDATE naturalbase_rdb_aux_KNOWLEDGE_TABLE_log SET timestamp=get_raw_sys_time(), device='', flag=0x02,
+            extend_field = json_object('id',NEW.id), cursor = CASE WHEN ((NEW.int_field1 IS NOT OLD.int_field1) OR
+            (NEW.int_field2 IS NOT OLD.int_field2)) THEN (SELECT value FROM naturalbase_rdb_aux_metadata WHERE
+            key=x'6e61747572616c626173655f7264625f6175785f637572736f725f6b6e6f776c656467655f7461626c65')
+            ELSE cursor END  WHERE data_key = OLD._rowid_;
+        SELECT client_observer('KNOWLEDGE_TABLE', OLD._rowid_, 1,  CASE WHEN
+            ((NEW.int_field1 IS NOT OLD.int_field1) OR (NEW.int_field2 IS NOT OLD.int_field2))
+            THEN 4 ELSE 0 END);END;)";
+    return updateTrigger;
 }
 
 /**
@@ -306,6 +367,136 @@ HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge004, TestSize.Level0)
      */
     schema.columnsToVerify = {{"processSequence", {"", "id", "int_field1"}}};
     EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: SetKnowledge005
+ * @tc.desc: Test knowledge table update
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set knowledge source schema
+     * @tc.expected: step1. Ok
+     */
+    UtTableSchemaInfo tableInfo = GetTableSchema(KNOWLEDGE_TABLE);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    RDBDataGenerator::InitTableWithSchemaInfo(tableInfo, *db);
+    KnowledgeSourceSchema schema;
+    schema.tableName = KNOWLEDGE_TABLE;
+    schema.extendColNames.insert("id");
+    schema.knowledgeColNames.insert("int_field1");
+    schema.knowledgeColNames.insert("int_field2");
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    /**
+     * @tc.steps: step2. insert data and set flag to processed.
+     * @tc.expected: step2. Ok
+     */
+    uint32_t flag = static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_INVERTED_WRITE);
+    InsertDBData(schema.tableName, 1, db);
+    SetProcessFlag(db, 1, flag);
+    uint32_t expectFlag = static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_INVERTED_WRITE) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
+    int64_t expectCursor = 1;
+    CheckFlagAndCursor(db, schema.tableName, 1, expectFlag, expectCursor);
+
+    /**
+     * @tc.steps: step3. update data with same content, flag and cursor unchanged
+     * @tc.expected: step3. Ok
+     */
+    UpdateDBData(db, schema.tableName, 1, false);
+    CheckFlagAndCursor(db, schema.tableName, 1, expectFlag, expectCursor);
+
+    /**
+     * @tc.steps: step4. update data with different content, flag and cursor changed
+     * @tc.expected: step4. Ok
+     */
+    UpdateDBData(db, schema.tableName, 1, true);
+    expectFlag = static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
+    expectCursor = 2;
+    CheckFlagAndCursor(db, schema.tableName, 1, expectFlag, expectCursor);
+
+    /**
+     * @tc.steps: step5. set knowledge schema again when has new trigger.
+     * @tc.expected: step5. Ok
+     */
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+ * @tc.name: SetKnowledge006
+ * @tc.desc: Test set knowledge table schema when trigger needs update
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set knowledge source schema
+     * @tc.expected: step1. Ok
+     */
+    UtTableSchemaInfo tableInfo = GetTableSchema(KNOWLEDGE_TABLE);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    RDBDataGenerator::InitTableWithSchemaInfo(tableInfo, *db);
+    KnowledgeSourceSchema schema;
+    schema.tableName = KNOWLEDGE_TABLE;
+    schema.extendColNames.insert("id");
+    schema.knowledgeColNames.insert("int_field1");
+    schema.knowledgeColNames.insert("int_field2");
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    /**
+     * @tc.steps: step2. set to old trigger
+     * @tc.expected: step2. Ok
+     */
+    std::string dropTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + std::string(KNOWLEDGE_TABLE) + "_ON_UPDATE;";
+    ASSERT_EQ(RelationalTestUtils::ExecSql(db, dropTrigger), E_OK);
+
+    std::string createOldTrigger = GetOldTriggerSql();
+    ASSERT_EQ(RelationalTestUtils::ExecSql(db, createOldTrigger), E_OK);
+
+    /**
+     * @tc.steps: step3. insert data and update data with same content
+     * @tc.expected: step3. Ok, flag changed
+     */
+    uint32_t flag = static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_INVERTED_WRITE);
+    InsertDBData(schema.tableName, 1, db);
+    SetProcessFlag(db, 1, flag);
+    UpdateDBData(db, schema.tableName, 1, false);
+    CheckFlagAndCursor(db, schema.tableName, 1, static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL), 1);
+
+    /**
+     * @tc.steps: step4. Set knowledge cursor and set knowledge source schema again
+     * @tc.expected: step4. Ok, flag is updated
+     */
+    std::string setCursor = std::string("INSERT OR REPLACE INTO naturalbase_rdb_aux_metadata (key, value) VALUES") +
+        " ('knowledge_cursor_" + std::string(KNOWLEDGE_TABLE) + "', 1)";
+    ASSERT_EQ(RelationalTestUtils::ExecSql(db, setCursor), E_OK);
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    uint32_t expectFlag = static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_INVERTED_WRITE) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_VECTOR_WRITE);
+    int64_t expectCursor = 1;
+    CheckFlagAndCursor(db, schema.tableName, 1, expectFlag, expectCursor);
+
+    /**
+     * @tc.steps: step5. update data with same content, flag and cursor unchanged
+     * @tc.expected: step5. Ok
+     */
+    UpdateDBData(db, schema.tableName, 1, false);
+    CheckFlagAndCursor(db, schema.tableName, 1, expectFlag, expectCursor);
 
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }

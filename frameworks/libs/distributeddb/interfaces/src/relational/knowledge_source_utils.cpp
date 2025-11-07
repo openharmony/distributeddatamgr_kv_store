@@ -14,10 +14,11 @@
  */
 #include "knowledge_source_utils.h"
 
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "res_finalizer.h"
-#include "simple_tracker_log_table_manager.h"
+#include "knowledge_log_table_manager.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_utils.h"
 
@@ -51,6 +52,7 @@ TrackerSchema GetTrackerSchema(const KnowledgeSourceSchema &schema)
 }
 
 constexpr const char *PROCESS_SEQ_KEY = "processSequence";
+constexpr const char *KNOWLEDGE_CURSOR_PREFIX = "knowledge_cursor_";
 
 int KnowledgeSourceUtils::CheckProcessSequence(sqlite3 *db, const std::string &tableName,
     const std::string &columnName)
@@ -192,9 +194,7 @@ int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const Knowl
     if (!isChanged) {
         LOGI("Knowledge schema is no change, table %s len %zu",
             DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.size());
-        std::unique_ptr<SqliteLogTableManager> tableManager = std::make_unique<SimpleTrackerLogTableManager>();
-        tableManager->CheckAndCreateTrigger(db, tableInfo, "");
-        return E_OK;
+        return UpdateFlagAndTriggerIfNeeded(db, tableInfo);
     }
     errCode = InitLogTable(db, schema, tableInfo);
     if (errCode != E_OK) {
@@ -202,6 +202,160 @@ int KnowledgeSourceUtils::SetKnowledgeSourceSchemaInner(sqlite3 *db, const Knowl
     }
     knowledgeSchema.InsertTrackerSchema(GetTrackerSchema(schema));
     return SaveKnowledgeSourceSchema(db, knowledgeSchema);
+}
+
+int KnowledgeSourceUtils::UpdateFlagAndTriggerIfNeeded(sqlite3 *db, const TableInfo &tableInfo)
+{
+    std::string updateTriggerName = "naturalbase_rdb_" + tableInfo.GetTableName() + "_ON_UPDATE";
+
+    bool needUpdate = false;
+    int errCode = CheckUpdateTriggerVersion(db, updateTriggerName, tableInfo.GetTableName(), needUpdate);
+    if (errCode != E_OK) {
+        LOGE("Check knowledge table trigger err %d", errCode);
+        return errCode;
+    }
+
+    std::unique_ptr<SqliteLogTableManager> tableManager = std::make_unique<KnowledgeLogTableManager>();
+    if (!needUpdate) {
+        tableManager->CheckAndCreateTrigger(db, tableInfo, "");
+        return E_OK;
+    }
+
+    LOGI("Knowledge table trigger needs update");
+    errCode = UpdateKnowledgeFlag(db, tableInfo);
+    if (errCode != E_OK) {
+        LOGE("Update knowledge flag err %d", errCode);
+        return errCode;
+    }
+
+    errCode = tableManager->AddRelationalLogTableTrigger(db, tableInfo, "");
+    if (errCode != E_OK) {
+        LOGE("Update existing trigger err %d", errCode);
+    }
+    return errCode;
+}
+
+int KnowledgeSourceUtils::CheckUpdateTriggerVersion(sqlite3 *db, const std::string &triggerName,
+    const std::string &tableName, bool &needUpdate)
+{
+    std::string checkSql = "select sql from sqlite_master where type = 'trigger' and tbl_name = '" +
+        tableName + "' and name = '" + triggerName + "';";
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, checkSql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[CheckUpdateTriggerVersion] Get statement err:%d", errCode);
+        return errCode;
+    }
+
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed when check trigger version %d", ret);
+        }
+    });
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        return E_OK;
+    }
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("Get trigger err: %d", errCode);
+        return errCode;
+    }
+
+    std::string trigger;
+    errCode = SQLiteUtils::GetColumnTextValue(stmt, 0, trigger);
+    if (errCode != E_OK) {
+        LOGE("Get trigger statement err: %d", errCode);
+        return errCode;
+    }
+
+    std::string newPattern = "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName);
+    size_t pos = trigger.find(newPattern);
+    // trigger is new version if pattern matches
+    needUpdate = (pos == std::string::npos);
+    return E_OK;
+}
+
+int KnowledgeSourceUtils::UpdateKnowledgeFlag(sqlite3 *db, const TableInfo &tableInfo)
+{
+    int64_t cursor = 0;
+    int errCode = GetKnowledgeCursor(db, tableInfo, cursor);
+    if (errCode != E_OK) {
+        LOGE("Get knowledge cursor err:%d", errCode);
+        return errCode;
+    }
+
+    std::string logTblName = DBConstant::RELATIONAL_PREFIX + tableInfo.GetTableName() + "_log";
+    uint32_t newFlag = static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_INVERTED_WRITE) |
+        static_cast<uint32_t>(LogInfoFlag::FLAG_KNOWLEDGE_VECTOR_WRITE);
+    std::string sql = "UPDATE " + logTblName + " SET flag = flag | " + std::to_string(newFlag) + " WHERE cursor <= ?;";
+
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[UpdateKnowledgeFlag] Get statement err:%d", errCode);
+        return errCode;
+    }
+
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed when update knowledge flag %d", ret);
+        }
+    });
+
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, 1, cursor);
+    if (errCode != E_OK) {
+        LOGE("UpdateKnowledgeFlag bind arg err:%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("Execute update flag statement err:%d", errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+int KnowledgeSourceUtils::GetKnowledgeCursor(sqlite3 *db, const TableInfo &tableInfo, int64_t &cursor)
+{
+    std::string cursorKey = std::string(KNOWLEDGE_CURSOR_PREFIX) + tableInfo.GetTableName();
+    std::string cursorSql = "SELECT value FROM naturalbase_rdb_aux_metadata WHERE key = '" + cursorKey + "';";
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, cursorSql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[GetKnowledgeCursor] Get statement err:%d", errCode);
+        return errCode;
+    }
+
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("Reset stmt failed when get knowledge cursor %d", ret);
+        }
+    });
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGI("Not found knowledge cursor");
+        return E_OK;
+    }
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("Get knowledge cursor err:%d", errCode);
+        return errCode;
+    }
+    cursor = sqlite3_column_int64(stmt, 0);
+    return E_OK;
 }
 
 int KnowledgeSourceUtils::RemoveKnowledgeTableSchema(sqlite3 *db, const std::string &tableName)
@@ -328,7 +482,7 @@ bool KnowledgeSourceUtils::IsSchemaChange(const RelationalSchemaObject &dbSchema
 
 int KnowledgeSourceUtils::InitLogTable(sqlite3 *db, const KnowledgeSourceSchema &schema, const TableInfo &tableInfo)
 {
-    std::unique_ptr<SqliteLogTableManager> tableManager = std::make_unique<SimpleTrackerLogTableManager>();
+    std::unique_ptr<SqliteLogTableManager> tableManager = std::make_unique<KnowledgeLogTableManager>();
     auto errCode = tableManager->CreateRelationalLogTable(db, tableInfo);
     if (errCode != E_OK) {
         return errCode;
