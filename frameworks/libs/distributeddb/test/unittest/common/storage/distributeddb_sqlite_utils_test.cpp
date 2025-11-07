@@ -742,3 +742,34 @@ HWTEST_F(DistributedDBSqliteUtilsTest, GetKvDbSizeTest002, TestSize.Level0)
         EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
     }
 }
+
+/**
+ * @tc.name: AttachSQLiteTest001
+ * @tc.desc: Test attach sqlite with
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBSqliteUtilsTest, AttachSQLiteTest001, TestSize.Level0)
+{
+    // create db1 first
+    auto db1 = NativeSqlite::CreateDataBase(g_dbDir + "test1.db");
+    ASSERT_NE(db1, nullptr);
+    auto ret = sqlite3_close_v2(db1);
+    ASSERT_EQ(ret, SQLITE_OK);
+    // create db2 and attach db1
+    auto db2 = NativeSqlite::CreateDataBase(g_dbDir + "test2.db");
+    ASSERT_NE(db2, nullptr);
+    ret = SQLiteUtils::AttachNewDatabase(db2, CipherType::DEFAULT, {}, g_dbDir + "test1.db", "test1");
+    EXPECT_EQ(ret, E_OK);
+    // wal not exist because not operate test1.db
+    EXPECT_FALSE(OS::CheckPathExistence(g_dbDir + "test1.db-wal"));
+    ret = SQLiteUtils::ExecuteRawSQL(db2, "CREATE TABLE IF NOT EXISTS test1.TEST(COL1 INTEGER PRIMARY KEY)");
+    EXPECT_EQ(ret, E_OK);
+    ret = sqlite3_close_v2(db2);
+    ASSERT_EQ(ret, SQLITE_OK);
+    // check db1 db2 wal exist
+    EXPECT_TRUE(OS::CheckPathExistence(g_dbDir + "test1.db-wal"));
+    EXPECT_FALSE(OS::CheckPathExistence(g_dbDir + "test2.db-wal"));
+    ret = SQLiteUtils::AttachNewDatabase(nullptr, CipherType::DEFAULT, {}, g_dbDir + "testxx.db");
+    EXPECT_EQ(ret, -E_INVALID_DB);
+}

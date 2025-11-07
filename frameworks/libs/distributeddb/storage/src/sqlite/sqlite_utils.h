@@ -141,6 +141,9 @@ public:
     static int AttachNewDatabaseInner(sqlite3 *db, CipherType type, const CipherPassword &password,
         const std::string &attachDbAbsPath, const std::string &attachAsName);
 
+    static int AttachNewDatabaseOnly(sqlite3 *db, CipherType type, const CipherPassword &password,
+        const std::string &attachDbAbsPath, const std::string &attachAsName);
+
     static int CreateMetaDatabase(const std::string &metaDbPath);
 
     static int CheckIntegrity(const std::string &dbFile, CipherType type, const CipherPassword &passwd);
@@ -181,7 +184,7 @@ public:
 
     static int CheckTableEmpty(sqlite3 *db, const std::string &tableName, bool &isEmpty);
 
-    static int SetPersistWalMode(sqlite3 *db);
+    static int SetPersistWalMode(sqlite3 *db, const std::string &name = "main");
 
     static int64_t GetLastRowId(sqlite3 *db);
 
