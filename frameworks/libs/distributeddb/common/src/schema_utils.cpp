@@ -154,24 +154,21 @@ int SchemaUtils::TransToString(const std::string &defaultContent, SchemaAttribut
 
 int SchemaUtils::TransToInteger(const std::string &defaultContent, SchemaAttribute &outAttr)
 {
-    // defaultContent can not be null
-    if (defaultContent.empty()) {
+    auto errCode = TransToLong(defaultContent, outAttr);
+    if (errCode != E_OK) {
+        LOGE("Default value can not transform to Integer!!");
+        return errCode;
+    }
+    if (outAttr.defaultValue.longValue > static_cast<int64_t>(INT32_MAX)) {
+        LOGE("Integer is over int32_max");
         return -E_SCHEMA_PARSE_FAIL;
     }
-    int transRes = strtol(defaultContent.c_str(), nullptr, 10); // 10: decimal
-    std::string resReview = std::to_string(transRes);
-    if (defaultContent.compare(defaultContent.find_first_not_of("+- "), defaultContent.size(),
-        resReview, resReview.find_first_not_of("+- "), resReview.size()) == 0) {
-        // Check the sign of the number
-        if ((defaultContent[0] == '-' && resReview[0] == '-') ||
-            (defaultContent[0] != '-' && resReview[0] != '-') ||
-            transRes == 0) {
-            outAttr.defaultValue.integerValue = transRes;
-            return E_OK;
-        }
+    if (outAttr.defaultValue.longValue < static_cast<int64_t>(INT32_MIN)) {
+        LOGE("Integer is less than int32_min");
+        return -E_SCHEMA_PARSE_FAIL;
     }
-    LOGE("Default value can not transform to Integer!!");
-    return -E_SCHEMA_PARSE_FAIL;
+    outAttr.defaultValue.integerValue = static_cast<int32_t>(outAttr.defaultValue.longValue);
+    return E_OK;
 }
 
 int SchemaUtils::TransToLong(const std::string &defaultContent, SchemaAttribute &outAttr)
@@ -180,9 +177,14 @@ int SchemaUtils::TransToLong(const std::string &defaultContent, SchemaAttribute 
     if (defaultContent.empty()) {
         return -E_SCHEMA_PARSE_FAIL;
     }
+    auto defaultPos = defaultContent.find_first_not_of("+- ");
+    if (defaultPos == std::string::npos) {
+        LOGE("Default value without +-");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
     int64_t transRes = strtoll(defaultContent.c_str(), nullptr, 10); // 10: decimal
     std::string resReview = std::to_string(transRes);
-    if (defaultContent.compare(defaultContent.find_first_not_of("+- "), defaultContent.size(),
+    if (defaultContent.compare(defaultPos, defaultContent.size(),
         resReview, resReview.find_first_not_of("+- "), resReview.size()) == 0) {
         // Check the sign of the number
         if ((defaultContent[0] == '-' && resReview[0] == '-') ||
