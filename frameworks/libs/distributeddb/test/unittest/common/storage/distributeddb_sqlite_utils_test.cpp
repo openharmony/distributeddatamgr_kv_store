@@ -689,12 +689,12 @@ HWTEST_F(DistributedDBSqliteUtilsTest, RemoveKvDBTest001, TestSize.Level0)
         LOGD("Modifying permissions is ineffective for execution\n");
         EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
         EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
-        return;
+    } else {
+        EXPECT_EQ(KvDBUtils::RemoveKvDB(g_dirAll, g_dirStoreOnly, g_name), -E_REMOVE_FILE);
+        EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        EXPECT_EQ(KvDBUtils::RemoveKvDB(g_dirAll, g_dirStoreOnly, g_name), -E_REMOVE_FILE);
+        EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
     }
-    EXPECT_EQ(KvDBUtils::RemoveKvDB(g_dirAll, g_dirStoreOnly, g_name), -E_REMOVE_FILE);
-    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
-    EXPECT_EQ(KvDBUtils::RemoveKvDB(g_dirAll, g_dirStoreOnly, g_name), -E_REMOVE_FILE);
-    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
 }
 
 /**
@@ -712,10 +712,10 @@ HWTEST_F(DistributedDBSqliteUtilsTest, GetKvDbSizeTest001, TestSize.Level0)
     if (access(g_dirAll.c_str(), W_OK) == 0) {
         LOGD("Modifying permissions is ineffective for execution\n");
         EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
-        return;
+    } else {
+        EXPECT_EQ(KvDBUtils::GetKvDbSize(g_dirAll, g_dirStoreOnly, g_name, size), -E_INVALID_DB);
+        EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
     }
-    EXPECT_EQ(KvDBUtils::GetKvDbSize(g_dirAll, g_dirStoreOnly, g_name, size), -E_INVALID_DB);
-    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
 }
 
 /**
@@ -737,8 +737,8 @@ HWTEST_F(DistributedDBSqliteUtilsTest, GetKvDbSizeTest002, TestSize.Level0)
     if (access(g_dirStoreOnly.c_str(), W_OK) == 0) {
         LOGD("Modifying permissions is ineffective for execution\n");
         EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
-        return;
+    } else {
+        EXPECT_EQ(KvDBUtils::GetKvDbSize(g_dirAll, g_dirStoreOnly, g_name, size), -E_INVALID_DB);
+        EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
     }
-    EXPECT_EQ(KvDBUtils::GetKvDbSize(g_dirAll, g_dirStoreOnly, g_name, size), -E_INVALID_DB);
-    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
 }

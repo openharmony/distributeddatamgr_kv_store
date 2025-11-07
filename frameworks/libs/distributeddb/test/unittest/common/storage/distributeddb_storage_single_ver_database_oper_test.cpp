@@ -213,11 +213,11 @@ HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, DatabaseOperationTest003
     if (access(backupDir.c_str(), W_OK) == 0) {
         LOGD("Modifying permissions is ineffective for execution\n");
         EXPECT_EQ(chmod(backupDir.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
-        return;
+    } else {
+        EXPECT_EQ(singleVerDatabaseOper->RekeyRecover(validProperty), -E_REMOVE_FILE);
+        EXPECT_EQ(chmod(backupDir.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+        EXPECT_EQ(singleVerDatabaseOper->RekeyRecover(validProperty), E_OK);
     }
-    EXPECT_EQ(singleVerDatabaseOper->RekeyRecover(validProperty), -E_REMOVE_FILE);
-    EXPECT_EQ(chmod(backupDir.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
-    EXPECT_EQ(singleVerDatabaseOper->RekeyRecover(validProperty), E_OK);
 }
 
 /**
