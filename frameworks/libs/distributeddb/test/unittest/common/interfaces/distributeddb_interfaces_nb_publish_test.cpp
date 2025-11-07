@@ -821,3 +821,38 @@ HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey012, TestSize.
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_publish_SingleVerPublishKey012"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: SingleVerPublishKey013
+  * @tc.desc: Publish key but observer released
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesNBPublishTest, SingleVerPublishKey013, TestSize.Level1)
+{
+    const KvStoreNbDelegate::Option option = {true, false};
+    g_mgr.GetKvStore("distributed_nb_publish_SingleVerPublishKey013", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(KEY_1, VALUE_1), OK);
+    std::shared_ptr<KvStoreObserverUnitTest> observerLocal = std::make_shared<KvStoreObserverUnitTest>();
+    ASSERT_TRUE(observerLocal != nullptr);
+    EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(NULL_KEY, OBSERVER_CHANGES_LOCAL_ONLY, observerLocal), OK);
+    observerLocal = nullptr;
+    /**
+     * @tc.steps:step1. PublishLocal key1.
+     * @tc.expected: step1. return OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->PublishLocal(KEY_1, true, false, nullptr), OK);
+    /**
+     * @tc.steps:step2. Get value of key1 from local table
+     * @tc.expected: step2. value of key1 is value1
+     */
+    Value readValue;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(KEY_1, readValue), NOT_FOUND);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_publish_SingleVerPublishKey013"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
