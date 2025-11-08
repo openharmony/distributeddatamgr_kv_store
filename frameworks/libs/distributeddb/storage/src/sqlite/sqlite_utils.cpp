@@ -331,6 +331,16 @@ int SQLiteUtils::AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPas
 int SQLiteUtils::AttachNewDatabaseInner(sqlite3 *db, CipherType type, const CipherPassword &password,
     const std::string &attachDbAbsPath, const std::string &attachAsName)
 {
+    int errCode = AttachNewDatabaseOnly(db, type, password, attachDbAbsPath, attachAsName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return SetPersistWalMode(db, attachAsName);
+}
+
+int SQLiteUtils::AttachNewDatabaseOnly(sqlite3 *db, CipherType type, const CipherPassword &password,
+    const std::string &attachDbAbsPath, const std::string &attachAsName)
+{
     // example: "ATTACH '../new.db' AS backup KEY XXXX;"
     std::string attachSql = "ATTACH ? AS " + attachAsName + " KEY ?;"; // Internal interface not need verify alias name
 
