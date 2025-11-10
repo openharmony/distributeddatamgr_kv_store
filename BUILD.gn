@@ -25,7 +25,6 @@ group("build_native_test") {
   deps = [
     "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
     "frameworks/libs/distributeddb/test:unittest",
-    "frameworks/libs/distributeddb/test/moduletest:moduletest",
   ]
   if (!defined(global_parts_info.distributeddatamgr_arkdata_database_core)) {
     deps +=
