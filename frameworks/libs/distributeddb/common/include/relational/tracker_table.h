@@ -27,10 +27,17 @@ using AfterBuildAction = std::function<int()>;
 namespace TriggerMode {
 enum class TriggerModeEnum;
 }
+class TableInfo;
 class TrackerTable {
 public:
     TrackerTable() = default;
     ~TrackerTable() {};
+    struct RepairInfo {
+        std::vector<std::string> createTriggerSqls;
+        std::string misDataKeys;
+        bool existNullExtend = false;
+        bool existDirtyLog = false;
+    };
 
     std::string GetTableName() const;
     const std::set<std::string> &GetTrackerColNames() const;
@@ -49,7 +56,6 @@ public:
     const std::string GetTempTriggerName(TriggerMode::TriggerModeEnum mode) const;
     const std::string GetTempUpdateTriggerSql(bool incFlag = false) const;
     const std::string GetTempDeleteTriggerSql(bool incFlag = false) const;
-    const std::string GetTempUpdateLogCursorTriggerSql() const;
     void SetTableName(const std::string &tableName);
     void SetExtendNames(const std::set<std::string> &colNames);
     void SetExtendName(const std::string &colName);
@@ -62,6 +68,12 @@ public:
     void SetTriggerObserver(bool isTriggerObserver);
     void SetKnowledgeTable(bool isKnowledgeTable);
     std::string GetOnChangeType() const;
+    void CheckMissingTrigger(const TableInfo &table, sqlite3 *db);
+    void CheckMismatchedDataKeys(sqlite3 *db);
+    void CheckNullExtendLog(sqlite3 *db);
+    void CheckExistDirtyLog(sqlite3 *db);
+    bool IsNeedRepair();
+    void Repair(std::function<void(const RepairInfo &, const std::string &, const std::set<std::string> &)> repairFunc);
 private:
     std::string tableName_;
     std::string extendColName_;
@@ -70,6 +82,7 @@ private:
     bool isTrackerAction_ = false;
     bool isTriggerObserver_ = true;
     bool isKnowledgeTable_ = false;
+    RepairInfo repairInfo_;
 };
 
 } // namespace DistributedDB

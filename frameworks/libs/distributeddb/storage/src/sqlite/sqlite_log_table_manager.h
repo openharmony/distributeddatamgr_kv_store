@@ -37,6 +37,9 @@ public:
 
     void CheckAndCreateTrigger(sqlite3 *db, const TableInfo &table, const std::string &identity);
 
+    void GetMissingTrigger(sqlite3 *db, const TableInfo &table, const std::string &identity,
+        std::vector<std::string> &createTriggerSqls);
+
     std::string GetCreateRelationalLogTableSql(const TableInfo &table, const std::string &extendStr = "");
 
     virtual std::string GetConflictPkSql(const TableInfo &table);

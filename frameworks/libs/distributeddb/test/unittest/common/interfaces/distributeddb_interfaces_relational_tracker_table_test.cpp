@@ -2521,7 +2521,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest039,
      */
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     /**
-     * @tc.steps:step4. Check if the trigger exists
+     * @tc.steps:step4. Check if the trigger created
      * @tc.expected: step4. Check OK.
      */
     for (const auto &triggerType : triggerTypes) {
@@ -2720,7 +2720,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest044,
 HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest045, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. CreateDistributedTable on table2 and insert data
+     * @tc.steps:step1. CreateDistributedTable and insert data
      * @tc.expected: step1. Return OK.
      */
     CreateMultiTable();
@@ -2734,7 +2734,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest045,
      */
     CheckCursor(1, 10, g_db);
     /**
-     * @tc.steps:step3. SetTrackerTable on table2
+     * @tc.steps:step3. SetTrackerTable
      * @tc.expected: step3. Return WITH_INVENTORY_DATA.
      */
     TrackerSchema schema = g_normalSchema1;

@@ -238,6 +238,20 @@ int CheckTriggerExist(sqlite3 *db, const TableInfo &table, const std::string &tr
 void SqliteLogTableManager::CheckAndCreateTrigger(sqlite3 *db, const TableInfo &table, const std::string &identity)
 {
     std::vector<std::string> sqls;
+    GetMissingTrigger(db, table, identity, sqls);
+    const std::string &tableName = table.GetTableName();
+    for (const auto &sql : sqls) {
+        int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGW("[%s [%zu]] Failed to recreate trigger, errCode=%d", DBCommon::StringMiddleMasking(tableName).c_str(),
+                tableName.size(), errCode);
+        }
+    }
+}
+
+void SqliteLogTableManager::GetMissingTrigger(sqlite3 *db, const TableInfo &table, const std::string &identity,
+    std::vector<std::string> &createTriggerSqls)
+{
     bool insertTriggerExist = false;
     const std::string &tableName = table.GetTableName();
     if (CheckTriggerExist(db, table, "INSERT", insertTriggerExist) == E_OK && !insertTriggerExist) {
@@ -245,7 +259,7 @@ void SqliteLogTableManager::CheckAndCreateTrigger(sqlite3 *db, const TableInfo &
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         std::string insertTriggerSql = GetInsertTrigger(table, identity);
         if (!insertTriggerSql.empty()) {
-            sqls.emplace_back(insertTriggerSql);
+            createTriggerSqls.emplace_back(insertTriggerSql);
         }
     }
 
@@ -255,7 +269,7 @@ void SqliteLogTableManager::CheckAndCreateTrigger(sqlite3 *db, const TableInfo &
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         std::string updateTriggerSql = GetUpdateTrigger(table, identity);
         if (!updateTriggerSql.empty()) {
-            sqls.emplace_back(updateTriggerSql);
+            createTriggerSqls.emplace_back(updateTriggerSql);
         }
     }
 
@@ -265,15 +279,7 @@ void SqliteLogTableManager::CheckAndCreateTrigger(sqlite3 *db, const TableInfo &
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
         std::string deleteTriggerSql = GetDeleteTrigger(table, identity);
         if (!deleteTriggerSql.empty()) {
-            sqls.emplace_back(deleteTriggerSql);
-        }
-    }
-
-    for (const auto &sql : sqls) {
-        int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
-        if (errCode != E_OK) {
-            LOGW("[%s [%zu]] Failed to recreate trigger, errCode=%d", DBCommon::StringMiddleMasking(tableName).c_str(),
-                tableName.size(), errCode);
+            createTriggerSqls.emplace_back(deleteTriggerSql);
         }
     }
 }

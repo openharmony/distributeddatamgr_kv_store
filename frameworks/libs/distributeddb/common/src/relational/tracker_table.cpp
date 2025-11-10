@@ -17,6 +17,8 @@
 #include "db_common.h"
 #include "tracker_table.h"
 #include "schema_constant.h"
+#include "simple_tracker_log_table_manager.h"
+#include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
 void TrackerTable::Init(const TrackerSchema &schema)
@@ -284,20 +286,6 @@ const std::string TrackerTable::GetTempDeleteTriggerSql(bool incFlag) const
     return sql;
 }
 
-const std::string TrackerTable::GetTempUpdateLogCursorTriggerSql() const
-{
-    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + std::string(DBConstant::RELATIONAL_PREFIX) + tableName_;
-    sql += "LOG_ON_UPDATE_TEMP AFTER UPDATE ON " + DBCommon::GetLogTableName(tableName_);
-    sql += " WHEN (SELECT 1 FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
-           " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
-    sql += "BEGIN\n";
-    sql += CloudStorageUtils::GetCursorIncSql(tableName_) + "\n";
-    sql += "UPDATE " + DBCommon::GetLogTableName(tableName_) + " SET ";
-    sql += "cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName_) + " WHERE data_key = OLD.data_key;\n";
-    sql += "END;";
-    return sql;
-}
-
 void TrackerTable::SetTableName(const std::string &tableName)
 {
     tableName_ = tableName;
@@ -411,6 +399,57 @@ std::string TrackerTable::GetOnChangeType() const
 {
     return isKnowledgeTable_ ? std::to_string(CloudDbConstant::ON_CHANGE_KNOWLEDGE) :
         std::to_string(CloudDbConstant::ON_CHANGE_TRACKER);
+}
+
+void TrackerTable::CheckMissingTrigger(const TableInfo &table, sqlite3 *db)
+{
+    auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
+    tableManager->GetMissingTrigger(db, table, "", repairInfo_.createTriggerSqls);
+}
+
+void TrackerTable::CheckMismatchedDataKeys(sqlite3 *db)
+{
+    std::string misDataKeys = SQLiteRelationalUtils::GetMismatchedDataKeys(db, tableName_);
+    if (misDataKeys.empty()) {
+        return;
+    }
+    repairInfo_.misDataKeys = misDataKeys;
+}
+
+void TrackerTable::CheckNullExtendLog(sqlite3 *db)
+{
+    std::string sql = "SELECT COUNT(1) FROM " + DBCommon::GetLogTableName(tableName_) +
+        " WHERE (json_valid(extend_field) = 0 OR json_type(extend_field) IS NOT 'object' OR" +
+        " json_extract(extend_field, '$') = '{}') AND data_key != -1";
+    if (!SQLiteRelationalUtils::ExecuteCheckSql(db, sql).second) {
+        return;
+    }
+    repairInfo_.existNullExtend = true;
+}
+
+void TrackerTable::CheckExistDirtyLog(sqlite3 *db)
+{
+    auto [errCode, isExistDirtyLog] = SQLiteRelationalUtils::CheckExistDirtyLog(db, tableName_);
+    if (errCode != E_OK) {
+        LOGW("[RDBStore][ClearDirtyLog] Check dirty log failed %d", errCode);
+        return;
+    }
+    repairInfo_.existDirtyLog = isExistDirtyLog;
+}
+
+bool TrackerTable::IsNeedRepair()
+{
+    return (!repairInfo_.createTriggerSqls.empty() || !repairInfo_.misDataKeys.empty() ||
+        repairInfo_.existNullExtend || repairInfo_.existDirtyLog);
+}
+
+void TrackerTable::Repair(std::function<void(const RepairInfo &, const std::string &,
+    const std::set<std::string> &)> repairFunc)
+{
+    if (!IsNeedRepair()) {
+        return;
+    }
+    repairFunc(repairInfo_, tableName_, extendColNames_);
 }
 }
 #endif

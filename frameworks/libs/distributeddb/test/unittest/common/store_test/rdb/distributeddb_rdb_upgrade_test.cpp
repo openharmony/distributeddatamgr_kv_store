@@ -145,15 +145,50 @@ HWTEST_F(DistributedDBRDBUpgradeTest, UpgradeTracker002, TestSize.Level0)
     EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
     EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
         " json_valid(extend_field) = 0"), 0);
+}
 
+/**
+ * @tc.name: UpgradeTracker004
+ * @tc.desc: Test concurrent upgrade
+ * @tc.type: FUNC
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBUpgradeTest, UpgradeTracker004, TestSize.Level2)
+{
     /**
-     * @tc.steps: step4. Set tracker again and check log.
-     * @tc.expected: step4. Due to not being processed within 24 hours since last time.
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
      */
-    sql = "UPDATE " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + " SET extend_field=''";
-    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InitUpgradeDelegate());
+    auto info1 = GetStoreInfo1();
     EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
-    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE),
-        " json_valid(extend_field) = 0 OR json_extract(extend_field, '$') = '{}'"), chkCnt);
+    /**
+     * @tc.steps: step2. Insert local data and log update extend_field to empty str.
+     * @tc.expected: step2. Ok
+     */
+    int chkCnt = 10;
+    InsertLocalDBData(0, chkCnt, info1);
+    /**
+     * @tc.steps: step3. concurrent upgrade
+     * @tc.expected: step3. Ok
+     */
+    size_t loopTimes = 200;
+    std::thread t1([this, &info1, loopTimes]() {
+        for (size_t i = 0; i < loopTimes; i++) {
+            std::string sql = "UPDATE " + DBCommon::GetLogTableName(DEVICE_SYNC_TABLE) + " SET extend_field=''";
+            EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+            EXPECT_EQ(CreateDistributedTable(info1, DEVICE_SYNC_TABLE), E_OK);
+        }
+    });
+    std::thread t2([this, &info1, loopTimes]() {
+        for (size_t i = 0; i < loopTimes; i++) {
+            EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
+        }
+    });
+    for (size_t i = 0; i < loopTimes; i++) {
+        EXPECT_EQ(SetTrackerTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
+    }
+    t1.join();
+    t2.join();
 }
 }

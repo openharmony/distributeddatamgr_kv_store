@@ -643,20 +643,6 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
     return Rekey(db, passwd);
 }
 
-int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
-{
-    if (stmt == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_FINISHED;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        errCode = E_OK;
-    }
-    return errCode;
-}
-
 bool SQLiteUtils::IsStmtReadOnly(sqlite3_stmt *statement)
 {
     if (statement == nullptr) {

@@ -260,6 +260,8 @@ public:
 
     void CheckAndCreateTrigger(const TableInfo &table);
 
+    bool CheckNullExtendLog(const TrackerTable &table);
+
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 
     int CompareSchemaTableColumns(const std::string &tableName);
@@ -275,7 +277,8 @@ public:
 
     int IsTableOnceDropped(const std::string &tableName, bool &onceDropped);
 
-    void RecoverNullExtendLog(const TrackerSchema &trackerSchema, const TrackerTable &table);
+    void RecoverNullExtendLog(const std::string &tableName,
+        const std::set<std::string> &extendColNames, const std::string &sql);
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids);
 private:
@@ -538,7 +541,8 @@ private:
     bool AbortGetDownloadAssetGidIfNeed(const TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
         uint32_t &count);
 
-    int RecoverNullExtendLogInner(const TrackerSchema &trackerSchema, const TrackerTable &table);
+    int RecoverNullExtendLogInner(const std::string &tableName,
+        const std::set<std::string> &extendColNames, const std::string &sql);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";

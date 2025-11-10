@@ -332,4 +332,97 @@ int SQLiteRelationalUtils::GeneTimeStrForLog(const TableInfo &tableInfo, GenLogP
     }
     return E_OK;
 }
+
+std::string SQLiteRelationalUtils::GetMismatchedDataKeys(sqlite3 *db, const std::string &tableName)
+{
+    bool isLogTableExist = false;
+    int errCode = SQLiteUtils::CheckTableExists(db, DBCommon::GetLogTableName(tableName), isLogTableExist);
+    if (!isLogTableExist) {
+        return "";
+    }
+    std::string sql = "SELECT data_key from " + DBCommon::GetLogTableName(tableName) + " WHERE data_key NOT IN " +
+        "(SELECT _rowid_ FROM " + tableName + ") AND data_key != -1";
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGW("[RDBExecutor][ClearMisLog] Get stmt failed, %d", errCode);
+        return "";
+    }
+    std::vector<int64_t> dataKeys;
+    std::string misDataKeys = "(";
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    while (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        int dataKey = sqlite3_column_int64(stmt, 0);
+        dataKeys.push_back(dataKey);
+        misDataKeys += std::to_string(dataKey) + ",";
+        errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    stmt = nullptr;
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGW("[RDBExecutor][ClearMisLog] Step failed. %d", errCode);
+        return "";
+    }
+    if (dataKeys.empty()) {
+        return "";
+    }
+    misDataKeys.pop_back();
+    misDataKeys += ")";
+    LOGI("[RDBExecutor][ClearMisLog] Mismatched:%s", misDataKeys.c_str());
+    return misDataKeys;
+}
+
+std::pair<int, bool> SQLiteRelationalUtils::ExecuteCheckSql(sqlite3 *db, const std::string &sql)
+{
+    bool isExist = false;
+    int errCode = ExecuteSql(db, sql, [&isExist](sqlite3_stmt *stmt) {
+        auto count = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        if (count > 0) {
+            isExist = true;
+            LOGW("[SQLiteRDBUtils] Exist %" PRId64 " duplicate log", count);
+        }
+    });
+    return {errCode, isExist};
+}
+
+int SQLiteRelationalUtils::ExecuteSql(sqlite3 *db, const std::string &sql,
+    const std::function<void(sqlite3_stmt *)> &checkFunc)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] Get check stmt failed %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepNext(stmt);
+    if (errCode == E_OK) {
+        if (checkFunc != nullptr) {
+            checkFunc(stmt);
+        }
+    } else if (errCode == -E_FINISHED) {
+        errCode = E_OK;
+    }
+    int resetRet = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, resetRet);
+    return errCode;
+}
+
+std::pair<int, bool> SQLiteRelationalUtils::CheckExistDirtyLog(sqlite3 *db, const std::string &oriTable)
+{
+    std::pair<int, bool> res;
+    auto &[errCode, isExist] = res;
+    if (db == nullptr) {
+        errCode = -E_INVALID_DB;
+        return res;
+    }
+    auto logTable = DBCommon::GetLogTableName(oriTable);
+    bool isCreate = false;
+    errCode = SQLiteUtils::CheckTableExists(db, logTable, isCreate);
+    if (!isCreate) {
+        return res;
+    }
+    std::string sql = "SELECT count(1) FROM (SELECT data_key FROM " + logTable + " "
+        "WHERE data_key != -1 GROUP BY data_key HAVING count(1) > 1)";
+    return ExecuteCheckSql(db, sql);
+}
 } // namespace DistributedDB
