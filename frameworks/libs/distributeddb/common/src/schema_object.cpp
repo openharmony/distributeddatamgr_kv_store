@@ -88,28 +88,13 @@ SchemaObject::SchemaObject() : flatbufferSchema_(*this) {};
 SchemaObject::SchemaObject(const SchemaObject &other)
     : flatbufferSchema_(*this)
 {
-    isValid_ = other.isValid_;
-    schemaType_ = other.schemaType_;
-    schemaString_ = other.schemaString_;
-    schemaVersion_ = other.schemaVersion_;
-    schemaMode_ = other.schemaMode_;
-    schemaSkipSize_ = other.schemaSkipSize_;
-    schemaIndexes_ = other.schemaIndexes_;
-    schemaDefine_ = other.schemaDefine_;
+    CopySchemaObject(other);
 }
 
 SchemaObject& SchemaObject::operator=(const SchemaObject &other)
 {
     if (&other != this) {
-        isValid_ = other.isValid_;
-        schemaType_ = other.schemaType_;
-        flatbufferSchema_.CopyFrom(other.flatbufferSchema_);
-        schemaString_ = other.schemaString_;
-        schemaVersion_ = other.schemaVersion_;
-        schemaMode_ = other.schemaMode_;
-        schemaSkipSize_ = other.schemaSkipSize_;
-        schemaIndexes_ = other.schemaIndexes_;
-        schemaDefine_ = other.schemaDefine_;
+        CopySchemaObject(other);
     }
     return *this;
 }
@@ -1145,5 +1130,19 @@ int SchemaObject::AmendValueIfNeed(ValueObject &inValue, const std::set<FieldPat
         amended = true;
     }
     return E_OK;
+}
+
+void SchemaObject::CopySchemaObject(const SchemaObject &other)
+{
+    std::scoped_lock<std::mutex, std::mutex> scopedLock(schemaMutex_, other.schemaMutex_);
+    isValid_ = other.isValid_;
+    schemaType_ = other.schemaType_;
+    flatbufferSchema_.CopyFrom(other.flatbufferSchema_);
+    schemaString_ = other.schemaString_;
+    schemaVersion_ = other.schemaVersion_;
+    schemaMode_ = other.schemaMode_;
+    schemaSkipSize_ = other.schemaSkipSize_;
+    schemaIndexes_ = other.schemaIndexes_;
+    schemaDefine_ = other.schemaDefine_;
 }
 } // namespace DistributedDB

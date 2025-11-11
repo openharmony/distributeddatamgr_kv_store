@@ -18,12 +18,14 @@
 #include "db_errno.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
+#include "kvdb_properties.h"
 #include "lock_status_observer.h"
 #include "log_print.h"
 #include "platform_specific.h"
 #include "task_queue.h"
 #include "time_tick_monitor.h"
 #include "user_change_monitor.h"
+#include "relationaldb_properties.h"
 #include "schema_utils.h"
 
 using namespace testing::ext;
@@ -868,5 +870,90 @@ HWTEST_F(DistributedDBCommonTest, SchemaUtilsTest002, TestSize.Level0)
     value = "INTEGER,DEFAULT +100";
     errCode = SchemaUtils::ParseAndCheckSchemaAttribute(value, outAttr);
     EXPECT_EQ(errCode, E_OK);
+}
+
+void InitProperties(DBProperties &properties)
+{
+    std::string strKey = "strKey";
+    std::string strValue = "value";
+    properties.SetStringProp(strKey, strValue);
+    std::string intKey = "intKey";
+    int intValue = 100;
+    properties.SetIntProp(intKey, intValue);
+    std::string boolKey = "boolKey";
+    bool boolValue = true;
+    properties.SetBoolProp(boolKey, boolValue);
+    std::string uintKey = "uintKey";
+    uint32_t uintValue = 100u;
+    properties.SetUIntProp(uintKey, uintValue);
+}
+
+void CheckProperties(DBProperties &properties1, DBProperties &properties2)
+{
+    std::string strKey = "strKey";
+    std::string strValue = "value";
+    std::string intKey = "intKey";
+    int intValue = 100;
+    std::string boolKey = "boolKey";
+    bool boolValue = true;
+    std::string uintKey = "uintKey";
+    uint32_t uintValue = 100u;
+    EXPECT_EQ(properties2.GetStringProp(strKey, ""), strValue);
+    EXPECT_EQ(properties2.GetIntProp(intKey, 0), intValue);
+    EXPECT_EQ(properties2.GetBoolProp(boolKey, false), boolValue);
+    EXPECT_EQ(properties2.GetUIntProp(uintKey, 0u), uintValue);
+}
+
+/**
+ * @tc.name: PropertiesTest001
+ * @tc.desc: Test KVDBProperties copy function.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, PropertiesTest001, TestSize.Level0)
+{
+    KvDBProperties properties1;
+    CipherPassword password;
+    CipherType type = CipherType::AES_256_GCM;
+    properties1.SetPassword(type, password);
+    KvDBProperties properties2;
+    InitProperties(properties1);
+    properties2 = properties1;
+    EXPECT_NO_FATAL_FAILURE(CheckProperties(properties1, properties2));
+    CipherPassword password2;
+    CipherType type2 = CipherType::AES_256_GCM;
+    properties2.GetPassword(type2, password2);
+    EXPECT_EQ(type, type2);
+    EXPECT_EQ(password, password2);
+    // copy self has no effect
+    auto flag = properties2.GetSecFlag();
+    const auto &copyProperties = properties2;
+    properties2 = copyProperties;
+    EXPECT_EQ(flag, properties2.GetSecFlag());
+}
+
+/**
+ * @tc.name: PropertiesTest002
+ * @tc.desc: Test RDBProperties copy function.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, PropertiesTest002, TestSize.Level0)
+{
+    RelationalDBProperties properties1;
+    properties1.SetCipherArgs(CipherType::AES_256_GCM, {}, 100); // 100 is iterTimes
+    RelationalDBProperties properties2;
+    InitProperties(properties1);
+    properties2 = properties1;
+    EXPECT_NO_FATAL_FAILURE(CheckProperties(properties1, properties2));
+    EXPECT_EQ(properties1.IsEncrypted(), properties2.IsEncrypted());
+    EXPECT_EQ(properties1.GetCipherType(), properties2.GetCipherType());
+    EXPECT_EQ(properties1.GetPasswd(), properties2.GetPasswd());
+    EXPECT_EQ(properties1.GetIterTimes(), properties2.GetIterTimes());
+    // copy self has no effect
+    auto isEncrypted = properties2.IsEncrypted();
+    const auto &copyProperties = properties2;
+    properties2 = copyProperties;
+    EXPECT_EQ(isEncrypted, properties2.IsEncrypted());
 }
 }

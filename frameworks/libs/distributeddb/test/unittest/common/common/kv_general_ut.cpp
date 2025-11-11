@@ -297,7 +297,7 @@ KvDBProperties KVGeneralUt::GetDBProperties(const StoreInfo &info)
     properties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, idDir);
     properties.SetStringProp(KvDBProperties::IDENTIFIER_DATA, idDir + "KVGeneralUt");
     properties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
-    return properties;
+    return static_cast<KvDBProperties &>(properties);
 }
 
 void KVGeneralUt::SetActionStatus(DBStatus status)

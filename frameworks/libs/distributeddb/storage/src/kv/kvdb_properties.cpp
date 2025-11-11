@@ -58,23 +58,27 @@ std::string KvDBProperties::GetStoreSubDirectory(int type)
 
 void KvDBProperties::GetPassword(CipherType &type, CipherPassword &password) const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     type = cipherType_;
     password = password_;
 }
 
 void KvDBProperties::SetPassword(CipherType type, const CipherPassword &password)
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     cipherType_ = type;
     password_ = password;
 }
 
 void KvDBProperties::SetSchema(const SchemaObject &schema)
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     schema_ = schema;
 }
 
 SchemaObject KvDBProperties::GetSchema() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return schema_;
 }
 
@@ -90,6 +94,31 @@ int KvDBProperties::GetSecFlag() const
 
 const SchemaObject &KvDBProperties::GetSchemaConstRef() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return schema_;
+}
+
+KvDBProperties::KvDBProperties(const KvDBProperties &other)
+    : DBProperties(other)
+{
+    CopyKVProperties(other);
+}
+
+KvDBProperties &KvDBProperties::operator=(const KvDBProperties &other)
+{
+    if (&other == this) {
+        return *this;
+    }
+    DBProperties::operator=(other);
+    CopyKVProperties(other);
+    return *this;
+}
+
+void KvDBProperties::CopyKVProperties(const KvDBProperties &other)
+{
+    std::scoped_lock<std::mutex, std::mutex> scopedLock(dataMutex_, other.dataMutex_);
+    schema_ = other.schema_;
+    cipherType_ = other.cipherType_;
+    password_ = other.password_;
 }
 } // namespace DistributedDB
