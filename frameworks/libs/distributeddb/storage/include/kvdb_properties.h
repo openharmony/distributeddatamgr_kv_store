@@ -29,6 +29,12 @@ public:
     KvDBProperties();
     ~KvDBProperties() override;
 
+    KvDBProperties(const KvDBProperties &other);
+    KvDBProperties &operator=(const KvDBProperties &other);
+
+    KvDBProperties(KvDBProperties &&other) = delete;
+    KvDBProperties &operator=(KvDBProperties &&other) = delete;
+
     // Get the sub directory for different type database.
     static std::string GetStoreSubDirectory(int type);
 
@@ -76,8 +82,8 @@ public:
     static const int MULTI_VER_TYPE_SQLITE = 2;
     static const int SINGLE_VER_TYPE_SQLITE = 3;
     static const int SINGLE_VER_TYPE_RD_KERNAL = 4;
-
 private:
+    void CopyKVProperties(const KvDBProperties &other);
     CipherType cipherType_;
     CipherPassword password_;
     SchemaObject schema_;

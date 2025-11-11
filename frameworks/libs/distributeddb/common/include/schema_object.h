@@ -17,6 +17,7 @@
 #define SCHEMA_OBJECT_H
 
 #include <map>
+#include <mutex>
 #include <set>
 
 #ifndef OMIT_FLATBUFFER
@@ -140,6 +141,7 @@ private:
     // CheckValueAndAmendIfNeed related sub methods
     int CheckValue(const ValueObject &inValue, std::set<FieldPath> &lackingPaths) const;
     int AmendValueIfNeed(ValueObject &inValue, const std::set<FieldPath> &lackingPaths, bool &amended) const;
+    void CopySchemaObject(const SchemaObject &other);
 
     // It is better using a class to represent flatBuffer-Schema related other than more private method(As well as for
     // Json-Schema in the future refactor). Delegation is chosen other than inheritance for accessing SchemaObject.
@@ -194,7 +196,7 @@ private:
         SchemaObject &owner_;
         std::string description_;
     };
-
+    mutable std::mutex schemaMutex_;
     bool isValid_ = false;
     SchemaType schemaType_ = SchemaType::NONE; // Default NONE
     FlatBufferSchema flatbufferSchema_;

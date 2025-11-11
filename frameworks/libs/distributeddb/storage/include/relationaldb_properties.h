@@ -26,7 +26,13 @@ namespace DistributedDB {
 class RelationalDBProperties final : public DBProperties {
 public:
     RelationalDBProperties();
-    ~RelationalDBProperties() override;
+    ~RelationalDBProperties() override = default;
+
+    RelationalDBProperties(const RelationalDBProperties &other);
+    RelationalDBProperties &operator=(const RelationalDBProperties &other);
+
+    RelationalDBProperties(RelationalDBProperties &&other) = delete;
+    RelationalDBProperties &operator=(RelationalDBProperties &&other) = delete;
 
     // set schema
     void SetSchema(const RelationalSchemaObject &schema);
@@ -44,8 +50,8 @@ public:
     DistributedTableMode GetDistributedTableMode() const;
 
     static const std::string DISTRIBUTED_TABLE_MODE;
-
 private:
+    void CopyRDBProperties(const RelationalDBProperties &other);
     RelationalSchemaObject schema_;
 
     bool isEncrypted_;

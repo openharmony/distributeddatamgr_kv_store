@@ -26,21 +26,21 @@ RelationalDBProperties::RelationalDBProperties()
       iterTimes_(0)
 {}
 
-RelationalDBProperties::~RelationalDBProperties()
-{}
-
 void RelationalDBProperties::SetSchema(const RelationalSchemaObject &schema)
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     schema_ = schema;
 }
 
 RelationalSchemaObject RelationalDBProperties::GetSchema() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return schema_;
 }
 
 void RelationalDBProperties::SetCipherArgs(CipherType cipherType, const CipherPassword &passwd, uint32_t iterTimes)
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     isEncrypted_ = true;
     cipherType_ = cipherType;
     passwd_ = passwd;
@@ -49,21 +49,25 @@ void RelationalDBProperties::SetCipherArgs(CipherType cipherType, const CipherPa
 
 bool RelationalDBProperties::IsEncrypted() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return isEncrypted_;
 }
 
 CipherType RelationalDBProperties::GetCipherType() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return cipherType_;
 }
 
 const CipherPassword &RelationalDBProperties::GetPasswd() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return passwd_;
 }
 
 uint32_t RelationalDBProperties::GetIterTimes() const
 {
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
     return iterTimes_;
 }
 
@@ -71,6 +75,32 @@ DistributedTableMode RelationalDBProperties::GetDistributedTableMode() const
 {
     auto defaultMode = static_cast<int>(DistributedTableMode::SPLIT_BY_DEVICE);
     return static_cast<DistributedTableMode>(GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, defaultMode));
+}
+
+RelationalDBProperties::RelationalDBProperties(const RelationalDBProperties &other)
+    : DBProperties(other)
+{
+    CopyRDBProperties(other);
+}
+
+RelationalDBProperties &RelationalDBProperties::operator=(const RelationalDBProperties &other)
+{
+    if (&other == this) {
+        return *this;
+    }
+    DBProperties::operator=(other);
+    CopyRDBProperties(other);
+    return *this;
+}
+
+void RelationalDBProperties::CopyRDBProperties(const RelationalDBProperties &other)
+{
+    std::scoped_lock<std::mutex, std::mutex> scopedLock(dataMutex_, other.dataMutex_);
+    schema_ = other.schema_;
+    isEncrypted_ = other.isEncrypted_;
+    cipherType_ = other.cipherType_;
+    passwd_ = other.passwd_;
+    iterTimes_ = other.iterTimes_;
 }
 }
 #endif

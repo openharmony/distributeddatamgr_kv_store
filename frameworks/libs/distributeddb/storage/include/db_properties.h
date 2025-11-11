@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <map>
+#include <mutex>
 #include <string>
 
 namespace DistributedDB {
@@ -24,6 +25,12 @@ class DBProperties {
 public:
     DBProperties() = default;
     virtual ~DBProperties() = default;
+
+    DBProperties(const DBProperties &other);
+    DBProperties &operator=(const DBProperties &other);
+
+    DBProperties(DBProperties &&other) = delete;
+    DBProperties &operator=(DBProperties &&other) = delete;
 
     // Get the string property according the name
     std::string GetStringProp(const std::string &name, const std::string &defaultValue) const;
@@ -70,9 +77,9 @@ public:
 
     static constexpr const char *COMPRESS_ON_SYNC = "needCompressOnSync";
     static constexpr const char *COMPRESSION_RATE = "compressionRate";
-
 protected:
-
+    void CopyProperties(const DBProperties &other);
+    mutable std::mutex dataMutex_;
     std::map<std::string, std::string> stringProperties_;
     std::map<std::string, bool> boolProperties_;
     std::map<std::string, int> intProperties_;
