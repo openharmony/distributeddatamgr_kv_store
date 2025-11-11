@@ -53,6 +53,15 @@ protected:
     static bool IsSchemaChange(const RelationalSchemaObject &dbSchema, const KnowledgeSourceSchema &schema);
 
     static int InitLogTable(sqlite3 *db, const KnowledgeSourceSchema &schema, const TableInfo &tableInfo);
+
+    static int UpdateFlagAndTriggerIfNeeded(sqlite3 *db, const TableInfo &table);
+
+    static int CheckUpdateTriggerVersion(sqlite3 *db, const std::string &triggerName, const std::string &tableName,
+        bool &needUpdate);
+
+    static int GetKnowledgeCursor(sqlite3 *db, const TableInfo &tableInfo, int64_t &cursor);
+
+    static int UpdateKnowledgeFlag(sqlite3 *db, const TableInfo &tableInfo);
 };
 }
 
