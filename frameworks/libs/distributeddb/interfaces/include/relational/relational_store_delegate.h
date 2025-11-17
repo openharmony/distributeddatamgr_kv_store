@@ -21,6 +21,7 @@
 #include <optional>
 #include "distributeddb/result_set.h"
 #include "cloud/cloud_store_types.h"
+#include "cloud/icloud_conflict_handler.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_data_translate.h"
 #include "cloud/iAssetLoader.h"
@@ -176,6 +177,17 @@ public:
 
     // Use for DataFlowCheckCallback
     DB_API virtual DBStatus SetProperty(const Property &property)
+    {
+        return OK;
+    }
+
+    DB_API virtual DBStatus SetCloudConflictHandler(
+        [[gnu::unused]] const std::shared_ptr<ICloudConflictHandler> &handler)
+    {
+        return OK;
+    }
+
+    DB_API virtual DBStatus StopTask([[gnu::unused]] TaskType type)
     {
         return OK;
     }
