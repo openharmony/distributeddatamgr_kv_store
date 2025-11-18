@@ -135,7 +135,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
     auto conn = std::make_shared<SQLiteRelationalStoreConnection>(nullptr);
     EXPECT_EQ(conn->Close(), -E_INVALID_CONNECTION);
     EXPECT_EQ(conn->GetIdentifier().size(), 0u);
-    EXPECT_EQ(conn->CreateDistributedTable("", {}), -E_INVALID_CONNECTION);
+    EXPECT_EQ(conn->CreateDistributedTable("", {}, false), -E_INVALID_CONNECTION);
     EXPECT_EQ(conn->RemoveDeviceData(), -E_INVALID_CONNECTION);
 
 #ifdef USE_DISTRIBUTEDB_CLOUD

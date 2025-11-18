@@ -122,6 +122,8 @@ public:
 
     std::pair<int, std::vector<std::string>> GetDownloadAssetRecords(const std::string &tableName,
         int64_t beginTime) override;
+
+    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) override;
 private:
     std::pair<sqlite3 *, SQLiteSingleVerStorageExecutor *> GetTransactionDbHandleAndMemoryStatus(bool isWrite);
 

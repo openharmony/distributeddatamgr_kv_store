@@ -26,7 +26,6 @@
 #include "db_types.h"
 #include "param_check_utils.h"
 #include "res_finalizer.h"
-#include "sqlite_log_table_manager.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_relational_store_connection.h"
 #include "storage_engine_manager.h"
@@ -423,6 +422,7 @@ void SQLiteRelationalStore::ReleaseDBConnection(uint64_t connectionId, Relationa
 {
     if (connectionCount_.load() == 1) {
         sqliteStorageEngine_->SetConnectionFlag(false);
+        sqliteStorageEngine_->StopGenLogTask(true);
     }
 
     connectMutex_.lock();
@@ -441,10 +441,10 @@ void SQLiteRelationalStore::WakeUpSyncer()
     syncAbleEngine_->WakeUpSyncer();
 }
 
-int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType,
+int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync,
     bool trackerSchemaChanged)
 {
-    sqliteStorageEngine_->StartGenLogTask();
+    sqliteStorageEngine_->ResetGenLogTaskStatus();
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     TableInfo tableInfo = localSchema.GetTable(tableName);
     TableSchema tableSchema;
@@ -472,6 +472,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         LOGE("Get create distributed table param failed %d", errCode);
         return errCode;
     }
+    param.isAsync = isAsync;
     errCode = sqliteStorageEngine_->CreateDistributedTable(param, schemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
@@ -547,10 +548,14 @@ int SQLiteRelationalStore::CheckAndCollectCloudTables(ClearMode mode, const Rela
 
 int SQLiteRelationalStore::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableList)
 {
+    int errCode = StopGenLogTask(tableList);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] stop gen log task failed when clean cloud data: %d", errCode);
+        return errCode;
+    }
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
-    TableInfoMap tables = localSchema.GetTables();
     std::vector<std::string> cloudTableNameList;
-    int errCode = CheckAndCollectCloudTables(mode, localSchema, tableList, cloudTableNameList);
+    errCode = CheckAndCollectCloudTables(mode, localSchema, tableList, cloudTableNameList);
     if (errCode != E_OK) {
         LOGE("[RelationalStore]no distributed tables exist, or the table names are all invalid or do not exist, %d",
             errCode);
@@ -1206,7 +1211,11 @@ int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcess
         LOGE("[RelationalStore][Sync] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    int errCode = CheckBeforeSync(option);
+    int errCode = storageEngine_->ResetGenLogTaskStatus();
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CheckBeforeSync(option);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1416,10 +1425,20 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
 {
+    std::vector<std::pair<int, std::string>> asyncTasks;
+    int errCode = sqliteStorageEngine_->GetAsyncGenLogTasksWithTables({trackerSchema.tableName}, asyncTasks);
+    if (errCode != E_OK) {
+        LOGE("[SetTrackerTable] Get async gen log tasks failed: %d", errCode);
+        return errCode;
+    }
+    if (!asyncTasks.empty()) {
+        LOGE("[SetTrackerTable] Not support set tracker table when async create distributed table");
+        return -E_NOT_SUPPORT;
+    }
     TableInfo tableInfo;
     bool isFirstCreate = false;
     bool isNoTableInSchema = false;
-    int errCode = CheckTrackerTable(trackerSchema, tableInfo, isNoTableInSchema, isFirstCreate);
+    errCode = CheckTrackerTable(trackerSchema, tableInfo, isNoTableInSchema, isFirstCreate);
     if (errCode != E_OK) {
         if (errCode != -E_IGNORE_DATA) {
             return errCode;
@@ -1441,7 +1460,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
         return errCode;
     }
     sqliteStorageEngine_->CacheTrackerSchema(trackerSchema);
-    errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType(), true);
+    errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType(), false, true);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] create distributed table of [%s [%zu]] failed: %d",
             DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size(), errCode);
@@ -1838,11 +1857,6 @@ int SQLiteRelationalStore::SetCloudSyncConfig(const CloudSyncConfig &config)
     return E_OK;
 }
 
-SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
-{
-    return cloudSyncer_->GetCloudTaskStatus(taskId);
-}
-
 int SQLiteRelationalStore::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
 {
     if (cloudSyncer_ == nullptr) {
@@ -2127,22 +2141,6 @@ void SQLiteRelationalStore::TrackerRepairImpl(TrackerTable &trackerTable, const 
         ReleaseHandle(handle);
         LOGI("[TrackerIntegrityRepair] repair finish");
     });
-}
-
-void SQLiteRelationalStore::StopAllBackgroundTask()
-{
-#ifdef USE_DISTRIBUTEDDB_CLOUD
-    if (cloudSyncer_ == nullptr) {
-        LOGW("[RelationalStore] cloudSyncer was not initialized when stop all background task");
-    } else {
-        (void) cloudSyncer_->StopSyncTask(nullptr);
-    }
-    if (sqliteStorageEngine_ == nullptr) {
-        LOGW("[RelationalStore] Storage engine was not initialized when stop all background task");
-    } else {
-        sqliteStorageEngine_->StopGenLogTask();
-    }
-#endif
 }
 
 std::pair<int, CreateDistributedTableParam> SQLiteRelationalStore::GetCreateDisTableParam(const std::string &tableName,

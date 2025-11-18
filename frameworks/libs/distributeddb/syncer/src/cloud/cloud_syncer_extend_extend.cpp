@@ -128,4 +128,22 @@ TaskId CloudSyncer::GetCurrentTaskId()
     std::lock_guard<std::mutex> guard(dataLock_);
     return currentContext_.currentTaskId;
 }
+
+int CloudSyncer::WaitAsyncGenLogTaskFinished(TaskId triggerTaskId)
+{
+    if (storageProxy_ == nullptr) {
+        LOGE("[WaitAsyncGenLogTaskFinished] Invalid storage.");
+        return -E_INVALID_DB;
+    }
+    std::vector<std::string> tables;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (cloudTaskInfos_.find(triggerTaskId) == cloudTaskInfos_.end()) {
+            LOGW("[WaitAsyncGenLogTaskFinished] Abort wait because of invalid task id");
+            return -E_INVALID_DB;
+        }
+        tables = cloudTaskInfos_[triggerTaskId].table;
+    }
+    return storageProxy_->WaitAsyncGenLogTaskFinished(tables);
+}
 } // namespace DistributedDB

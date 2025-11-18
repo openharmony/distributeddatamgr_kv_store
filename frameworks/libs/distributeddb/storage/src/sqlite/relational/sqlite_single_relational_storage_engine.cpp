@@ -19,6 +19,7 @@
 #include "db_errno.h"
 #include "log_table_manager_factory.h"
 #include "res_finalizer.h"
+#include "runtime_context.h"
 #include "sqlite_relational_database_upgrader.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
 
@@ -148,6 +149,7 @@ namespace {
 const std::string DEVICE_TYPE = "device";
 const std::string CLOUD_TYPE = "cloud";
 const std::string SYNC_TABLE_TYPE = "sync_table_type_";
+constexpr const char *ASYNC_GEN_LOG_TASK_PREFIX = "async_generate_log_task_";
 
 int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, const RelationalSchemaObject &schema)
 {
@@ -236,17 +238,23 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
         LOGE("CreateDistributedTable failed. %d", errCode);
         return errCode;
     }
-    if (syncType == CLOUD_COOPERATION && schema.GetTable(tableName).GetTrackerTable().GetTableName().empty()) {
-        errCode = GenCloudLogInfo(tableName, schema, param.identity, isUpgraded);
+    if (param.isAsync) {
+        errCode = TriggerGenLogTask(param.identity);
+        if (errCode != E_OK) {
+            LOGE("Start async generate cloud log info task failed. %d", errCode);
+            RefObject::DecObjRef(this);
+            return errCode;
+        }
+    } else {
+        errCode = GenCloudLogInfoIfNeeded(param.tableName, param.identity);
         if (errCode != E_OK) {
             LOGE("Generate cloud log info failed. %d", errCode);
             return errCode;
         }
-        SetSchema(schema);
     }
     if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
         // Used for upgrading the stock data of the trackerTable
-        errCode = GenLogInfoForUpgrade(tableName, schema, schemaChanged);
+        errCode = GenLogInfoForUpgrade(tableName, schemaChanged);
     }
     return errCode;
 }
@@ -266,7 +274,8 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSing
         return -E_NOT_SUPPORT;
     }
     bool isUpgraded = schema.GetTable(sharedTableName).GetTableName() == sharedTableName;
-    int errCode = CreateDistributedTable(handle, isUpgraded, "", table, schema);
+    CreateDistributedTableParam param;
+    int errCode = CreateDistributedTable(handle, isUpgraded, param, table, schema);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         return errCode;
@@ -281,7 +290,6 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
 {
     const auto &tableName = param.tableName;
     const auto &tableSyncType = param.syncType;
-    const auto &identity = param.identity;
     LOGD("Create distributed table.");
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -305,16 +313,17 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
     if (isUpgraded) {
         table.SetSourceTableReference(schema.GetTable(tableName).GetTableReference());
     }
-    errCode = CreateDistributedTable(handle, isUpgraded, identity, table, schema);
+    if (param.isAsync && !table.GetTrackerTable().GetTableName().empty()) {
+        LOGE("[CreateDistributedTable] not support async create distributed table on tracker table");
+        return -E_NOT_SUPPORT;
+    }
+    errCode = CreateDistributedTable(handle, isUpgraded, param, table, schema);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         (void)handle->Rollback();
         return errCode;
     }
     errCode = handle->Commit();
-    if (tableSyncType == CLOUD_COOPERATION && table.GetTrackerTable().GetTableName().empty()) {
-        return errCode;
-    }
     if (errCode == E_OK) {
         SetSchema(schema);
     }
@@ -322,7 +331,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
-    bool isUpgraded, const std::string &identity, TableInfo &table, RelationalSchemaObject &schema)
+    bool isUpgraded, const CreateDistributedTableParam &param, TableInfo &table, RelationalSchemaObject &schema)
 {
     auto mode = GetRelationalProperties().GetDistributedTableMode();
     TableSyncType tableSyncType = table.GetTableSyncType();
@@ -332,7 +341,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
         LOGE("init cursor to meta failed. %d", errCode);
         return errCode;
     }
-    errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table);
+    errCode = handle->CreateDistributedTable(mode, isUpgraded, param.identity, table, param.isAsync);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         return errCode;
@@ -342,10 +351,6 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
     // update table if tableName changed
     schema.RemoveRelationalTable(tableName);
     schema.AddRelationalTable(table);
-    if (table.GetTableSyncType() == CLOUD_COOPERATION && !table.GetSharedTableMark() &&
-        table.GetTrackerTable().GetTableName().empty()) {
-        return E_OK;
-    }
     errCode = SaveSchemaToMetaTable(handle, schema);
     if (errCode != E_OK) {
         LOGE("Save schema to meta table for create distributed table failed. %d", errCode);
@@ -355,8 +360,12 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
     errCode = SaveSyncTableTypeAndDropFlagToMeta(handle, tableName, tableSyncType);
     if (errCode != E_OK) {
         LOGE("Save sync table type or drop flag to meta table failed. %d", errCode);
+        return errCode;
     }
-    return errCode;
+    if (param.isAsync) {
+        return AddAsyncGenLogTask(handle, tableName);
+    }
+    return E_OK;
 }
 
 int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged,
@@ -1007,78 +1016,157 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::GenCloudLogInfo(const std::string &tableName,
-    const RelationalSchemaObject &schema, const std::string &identity, bool isForUpgrade)
-{
-    TableInfo table = schema.GetTable(tableName);
-    GenerateLogInfo info = {
-        .tableName = tableName, .identity = identity
-    };
-    int errCode = GenLogInfo(info, schema);
-    if (errCode != E_OK) {
-        LOGE("Generate log for exist data failed: %d", errCode);
-        return errCode;
-    }
-    errCode = SaveInfoToMetaData(schema, tableName, CLOUD_COOPERATION);
-    if (errCode != E_OK) {
-        LOGE("Save info to meta table failed: %d", errCode);
-    }
-    return errCode;
-}
-
-int SQLiteSingleRelationalStorageEngine::GenLogInfo(const GenerateLogInfo &info, const RelationalSchemaObject &schema)
+int SQLiteSingleRelationalStorageEngine::GetAsyncGenLogTasks(std::vector<std::pair<int, std::string>> &asyncGenLogTasks)
 {
     int errCode = E_OK;
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(false, OperatePerm::NORMAL_PERM,
         errCode));
     if (handle == nullptr) {
         return errCode;
     }
-    ResFinalizer finalizer([handle, &errCode, this] {
-        SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
-        this->ReleaseExecutor(releaseHandle);
-    });
+    ResFinalizer finalizer([&handle, this] { this->ReleaseExecutor(handle); });
+    return GetAsyncGenLogTasks(handle, asyncGenLogTasks);
+}
 
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+int SQLiteSingleRelationalStorageEngine::GetAsyncGenLogTasks(const SQLiteSingleVerRelationalStorageExecutor *handle,
+    std::vector<std::pair<int, std::string>> &asyncGenLogTasks)
+{
+    std::map<Key, Value> asyncTaskMap;
+    Key keyPrefix;
+    DBCommon::StringToVector(ASYNC_GEN_LOG_TASK_PREFIX, keyPrefix);
+    int errCode = handle->GetKvDataByPrefixKey(keyPrefix, asyncTaskMap);
     if (errCode != E_OK) {
+        LOGE("[GetAsyncGenLogTasks] Get async gen log task failed: %d", errCode);
         return errCode;
     }
 
-    errCode = GenLogInfoInTransaction(info, schema, handle);
-    if (errCode != E_OK && errCode != -E_TASK_INTERRUPTED) {
-        (void)handle->Rollback();
+    uint32_t taskPrefixLen = std::string(ASYNC_GEN_LOG_TASK_PREFIX).size();
+    for (const auto &task : std::as_const(asyncTaskMap)) {
+        std::string taskTableName;
+        DBCommon::VectorToString(task.second, taskTableName);
+        std::string taskName;
+        DBCommon::VectorToString(task.first, taskName);
+        if (taskName.size() < taskPrefixLen) {
+            LOGW("[GetAsyncGenLogTasks] Invalid async gen log task name: %s", taskName.c_str());
+            continue;
+        }
+        std::string taskId = taskName.substr(taskPrefixLen);
+        if (!DBCommon::IsStringAllDigit(taskId)) {
+            LOGW("[GetAsyncGenLogTasks] Invalid async gen log task ID: %s", taskName.c_str());
+            continue;
+        }
+        int curTaskId = std::strtol(taskId.c_str(), nullptr, DBConstant::STR_TO_LL_BY_DEVALUE);
+        asyncGenLogTasks.push_back(std::make_pair(curTaskId, std::string(taskTableName)));
+    }
+    std::sort(asyncGenLogTasks.begin(), asyncGenLogTasks.end());
+    return E_OK;
+}
+
+int SQLiteSingleRelationalStorageEngine::AddAsyncGenLogTask(const SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName)
+{
+    std::vector<std::pair<int, std::string>> asyncGenLogTasks;
+    int errCode = GetAsyncGenLogTasks(handle, asyncGenLogTasks);
+    if (errCode != E_OK) {
+        LOGE("[AddAsyncGenLogTask] Get async gen log task failed: %d", errCode);
         return errCode;
     }
-    int ret = handle->SetLogTriggerStatus(true);
-    if (ret != E_OK) {
-        (void)handle->Rollback();
-        return ret;
+    int curMaxTaskId = 0;
+    for (const auto &task : asyncGenLogTasks) {
+        curMaxTaskId = std::max(curMaxTaskId, task.first);
+        if (tableName == task.second) {
+            return E_OK;
+        }
     }
-    (void)handle->Commit();
+    curMaxTaskId++;
+
+    Key curTaskKey;
+    DBCommon::StringToVector(std::string(ASYNC_GEN_LOG_TASK_PREFIX) + std::to_string(curMaxTaskId), curTaskKey);
+    Value curTaskVal;
+    DBCommon::StringToVector(tableName, curTaskVal);
+    errCode = handle->PutKvData(curTaskKey, curTaskVal);
+    if (errCode != E_OK) {
+        LOGE("[AddAsyncGenLogTask] Put async gen log task of table %s failed: %d",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
+        return errCode;
+    }
+    std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+    if (genLogTaskStatus_ == GenLogTaskStatus::RUNNING) {
+        genLogTaskStatus_ = GenLogTaskStatus::RUNNING_APPENDED;
+    }
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::GenLogInfoInTransaction(const GenerateLogInfo &info,
-    const RelationalSchemaObject &schema, SQLiteSingleVerRelationalStorageExecutor *&handle)
+int SQLiteSingleRelationalStorageEngine::GenCloudLogInfo(const std::string &identity)
 {
-    TableInfo table = schema.GetTable(info.tableName);
-    sqlite3 *db = nullptr;
-    if (handle->GetDbHandle(db) != E_OK) {
-        LOGE("[GenLogInfoInTransaction] invalid db");
-        return -E_INVALID_DB;
-    }
-    auto mode = GetRelationalProperties().GetDistributedTableMode();
-    std::unique_ptr<SqliteLogTableManager> tableManager =
-        LogTableManagerFactory::GetTableManager(table, mode, table.GetTableSyncType());
-    SQLiteRelationalUtils::GenLogParam param = {
-        db, handle->IsMemory(), false, SQLiteRelationalUtils::BATCH_GEN_LOG_SIZE
-    };
-    return GeneLogInfoForExistedDataInBatch(info.identity, table, tableManager, param);
+    std::vector<std::pair<int, std::string>> asyncGenLogTasks;
+    bool isTaskAppend = false;
+    do {
+        asyncGenLogTasks.clear();
+        int errCode = GetAsyncGenLogTasks(asyncGenLogTasks);
+        if (errCode != E_OK) {
+            LOGE("[GenCloudLogInfo] Get async gen log task failed: %d", errCode);
+            return errCode;
+        }
+        if (asyncGenLogTasks.empty()) {
+            break;
+        }
+        errCode = GenCloudLogInfoWithTables(identity, asyncGenLogTasks);
+        if (errCode != E_OK) {
+            LOGE("[GenCloudLogInfo] Generate cloud log failed: %d", errCode);
+            return errCode;
+        }
+        std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+        if (genLogTaskStatus_ == GenLogTaskStatus::RUNNING_APPENDED) {
+            genLogTaskStatus_ = GenLogTaskStatus::RUNNING;
+            isTaskAppend = true;
+        } else if (genLogTaskStatus_ == GenLogTaskStatus::DB_CLOSED) {
+            return E_OK;
+        } else {
+            genLogTaskStatus_ = GenLogTaskStatus::IDLE;
+        }
+    } while (isTaskAppend);
+    return E_OK;
 }
 
+int SQLiteSingleRelationalStorageEngine::GenCloudLogInfoWithTables(const std::string &identity,
+    const std::vector<std::pair<int, std::string>> &taskTables)
+{
+    int errCode = E_OK;
+    auto schema = GetSchema();
+    for (const auto &[taskId, tableName] : taskTables) {
+        LOGI("[GenCloudLogInfoWithTables] start gen log of table %s",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        TableInfo table = schema.GetTable(tableName);
+        if (table.GetTableName().empty()) {
+            LOGW("[GenCloudLogInfoWithTables] gen log for no exist table, skip");
+            continue;
+        }
+        auto mode = GetRelationalProperties().GetDistributedTableMode();
+        std::unique_ptr<SqliteLogTableManager> tableManager =
+            LogTableManagerFactory::GetTableManager(table, mode, table.GetTableSyncType());
+        errCode = GeneLogInfoForExistedDataInBatch(identity, table, tableManager);
+        if (errCode != E_OK) {
+            LOGE("[GenCloudLogInfoWithTables] Generate log of table %s for exist data failed: %d",
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
+            return errCode;
+        }
+        errCode = RemoveAsyncGenLogTask(taskId);
+        if (errCode != E_OK) {
+            LOGW("[GenCloudLogInfoWithTables] Remove task of table %s for exist data failed: %d",
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
+        }
+        {
+            std::unique_lock<std::mutex> lock(genLogTaskCvMutex_);
+            genLogTaskCv_.notify_all();
+        }
+        LOGI("[GenCloudLogInfoWithTables] finish gen log of table %s",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+    }
+    return E_OK;
+}
 
-int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string &tableName,
-    RelationalSchemaObject &schema, bool schemaChanged)
+int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string &tableName, bool schemaChanged)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
@@ -1104,52 +1192,132 @@ int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string 
 }
 
 int SQLiteSingleRelationalStorageEngine::GeneLogInfoForExistedDataInBatch(const std::string &identity,
-    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr,
-    SQLiteRelationalUtils::GenLogParam &param)
+    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr)
 {
     int changedCount = 0;
+    int batchNum = 0;
+    int recordBatchNum = 10; // print log when gen 10 batch
     do {
-        if (isGenLogStop_) {
+        if (IsNeedStopGenLogTask()) {
             LOGI("gen log task interrupted.");
             return -E_TASK_INTERRUPTED;
         }
-        int errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, tableInfo, logMgrPtr, param);
+        changedCount = 0;
+        int errCode = GeneLogInfoForExistedData(identity, tableInfo, logMgrPtr,
+            SQLiteRelationalUtils::BATCH_GEN_LOG_SIZE, changedCount);
         if (errCode != E_OK) {
             LOGE("[GeneLogInfoForExistedDataInBatch] Generate one batch log failed: %d", errCode);
             return errCode;
         }
-        changedCount = sqlite3_changes(param.db);
+        batchNum++;
+        if (batchNum == recordBatchNum) {
+            LOGI("[GeneLogInfoForExistedDataInBatch] Generate 10 batch log finished");
+            batchNum = 0;
+        }
+        std::this_thread::sleep_for(CloudDbConstant::ASYNC_GEN_LOG_INTERVAL);
     } while (changedCount != 0);
     return E_OK;
 }
 
-int SQLiteSingleRelationalStorageEngine::SaveInfoToMetaData(const RelationalSchemaObject &schema,
-    const std::string &tableName, TableSyncType syncType)
+int SQLiteSingleRelationalStorageEngine::GeneLogInfoForExistedData(const std::string &identity,
+    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr, uint32_t limitNum, int &changedCount)
 {
     int errCode = E_OK;
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
-        errCode));
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
+        OperatePerm::NORMAL_PERM, errCode));
     if (handle == nullptr) {
         return errCode;
     }
-    ResFinalizer finalizer([handle, &errCode, this] {
+    ResFinalizer finalizer([handle, this] {
         SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
-        if (errCode != E_OK) {
-            (void)releaseHandle->Rollback();
-        } else {
-            (void)releaseHandle->Commit();
-        }
         this->ReleaseExecutor(releaseHandle);
     });
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = SaveSchemaToMetaTable(handle, schema);
+    auto transactionStart = std::chrono::steady_clock::now();
+    sqlite3 *db = nullptr;
+    if (handle->GetDbHandle(db) != E_OK) {
+        LOGE("[GeneOneBatchLogInfoForExistedData] invalid db");
+        (void)handle->Rollback();
+        return -E_INVALID_DB;
+    }
+    SQLiteRelationalUtils::GenLogParam param = {
+        db, handle->IsMemory(), false, limitNum
+    };
+    errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, tableInfo, logMgrPtr, param);
     if (errCode != E_OK) {
+        (void)handle->Rollback();
+        LOGE("[GeneOneBatchLogInfoForExistedData] Generate one batch log failed: %d", errCode);
         return errCode;
     }
-    return SaveSyncTableTypeAndDropFlagToMeta(handle, tableName, syncType);
+    changedCount = sqlite3_changes(db);
+    errCode = handle->SetLogTriggerStatus(true);
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        return errCode;
+    }
+    auto duration = std::chrono::steady_clock::now() - transactionStart;
+    if (duration > CloudDbConstant::LONG_TIME_TRANSACTION) {
+        LOGI("[GeneOneBatchLogInfoForExistedData] Generate one batch log have cost %" PRId64 "ms.", duration.count());
+    }
+    return handle->Commit();
+}
+
+int SQLiteSingleRelationalStorageEngine::GenCloudLogInfoIfNeeded(const std::string &tableName,
+    const std::string &identity)
+{
+    std::vector<std::pair<int, std::string>> asyncGenLogTasks;
+    int errCode = GetAsyncGenLogTasks(asyncGenLogTasks);
+    if (errCode != E_OK) {
+        LOGE("[GenCloudLogInfoIfNeeded] get async gen log tasks failed: %d", errCode);
+        return -E_INVALID_DB;
+    }
+
+    for (const auto &[taskId, taskTableName] : asyncGenLogTasks) {
+        if (tableName != taskTableName) {
+            continue;
+        }
+        TableInfo tableInfo = GetSchema().GetTable(tableName);
+        auto mode = GetRelationalProperties().GetDistributedTableMode();
+        std::unique_ptr<SqliteLogTableManager> tableManager =
+            LogTableManagerFactory::GetTableManager(tableInfo, mode, tableInfo.GetTableSyncType());
+        int changedCount = 0;
+        errCode = GeneLogInfoForExistedData(identity, tableInfo, tableManager, 0u, changedCount);
+        if (errCode != E_OK) {
+            LOGE("[GenCloudLogInfoIfNeeded] gen log failed: %d, changedCount: %d", errCode, changedCount);
+            return errCode;
+        }
+        return RemoveAsyncGenLogTask(taskId);
+    }
+    return E_OK;
+}
+
+int SQLiteSingleRelationalStorageEngine::RemoveAsyncGenLogTask(int taskId)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
+        OperatePerm::NORMAL_PERM, errCode));
+    if (handle == nullptr) {
+        LOGE("[RemoveAsyncGenLogTask] Get handle failed to remove async gen log task: %d", errCode);
+        return errCode;
+    }
+
+    Key curTaskKey;
+    DBCommon::StringToVector(std::string(ASYNC_GEN_LOG_TASK_PREFIX) + std::to_string(taskId), curTaskKey);
+    errCode = handle->DeleteMetaData({curTaskKey});
+    ReleaseExecutor(handle);
+    if (errCode != E_OK) {
+        LOGE("[RemoveAsyncGenLogTask] Remove async gen log task %d failed: %d", taskId, errCode);
+    }
+    return errCode;
+}
+
+bool SQLiteSingleRelationalStorageEngine::IsNeedStopGenLogTask()
+{
+    std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+    return (genLogTaskStatus_ == GenLogTaskStatus::DB_CLOSED) || (genLogTaskStatus_ == GenLogTaskStatus::INTERRUPTED);
 }
 
 std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorageEngine::GetReachableWithShared(
@@ -1331,16 +1499,160 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInTraction(Relation
     return errCode;
 }
 
-void SQLiteSingleRelationalStorageEngine::StartGenLogTask()
+void SQLiteSingleRelationalStorageEngine::StopGenLogTask(bool isCloseDb)
 {
-    LOGI("Start gen log task");
-    isGenLogStop_ = false;
+    if (isCloseDb) {
+        SetGenLogTaskStatus(GenLogTaskStatus::DB_CLOSED);
+    } else {
+        SetGenLogTaskStatus(GenLogTaskStatus::INTERRUPTED);
+    }
 }
 
-void SQLiteSingleRelationalStorageEngine::StopGenLogTask()
+int SQLiteSingleRelationalStorageEngine::StopGenLogTaskWithTables(const std::vector<std::string> &tables)
 {
-    LOGI("Stop gen log task");
-    isGenLogStop_ = true;
+    if (tables.empty()) {
+        StopGenLogTask();
+        return E_OK;
+    }
+    std::vector<std::pair<int, std::string>> asyncGenLogTasks;
+    int errCode = GetAsyncGenLogTasks(asyncGenLogTasks);
+    if (errCode != E_OK) {
+        LOGE("[StopGenLogTaskWithTables] get async gen log tasks failed: %d", errCode);
+        return errCode;
+    }
+    std::set<std::string> tableSet(tables.begin(), tables.end());
+    for (const auto &[taskId, tableName] : asyncGenLogTasks) {
+        if (tableSet.count(tableName) > 0) {
+            LOGI("[StopGenLogTaskWithTables] exist table async gen log when stop task");
+            StopGenLogTask();
+            break;
+        }
+    }
+    return E_OK;
+}
+
+void SQLiteSingleRelationalStorageEngine::ResetGenLogTaskStatus()
+{
+    std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+    if (genLogTaskStatus_ == GenLogTaskStatus::INTERRUPTED) {
+        genLogTaskStatus_ = GenLogTaskStatus::IDLE;
+    }
+}
+
+void SQLiteSingleRelationalStorageEngine::SetGenLogTaskStatus(GenLogTaskStatus status)
+{
+    std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+    if (genLogTaskStatus_ == GenLogTaskStatus::DB_CLOSED) {
+        return;
+    }
+    genLogTaskStatus_ = status;
+}
+
+int SQLiteSingleRelationalStorageEngine::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables,
+    const std::string &identity)
+{
+    int errCode = E_OK;
+    auto waitStart = std::chrono::steady_clock::now();
+    std::chrono::microseconds duration(0);
+    do {
+        std::vector<std::pair<int, std::string>> asyncGenLogTasks;
+        if (IsNeedStopWaitGenLogTask(tables, asyncGenLogTasks, errCode)) {
+            return errCode;
+        }
+        bool isNeedStartGenLogTask = false;
+        {
+            std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+            isNeedStartGenLogTask = (genLogTaskStatus_ == GenLogTaskStatus::IDLE);
+            if (isNeedStartGenLogTask) {
+                genLogTaskStatus_ = GenLogTaskStatus::RUNNING_BEFORE_SYNC;
+            }
+        }
+        if (isNeedStartGenLogTask) {
+            errCode = GenCloudLogInfoWithTables(identity, asyncGenLogTasks);
+            {
+                std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+                if (genLogTaskStatus_ == GenLogTaskStatus::RUNNING_BEFORE_SYNC) {
+                    genLogTaskStatus_ = GenLogTaskStatus::IDLE;
+                }
+            }
+            if (errCode != E_OK) {
+                LOGE("[WaitAsyncGenLogTaskFinished] Trigger async gen log task failed: %d", errCode);
+                return errCode;
+            }
+            std::unique_lock<std::mutex> lock(genLogTaskCvMutex_);
+            genLogTaskCv_.notify_all();
+            break;
+        } else {
+            std::unique_lock<std::mutex> lock(genLogTaskCvMutex_);
+            genLogTaskCv_.wait_for(lock, SYNC_WAIT_GEN_LOG_ONCE_TIME);
+            duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
+                waitStart);
+            LOGI("[WaitAsyncGenLogTaskFinished] Waiting for the log generation task to finished before cloud sync.");
+        }
+    } while (duration < SYNC_WAIT_GEN_LOG_MAX_TIME);
+    if (duration >= SYNC_WAIT_GEN_LOG_MAX_TIME) {
+        LOGE("[WaitAsyncGenLogTaskFinished] Waiting for the log generation task timeout");
+        return -E_TIMEOUT;
+    }
+    return E_OK;
+}
+
+bool SQLiteSingleRelationalStorageEngine::IsNeedStopWaitGenLogTask(const std::vector<std::string> &tables,
+    std::vector<std::pair<int, std::string>> &asyncGenLogTasks, int &errCode)
+{
+    if (IsNeedStopGenLogTask()) {
+        errCode = -E_TASK_INTERRUPTED;
+        return true;
+    }
+    std::set<std::string> tableSet(tables.begin(), tables.end());
+    errCode = GetAsyncGenLogTasksWithTables(tableSet, asyncGenLogTasks);
+    if (errCode != E_OK) {
+        LOGE("[WaitAsyncGenLogTaskFinished] Check async gen log task failed: %d", errCode);
+        return true;
+    }
+    return asyncGenLogTasks.empty();
+}
+
+int SQLiteSingleRelationalStorageEngine::GetAsyncGenLogTasksWithTables(const std::set<std::string> &tables,
+    std::vector<std::pair<int, std::string>> &tasks)
+{
+    std::vector<std::pair<int, std::string>> asyncGenLogTasks;
+    int errCode = GetAsyncGenLogTasks(asyncGenLogTasks);
+    if (errCode != E_OK) {
+        LOGE("[CheckAsyncGenLogTasks] Get async gen log task failed: %d", errCode);
+        return errCode;
+    }
+    for (const auto &task : asyncGenLogTasks) {
+        if (tables.find(task.second) != tables.end()) {
+            tasks.push_back(task);
+        }
+    }
+    return E_OK;
+}
+
+int SQLiteSingleRelationalStorageEngine::TriggerGenLogTask(const std::string &identity)
+{
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, identity]() {
+        bool isNeedStartTask = false;
+        {
+            std::lock_guard<std::mutex> lock(genLogTaskStatusMutex_);
+            if (genLogTaskStatus_ == GenLogTaskStatus::IDLE ||
+                genLogTaskStatus_ == GenLogTaskStatus::RUNNING_BEFORE_SYNC) {
+                genLogTaskStatus_ = GenLogTaskStatus::RUNNING;
+                isNeedStartTask = true;
+            }
+        }
+        if (isNeedStartTask) {
+            int ret = GenCloudLogInfo(identity);
+            if (ret != E_OK && ret != -E_TASK_INTERRUPTED) {
+                LOGE("[TriggerGenLogTask] Gen cloud log info failed: %d", ret);
+                SetGenLogTaskStatus(GenLogTaskStatus::IDLE);
+            }
+        }
+        RefObject::DecObjRef(this);
+    });
+    return errCode;
 }
 }
 #endif

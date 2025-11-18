@@ -52,6 +52,8 @@ public:
     void TriggerAsyncTask();
 
     void WaitTaskFinished();
+
+    int WaitAsyncGenLogTaskFinished(TaskId triggerTaskId);
 private:
     std::function<int (void)> downloadFunc_;
     std::function<int (void)> downloadInNeedFunc_;

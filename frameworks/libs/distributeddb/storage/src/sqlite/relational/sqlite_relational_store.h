@@ -59,7 +59,8 @@ public:
         return storageEngine_;
     }
 
-    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool trackerSchemaChanged = false);
+    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync,
+        bool trackerSchemaChanged = false);
 
     int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
@@ -122,9 +123,11 @@ public:
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
-    SyncProcess GetCloudTaskStatus(uint64_t taskId);
+    SyncProcess GetCloudTaskStatus(uint64_t taskId) const;
 
     int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler);
+
+    int StopGenLogTask(const std::vector<std::string> &tableList);
 #endif
 
     int OperateDataStatus(uint32_t dataOperator);

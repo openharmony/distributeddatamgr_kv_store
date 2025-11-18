@@ -908,4 +908,13 @@ void StorageProxy::FilterDownloadRecordNoneSchemaField(const std::string &tableN
         }
     }
 }
+
+int StorageProxy::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) const
+{
+    if (store_ == nullptr) {
+        LOGW("[WaitAsyncGenLogTaskFinished] store is null");
+        return -E_INVALID_DB;
+    }
+    return store_->WaitAsyncGenLogTaskFinished(tables);
+}
 }

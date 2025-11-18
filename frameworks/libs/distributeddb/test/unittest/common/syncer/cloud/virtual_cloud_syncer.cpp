@@ -141,4 +141,9 @@ void VirtualCloudSyncer::WaitTaskFinished()
 {
     CloudSyncer::WaitCurTaskFinished();
 }
+
+int VirtualCloudSyncer::WaitAsyncGenLogTaskFinished(TaskId triggerTaskId)
+{
+    return CloudSyncer::WaitAsyncGenLogTaskFinished(triggerTaskId);
+}
 }
