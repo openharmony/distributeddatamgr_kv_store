@@ -2035,7 +2035,8 @@ int SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLogInner(const st
     });
     actions.emplace_back([this, &tableName, &extendColNames]() {
         return UpdateExtendField(tableName, extendColNames,
-            " AND (json_valid(log.extend_field) = 0 OR json_type(log.extend_field) IS NOT 'object')");
+            " AND (json_valid(log.extend_field) = 0 OR json_type(log.extend_field) IS NOT 'object' OR"
+            " json_extract(extend_field, '$') = '{}')");
     });
     actions.emplace_back([this]() {
         return ClearAllTempSyncTrigger();

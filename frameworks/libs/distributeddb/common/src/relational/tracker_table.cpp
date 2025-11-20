@@ -52,7 +52,7 @@ bool IsInvalidExtendColNames(const std::set<std::string> &extendColNames)
 const std::string GetJsonAssignValSql(bool isDelete, const std::set<std::string> &extendColNames)
 {
     if (extendColNames.empty()) {
-        return "''";
+        return "'{}'";
     }
     std::string newOrOld = isDelete ? "OLD." : "NEW.";
     std::string sql = "json_object(";
@@ -69,7 +69,7 @@ const std::string TrackerTable::GetAssignValSql(bool isDelete) const
     if (!extendColNames_.empty() && !IsInvalidExtendColNames(extendColNames_)) {
         return GetJsonAssignValSql(isDelete, extendColNames_);
     }
-    return "''";
+    return "'{}'";
 }
 
 const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const

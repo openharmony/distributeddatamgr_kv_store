@@ -209,7 +209,7 @@ std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableIn
     dropTriggers.emplace_back(updateTrigger);
     dropTriggers.emplace_back(deleteTrigger);
     if (table.GetTrackerTable().IsEmpty()) {
-        std::string clearExtendSql = "UPDATE " + GetLogTableName(table) + " SET extend_field = '';";
+        std::string clearExtendSql = "UPDATE " + GetLogTableName(table) + " SET extend_field = '{}';";
         dropTriggers.emplace_back(clearExtendSql);
     }
     return dropTriggers;
