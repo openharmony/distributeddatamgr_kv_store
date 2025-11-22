@@ -209,9 +209,9 @@ int KnowledgeSourceUtils::UpdateFlagAndTriggerIfNeeded(sqlite3 *db, const TableI
     std::string updateTriggerName = "naturalbase_rdb_" + tableInfo.GetTableName() + "_ON_UPDATE";
 
     bool needUpdate = false;
-    int errCode = CheckUpdateTriggerVersion(db, updateTriggerName, tableInfo.GetTableName(), needUpdate);
+    int errCode = CheckIfTriggerNeedsUpdate(db, updateTriggerName, tableInfo.GetTableName(), needUpdate);
     if (errCode != E_OK) {
-        LOGE("Check knowledge table trigger err %d", errCode);
+        LOGE("Check trigger update err %d", errCode);
         return errCode;
     }
 
@@ -235,16 +235,15 @@ int KnowledgeSourceUtils::UpdateFlagAndTriggerIfNeeded(sqlite3 *db, const TableI
     return errCode;
 }
 
-int KnowledgeSourceUtils::CheckUpdateTriggerVersion(sqlite3 *db, const std::string &triggerName,
+int KnowledgeSourceUtils::CheckIfTriggerNeedsUpdate(sqlite3 *db, const std::string &triggerName,
     const std::string &tableName, bool &needUpdate)
 {
-    std::string checkSql = "select sql from sqlite_master where type = 'trigger' and tbl_name = '" +
-        tableName + "' and name = '" + triggerName + "';";
+    std::string checkSql = "select sql from sqlite_master where type = 'trigger' and tbl_name = ? and name = ?;";
 
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, checkSql, stmt);
     if (errCode != E_OK) {
-        LOGE("[CheckUpdateTriggerVersion] Get statement err:%d", errCode);
+        LOGE("[CheckIfTriggerNeedsUpdate] Get statement err:%d", errCode);
         return errCode;
     }
 
@@ -256,6 +255,19 @@ int KnowledgeSourceUtils::CheckUpdateTriggerVersion(sqlite3 *db, const std::stri
             LOGW("Reset stmt failed when check trigger version %d", ret);
         }
     });
+
+    int bindIndex = 1;
+    errCode = SQLiteUtils::BindTextToStatement(stmt, bindIndex++, tableName);
+    if (errCode != E_OK) {
+        LOGE("bind tbl name err:%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindTextToStatement(stmt, bindIndex++, triggerName);
+    if (errCode != E_OK) {
+        LOGE("bind trigger name err:%d", errCode);
+        return errCode;
+    }
 
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
@@ -327,7 +339,7 @@ int KnowledgeSourceUtils::UpdateKnowledgeFlag(sqlite3 *db, const TableInfo &tabl
 int KnowledgeSourceUtils::GetKnowledgeCursor(sqlite3 *db, const TableInfo &tableInfo, int64_t &cursor)
 {
     std::string cursorKey = std::string(KNOWLEDGE_CURSOR_PREFIX) + tableInfo.GetTableName();
-    std::string cursorSql = "SELECT value FROM naturalbase_rdb_aux_metadata WHERE key = '" + cursorKey + "';";
+    std::string cursorSql = "SELECT value FROM naturalbase_rdb_aux_metadata WHERE key = ?;";
 
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, cursorSql, stmt);
@@ -344,6 +356,12 @@ int KnowledgeSourceUtils::GetKnowledgeCursor(sqlite3 *db, const TableInfo &table
             LOGW("Reset stmt failed when get knowledge cursor %d", ret);
         }
     });
+
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, cursorKey);
+    if (errCode != E_OK) {
+        LOGE("GetKnowledgeCursor bind arg err:%d", errCode);
+        return errCode;
+    }
 
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {

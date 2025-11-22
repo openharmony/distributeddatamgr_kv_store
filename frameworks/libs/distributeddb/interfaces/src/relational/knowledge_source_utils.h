@@ -56,7 +56,7 @@ protected:
 
     static int UpdateFlagAndTriggerIfNeeded(sqlite3 *db, const TableInfo &table);
 
-    static int CheckUpdateTriggerVersion(sqlite3 *db, const std::string &triggerName, const std::string &tableName,
+    static int CheckIfTriggerNeedsUpdate(sqlite3 *db, const std::string &triggerName, const std::string &tableName,
         bool &needUpdate);
 
     static int GetKnowledgeCursor(sqlite3 *db, const TableInfo &tableInfo, int64_t &cursor);

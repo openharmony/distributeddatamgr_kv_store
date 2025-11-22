@@ -194,7 +194,7 @@ std::string GetOldTriggerSql()
             key=x'6e61747572616c626173655f7264625f6175785f637572736f725f6b6e6f776c656467655f7461626c65' AND  CASE WHEN
             ((NEW.int_field1 IS NOT OLD.int_field1) OR (NEW.int_field2 IS NOT OLD.int_field2)) THEN 4 ELSE 0 END;
         UPDATE naturalbase_rdb_aux_KNOWLEDGE_TABLE_log SET timestamp=get_raw_sys_time(), device='', flag=0x02,
-            extend_field = json_object('id',NEW.id), cursor = CASE WHEN ((NEW.int_field1 IS NOT OLD.int_field1) OR
+            extend_field = json_object('id', NEW.id), cursor = CASE WHEN ((NEW.int_field1 IS NOT OLD.int_field1) OR
             (NEW.int_field2 IS NOT OLD.int_field2)) THEN (SELECT value FROM naturalbase_rdb_aux_metadata WHERE
             key=x'6e61747572616c626173655f7264625f6175785f637572736f725f6b6e6f776c656467655f7461626c65')
             ELSE cursor END  WHERE data_key = OLD._rowid_;
