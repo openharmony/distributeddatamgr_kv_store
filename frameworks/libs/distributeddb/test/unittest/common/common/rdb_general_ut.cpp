@@ -492,14 +492,26 @@ void RDBGeneralUt::SetCloudDbConfig(const StoreInfo &info) const
         info.storeId.c_str(), info.userId.c_str());
 }
 
-void RDBGeneralUt::CloudBlockSync(const StoreInfo &info, const Query &query, DBStatus exceptStatus,
+void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, DBStatus exceptStatus,
     DBStatus callbackExpect)
 {
-    LOGI("[RDBGeneralUt] Begin cloud sync, app %s store %s user %s", info.appId.c_str(),
-        info.storeId.c_str(), info.userId.c_str());
-    auto delegate = GetDelegate(info);
+    CloudBlockSync(from, query, SyncMode::SYNC_MODE_CLOUD_MERGE, exceptStatus, callbackExpect);
+}
+
+void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, SyncMode mode, DBStatus exceptStatus,
+    DBStatus callbackExpect)
+{
+    LOGI("[RDBGeneralUt] Begin cloud sync, app %s store %s user %s", from.appId.c_str(),
+        from.storeId.c_str(), from.userId.c_str());
+    auto delegate = GetDelegate(from);
     ASSERT_NE(delegate, nullptr);
-    RelationalTestUtils::CloudBlockSync(query, delegate, exceptStatus, callbackExpect);
+    DistributedDB::CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = mode;
+    option.query = query;
+    option.priorityTask = true;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    RelationalTestUtils::CloudBlockSync(option, delegate, exceptStatus, callbackExpect);
 }
 
 int RDBGeneralUt::GetCloudDataCount(const std::string &tableName) const
@@ -598,5 +610,14 @@ int RDBGeneralUt::PutMetaData(const StoreInfo &store, const Key &key, const Valu
         return -E_INTERNAL_ERROR;
     }
     return SQLiteRelationalUtils::PutKvData(db, false, key, value);
+}
+
+void RDBGeneralUt::SetCloudConflictHandler(const StoreInfo &store, const ConflictCallback &callback)
+{
+    auto delegate = GetDelegate(store);
+    ASSERT_NE(delegate, nullptr);
+    auto handler = std::make_shared<TestCloudConflictHandler>();
+    handler->SetCallback(callback);
+    EXPECT_EQ(delegate->SetCloudConflictHandler(handler), OK);
 }
 }

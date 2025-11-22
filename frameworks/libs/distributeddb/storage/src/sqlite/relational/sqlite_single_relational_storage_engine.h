@@ -18,11 +18,25 @@
 
 #include "macro_utils.h"
 #include "relationaldb_properties.h"
+#include "sqlite_relational_utils.h"
 #include "sqlite_storage_engine.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
 #include "tracker_table.h"
 
 namespace DistributedDB {
+struct GenerateLogInfo {
+    std::string tableName;
+    std::string identity;
+};
+
+struct CreateDistributedTableParam {
+    bool isTrackerSchemaChanged = false;
+    TableSyncType syncType = TableSyncType::DEVICE_COOPERATION;
+    std::string tableName;
+    std::string identity;
+    std::optional<TableSchema> cloudTable;
+};
+
 class SQLiteSingleRelationalStorageEngine : public SQLiteStorageEngine {
 public:
     explicit SQLiteSingleRelationalStorageEngine(RelationalDBProperties properties);
@@ -35,8 +49,7 @@ public:
 
     RelationalSchemaObject GetSchema() const;
 
-    int CreateDistributedTable(const std::string &tableName, const std::string &identity, bool &schemaChanged,
-        TableSyncType syncType, bool trackerSchemaChanged);
+    int CreateDistributedTable(const CreateDistributedTableParam &param, bool &schemaChanged);
 
     int CleanDistributedDeviceTable(std::vector<std::string> &missingTables);
 
@@ -66,6 +79,9 @@ public:
 
     std::pair<int, bool> SetDistributedSchema(const DistributedSchema &schema, const std::string &localIdentity,
         bool isForceUpgrade);
+
+    void StartGenLogTask();
+    void StopGenLogTask();
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
@@ -82,8 +98,8 @@ private:
     int CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, bool isUpgraded,
         const std::string &identity, TableInfo &table, RelationalSchemaObject &schema);
 
-    int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
-        RelationalSchemaObject &schema, TableSyncType tableSyncType);
+    int CreateDistributedTable(const CreateDistributedTableParam &param, bool isUpgraded,
+        RelationalSchemaObject &schema);
 
     int CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const std::string &tableName,
         const std::string &sharedTableName, TableSyncType syncType, RelationalSchemaObject &schema);
@@ -91,7 +107,16 @@ private:
     int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
         SQLiteSingleVerRelationalStorageExecutor *&handle);
 
+    int GenCloudLogInfo(const std::string &tableName, const RelationalSchemaObject &schema,
+        const std::string &identity, bool isForUpgrade);
+    int GenLogInfo(const GenerateLogInfo &info, const RelationalSchemaObject &schema);
+    int GenLogInfoInTransaction(const GenerateLogInfo &info, const RelationalSchemaObject &schema,
+        SQLiteSingleVerRelationalStorageExecutor *&handle);
     int GenLogInfoForUpgrade(const std::string &tableName, RelationalSchemaObject &schema, bool schemaChanged);
+    int GeneLogInfoForExistedDataInBatch(const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, SQLiteRelationalUtils::GenLogParam &param);
+    int SaveInfoToMetaData(const RelationalSchemaObject &schema, const std::string &tableName,
+        TableSyncType syncType);
 
     static std::map<std::string, std::map<std::string, bool>> GetReachableWithShared(
         const std::map<std::string, std::map<std::string, bool>> &reachableReference,
@@ -139,6 +164,8 @@ private:
     RelationalDBProperties properties_;
     std::mutex createDistributedTableMutex_;
     mutable std::mutex propertiesMutex_;
+
+    std::atomic<bool> isGenLogStop_ = false;
 };
 } // namespace DistributedDB
 #endif

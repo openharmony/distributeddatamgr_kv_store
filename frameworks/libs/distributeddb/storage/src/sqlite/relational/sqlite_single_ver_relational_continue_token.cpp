@@ -191,6 +191,7 @@ int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, Cloud
     }
     std::string sql = helper.GetRelationalCloudQuerySql(tableSchema_.fields, cloudDataResult.isCloudForcePushStrategy,
         cloudDataResult.isCompensatedTask, cloudDataResult.mode);
+    helper.SetAppendCondition(!queryObj_.IsRelaxForDelete() || cloudDataResult.mode != CloudWaterType::DELETE);
     errCode = helper.GetCloudQueryStatement(true, db, sql, queryStmt_);
     if (errCode == E_OK) {
         queryStmt = queryStmt_;

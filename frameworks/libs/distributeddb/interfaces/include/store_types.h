@@ -97,6 +97,8 @@ enum DBStatus {
     LOW_VERSION_TARGET, // The target device is a low version device
     NEED_CORRECT_TARGET_USER, // The target user ID is incorrect and needs to be re-obtained
     CLOUD_ASSET_NOT_FOUND, // The cloud download asset return 404 error
+    FILE_NOT_FOUND, // local asset file abnormality
+    TASK_INTERRUPTED, // Task(cloud sync, generate log) interrupted
     BUTT_STATUS = 27394048 // end of status
 };
 
@@ -150,6 +152,8 @@ enum SyncMode {
     SYNC_MODE_CLOUD_MERGE = 4,
     SYNC_MODE_CLOUD_FORCE_PUSH,
     SYNC_MODE_CLOUD_FORCE_PULL,
+    SYNC_MODE_CLOUD_CUSTOM_PUSH,
+    SYNC_MODE_CLOUD_CUSTOM_PULL,
 };
 
 enum ConflictResolvePolicy {

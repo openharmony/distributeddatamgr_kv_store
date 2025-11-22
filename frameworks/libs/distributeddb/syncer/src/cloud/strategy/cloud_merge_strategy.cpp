@@ -12,13 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "cloud/cloud_merge_strategy.h"
+#include "cloud_merge_strategy.h"
 #include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
-
 OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
-    const LogInfo &cloudInfo)
+    const LogInfo &cloudInfo) const
 {
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);
@@ -55,18 +54,18 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin,
     return TagLoginUserAndUpdate(localInfo, cloudInfo);
 }
 
-bool CloudMergeStrategy::JudgeUpdateCursor()
+bool CloudMergeStrategy::JudgeUpdateCursor() const
 {
     return true;
 }
 
-bool CloudMergeStrategy::JudgeUpload()
+bool CloudMergeStrategy::JudgeUpload() const
 {
     return true;
 }
 
 OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo,
-    bool isCloudDelete, bool isLocalDelete)
+    bool isCloudDelete, bool isLocalDelete) const
 {
     if (localInfo.cloudGid.empty()) {
         return isCloudDelete ? OpType::NOT_HANDLE
@@ -81,7 +80,7 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
     return OpType::NOT_HANDLE;
 }
 
-OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo)
+OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo) const
 {
     if (JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 &&
         (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0
@@ -92,7 +91,7 @@ OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const
 }
 
 OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
-    bool isCloudDelete, bool isLocalDelete)
+    bool isCloudDelete, bool isLocalDelete) const
 {
     if (isCloudDelete) {
         return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
@@ -103,7 +102,7 @@ OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const L
     return TagUpdateLocal(cloudInfo, localInfo);
 }
 
-OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
+OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete) const
 {
     // when cloud data is deleted, we think it is different data
     if (isCloudDelete) {
@@ -112,7 +111,7 @@ OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
     return OpType::INSERT;
 }
 
-bool CloudMergeStrategy::JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo)
+bool CloudMergeStrategy::JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo) const
 {
     return (localInfo.timestamp > cloudInfo.timestamp) &&
         ((JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE)) == 0) ||

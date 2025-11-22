@@ -13,9 +13,11 @@
  * limitations under the License.
  */
 
-#include "cloud/cloud_force_pull_strategy.h"
-#include "cloud/cloud_force_push_strategy.h"
-#include "cloud/cloud_merge_strategy.h"
+#include "cloud_custom_push_strategy.h"
+#include "cloud_custom_pull_strategy.h"
+#include "cloud_force_pull_strategy.h"
+#include "cloud_force_push_strategy.h"
+#include "cloud_merge_strategy.h"
 #include "strategy_factory.h"
 
 namespace DistributedDB {
@@ -32,6 +34,12 @@ std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(
             break;
         case SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH:
             strategy = std::make_shared<CloudForcePushStrategy>();
+            break;
+        case SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL:
+            strategy = std::make_shared<CloudCustomPullStrategy>();
+            break;
+        case SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH:
+            strategy = std::make_shared<CloudCustomPushStrategy>();
             break;
         default:
             LOGW("[StrategyFactory] Not support mode %d", static_cast<int>(mode));

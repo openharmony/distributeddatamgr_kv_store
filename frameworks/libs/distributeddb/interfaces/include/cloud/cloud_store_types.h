@@ -168,6 +168,7 @@ enum class QueryNodeType : uint32_t {
     OR = 0x101,
     AND,
     EQUAL_TO = 0x201,
+    NOT_EQUAL_TO,
     BEGIN_GROUP = 0x301,
     END_GROUP
 };

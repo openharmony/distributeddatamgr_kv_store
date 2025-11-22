@@ -579,6 +579,26 @@ DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &
     return OK;
 }
 
+DBStatus RelationalStoreDelegateImpl::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for set cloud conflict handle");
+        return DB_ERROR;
+    }
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Get storeInfo failed %d when set cloud conflict handle", errCode);
+        return TransferDBErrno(errCode);
+    }
+    errCode = conn_->SetCloudConflictHandler(handler);
+    LOGI("[RelationalStore Delegate] appId:%s storeId:%s SetCloudConflictHandle errCode[%d]",
+        DBCommon::StringMiddleMaskingWithLen(appId).c_str(), DBCommon::StringMiddleMaskingWithLen(storeId).c_str(),
+        errCode);
+    return TransferDBErrno(errCode);
+}
 #endif
 
 DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)
@@ -630,6 +650,16 @@ DBStatus RelationalStoreDelegateImpl::SetProperty(const Property &property)
         return DB_ERROR;
     }
     return TransferDBErrno(conn_->SetProperty(property));
+}
+
+DBStatus RelationalStoreDelegateImpl::StopTask(TaskType type)
+{
+    LOGW("[RelationalStore Delegate] Stop task by user, type: %u", type);
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for stop task.");
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->StopTask(type));
 }
 } // namespace DistributedDB
 #endif

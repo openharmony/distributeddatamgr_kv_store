@@ -58,7 +58,7 @@ public:
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerRelationalStorageExecutor);
 
-    int ResetLogStatus(std::string &tableName);
+    int ResetLogStatus(const std::string &tableName);
 
     int CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
         TableInfo &table);
@@ -281,6 +281,11 @@ public:
         const std::set<std::string> &extendColNames, const std::string &sql);
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids);
+
+    int UpdateTrackerTable(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly);
+
+    int GetLocalDataByRowid(const TableInfo &table, const TableSchema &tableSchema, DataInfoWithLog &dataInfoWithLog);
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
@@ -354,14 +359,12 @@ private:
     int GetCloudDataForSync(const CloudUploadRecorder &uploadRecorder, sqlite3_stmt *statement,
         CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize);
 
-    int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
-
     int GetDownloadAsset(std::vector<VBucket> &assetsV, const Field &field, Type &cloudValue);
 
     int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, DownloadData &downloadData, std::map<int, int> &statisticMap);
 
-    std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
+    std::string GetInsertSqlForCloudSync(const std::vector<Field> &insertFields, const TableSchema &tableSchema);
 
     int GetPrimaryKeyHashValue(const VBucket &vBucket, const TableSchema &tableSchema, std::vector<uint8_t> &hashValue,
         bool allowEmpty = false);
@@ -428,9 +431,6 @@ private:
 
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
-
-    int UpdateTrackerTable(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly);
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
@@ -544,6 +544,8 @@ private:
     int RecoverNullExtendLogInner(const std::string &tableName,
         const std::set<std::string> &extendColNames, const std::string &sql);
 
+    std::vector<Field> GetInsertFields(const VBucket &vBucket, const TableSchema &tableSchema);
+
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
@@ -570,6 +572,8 @@ private:
 
     std::atomic<int32_t> maxUploadCount_;
     std::atomic<int32_t> maxUploadSize_;
+
+    std::atomic<bool> isGenLogStop_ = false;
 };
 } // namespace DistributedDB
 #endif

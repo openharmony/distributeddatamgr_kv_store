@@ -484,6 +484,16 @@ SyncProcess SQLiteRelationalStoreConnection::GetCloudTaskStatus(uint64_t taskId)
     DecObjRef(this);
     return process;
 }
+
+int SQLiteRelationalStoreConnection::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when set cloud conflict handle");
+        return -E_INVALID_DB;
+    }
+    return store->SetCloudConflictHandler(handler);
+}
 #endif
 
 int SQLiteRelationalStoreConnection::SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade)
@@ -544,6 +554,21 @@ int SQLiteRelationalStoreConnection::SetProperty(const Property &property)
         return -E_INVALID_CONNECTION;
     }
     return store->SetProperty(property);
+}
+
+int SQLiteRelationalStoreConnection::StopTask(TaskType type)
+{
+    if (static_cast<uint32_t>(type) >= static_cast<uint32_t>(TaskType::BUTT)) {
+        LOGE("[RelationalConnection] stop invalid task type %" PRIu32, static_cast<uint32_t>(type));
+        return -E_INVALID_ARGS;
+    }
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store != nullptr) {
+        store->StopAllBackgroundTask();
+    } else {
+        LOGW("[RelationalConnection] store is null when stop task");
+    }
+    return E_OK;
 }
 }
 #endif

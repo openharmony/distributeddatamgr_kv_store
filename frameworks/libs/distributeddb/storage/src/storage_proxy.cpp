@@ -418,7 +418,7 @@ int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName,
         return ret;
     }
     for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
+        if (field.primary || field.dupCheckCol) {
             colNames.push_back(field.colName);
         }
         if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
@@ -874,5 +874,38 @@ void StorageProxy::FilterDownloadRecordNotFound(const std::string &tableName, Do
     }
     LOGW("Download data from cloud contains record not found.");
     (void)store_->ConvertLogToLocal(tableName, gids);
+}
+
+void StorageProxy::FilterDownloadRecordNoneSchemaField(const std::string &tableName, DownloadData &downloadData)
+{
+    std::shared_ptr<DataBaseSchema> schema;
+    int errCode = GetCloudDbSchema(schema);
+    if (errCode != E_OK || schema == nullptr) {
+        LOGW("[StorageProxy] Not found database schema, errCode %d", errCode);
+        return;
+    }
+    auto find = std::find_if(schema->tables.begin(), schema->tables.end(),
+        [&tableName](const TableSchema &tableSchema) {
+        return DBCommon::CaseInsensitiveCompare(tableSchema.name, tableName);
+    });
+    if (find == schema->tables.end()) {
+        LOGW("[StorageProxy] Not found table schema");
+        return;
+    }
+    std::set<std::string, CaseInsensitiveComparator> fieldNames;
+    std::for_each(find->fields.begin(), find->fields.end(), [&fieldNames](const Field &field) {
+        fieldNames.insert(field.colName);
+    });
+    for (auto &row : downloadData.data) {
+        for (auto data = row.begin(); data != row.end();) {
+            if (fieldNames.find(data->first) == fieldNames.end() &&
+                !data->first.empty() && data->first.at(0) != '#') {
+                // remove no exists col
+                data = row.erase(data);
+            } else {
+                ++data;
+            }
+        }
+    }
 }
 }

@@ -17,10 +17,10 @@
 
 #include "db_common.h"
 #include "db_errno.h"
+#include "log_table_manager_factory.h"
 #include "res_finalizer.h"
 #include "sqlite_relational_database_upgrader.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
-#include "sqlite_relational_utils.h"
 
 
 namespace DistributedDB {
@@ -202,9 +202,12 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
 }
 }
 
-int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName,
-    const std::string &identity, bool &schemaChanged, TableSyncType syncType, bool trackerSchemaChanged)
+int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDistributedTableParam &param,
+    bool &schemaChanged)
 {
+    const auto &tableName = param.tableName;
+    const auto &syncType = param.syncType;
+    auto trackerSchemaChanged = param.isTrackerSchemaChanged;
     std::lock_guard<std::mutex> autoLock(createDistributedTableMutex_);
     RelationalSchemaObject schema = GetSchema();
     bool isUpgraded = false;
@@ -228,10 +231,18 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
         schemaChanged = true;
     }
 
-    int errCode = CreateDistributedTable(tableName, isUpgraded, identity, schema, syncType);
+    int errCode = CreateDistributedTable(param, isUpgraded, schema);
     if (errCode != E_OK) {
         LOGE("CreateDistributedTable failed. %d", errCode);
         return errCode;
+    }
+    if (syncType == CLOUD_COOPERATION && schema.GetTable(tableName).GetTrackerTable().GetTableName().empty()) {
+        errCode = GenCloudLogInfo(tableName, schema, param.identity, isUpgraded);
+        if (errCode != E_OK) {
+            LOGE("Generate cloud log info failed. %d", errCode);
+            return errCode;
+        }
+        SetSchema(schema);
     }
     if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
         // Used for upgrading the stock data of the trackerTable
@@ -265,9 +276,12 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSing
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName, bool isUpgraded,
-    const std::string &identity, RelationalSchemaObject &schema, TableSyncType tableSyncType)
+int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDistributedTableParam &param,
+    bool isUpgraded, RelationalSchemaObject &schema)
 {
+    const auto &tableName = param.tableName;
+    const auto &tableSyncType = param.syncType;
+    const auto &identity = param.identity;
     LOGD("Create distributed table.");
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -287,6 +301,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     table.SetTableSyncType(tableSyncType);
     table.SetTrackerTable(GetTrackerSchema().GetTrackerTable(tableName));
     table.SetDistributedTable(schema.GetDistributedTable(tableName));
+    table.SetCloudTable(param.cloudTable);
     if (isUpgraded) {
         table.SetSourceTableReference(schema.GetTable(tableName).GetTableReference());
     }
@@ -297,6 +312,9 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
         return errCode;
     }
     errCode = handle->Commit();
+    if (tableSyncType == CLOUD_COOPERATION && table.GetTrackerTable().GetTableName().empty()) {
+        return errCode;
+    }
     if (errCode == E_OK) {
         SetSchema(schema);
     }
@@ -324,6 +342,10 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
     // update table if tableName changed
     schema.RemoveRelationalTable(tableName);
     schema.AddRelationalTable(table);
+    if (table.GetTableSyncType() == CLOUD_COOPERATION && !table.GetSharedTableMark() &&
+        table.GetTrackerTable().GetTableName().empty()) {
+        return E_OK;
+    }
     errCode = SaveSchemaToMetaTable(handle, schema);
     if (errCode != E_OK) {
         LOGE("Save schema to meta table for create distributed table failed. %d", errCode);
@@ -985,6 +1007,76 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
     return errCode;
 }
 
+int SQLiteSingleRelationalStorageEngine::GenCloudLogInfo(const std::string &tableName,
+    const RelationalSchemaObject &schema, const std::string &identity, bool isForUpgrade)
+{
+    TableInfo table = schema.GetTable(tableName);
+    GenerateLogInfo info = {
+        .tableName = tableName, .identity = identity
+    };
+    int errCode = GenLogInfo(info, schema);
+    if (errCode != E_OK) {
+        LOGE("Generate log for exist data failed: %d", errCode);
+        return errCode;
+    }
+    errCode = SaveInfoToMetaData(schema, tableName, CLOUD_COOPERATION);
+    if (errCode != E_OK) {
+        LOGE("Save info to meta table failed: %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::GenLogInfo(const GenerateLogInfo &info, const RelationalSchemaObject &schema)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([handle, &errCode, this] {
+        SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
+        this->ReleaseExecutor(releaseHandle);
+    });
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    errCode = GenLogInfoInTransaction(info, schema, handle);
+    if (errCode != E_OK && errCode != -E_TASK_INTERRUPTED) {
+        (void)handle->Rollback();
+        return errCode;
+    }
+    int ret = handle->SetLogTriggerStatus(true);
+    if (ret != E_OK) {
+        (void)handle->Rollback();
+        return ret;
+    }
+    (void)handle->Commit();
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::GenLogInfoInTransaction(const GenerateLogInfo &info,
+    const RelationalSchemaObject &schema, SQLiteSingleVerRelationalStorageExecutor *&handle)
+{
+    TableInfo table = schema.GetTable(info.tableName);
+    sqlite3 *db = nullptr;
+    if (handle->GetDbHandle(db) != E_OK) {
+        LOGE("[GenLogInfoInTransaction] invalid db");
+        return -E_INVALID_DB;
+    }
+    auto mode = GetRelationalProperties().GetDistributedTableMode();
+    std::unique_ptr<SqliteLogTableManager> tableManager =
+        LogTableManagerFactory::GetTableManager(table, mode, table.GetTableSyncType());
+    SQLiteRelationalUtils::GenLogParam param = {
+        db, handle->IsMemory(), false, SQLiteRelationalUtils::BATCH_GEN_LOG_SIZE
+    };
+    return GeneLogInfoForExistedDataInBatch(info.identity, table, tableManager, param);
+}
+
+
 int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string &tableName,
     RelationalSchemaObject &schema, bool schemaChanged)
 {
@@ -1009,6 +1101,55 @@ int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string 
         return errCode;
     }
     return handle->Commit();
+}
+
+int SQLiteSingleRelationalStorageEngine::GeneLogInfoForExistedDataInBatch(const std::string &identity,
+    const TableInfo &tableInfo, std::unique_ptr<SqliteLogTableManager> &logMgrPtr,
+    SQLiteRelationalUtils::GenLogParam &param)
+{
+    int changedCount = 0;
+    do {
+        if (isGenLogStop_) {
+            LOGI("gen log task interrupted.");
+            return -E_TASK_INTERRUPTED;
+        }
+        int errCode = SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, tableInfo, logMgrPtr, param);
+        if (errCode != E_OK) {
+            LOGE("[GeneLogInfoForExistedDataInBatch] Generate one batch log failed: %d", errCode);
+            return errCode;
+        }
+        changedCount = sqlite3_changes(param.db);
+    } while (changedCount != 0);
+    return E_OK;
+}
+
+int SQLiteSingleRelationalStorageEngine::SaveInfoToMetaData(const RelationalSchemaObject &schema,
+    const std::string &tableName, TableSyncType syncType)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([handle, &errCode, this] {
+        SQLiteSingleVerRelationalStorageExecutor *releaseHandle = handle;
+        if (errCode != E_OK) {
+            (void)releaseHandle->Rollback();
+        } else {
+            (void)releaseHandle->Commit();
+        }
+        this->ReleaseExecutor(releaseHandle);
+    });
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SaveSchemaToMetaTable(handle, schema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return SaveSyncTableTypeAndDropFlagToMeta(handle, tableName, syncType);
 }
 
 std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorageEngine::GetReachableWithShared(
@@ -1188,6 +1329,18 @@ int SQLiteSingleRelationalStorageEngine::SetDistributedSchemaInTraction(Relation
         LOGE("Save schema to meta table for set distributed schema failed. %d", errCode);
     }
     return errCode;
+}
+
+void SQLiteSingleRelationalStorageEngine::StartGenLogTask()
+{
+    LOGI("Start gen log task");
+    isGenLogStop_ = false;
+}
+
+void SQLiteSingleRelationalStorageEngine::StopGenLogTask()
+{
+    LOGI("Stop gen log task");
+    isGenLogStop_ = true;
 }
 }
 #endif

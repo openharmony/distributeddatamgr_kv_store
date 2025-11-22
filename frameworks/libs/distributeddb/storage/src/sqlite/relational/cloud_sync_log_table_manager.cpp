@@ -24,15 +24,28 @@ std::string CloudSyncLogTableManager::CalcPrimaryKeyHash(const std::string &refe
 {
     (void)identity;
     std::string sql;
-    FieldInfoMap fieldInfos = table.GetFields();
-    if (table.GetPrimaryKey().size() == 1) {
-        std::string pkName = table.GetPrimaryKey().at(0);
+    const FieldInfoMap &fieldInfos = table.GetFields();
+    std::vector<std::string> sourceFields = table.GetCloudSyncDistributedPk();
+    if (sourceFields.empty()) {
+        std::for_each(table.GetPrimaryKey().begin(), table.GetPrimaryKey().end(), [&sourceFields](const auto &item) {
+            sourceFields.push_back(item.second);
+        });
+    }
+    return CalcPrimaryKeyHashInner(references, sourceFields, fieldInfos);
+}
+
+std::string CloudSyncLogTableManager::CalcPrimaryKeyHashInner(const std::string &references,
+    const std::vector<std::string> &sourceFields, const DistributedDB::FieldInfoMap &fieldInfos)
+{
+    std::string sql;
+    if (sourceFields.size() == 1) {
+        std::string pkName = sourceFields.at(0);
         if (pkName == "rowid") {
             std::string collateStr = std::to_string(static_cast<uint32_t>(CollateType::COLLATE_NONE));
             // we use _rowid_ to reference sqlite inner rowid to avoid rowid is a user defined column,
             // user can't create distributed table with column named "_rowid_"
             sql = "calc_hash(" + references + "'" + std::string(DBConstant::SQLITE_INNER_ROWID) + "', " +
-                collateStr + ")";
+                  collateStr + ")";
         } else {
             if (fieldInfos.find(pkName) == fieldInfos.end()) {
                 return sql;
@@ -42,8 +55,8 @@ std::string CloudSyncLogTableManager::CalcPrimaryKeyHash(const std::string &refe
         }
     }  else {
         std::set<std::string> primaryKeySet; // we need sort primary key by upper name
-        for (const auto &it : table.GetPrimaryKey()) {
-            primaryKeySet.emplace(DBCommon::ToUpperCase(it.second));
+        for (const auto &it : sourceFields) {
+            primaryKeySet.emplace(DBCommon::ToUpperCase(it));
         }
         sql = "calc_hash(";
         for (const auto &it : primaryKeySet) {
@@ -140,8 +153,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
-    updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
+    updateTrigger += GetUpdateCondition(table);
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
     updateTrigger += "\t UPDATE " + logTblName;
@@ -213,5 +225,24 @@ std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableIn
         dropTriggers.emplace_back(clearExtendSql);
     }
     return dropTriggers;
+}
+
+std::string CloudSyncLogTableManager::GetUpdateCondition(const TableInfo &table)
+{
+    std::string condition = "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
+    condition += "WHERE key = 'log_trigger_switch' AND value = 'true'";
+    auto fields = table.GetCloudSyncFields();
+    if (!table.GetCloudSyncDistributedPk().empty() && !fields.empty()) {
+        condition += " AND (";
+        for (size_t i = 0; i < fields.size(); ++i) {
+            if (i != 0) {
+                condition += " OR ";
+            }
+            condition += "OLD." + fields[i] + " IS DISTINCT FROM NEW." + fields[i];
+        }
+        condition +=  ")";
+    }
+    condition += ")\n";
+    return condition;
 }
 } // DistributedDB

@@ -81,6 +81,8 @@ public:
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
+
+    int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
 #endif
 
     int OperateDataStatus(uint32_t dataOperator) override;
@@ -88,6 +90,8 @@ public:
     int32_t GetDeviceSyncTaskCount() override;
 
     int SetProperty(const Property &property) override;
+
+    int StopTask(TaskType type) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

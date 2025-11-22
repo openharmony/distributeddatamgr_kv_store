@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 #include <gtest/gtest.h>
+#include "cloud/strategy/strategy_factory.h"
 #include "distributeddb_tools_unit_test.h"
-#include "strategy_factory.h"
+#include "rdb_general_ut.h"
 #include "virtual_cloud_syncer.h"
 
 using namespace std;
@@ -227,6 +228,12 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest002, TestSize.Level0)
      */
     localInfo.cloudGid = "gid";
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::CLEAR_GID);
+    /**
+     * @tc.steps: step7. local data is locked
+     * @tc.expected: step7. CLEAR_GID
+     */
+    localInfo.status = static_cast<uint32_t>(LockStatus::LOCK);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::LOCKED_NOT_HANDLE);
 }
 
 /**
@@ -268,16 +275,24 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest003, TestSize.Level0)
     EXPECT_EQ(strategy->TagSyncDataStatus(false, false, localInfo, cloudInfo), OpType::DELETE);
 
     /**
-     * @tc.steps: step5. local exist cloud record and its deleted in cloud
-     * @tc.expected: step5. delete
+     * @tc.steps: step5. local not exist cloud record and it's exist in cloud (with gid)
+     * @tc.expected: step5. update
      */
+    cloudInfo.flag = 0x00;
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, false, localInfo, cloudInfo), OpType::UPDATE);
+
+    /**
+     * @tc.steps: step6. local exist cloud record and its deleted in cloud
+     * @tc.expected: step6. delete
+     */
+    cloudInfo.flag = 0x01; // it means delete
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::DELETE);
     localInfo.cloudGid = "";
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::DELETE);
 
     /**
-     * @tc.steps: step6. local exist cloud record and its not deleted in cloud(WITH OR WITHOUT gid)
-     * @tc.expected: step6. UPDATE
+     * @tc.steps: step7. local exist cloud record and its not deleted in cloud(WITH OR WITHOUT gid)
+     * @tc.expected: step7. UPDATE
      */
     cloudInfo.flag = 0x00;
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
@@ -310,6 +325,10 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest004, TestSize.Level0)
     cloudInfo.flag = 0x00;
     localInfo.flag = 0x01;
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::INSERT);
+
+    localInfo.flag = 0x00;
+    strategy->SetConflictResolvePolicy(SingleVerConflictResolvePolicy::DENY_OTHER_DEV_AMEND_CUR_DEV_DATA);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
 }
 
 /**
@@ -418,5 +437,148 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest007, TestSize.Level0)
      */
     localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE);
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+}
+
+/**
+ * @tc.name: TagOpTyeTest008
+ * @tc.desc: Verify cloud merge strategy when cloud win.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. build cloud merge strategy
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_MERGE);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+    /**
+     * @tc.steps: step2. local exist and cloud exist
+     * @tc.expected: step2. insert cloud record to local
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, true, localInfo, cloudInfo), OpType::UPDATE);
+    /**
+     * @tc.steps: step3. local deleted and cloud exist
+     * @tc.expected: step3. insert cloud record to local
+     */
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, true, localInfo, cloudInfo), OpType::INSERT);
+    /**
+     * @tc.steps: step4. local exist and cloud deleted
+     * @tc.expected: step4. insert cloud record to local
+     */
+    localInfo.flag = 0;
+    cloudInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, true, localInfo, cloudInfo), OpType::DELETE);
+    /**
+     * @tc.steps: step5. local deleted and cloud deleted
+     * @tc.expected: step5. insert cloud record to local
+     */
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, true, localInfo, cloudInfo), OpType::UPDATE_TIMESTAMP);
+}
+
+/**
+ * @tc.name: TagOpTyeTest009
+ * @tc.desc: Verify cloud force push strategy when local device name is "cloud".
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest009, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. build cloud force push strategy
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    localInfo.device = "cloud";
+    LogInfo cloudInfo;
+    localInfo.cloudGid = "gid";
+    /**
+     * @tc.steps: step2. local timestamp equals cloud timestamp
+     * @tc.expected: step2. SET_CLOUD_FORCE_PUSH_FLAG_ONE
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE);
+    /**
+     * @tc.steps: step2. local timestamp not equals cloud timestamp
+     * @tc.expected: step2. SET_CLOUD_FORCE_PUSH_FLAG_ONE
+     */
+    localInfo.timestamp = 1u;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO);
+}
+
+/**
+ * @tc.name: TagOpTyeTest010
+ * @tc.desc: Verify cloud custom pull strategy.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest010, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. create merge strategy but not set cloud conflict handler, init localInfo/cloudInfo.
+     * @tc.expected: step1. create ok
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+    VBucket localData;
+    VBucket cloudData;
+    DataStatusInfo statusInfo;
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData), OpType::NOT_HANDLE);
+    /**
+     * @tc.steps: step2. set cloud conflict handler but return BUTT.
+     * @tc.expected: step2. create ok
+     */
+    auto handler = std::make_shared<TestCloudConflictHandler>();
+    handler->SetCallback([](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::BUTT;
+    });
+    strategy->SetCloudConflictHandler(handler);
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData), OpType::NOT_HANDLE);
+    /**
+     * @tc.steps: step3. set cloud conflict handler and return UPSERT.
+     * @tc.expected: step3. create ok
+    */
+    handler->SetCallback([](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::UPSERT;
+    });
+    strategy->SetCloudConflictHandler(handler);
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData), OpType::INSERT);
+    statusInfo.isExistInLocal = true;
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData), OpType::UPDATE);
+}
+
+/**
+ * @tc.name: TagOpTyeTest011
+ * @tc.desc: Verify cloud strategy with policy DENY_OTHER_DEV_AMEND_CUR_DEV_DATA.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest011, TestSize.Level0)
+{
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_MERGE);
+    ASSERT_NE(strategy, nullptr);
+    strategy->SetConflictResolvePolicy(SingleVerConflictResolvePolicy::DENY_OTHER_DEV_AMEND_CUR_DEV_DATA);
+    LogInfo localInfo;
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    LogInfo cloudInfo;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::INSERT);
+
+    localInfo.flag = 0;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+
+    localInfo.device = "dev";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
+    localInfo.originDev = "originDev";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
 }
 }

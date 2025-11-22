@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,21 +13,21 @@
  * limitations under the License.
  */
 
-#ifndef CLOUD_LOCKER_H
-#define CLOUD_LOCKER_H
-#include <memory>
-#include "icloud_syncer.h"
+#ifndef CLOUD_CUSTOM_PUSH_STRATEGY_H
+#define CLOUD_CUSTOM_PUSH_STRATEGY_H
+
+#include "cloud_sync_strategy.h"
+
 namespace DistributedDB {
-using AfterBuildAction = std::function<int()>;
-using BeforeFinalize = std::function<void()>;
-class CloudLocker final {
+class CloudCustomPushStrategy : public CloudSyncStrategy {
 public:
-    static int BuildCloudLock(const AfterBuildAction &buildAction, const BeforeFinalize &finalize,
-        bool lockCloud, std::shared_ptr<CloudLocker> &locker);
-    CloudLocker() = default;
-    ~CloudLocker();
-private:
-    BeforeFinalize finalize_;
+    bool JudgeUpdateCursor() const override;
+
+    bool JudgeUpload() const override;
+
+    bool JudgeDownload() const override;
+
+    bool JudgeLocker() const override;
 };
-}
-#endif // CLOUD_LOCKER_H
+} // DistributedDB
+#endif // CLOUD_CUSTOM_PUSH_STRATEGY_H
