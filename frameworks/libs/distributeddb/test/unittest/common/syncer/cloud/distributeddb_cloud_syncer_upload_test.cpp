@@ -146,65 +146,6 @@ void DistributedDBCloudSyncerUploadTest::CheckUploadFinish(TestCloudSyncer &clou
 }
 
 /**
- * @tc.name: UploadModeCheck001
- * @tc.desc: Test different strategies of sync task call DoUpload()
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: huangboxin
- */
-HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck001, TestSize.Level1)
-{
-    MockICloudSyncStorageInterface *iCloud = new MockICloudSyncStorageInterface();
-    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
-    TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
-    std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
-    cloudSyncer->SetMockICloudDB(idb);
-    TaskId taskId = 1;
-
-    EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
-
-    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_PUSH_ONLY);
-    int errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_PULL_ONLY);
-    errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_PUSH_PULL);
-    errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
-    errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, E_OK);
-
-    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
-    errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, E_OK);
-
-    cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PULL);
-    errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-
-    errCode = cloudSyncer->CallDoUpload(taskId);
-    EXPECT_EQ(errCode, -E_INVALID_ARGS);
-    cloudSyncer->CallClose();
-    RefObject::KillAndDecObjRef(cloudSyncer);
-
-    storageProxy.reset();
-    delete iCloud;
-    idb = nullptr;
-}
-
-/**
  * @tc.name: UploadModeCheck002
  * @tc.desc: Test case1 about getting water mark
  * @tc.type: FUNC

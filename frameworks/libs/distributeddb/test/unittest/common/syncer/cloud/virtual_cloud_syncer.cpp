@@ -33,7 +33,7 @@ int VirtualCloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownl
     return CloudSyncer::DoDownload(taskId, isFirstDownload);
 }
 
-int VirtualCloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
+int VirtualCloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, bool needUpload, bool isFirstDownload)
 {
     if (!doDownload_) {
         LOGI("[VirtualCloudSyncer] download just return ok");
@@ -114,7 +114,12 @@ int VirtualCloudSyncer::CallTagStatusByStrategy(bool isExist, const DataInfoWith
     DataInfo dataInfo;
     dataInfo.localInfo = localInfo;
     dataInfo.cloudLogInfo = cloudInfo;
-    return CloudSyncer::TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
+    param.downloadData.data.push_back({});
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    int errCode = E_OK;
+    std::tie(errCode, strategyOpResult) =
+        strategyProxy_.TagStatusByStrategy(isExist, 0, storageProxy_, param, dataInfo);
+    return errCode;
 }
 
 void VirtualCloudSyncer::PauseCurrentTask()

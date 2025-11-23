@@ -16,6 +16,7 @@
 #define TABLE_INFO_H
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -145,6 +146,12 @@ public:
     const std::vector<CompositeFields> GetUniqueAndPkDefine() const;
 
     std::vector<CompositeFields> RemovePKCompositeFields(const std::vector<CompositeFields> &uniqueFields) const;
+
+    void SetCloudTable(const std::optional<TableSchema> &table);
+
+    std::vector<std::string> GetCloudSyncDistributedPk() const;
+
+    std::vector<std::string> GetCloudSyncFields() const;
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;
@@ -177,6 +184,7 @@ private:
     //  b     c
     // d  e  f    ,table_info[a] = {b,c}  [b] = {d, e}  [c] = {f}
     std::vector<TableReferenceProperty> sourceTableReferenced_;
+    std::optional<TableSchema> cloudTable_;
 };
 } // namespace DistributedDB
 #endif // TABLE_INFO_H

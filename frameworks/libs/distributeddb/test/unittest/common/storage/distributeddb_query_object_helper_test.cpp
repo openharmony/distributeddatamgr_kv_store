@@ -222,7 +222,7 @@ std::vector<std::vector<QueryNode>> Query004GetExpectNode()
             .fieldName = "",
             .fieldValue = {}
         }, QueryNode {
-            .type = QueryNodeType::EQUAL_TO,
+            .type = QueryNodeType::NOT_EQUAL_TO,
             .fieldName = "field2",
             .fieldValue = {std::string("2")}
         }, QueryNode {
@@ -279,7 +279,7 @@ HWTEST_F(DistributedDBQueryObjectHelperTest, Query004, TestSize.Level1)
 {
     std::vector<std::string> inVal = {"1", "2", "3"};
     Query query = Query::Select().From("table1").BeginGroup().
-        EqualTo("field1", "1").And().EqualTo("field2", "2").
+        EqualTo("field1", "1").And().NotEqualTo("field2", "2").
         EndGroup().Or().BeginGroup().EqualTo("field1", "2").And().EqualTo("field2", "1").EndGroup().
         From("table2").In("field3", inVal);
 

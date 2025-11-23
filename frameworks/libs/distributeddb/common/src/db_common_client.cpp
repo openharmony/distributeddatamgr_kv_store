@@ -46,6 +46,11 @@ std::string DBCommon::StringMiddleMasking(const std::string &name)
     return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
 
+std::string DBCommon::StringMiddleMaskingWithLen(const std::string &name)
+{
+    return StringMiddleMasking(name).append(", len[").append(std::to_string(name.length())).append("]");
+}
+
 void DBCommon::RTrim(std::string &oriString)
 {
     if (oriString.empty()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,30 +12,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "cloud_locker.h"
 
-#include "db_errno.h"
+#include "cloud_custom_push_strategy.h"
+
 namespace DistributedDB {
-int CloudLocker::BuildCloudLock(const AfterBuildAction &buildAction, const BeforeFinalize &finalize,
-    bool lockCloud, std::shared_ptr<CloudLocker> &locker)
+bool CloudCustomPushStrategy::JudgeUpdateCursor() const
 {
-    locker = std::make_shared<CloudLocker>();
-    if (!lockCloud) {
-        return E_OK;
-    }
-    int errCode = buildAction();
-    if (errCode != E_OK) {
-        locker = nullptr;
-    } else {
-        locker->finalize_ = finalize;
-    }
-    return errCode;
+    return false;
 }
 
-CloudLocker::~CloudLocker()
+bool CloudCustomPushStrategy::JudgeUpload() const
 {
-    if (finalize_) {
-        finalize_();
-    }
+    return true;
 }
+
+bool CloudCustomPushStrategy::JudgeDownload() const
+{
+    return false;
 }
+
+bool CloudCustomPushStrategy::JudgeLocker() const
+{
+    return false;
+}
+} // DistributedDB

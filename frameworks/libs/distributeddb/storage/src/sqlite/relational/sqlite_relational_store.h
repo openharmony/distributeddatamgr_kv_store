@@ -119,6 +119,8 @@ public:
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId);
+
+    int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler);
 #endif
 
     int OperateDataStatus(uint32_t dataOperator);
@@ -126,6 +128,8 @@ public:
     int32_t GetDeviceSyncTaskCount() const;
 
     int SetProperty(const Property &property);
+
+    void StopAllBackgroundTask();
 protected:
     void ReleaseResources();
 
@@ -168,7 +172,8 @@ protected:
 
     int CheckQueryValid(const CloudSyncOption &option);
 
-    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object, bool isFromTable);
+    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object, bool isFromTable,
+        SyncMode mode);
 
     int CheckTableName(const std::vector<std::string> &tableNames);
 
@@ -219,6 +224,9 @@ protected:
     void TrackerRepairImpl(TrackerTable &trackerTable, const RelationalSchemaObject &obj);
 
     RelationalSchemaObject GetSchemaObj() const;
+
+    std::pair<int, CreateDistributedTableParam> GetCreateDisTableParam(const std::string &tableName,
+        const std::string &identity, TableSyncType syncType, bool isTrackerSchemaChanged) const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

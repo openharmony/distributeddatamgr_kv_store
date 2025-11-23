@@ -842,4 +842,16 @@ void CloudDBProxy::CancelDownload()
         LOGW("[CloudDBProxy] cancel download failed %d", static_cast<int>(status));
     }
 }
+
+void CloudDBProxy::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    std::unique_lock<std::shared_mutex> writeLock(handlerMutex_);
+    conflictHandler_ = handler;
+}
+
+std::weak_ptr<ICloudConflictHandler> CloudDBProxy::GetCloudConflictHandler()
+{
+    std::shared_lock<std::shared_mutex> writeLock(handlerMutex_);
+    return std::weak_ptr<ICloudConflictHandler>(conflictHandler_);
+}
 }

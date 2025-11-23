@@ -78,10 +78,12 @@ public:
     static int InitKnowledgeTableTypeToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
     static int SetLogTriggerStatus(sqlite3 *db, bool status);
 
+    static constexpr const uint32_t BATCH_GEN_LOG_SIZE = 1000;
     struct GenLogParam {
         sqlite3 *db = nullptr;
         bool isMemory = false;
         bool isTrackerTable = false;
+        uint32_t batchLimit = 0;
     };
 
     static int GeneTimeStrForLog(const TableInfo &tableInfo, GenLogParam &param, std::string &timeStr);
@@ -125,6 +127,20 @@ public:
     static void DeleteMismatchLog(sqlite3 *db, const std::string &tableName, const std::string &misDataKeys);
 
     static const std::string GetTempUpdateLogCursorTriggerSql(const std::string &tableName);
+
+    static int GetLocalDataByRowid(sqlite3 *db, const TableInfo &table, const TableSchema &tableSchema,
+        DataInfoWithLog &dataInfoWithLog);
+
+    static int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
+
+    static Field ConvertToField(const FieldInfo &fieldInfo);
+
+    static int32_t ConvertToType(StorageType storageType);
+
+    static std::vector<Field> GetUserUpdateField(const VBucket &vBucket, const TableSchema &tableSchema);
+
+    static std::vector<Field> GetSaveSyncField(const VBucket &vBucket, const TableSchema &tableSchema,
+        bool isContainDupCheck);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 
@@ -132,6 +148,11 @@ private:
     static int GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);
 
     static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table, const std::string &modifyTime);
+
+    static std::vector<Field> MergeFieldFromSchema(const std::vector<Field> &originFields,
+        const std::vector<FieldInfo> &targetFields);
+
+    static std::string GetQueryLocalDataSQL(const TableInfo &table, int64_t dataKey);
 };
 } // namespace DistributedDB
 #endif // SQLITE_RELATIONAL_UTILS_H

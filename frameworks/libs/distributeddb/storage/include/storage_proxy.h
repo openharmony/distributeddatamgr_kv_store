@@ -194,6 +194,8 @@ public:
     Timestamp EraseNanoTime(Timestamp localTime);
 
     void FilterDownloadRecordNotFound(const std::string &tableName, DownloadData &downloadData);
+
+    void FilterDownloadRecordNoneSchemaField(const std::string &tableName, DownloadData &downloadData);
 protected:
     void Init();
 private:

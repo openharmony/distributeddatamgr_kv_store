@@ -43,6 +43,7 @@ private:
     bool ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField);
     int CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldInfoMap &localFields,
         std::vector<Field> &cloudFields);
+    int CheckCloudField(const Field &cloudField, FieldInfoMap &localFields, std::map<int, FieldName> &primaryKeys);
     std::shared_ptr<DataBaseSchema> cloudSchema_ = nullptr;
     std::map<std::string, bool> sharedTableMap_;
 };

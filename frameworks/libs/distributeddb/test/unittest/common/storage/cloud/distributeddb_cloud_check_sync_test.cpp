@@ -724,7 +724,6 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest003, TestSize.Level1)
     // prepare data
     const int actualCount = 1;
     InsertUserTableRecord(tableName_, actualCount);
-
     InsertCloudTableRecord(0, actualCount, 0, false);
     // delete local data
     DeleteUserTableRecord(0);

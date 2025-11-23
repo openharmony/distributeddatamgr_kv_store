@@ -15,10 +15,10 @@
 #ifndef CLOUDSYNCER_TEST_H
 #define CLOUDSYNCER_TEST_H
 
-#include "cloud_merge_strategy.h"
 #include "cloud_syncer.h"
 #include "cloud_syncer_test.h"
 #include "cloud_sync_utils.h"
+#include "cloud/strategy/cloud_merge_strategy.h"
 #include "mock_iclouddb.h"
 
 namespace DistributedDB {
@@ -60,8 +60,8 @@ public:
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
         currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" }, cloudTaskInfos_[taskId].users);
-        currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
-        currentContext_.strategy->SetIsKvScene(isKvScene_);
+        strategyProxy_.UpdateStrategy(SyncMode::SYNC_MODE_CLOUD_MERGE, isKvScene_,
+            SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN, std::weak_ptr<ICloudConflictHandler>());
         closed_ = false;
         cloudTaskInfos_[taskId].callback = [this, taskId](const std::map<std::string, SyncProcess> &process) {
             if (process.size() >= 1u) {
@@ -98,7 +98,7 @@ public:
     void CallClose()
     {
         currentContext_.currentTaskId = 0u;
-        currentContext_.strategy = nullptr;
+        strategyProxy_.ResetStrategy();
         currentContext_.notifier = nullptr;
         Close();
     }

@@ -75,6 +75,8 @@ public:
 
     static std::string StringMiddleMasking(const std::string &name);
 
+    static std::string StringMiddleMaskingWithLen(const std::string &name);
+
     static std::string GetDistributedTableName(const std::string &device, const std::string &tableName);
 
     static std::string GetDistributedTableName(const std::string &device, const std::string &tableName,

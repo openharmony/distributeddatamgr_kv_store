@@ -38,6 +38,9 @@ private:
     std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) override;
     std::string GetDeleteTrigger(const TableInfo &table, const std::string &identity) override;
     std::vector<std::string> GetDropTriggers(const TableInfo &table) override;
+    std::string CalcPrimaryKeyHashInner(const std::string &references, const std::vector<std::string> &sourceFields,
+        const FieldInfoMap &fieldInfos);
+    static std::string GetUpdateCondition(const TableInfo &table);
 };
 
 } // DistributedDB

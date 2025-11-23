@@ -73,6 +73,11 @@ public:
 
     std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
 
+    int32_t GetDeviceSyncTaskCount() override;
+
+    DBStatus SetProperty(const Property &property) override;
+
+    DBStatus StopTask([[gnu::unused]] TaskType type) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int32_t GetCloudSyncTaskCount() override;
 
@@ -94,10 +99,9 @@ public:
     DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
-#endif
-    int32_t GetDeviceSyncTaskCount() override;
 
-    DBStatus SetProperty(const Property &property) override;
+    DBStatus SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
+#endif
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

@@ -23,11 +23,11 @@
 #include "cloud/cloud_db_proxy.h"
 #include "cloud/cloud_store_types.h"
 #include "cloud/cloud_sync_state_machine.h"
-#include "cloud/cloud_sync_strategy.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_syncer.h"
 #include "cloud/process_notifier.h"
 #include "cloud/process_recorder.h"
+#include "cloud/strategy_proxy.h"
 #include "cloud_locker.h"
 #include "data_transformer.h"
 #include "db_common.h"
@@ -62,9 +62,7 @@ public:
 
     int ClearCloudWatermark(const std::vector<std::string> &tableNameList);
 
-    int StopSyncTask(std::function<int(void)> &removeFunc);
-
-    int StopTaskBeforeSetReference(std::function<int(void)> &setReferenceFunc);
+    int StopSyncTask(const std::function<int(void)> &removeFunc);
 
     int CleanWaterMarkInMemory(const std::set<std::string> &tableNameList);
 
@@ -97,26 +95,27 @@ public:
     SyncProcess GetCloudTaskStatus(uint64_t taskId) const;
 
     int ClearCloudWatermark(std::function<int(void)> &clearFunc);
+
+    void SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler);
 protected:
     struct TaskContext {
         TaskId currentTaskId = 0u;
-        std::string tableName;
-        std::shared_ptr<ProcessNotifier> notifier;
-        std::shared_ptr<CloudSyncStrategy> strategy;
-        std::shared_ptr<ProcessRecorder> processRecorder;
-        std::map<TableName, std::vector<Field>> assetFields;
-        // should be cleared after each Download
-        DownloadList assetDownloadList;
-        // store GID and assets, using in upload procedure
-        std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
-        // struct: <currentUserIndex, <tableName, waterMark>>
-        std::map<int, std::map<TableName, std::string>> cloudWaterMarks;
-        std::shared_ptr<CloudLocker> locker;
         bool isNeedUpload = false;  // whether the current task need to do upload
         bool isRealNeedUpload = false;
         bool isFirstDownload = false;
         int currentUserIndex = 0;
         int repeatCount = 0;
+        std::string tableName;
+        std::shared_ptr<ProcessNotifier> notifier;
+        std::shared_ptr<ProcessRecorder> processRecorder;
+        std::map<TableName, std::vector<Field>> assetFields;
+        // store GID and assets, using in upload procedure
+        std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
+        // struct: <currentUserIndex, <tableName, waterMark>>
+        std::map<int, std::map<TableName, std::string>> cloudWaterMarks;
+        std::shared_ptr<CloudLocker> locker;
+        // should be cleared after each Download
+        DownloadList assetDownloadList;
     };
     struct UploadParam {
         int64_t count = 0;
@@ -170,7 +169,7 @@ protected:
 
     void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string &tableName, bool needNotify);
 
-    virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
+    virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, bool needUpload, bool isFirstDownload);
 
     void SetNeedUpload(bool isNeedUpload);
 
@@ -311,8 +310,6 @@ protected:
     int UpdateChangedData(SyncParam &param, DownloadList &assetsDownloadList);
 
     void UpdateCloudWaterMark(TaskId taskId, const SyncParam &param);
-
-    int TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult);
 
     int CommitDownloadResult(const DownloadItem &downloadItem, InnerProcessInfo &info,
         DownloadCommitList &commitList, int errCode);
@@ -567,6 +564,7 @@ protected:
     std::mutex syncMutex_;  // Clean Cloud Data and Sync are mutually exclusive
 
     CloudDBProxy cloudDB_;
+    StrategyProxy strategyProxy_;
 
     std::shared_ptr<StorageProxy> storageProxy_;
     std::atomic<int32_t> queuedManualSyncLimit_;

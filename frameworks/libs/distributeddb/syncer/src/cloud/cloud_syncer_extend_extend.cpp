@@ -29,7 +29,6 @@
 #include "res_finalizer.h"
 #include "runtime_context.h"
 #include "store_types.h"
-#include "strategy_factory.h"
 #include "version.h"
 
 namespace DistributedDB {
@@ -117,5 +116,10 @@ void CloudSyncer::ExecuteAsyncDownloadAssets(TaskId taskId)
         asyncTaskId_ = INVALID_TASK_ID;
     }
     asyncTaskCv_.notify_all();
+}
+
+void CloudSyncer::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    cloudDB_.SetCloudConflictHandler(handler);
 }
 } // namespace DistributedDB

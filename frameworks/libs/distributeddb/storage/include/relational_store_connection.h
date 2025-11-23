@@ -98,12 +98,16 @@ public:
     virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) = 0;
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
+
+    virtual int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) = 0;
 #endif
     virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 
     virtual int32_t GetDeviceSyncTaskCount() = 0;
 
     virtual int SetProperty(const Property &property) = 0;
+
+    virtual int StopTask(TaskType type) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

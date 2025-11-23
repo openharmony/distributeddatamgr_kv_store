@@ -443,8 +443,12 @@ void SQLiteRelationalStore::WakeUpSyncer()
 int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType,
     bool trackerSchemaChanged)
 {
+    sqliteStorageEngine_->StartGenLogTask();
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     TableInfo tableInfo = localSchema.GetTable(tableName);
+    TableSchema tableSchema;
+    (void)storageEngine_->GetCloudTableSchema(tableName, tableSchema);
+    tableInfo.SetCloudTable(tableSchema);
     if (!tableInfo.Empty()) {
         bool isSharedTable = tableInfo.GetSharedTableMark();
         if (isSharedTable && !trackerSchemaChanged) {
@@ -461,8 +465,13 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         }
     }
     bool schemaChanged = false;
-    int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(localIdentity),
-        schemaChanged, syncType, trackerSchemaChanged);
+    auto [errCode, param] = GetCreateDisTableParam(tableName, DBCommon::TransferStringToHex(localIdentity),
+        syncType, trackerSchemaChanged);
+    if (errCode != E_OK) {
+        LOGE("Get create distributed table param failed %d", errCode);
+        return errCode;
+    }
+    errCode = sqliteStorageEngine_->CreateDistributedTable(param, schemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
     } else {
@@ -1242,7 +1251,7 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
     }
     std::vector<QuerySyncObject> object = QuerySyncObject::GetQuerySyncObject(option.query);
     bool isFromTable = object.empty();
-    if (!option.priorityTask && !isFromTable) {
+    if (option.mode != SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH && !option.priorityTask && !isFromTable) {
         LOGE("[RelationalStore] not support normal sync with query");
         return -E_NOT_SUPPORT;
     }
@@ -1270,11 +1279,11 @@ int SQLiteRelationalStore::CheckQueryValid(const CloudSyncOption &option)
     if (errCode != E_OK) {
         return errCode;
     }
-    return CheckObjectValid(option.priorityTask, object, isFromTable);
+    return CheckObjectValid(option.priorityTask, object, isFromTable, option.mode);
 }
 
 int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object,
-    bool isFromTable)
+    bool isFromTable, SyncMode mode)
 {
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     for (const auto &item : object) {
@@ -1295,7 +1304,7 @@ int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector
         }
         std::string tableName = item.GetRelationTableName();
         TableInfo tableInfo = localSchema.GetTable(tableName);
-        if (!tableInfo.Empty()) {
+        if (!tableInfo.Empty() && mode != SYNC_MODE_CLOUD_CUSTOM_PUSH) {
             const std::map<int, FieldName> &primaryKeyMap = tableInfo.GetPrimaryKey();
             errCode = item.CheckPrimaryKey(primaryKeyMap);
             if (errCode != E_OK) {
@@ -1784,6 +1793,16 @@ SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId)
 {
     return cloudSyncer_->GetCloudTaskStatus(taskId);
 }
+
+int SQLiteRelationalStore::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore] cloudSyncer was not initialized when set conflict handler");
+        return -E_INVALID_DB;
+    }
+    cloudSyncer_->SetCloudConflictHandler(handler);
+    return E_OK;
+}
 #endif
 
 int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
@@ -2059,6 +2078,49 @@ void SQLiteRelationalStore::TrackerRepairImpl(TrackerTable &trackerTable, const 
         ReleaseHandle(handle);
         LOGI("[TrackerIntegrityRepair] repair finish");
     });
+}
+
+void SQLiteRelationalStore::StopAllBackgroundTask()
+{
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    if (cloudSyncer_ == nullptr) {
+        LOGW("[RelationalStore] cloudSyncer was not initialized when stop all background task");
+    } else {
+        (void) cloudSyncer_->StopSyncTask(nullptr);
+    }
+    if (sqliteStorageEngine_ == nullptr) {
+        LOGW("[RelationalStore] Storage engine was not initialized when stop all background task");
+    } else {
+        sqliteStorageEngine_->StopGenLogTask();
+    }
+#endif
+}
+
+std::pair<int, CreateDistributedTableParam> SQLiteRelationalStore::GetCreateDisTableParam(const std::string &tableName,
+    const std::string &identity, TableSyncType syncType, bool isTrackerSchemaChanged) const
+{
+    std::pair<int, CreateDistributedTableParam> res;
+    auto &[errCode, param] = res;
+    param.isTrackerSchemaChanged = isTrackerSchemaChanged;
+    param.identity = identity;
+    param.syncType = syncType;
+    param.tableName = tableName;
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    if (storageEngine_ == nullptr) {
+        LOGW("[RelationalStore] storageEngine is null when create distributed table");
+        errCode = -E_INVALID_DB;
+        return res;
+    }
+    TableSchema schema;
+    errCode = storageEngine_->GetCloudTableSchema(tableName, schema);
+    if (errCode == E_OK) {
+        param.cloudTable = schema;
+    } else {
+        LOGW("[RelationalStore] get cloud table err[%d] when create distributed table", errCode);
+        errCode = E_OK;
+    }
+#endif
+    return res;
 }
 } // namespace DistributedDB
 #endif

@@ -1330,7 +1330,7 @@ std::pair<int, uint32_t> SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGi
             if (errCode != E_OK) {
                 break;
             }
-            errCode = PutVBucketByType(assets, field, cloudValue);
+            errCode = SQLiteRelationalUtils::PutVBucketByType(assets, field, cloudValue);
             if (errCode != E_OK) {
                 break;
             }
@@ -1755,28 +1755,10 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetDev()
 std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetUpdateField(const VBucket &vBucket,
     const TableSchema &tableSchema)
 {
-    std::set<std::string> useFields;
-    std::vector<Field> fields;
     if (putDataMode_ == PutDataMode::SYNC) {
-        for (const auto &field : tableSchema.fields) {
-            useFields.insert(field.colName);
-        }
-        fields = tableSchema.fields;
-    } else {
-        for (const auto &field : vBucket) {
-            if (field.first.empty() || field.first[0] == '#') {
-                continue;
-            }
-            useFields.insert(field.first);
-        }
-        for (const auto &field : tableSchema.fields) {
-            if (useFields.find(field.colName) == useFields.end()) {
-                continue;
-            }
-            fields.push_back(field);
-        }
+        return SQLiteRelationalUtils::GetSaveSyncField(vBucket, tableSchema, false);
     }
-    return fields;
+    return SQLiteRelationalUtils::GetUserUpdateField(vBucket, tableSchema);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string &tableName, const std::string &sql,
@@ -1943,7 +1925,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *st
         if (errCode != E_OK) {
             break;
         }
-        errCode = PutVBucketByType(record, field, cloudValue);
+        errCode = SQLiteRelationalUtils::PutVBucketByType(record, field, cloudValue);
         if (errCode != E_OK) {
             break;
         }
@@ -2045,6 +2027,15 @@ int SQLiteSingleVerRelationalStorageExecutor::RecoverNullExtendLogInner(const st
         return SetLogTriggerStatus(true);
     });
     return SQLiteRelationalUtils::ExecuteListAction(actions);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetLocalDataByRowid(const TableInfo &table,
+    const TableSchema &tableSchema, DataInfoWithLog &dataInfoWithLog)
+{
+    if (!dataInfoWithLog.isQueryLocalData || dataInfoWithLog.logInfo.dataKey == -1) { // -1 means local not exist
+        return E_OK;
+    }
+    return SQLiteRelationalUtils::GetLocalDataByRowid(dbHandle_, table, tableSchema, dataInfoWithLog);
 }
 } // namespace DistributedDB
 #endif

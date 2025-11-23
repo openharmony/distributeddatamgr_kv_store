@@ -153,6 +153,7 @@ SqliteQueryHelper::SqliteQueryHelper(const QueryObjInfo &info)
       hasPrefixKey_(info.hasPrefixKey_),
       isNeedOrderbyKey_(false),
       isRelationalQuery_(info.isRelationalQuery_),
+      isAppendCondition_(true),
       sortType_(info.sortType_)
 {}
 
@@ -574,6 +575,9 @@ int SqliteQueryHelper::BindTimeRange(sqlite3_stmt *&statement, int &index, uint6
 
 int SqliteQueryHelper::BindObjNodes(sqlite3_stmt *&statement, int &index) const
 {
+    if (!isAppendCondition_) {
+        return E_OK;
+    }
     int errCode = E_OK;
     int ret = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
@@ -1273,7 +1277,9 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
         LOGE("To query sql fail! errCode[%d]", errCode);
         return errCode;
     }
-    sql += querySql_;
+    if (isAppendCondition_) {
+        sql += querySql_;
+    }
     errCode = SQLiteUtils::GetStatement(dbHandle, sql, statement);
     if (errCode != E_OK) {
         LOGE("[Query] Get statement fail!");
@@ -1451,5 +1457,10 @@ void SqliteQueryHelper::AppendKvQueryObjectOnSql(std::string &sql)
     if (!keys_.empty()) {
         sql += " AND " + MapKeysInToSql(keys_.size());
     }
+}
+
+void SqliteQueryHelper::SetAppendCondition(bool isAppendCondition)
+{
+    isAppendCondition_ = isAppendCondition;
 }
 }
