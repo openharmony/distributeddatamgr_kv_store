@@ -106,9 +106,6 @@ KvDBProperties::KvDBProperties(const KvDBProperties &other)
 
 KvDBProperties &KvDBProperties::operator=(const KvDBProperties &other)
 {
-    if (&other == this) {
-        return *this;
-    }
     DBProperties::operator=(other);
     CopyKVProperties(other);
     return *this;
@@ -116,6 +113,9 @@ KvDBProperties &KvDBProperties::operator=(const KvDBProperties &other)
 
 void KvDBProperties::CopyKVProperties(const KvDBProperties &other)
 {
+    if (&other == this) {
+        return;
+    }
     std::scoped_lock<std::mutex, std::mutex> scopedLock(dataMutex_, other.dataMutex_);
     schema_ = other.schema_;
     cipherType_ = other.cipherType_;

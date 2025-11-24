@@ -93,9 +93,7 @@ SchemaObject::SchemaObject(const SchemaObject &other)
 
 SchemaObject& SchemaObject::operator=(const SchemaObject &other)
 {
-    if (&other != this) {
-        CopySchemaObject(other);
-    }
+    CopySchemaObject(other);
     return *this;
 }
 
@@ -112,6 +110,7 @@ SchemaObject::SchemaObject(const TableInfo &tableInfo) : flatbufferSchema_(*this
 
 int SchemaObject::ParseFromSchemaString(const std::string &inSchemaString)
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (isValid_) {
         return -E_NOT_PERMIT;
     }
@@ -160,26 +159,31 @@ int SchemaObject::ParseFromSchemaString(const std::string &inSchemaString)
 
 bool SchemaObject::IsSchemaValid() const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     return isValid_;
 }
 
 SchemaType SchemaObject::GetSchemaType() const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     return schemaType_;
 }
 
 std::string SchemaObject::ToSchemaString() const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     return schemaString_;
 }
 
 uint32_t SchemaObject::GetSkipSize() const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     return schemaSkipSize_;
 }
 
 std::map<IndexName, IndexInfo> SchemaObject::GetIndexInfo() const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (!isValid_) {
         // An invalid SchemaObject may contain some dirty info produced by failed parse.
         return std::map<IndexName, IndexInfo>();
@@ -189,6 +193,7 @@ std::map<IndexName, IndexInfo> SchemaObject::GetIndexInfo() const
 
 bool SchemaObject::IsIndexExist(const IndexName &indexName) const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (!isValid_) {
         return false;
     }
@@ -197,6 +202,7 @@ bool SchemaObject::IsIndexExist(const IndexName &indexName) const
 
 int SchemaObject::CheckQueryableAndGetFieldType(const FieldPath &inPath, FieldType &outType) const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (inPath.empty()) {
         return -E_INVALID_ARGS;
     }
@@ -219,7 +225,7 @@ int SchemaObject::CompareAgainstSchemaString(const std::string &inSchemaString) 
 
 int SchemaObject::CompareAgainstSchemaString(const std::string &inSchemaString, IndexDifference &indexDiffer) const
 {
-    if (!isValid_) {
+    if (!IsSchemaValid()) {
         return -E_NOT_PERMIT;
     }
     SchemaObject newSchema;
@@ -238,6 +244,7 @@ int SchemaObject::CompareAgainstSchemaObject(const SchemaObject &inSchemaObject)
 
 int SchemaObject::CompareAgainstSchemaObject(const SchemaObject &inSchemaObject, IndexDifference &indexDiffer) const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (!isValid_ || !inSchemaObject.isValid_) {
         return -E_NOT_PERMIT;
     }
@@ -277,6 +284,7 @@ int SchemaObject::CompareAgainstSchemaObject(const SchemaObject &inSchemaObject,
 
 int SchemaObject::CheckValueAndAmendIfNeed(ValueSource sourceType, ValueObject &inValue) const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (!isValid_ || schemaType_ != SchemaType::JSON) { // Currently this methed only support Json-Schema
         return -E_NOT_PERMIT;
     }
@@ -303,6 +311,7 @@ int SchemaObject::VerifyValue(ValueSource sourceType, const Value &inValue) cons
 
 int SchemaObject::VerifyValue(ValueSource sourceType, const RawValue &inValue) const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     if (inValue.first == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_ARGS;
     }
@@ -335,6 +344,7 @@ int SchemaObject::VerifyValue(ValueSource sourceType, const RawValue &inValue) c
 int SchemaObject::ExtractValue(ValueSource sourceType, RawString inPath, const RawValue &inValue,
     TypeValue &outExtract, std::vector<uint8_t> *cache) const
 {
+    std::lock_guard<std::mutex> autoLock(schemaMutex_);
     // NOTE!!! This function is performance sensitive !!! Carefully not to allocate memory often!!!
     if (!isValid_ || schemaType_ != SchemaType::FLATBUFFER) { // LCOV_EXCL_BR_LINE
         return -E_NOT_PERMIT;
@@ -1134,6 +1144,9 @@ int SchemaObject::AmendValueIfNeed(ValueObject &inValue, const std::set<FieldPat
 
 void SchemaObject::CopySchemaObject(const SchemaObject &other)
 {
+    if (&other == this) {
+        return;
+    }
     std::scoped_lock<std::mutex, std::mutex> scopedLock(schemaMutex_, other.schemaMutex_);
     isValid_ = other.isValid_;
     schemaType_ = other.schemaType_;

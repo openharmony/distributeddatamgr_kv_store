@@ -85,9 +85,6 @@ RelationalDBProperties::RelationalDBProperties(const RelationalDBProperties &oth
 
 RelationalDBProperties &RelationalDBProperties::operator=(const RelationalDBProperties &other)
 {
-    if (&other == this) {
-        return *this;
-    }
     DBProperties::operator=(other);
     CopyRDBProperties(other);
     return *this;
@@ -95,6 +92,9 @@ RelationalDBProperties &RelationalDBProperties::operator=(const RelationalDBProp
 
 void RelationalDBProperties::CopyRDBProperties(const RelationalDBProperties &other)
 {
+    if (&other == this) {
+        return;
+    }
     std::scoped_lock<std::mutex, std::mutex> scopedLock(dataMutex_, other.dataMutex_);
     schema_ = other.schema_;
     isEncrypted_ = other.isEncrypted_;
