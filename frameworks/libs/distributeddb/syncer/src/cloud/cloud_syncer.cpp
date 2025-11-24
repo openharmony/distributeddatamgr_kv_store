@@ -1077,7 +1077,11 @@ void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const Inne
     if (uploadParam.lastTable && lastBatch) {
         currentContext_.notifier->UpdateProcess(innerProcessInfo);
     } else {
-        currentContext_.notifier->NotifyProcess(taskInfo, innerProcessInfo);
+        currentContext_.notifier->NotifyProcess(taskInfo, innerProcessInfo,
+            taskInfo.errCode == -E_LOCAL_ASSET_NOT_FOUND);
+    }
+    if (taskInfo.errCode == -E_LOCAL_ASSET_NOT_FOUND) {
+        cloudTaskInfos_[uploadParam.taskId].errCode = E_OK;
     }
 }
 
@@ -1914,8 +1918,9 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         LOGW("[CloudSyncer] clear unlocking status failed! errCode = %d", err);
     }
     contextCv_.notify_all();
+    // Input errCode has higher then priority info.tempErrCode
     if (info.errCode == E_OK) {
-        info.errCode = errCode;
+        info.errCode = errCode == E_OK ? info.tempErrCode : errCode;
     }
     LOGI("[CloudSyncer] finished storeId %.3s taskId %" PRIu64 " errCode %d", info.storeId.c_str(), taskId,
         info.errCode);

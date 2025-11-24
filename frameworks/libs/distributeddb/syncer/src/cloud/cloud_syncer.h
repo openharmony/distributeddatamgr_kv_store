@@ -553,6 +553,8 @@ protected:
 
     bool IsCloudForcePush(TaskId taskId);
 
+    TaskId GetCurrentTaskId();
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;

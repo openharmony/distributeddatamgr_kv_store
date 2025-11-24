@@ -151,6 +151,8 @@ public:
         const int &errCode, const CloudSyncer::CloudTaskInfo &taskInfo, std::shared_ptr<StorageProxy> &storageProxy);
     
     static bool CanStartAsyncDownload(int scheduleCount);
+
+    static bool IsAssetsMissing(const std::vector<VBucket> &extend);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

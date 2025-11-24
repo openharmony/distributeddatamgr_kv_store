@@ -537,6 +537,36 @@ int RDBGeneralUt::GetCloudDataCount(const std::string &tableName) const
     return realCount;
 }
 
+int RDBGeneralUt::GetAbnormalCount(const std::string &tableName, const DBStatus expectDBStatus)
+{
+    VBucket extend;
+    extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+    int abnoramlCount = 0;
+    std::vector<VBucket> data;
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = GetVirtualCloudDb();
+    if (virtualCloudDb == nullptr) {
+        LOGE("[RDBGeneralUt] virtual cloud db is nullptr");
+        return -1;
+    }
+    virtualCloudDb->Query(tableName, extend, data);
+    for (size_t j = 0; j < data.size(); ++j) {
+        auto entry = data[j].find(CloudDbConstant::DELETE_FIELD);
+        if (entry != data[j].end() && std::get<bool>(entry->second)) {
+            continue;
+        }
+        auto statusIt = data[j].find(CloudDbConstant::ERROR_FIELD);
+        if (statusIt == data[j].end()) {
+            continue;
+        }
+        auto statusVal = std::get_if<int64_t>(&statusIt->second);
+        if (statusVal && *statusVal == static_cast<int>(expectDBStatus)) {
+            ++abnoramlCount;
+        }
+    }
+    LOGI("[RDBGeneralUt] Count cloud table %s success, count %d", tableName.c_str(), abnoramlCount);
+    return abnoramlCount;
+}
+
 void RDBGeneralUt::SetIsDbEncrypted(bool isdbEncrypted)
 {
     isDbEncrypted_ = isdbEncrypted;

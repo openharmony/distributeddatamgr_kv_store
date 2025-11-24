@@ -82,6 +82,9 @@ public:
     static int FillAssetForUploadFailed(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
     static void FillAssetsForUploadFailed(Assets &assets, Assets &dbAssets,
         const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
+    static int FillAssetForAbnormal(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
+    static void FillAssetsForAbnormal(Assets &assets, Assets &dbAssets,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
     static void PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<int(Asset &)> fillAsset);
     static void FillAssetFromVBucketFinish(const AssetOperationUtils::RecordAssetOpType &assetOpType, VBucket &vBucket,
         VBucket &dbAssets, std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset,
@@ -210,6 +213,9 @@ public:
         bool isLock = false);
 
     static int FillCloudQueryToExtend(QuerySyncObject &obj, VBucket &extend);
+
+    static int HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationalStorageExecutor *handle,
+        const VBucket &record, const LogInfo &logInfo, const CloudSyncParam &param);
 
     static void SaveChangedDataByType(const DataValue &dataValue, Type &value);
 

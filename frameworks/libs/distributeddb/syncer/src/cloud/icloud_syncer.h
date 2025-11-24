@@ -37,6 +37,7 @@ public:
         bool merge = false;
         bool asyncDownloadAssets = false;
         int errCode = 0;
+        int tempErrCode = 0;
         SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
         ProcessStatus status = ProcessStatus::PREPARED;
         LockAction lockAction = LockAction::INSERT;

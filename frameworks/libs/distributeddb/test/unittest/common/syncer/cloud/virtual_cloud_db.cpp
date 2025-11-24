@@ -88,6 +88,9 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
         if (conflictInUpload_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
         }
+        if (localAssetNotFound_) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+        }
         extend[i][g_gidField] = std::to_string(currentGid_++);
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][g_deleteField] = false;
@@ -177,6 +180,11 @@ DBStatus VirtualCloudDb::BatchDelete(const std::string &tableName, std::vector<V
         record.emplace_back();
     }
     return InnerUpdate(tableName, std::move(record), extend, true);
+}
+
+void VirtualCloudDb::SetLocalAssetNotFound(bool isLocalFileNotFound)
+{
+    localAssetNotFound_ = isLocalFileNotFound;
 }
 
 DBStatus VirtualCloudDb::HeartBeat()
@@ -458,6 +466,9 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
         }
         if (conflictInUpload_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+        }
+        if (localAssetNotFound_) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         AddAssetIdForExtend(record[i], extend[i]);
