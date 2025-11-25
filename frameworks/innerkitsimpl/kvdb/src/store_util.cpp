@@ -367,6 +367,7 @@ void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileNam
         if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
             acl.SetAccessGroup(SERVICE_GID, mode);
         }
+        return;
     }
     std::error_code ec;
     for (const auto &entry : std::filesystem::recursive_directory_iterator(path, ec)) {
