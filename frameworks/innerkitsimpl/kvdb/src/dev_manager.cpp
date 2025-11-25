@@ -192,7 +192,12 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
         DetailInfo dtInfo;
         auto networkId = std::string(device.networkId);
         std::string uuid;
-        DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
+        ret = DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
+        if (ret != DM_OK) {
+            ZLOGE("Get uuid fail by networkId,networkId:%{public}s, ret:%{public}d",
+                StoreUtil::Anonymous(networkId).c_str(), ret);
+            continue;
+        }
         dtInfo.networkId = std::move(device.networkId);
         dtInfo.uuid = std::move(uuid);
         dtInfos.push_back(dtInfo);

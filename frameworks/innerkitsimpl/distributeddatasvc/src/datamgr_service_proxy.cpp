@@ -32,7 +32,7 @@ DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
 
 sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &name)
 {
-    ZLOGI("%s", name.c_str());
+    ZLOGI("get feature:%{public}s", name.c_str());
     MessageParcel data;
     if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
         ZLOGE("Write descriptor failed");

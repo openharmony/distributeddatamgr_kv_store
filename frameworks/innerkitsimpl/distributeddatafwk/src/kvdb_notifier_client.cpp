@@ -121,7 +121,7 @@ void KVDBNotifierClient::AddSyncCallback(
     }
     auto inserted = syncCallbackInfo_.Insert(sequenceId, callback);
     if (!inserted) {
-        ZLOGE("The sequeuceId %{public}" PRIu64 "is repeat!", sequenceId);
+        ZLOGE("The sequenceId %{public}" PRIu64 "is repeat!", sequenceId);
     }
 }
 

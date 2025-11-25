@@ -45,7 +45,10 @@ namespace OHOS::DistributedKv {
                 break;                                                          \
             }                                                                   \
                                                                                 \
-            ITypesUtil::Unmarshal(reply, __status);                             \
+            if (!ITypesUtil::Unmarshal(reply, __status)) {                      \
+                __status = IPC_ERROR;                                           \
+                break;                                                          \
+            }                                                                   \
         } while (0);                                                            \
         __status;                                                               \
     })
@@ -112,7 +115,10 @@ Status KVDBServiceClient::GetStoreIds(const AppId &appId, int32_t subUser, std::
         ZLOGE("status:0x%{public}x, appId:%{public}s", status, appId.appId.c_str());
         return static_cast<Status>(status);
     }
-    ITypesUtil::Unmarshal(reply, storeIds);
+    if (!ITypesUtil::Unmarshal(reply, storeIds)) {
+        ZLOGE("Unmarshal storeIds fail, appId:%{public}s", appId.appId.c_str());
+        return ERROR;
+    }
     return static_cast<Status>(status);
 }
 
