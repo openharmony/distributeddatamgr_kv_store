@@ -1733,7 +1733,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId021, TestSize.Le
         return OK;
     });
 
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::LOCAL_ASSET_NOT_FOUND);
     int beginFailFillNum = 49;
     int endFailFillNum = 50;
     std::set<int> index;
@@ -1779,7 +1779,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId022, TestSize.Le
         return OK;
     });
 
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::LOCAL_ASSET_NOT_FOUND);
     int beginFailFillNum = 49;
     int endFailFillNum = 54;
     std::set<int> index;
@@ -1826,7 +1826,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId023, TestSize.Le
         }
         return OK;
     });
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::LOCAL_ASSET_NOT_FOUND);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
 
@@ -1866,7 +1866,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId024, TestSize.Le
         }
         return OK;
     });
-    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::LOCAL_ASSET_NOT_FOUND);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
 
@@ -1928,7 +1928,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId025, TestSize.Le
         index++;
         if (g_syncProcess.process == FINISHED) {
             g_processCondition.notify_one();
-            ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
+            ASSERT_EQ(g_syncProcess.errCode, DBStatus::LOCAL_ASSET_NOT_FOUND);
         }
     };
     ASSERT_EQ(g_delegate->Sync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, query, callback, SYNC_WAIT_TIME), OK);

@@ -122,4 +122,10 @@ void CloudSyncer::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHa
 {
     cloudDB_.SetCloudConflictHandler(handler);
 }
+
+TaskId CloudSyncer::GetCurrentTaskId()
+{
+    std::lock_guard<std::mutex> guard(dataLock_);
+    return currentContext_.currentTaskId;
+}
 } // namespace DistributedDB

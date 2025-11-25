@@ -483,6 +483,7 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
     }
     switch (status) {
         case OK:
+        case LOCAL_ASSET_NOT_FOUND:
             return E_OK;
         case CLOUD_NETWORK_ERROR:
             return -E_CLOUD_NETWORK_ERROR;

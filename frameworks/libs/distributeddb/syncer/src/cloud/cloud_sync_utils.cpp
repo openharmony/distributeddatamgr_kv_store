@@ -452,6 +452,19 @@ bool CloudSyncUtils::IsSkipAssetsMissingRecord(const std::vector<VBucket> &exten
     return true;
 }
 
+bool CloudSyncUtils::IsAssetsMissing(const std::vector<VBucket> &extend)
+{
+    if (extend.empty()) {
+        return false;
+    }
+    for (size_t i = 0; i < extend.size(); ++i) {
+        if (DBCommon::IsIntTypeRecordError(extend[i]) && DBCommon::IsRecordAssetsMissing(extend[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, const CloudWaterType &type)
 {
     if (data.extend.size() != data.assets.size()) {

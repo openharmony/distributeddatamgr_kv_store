@@ -190,6 +190,14 @@ int CloudSyncer::BatchInsertOrUpdate(Info &uploadInfo, CloudSyncData &uploadData
     }
     innerProcessInfo.upLoadInfo.successCount += uploadInfo.successCount;
     innerProcessInfo.upLoadInfo.failCount += uploadInfo.failCount;
+    bool isLocalAssetNotFound = isInsert ? CloudSyncUtils::IsAssetsMissing(uploadData.insData.extend):
+        CloudSyncUtils::IsAssetsMissing(uploadData.updData.extend);
+    if (errCode == E_OK && isLocalAssetNotFound) {
+        TaskId currentTaskId = GetCurrentTaskId();
+        std::lock_guard<std::mutex> guard(dataLock_);
+        cloudTaskInfos_[currentTaskId].errCode = -E_LOCAL_ASSET_NOT_FOUND;
+        cloudTaskInfos_[currentTaskId].tempErrCode = -E_LOCAL_ASSET_NOT_FOUND;
+    }
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         ProcessVersionConflictInfo(innerProcessInfo, retryCount);
     }

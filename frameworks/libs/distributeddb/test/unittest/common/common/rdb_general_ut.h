@@ -109,6 +109,8 @@ protected:
 
     int GetCloudDataCount(const std::string &tableName) const;
 
+    int GetAbnormalCount(const std::string &tableName, const DBStatus expectDBStatus);
+
     void SetIsDbEncrypted(bool isdbEncrypted);
     bool GetIsDbEncrypted() const;
     int EncryptedDb(sqlite3 *db);
