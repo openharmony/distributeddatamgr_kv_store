@@ -114,6 +114,9 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
 
 void InitApiInfo(const char *configStr)
 {
+#ifndef _WIN32
+    std::lock_guard<std::mutex> lock(g_apiInfoMutex);
+#endif
     g_isGmdbLib = (configStr != nullptr);
 }
 
