@@ -51,8 +51,9 @@ public:
     static void Flush();
     static uint64_t GenSequenceId();
     static bool RemoveRWXForOthers(const std::string &path);
-    static void SetDbFileGid(const std::string &path, const std::string &fileName = "");
+    static void SetDbFileGid(const std::string &path);
     static void SetDirGid(const std::string &fullPath, const std::string &target);
+    static void SetFileGid(const std::string &filePath);
 private:
     static bool HasPermit(const std::string &path, mode_t mode);
     static std::atomic<uint64_t> sequenceId_;

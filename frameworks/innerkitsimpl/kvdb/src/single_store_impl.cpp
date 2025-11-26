@@ -73,11 +73,6 @@ SingleStoreImpl::SingleStoreImpl(
         StoreUtil::SetDirGid(fullPath, "database");
         StoreUtil::SetDbFileGid(fullPath);
     }
-    if (options.backup) {
-        std::string bkPath = path + "/kvdb/backup/" + storeId_ + "/";
-        StoreUtil::SetDirGid(bkPath, "backup");
-        StoreUtil::SetDbFileGid(bkPath, "autoBackup.bak");
-    }
 }
 
 SingleStoreImpl::~SingleStoreImpl()

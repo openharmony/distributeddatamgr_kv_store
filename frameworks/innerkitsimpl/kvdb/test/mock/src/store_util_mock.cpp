@@ -148,7 +148,7 @@ void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target
 {
 }
 
-void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileName)
+void StoreUtil::SetDbFileGid(const std::string &path)
 {
 }
 } // namespace OHOS::DistributedKv

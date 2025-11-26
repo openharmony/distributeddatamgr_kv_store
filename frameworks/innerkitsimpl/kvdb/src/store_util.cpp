@@ -353,32 +353,43 @@ void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target
     }
 }
 
-void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileName)
+void StoreUtil::SetDbFileGid(const std::string &path)
 {
+    auto dbFiles = GenerateDbFiles(path);
+    for (const auto &dbFile : dbFiles) {
+        SetFileGid(dbFile);
+    }
+}
+
+void StoreUtil::SetFileGid(const std::string &filePath)
+{
+    if (filePath.empty()) {
+        return;
+    }
     struct stat fileStat;
-    if (stat(path.c_str(), &fileStat) != 0) {
-        ZLOGW("file not exit, path:%{public}s ,code:%{public}d", Anonymous(path).c_str(), errno);
+    if (stat(filePath.c_str(), &fileStat) != 0) {
+        ZLOGE("file not exit, filePath:%{public}s ,code:%{public}d", Anonymous(filePath).c_str(), errno);
         return;
     }
     uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
-    if (fileName == "autoBackup.bak") {
-        std::string fullPath = path + fileName;
-        Acl acl(fullPath, Acl::ACL_XATTR_ACCESS);
-        if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
-            acl.SetAccessGroup(SERVICE_GID, mode);
-        }
-        return;
+    Acl acl(filePath, Acl::ACL_XATTR_ACCESS);
+    if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
+        acl.SetAccessGroup(SERVICE_GID, mode);
     }
-    std::error_code ec;
-    for (const auto &entry : std::filesystem::recursive_directory_iterator(path, ec)) {
-        if (ec) {
-            ec.clear();
-            continue;
-        }
-        Acl acl(entry.path(), Acl::ACL_XATTR_ACCESS);
-        if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
-            acl.SetAccessGroup(SERVICE_GID, mode);
-        }
+}
+
+std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
+{
+    std::vector<std::string> dbFiles;
+    if (path.empty()) {
+        return dbFiles;
     }
+    dbFiles.push_back(path + "single_ver/main/gen_natural_store.db");
+    dbFiles.push_back(path + "single_ver/main/gen_natural_store.db-shm");
+    dbFiles.push_back(path + "single_ver/main/gen_natural_store.db-wal");
+    dbFiles.push_back(path + "single_ver/meta/meta.db");
+    dbFiles.push_back(path + "single_ver/meta/meta.db-shm");
+    dbFiles.push_back(path + "single_ver/meta/meta.db-wal");
+    return dbFiles;
 }
 } // namespace OHOS::DistributedKv

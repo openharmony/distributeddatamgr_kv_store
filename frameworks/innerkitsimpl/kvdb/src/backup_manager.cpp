@@ -75,7 +75,9 @@ void BackupManager::Prepare(const std::string &path, const std::string &storeId)
     std::string autoBackupName = storePath + "/" + AUTO_BACKUP_NAME + BACKUP_POSTFIX;
     (void)StoreUtil::InitPath(topPath);
     (void)StoreUtil::InitPath(storePath);
+    (void)StoreUtil::SetDirGid(storePath, "backup");
     (void)StoreUtil::CreateFile(autoBackupName);
+    (void)StoreUtil::SetFileGid(autoBackupName);
 }
 
 void BackupManager::KeepData(const std::string &name, bool isCreated)

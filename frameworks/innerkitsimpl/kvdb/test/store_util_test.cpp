@@ -229,14 +229,14 @@ HWTEST_F(StoreUtilTest, SetDbDirGid001, TestSize.Level1)
     storeUtil_.SetDbFileGid(fileName);
 
     std::string BkfileName = path + "/autoBackup.bak";
-    storeUtil_.SetDbFileGid(BkfileName, "autoBackup.bak");
+    storeUtil_.SetDbFileGid(BkfileName);
     fp = open(BkfileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
     ASSERT_GE(fp, 0);
     close(fp);
     ret = stat(BkfileName.c_str(), &buf);
     ASSERT_GE(ret, 0);
     ASSERT_TRUE(buf.st_mode & S_IRWXO);
-    storeUtil_.SetDbFileGid(BkfileName, "autoBackup.bak");
+    storeUtil_.SetDbFileGid(BkfileName);
 
     remove(fileName.c_str());
     remove(BkfileName.c_str());
