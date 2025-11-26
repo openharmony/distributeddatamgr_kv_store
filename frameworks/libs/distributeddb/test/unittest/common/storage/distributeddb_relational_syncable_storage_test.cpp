@@ -140,7 +140,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
 
 #ifdef USE_DISTRIBUTEDB_CLOUD
     EXPECT_EQ(conn->GetCloudSyncTaskCount(), -1);
-    EXPECT_EQ(conn->DoClean({}), -E_INVALID_CONNECTION);
+    EXPECT_EQ(conn->DoClean({}, {}), -E_INVALID_CONNECTION);
     EXPECT_EQ(conn->ClearCloudWatermark({}), -E_INVALID_CONNECTION);
     EXPECT_EQ(conn->SetCloudDB({}), -E_INVALID_CONNECTION);
     EXPECT_EQ(conn->PrepareAndSetCloudDbSchema({}), -E_INVALID_CONNECTION);

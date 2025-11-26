@@ -2046,5 +2046,373 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     DropLogicDeletedData(db, g_tables[0], 0);
     CloseDb();
 }
+
+void InsertCloudTableRecordAndSync(sqlite3 *&db, int64_t paddingSize, int cloudCount)
+{
+    // step1. make data: 20 records on cloud
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    CheckCloudTotalCount(g_tables, {cloudCount, cloudCount});
+    // step2. call Sync with cloud merge strategy.
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CheckLocalLogCount(db, g_tables, {cloudCount, cloudCount});
+}
+
+void CheckCleanLogNum(sqlite3 *&db, const std::vector<std::string> tableList, const std::vector<int> counts)
+{
+    ASSERT_EQ(tableList.size(), counts.size());
+    for (size_t i = 0; i < tableList.size(); ++i) {
+        std::string tableName = tableList[i];
+        std::string sql1 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+            " where device = 'cloud';";
+        EXPECT_EQ(sqlite3_exec(db, sql1.c_str(), QueryCountCallback,
+            reinterpret_cast<void *>(counts[i]), nullptr), SQLITE_OK);
+        std::string sql2 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+            " where cloud_gid " + " is not null and cloud_gid != '';";
+        EXPECT_EQ(sqlite3_exec(db, sql2.c_str(), QueryCountCallback,
+            reinterpret_cast<void *>(counts[i]), nullptr), SQLITE_OK);
+        std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+            " where (flag & 0x2 = 0 or flag & 0x20 = 0);";
+        EXPECT_EQ(sqlite3_exec(db, sql3.c_str(), QueryCountCallback,
+            reinterpret_cast<void *>(counts[i]), nullptr), SQLITE_OK);
+    }
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest001
+ * @tc.desc: Testing table-level data cleanup capability by FLAG_ONLY mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest001, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_ONLY,
+        device,
+        {g_tables[0]}
+    };
+    // step3. check clean log num befor and after remove
+    CheckCleanLogNum(db, g_tables, {cloudCount, cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
+    CheckCleanLogNum(db, g_tables, {0, cloudCount});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest002
+ * @tc.desc: Testing table-level data cleanup capability by FLAG_AND_DATAY mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest002, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {g_tables[0]}
+    };
+    // step3. check clean log and data num befor and after remove
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest003
+ * @tc.desc: clean table1 by FLAG_ONLY and table2 by FLAG_AND_DATA
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest003, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device log of table1
+    std::string device;
+    ClearDeviceDataOption option1 = {
+        DistributedDB::FLAG_ONLY,
+        device,
+        {g_tables[0]}
+    };
+    CheckCleanLogNum(db, g_tables, {cloudCount, cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option1), DBStatus::OK);
+    CheckCleanLogNum(db, g_tables, {0, cloudCount});
+    // step2. remove device data of table2
+    ClearDeviceDataOption option2 = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {g_tables[1]}
+    };
+    // step3. check clean log for table1 and data num for table2
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option2), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest004
+ * @tc.desc: passing {} → clean all tables
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest004, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {}
+    };
+    // step3. check if clean all tables when passing {} tableNameList
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest005
+ * @tc.desc: ivalid table name
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest005, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    std::string invalidTableName = "my_table$";
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {invalidTableName}
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::INVALID_ARGS);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest006
+ * @tc.desc: passing same tablename
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest006, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {g_tables[0], g_tables[1], g_tables[0]}
+    };
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest007
+ * @tc.desc: passing a valid but not exist tablename
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest007, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    std::string notExistTableName = g_tables[0] + "_copy";
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {notExistTableName}
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::NOT_FOUND);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest008
+ * @tc.desc: invalid and not support mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest008, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option1 = {
+        DistributedDB::DEFAULT,
+        device,
+        {g_tables[0]}
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option1), DBStatus::NOT_SUPPORT);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    ClearDeviceDataOption option2 = {
+        static_cast<ClearMode>(-1),
+        device,
+        {g_tables[0]}
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option2), DBStatus::INVALID_ARGS);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    ClearDeviceDataOption option3 = {
+        DistributedDB::BUTT,
+        device,
+        {g_tables[0]}
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option3), DBStatus::INVALID_ARGS);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest009
+ * @tc.desc: test clear-shared-table mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest009, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    CopySharedDataFromOriginalTable(db, g_tables);
+    CloudDBSyncUtilsTest::callSync(g_shareTables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CheckCloudTotalCount(g_tables, {cloudCount, cloudCount});
+    CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option1 = {
+        DistributedDB::CLEAR_SHARED_TABLE,
+        device,
+        g_shareTables
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option1), DBStatus::NOT_SUPPORT);
+    CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest010
+ * @tc.desc: test clear-shared-table mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest010, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    // step2
+    std::vector<TableReferenceProperty> tableReferenceProperty;
+    TableReferenceProperty property;
+    property.columns["name"] = "name";
+    property.sourceTableName = g_tables[0];
+    property.targetTableName = g_tables[1];
+    tableReferenceProperty.push_back(property);
+    g_delegate->SetReference(tableReferenceProperty);
+    std::string device;
+    ClearDeviceDataOption option = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        {g_tables[0]}
+    };
+    // step3. check if clean all tables
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
+    CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTableTest011
+ * @tc.desc: test clear-shared-table mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTableTest011, TestSize.Level0)
+{
+    // step1. insert cloudtable records and sync
+    int64_t paddingSize = 20;
+    int cloudCount = 20;
+    InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
+    CopySharedDataFromOriginalTable(db, g_tables);
+    CloudDBSyncUtilsTest::callSync(g_shareTables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CheckCloudTotalCount(g_tables, {cloudCount, cloudCount});
+    CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
+    // step2. remove device data
+    std::string device;
+    ClearDeviceDataOption option1 = {
+        DistributedDB::FLAG_AND_DATA,
+        device,
+        g_shareTables
+    };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option1), DBStatus::NOT_SUPPORT);
+    CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE

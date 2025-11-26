@@ -64,7 +64,7 @@ public:
 
     int SetTableMode(DistributedTableMode tableMode) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-    int DoClean(ClearMode mode) override;
+    int DoClean(ClearMode mode, const std::vector<std::string> &tableList) override;
 
     int ClearCloudWatermark(const std::set<std::string> &tableNames) override;
 
