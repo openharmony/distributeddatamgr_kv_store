@@ -56,6 +56,7 @@ public:
     static void SetFileGid(const std::string &filePath);
 private:
     static bool HasPermit(const std::string &path, mode_t mode);
+    static std::vector<std::string> GenerateDbFiles(const std::string &path);
     static std::atomic<uint64_t> sequenceId_;
     static std::map<DBStatus, Status> statusMap_;
 };
