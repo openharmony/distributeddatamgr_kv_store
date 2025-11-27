@@ -73,8 +73,6 @@ old_source_config = [
 kvdb_source_config = [
   "../../../frameworks/innerkitsimpl/kvdb/src/backup_manager.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
-  "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
-  "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/kvdb_service_client.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/observer_bridge.cpp",
@@ -102,7 +100,6 @@ external_deps_config = [
   "access_token:libtokenid_sdk",
   "c_utils:utils",
   "data_share:datashare_common_lite",
-  "device_manager:devicemanagersdk",
   "hisysevent:libhisysevent",
   "hitrace:hitrace_meter",
   "hitrace:libhitracechain",
@@ -123,21 +120,29 @@ ohos_shared_library("distributeddata_inner") {
     debug = false
   }
   sources = old_source_config + kvdb_source_config
-  if (qemu_disable) {
-    sources +=
-        [ "../../../frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
-  } else {
-    sources += [
-      "../../../frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp",
-    ]
-  }
+
   configs = [ ":distributeddatafwk_config" ]
   public_configs = [ ":distributeddatafwk_public_config" ]
   cflags = [ "-Wno-c99-designator" ]
   deps = deps_config
   external_deps = external_deps_config
   if (dms_service_enable && qemu_disable) {
+    sources += [ "../../../frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
     external_deps += [ "dmsfwk:distributed_sdk" ]
+  } else {
+    sources += [ "../../../frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
+  }
+  if (dm_service_enable) {
+    sources += [
+      "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
+      "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
+    ]
+    external_deps += [ "device_manager:devicemanagersdk" ]
+  } else {
+    sources += [
+      "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
+      "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor_mock.cpp",
+    ]
   }
   innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"

@@ -64,8 +64,6 @@ ohos_source_set("distributeddatafwk_src_file") {
   kvdb_sources = [
     "../../kvdb/src/backup_manager.cpp",
     "../../kvdb/src/convertor.cpp",
-    "../../kvdb/src/dev_manager.cpp",
-    "../../kvdb/src/device_convertor.cpp",
     "../../kvdb/src/kv_types_util.cpp",
     "../../kvdb/src/kvdb_service_client.cpp",
     "../../kvdb/src/observer_bridge.cpp",
@@ -83,11 +81,6 @@ ohos_source_set("distributeddatafwk_src_file") {
   ]
 
   sources = old_sources + kvdb_sources
-  if (qemu_disable) {
-    sources += [ "../../kvdb/src/auto_sync_timer.cpp" ]
-  } else {
-    sources += [ "../../kvdb/src/auto_sync_timer_mock.cpp" ]
-  }
   configs = [ ":module_private_config" ]
 
   deps = [
@@ -99,7 +92,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     "access_token:libaccesstoken_sdk",
     "access_token:libtokenid_sdk",
     "c_utils:utils",
-    "device_manager:devicemanagersdk",
     "file_api:securitylabel",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
@@ -109,8 +101,24 @@ ohos_source_set("distributeddatafwk_src_file") {
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
+
   if (dms_service_enable && qemu_disable) {
+    sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
     external_deps += [ "dmsfwk:distributed_sdk" ]
+  } else {
+    sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
+  }
+  if (dm_service_enable) {
+    sources += [
+      "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
+      "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
+    ]
+    external_deps += [ "device_manager:devicemanagersdk" ]
+  } else {
+    sources += [
+      "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
+      "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor_mock.cpp",
+    ]
   }
 
   public_external_deps = [
@@ -508,10 +516,13 @@ group("unittest") {
     ":KvstoreDatashareBridgeTest",
     ":LocalSubscribeDeviceStoreTest",
     ":LocalSubscribeStoreTest",
-    ":SingleKvStoreAsyncGetTest",
     ":SingleKvStoreClientQueryTest",
     ":SingleKvStoreClientTest",
     ":SwitchObserverBridgeTest",
     ":TypesUtilTest",
   ]
+
+  if (dm_service_enable) {
+    deps += [ ":SingleKvStoreAsyncGetTest" ]
+  }
 }

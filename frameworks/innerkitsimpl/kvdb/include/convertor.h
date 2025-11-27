@@ -34,8 +34,6 @@ public:
 protected:
     virtual std::string GetRealKey(const std::string &key, const DataQuery &query) const;
     std::vector<uint8_t> TrimKey(const Key &prefix) const;
-
-private:
     static constexpr size_t MAX_KEY_LENGTH = 1024;
 };
 } // namespace OHOS::DistributedKv
