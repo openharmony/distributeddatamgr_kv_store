@@ -384,6 +384,7 @@ std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
     if (path.empty()) {
         return dbFiles;
     }
+    dbFiles.push_back(path + "single_ver");
     dbFiles.push_back(path + "single_ver/main");
     dbFiles.push_back(path + "single_ver/main/gen_natural_store.db");
     dbFiles.push_back(path + "single_ver/main/gen_natural_store.db-shm");
