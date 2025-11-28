@@ -533,7 +533,6 @@ group("unittest") {
     ":SingleStoreImplGetTopTest",
     ":StoreFactoryTest",
     ":StoreUtilTest",
-    ":KvHiviewReporterTest",
   ]
 
   if (!use_libfuzzer) {
@@ -544,6 +543,7 @@ group("unittest") {
     deps += [
       ":DevManagerMockTest",
       ":DevManagerTest",
+      ":KvHiviewReporterTest",
       ":SingleStoreImplMockTest",
       ":SingleStoreImplTest",
       ":StoreFactoryMockTest",

@@ -506,11 +506,9 @@ group("unittest") {
 
   deps += [
     ":BlobTest",
-    ":DeviceKvStoreTest",
     ":DistributedDataMgrTest",
     ":DistributedKvDataManagerEncryptTest",
     ":DistributedKvDataManagerMultiUserTest",
-    ":DistributedKvDataManagerTest",
     ":EndPointTest",
     ":KvUtilTest",
     ":KvstoreDatashareBridgeTest",
@@ -523,6 +521,10 @@ group("unittest") {
   ]
 
   if (dm_service_enable) {
-    deps += [ ":SingleKvStoreAsyncGetTest" ]
+    deps += [
+      ":DeviceKvStoreTest",
+      ":DistributedKvDataManagerTest",
+      ":SingleKvStoreAsyncGetTest"
+    ]
   }
 }
