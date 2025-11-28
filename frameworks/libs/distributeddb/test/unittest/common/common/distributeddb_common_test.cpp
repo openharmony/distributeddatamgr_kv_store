@@ -919,6 +919,7 @@ HWTEST_F(DistributedDBCommonTest, PropertiesTest001, TestSize.Level0)
     KvDBProperties properties2;
     InitProperties(properties1);
     properties2 = properties1;
+    EXPECT_EQ(properties1.GetSchema().ToSchemaString(), properties2.GetSchema().ToSchemaString());
     EXPECT_NO_FATAL_FAILURE(CheckProperties(properties1, properties2));
     CipherPassword password2;
     CipherType type2 = CipherType::AES_256_GCM;
@@ -945,6 +946,7 @@ HWTEST_F(DistributedDBCommonTest, PropertiesTest002, TestSize.Level0)
     RelationalDBProperties properties2;
     InitProperties(properties1);
     properties2 = properties1;
+    EXPECT_EQ(properties1.IsEncrypted(), properties2.IsEncrypted());
     EXPECT_NO_FATAL_FAILURE(CheckProperties(properties1, properties2));
     EXPECT_EQ(properties1.IsEncrypted(), properties2.IsEncrypted());
     EXPECT_EQ(properties1.GetCipherType(), properties2.GetCipherType());

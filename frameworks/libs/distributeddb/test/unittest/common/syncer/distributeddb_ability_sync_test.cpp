@@ -455,7 +455,6 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestReceiveTest001, TestSize.Level0)
     packet1.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
     packet1.SetSchema(TEST_SCHEMA);
     msg1.SetCopiedObject(packet1);
-
     /**
      * @tc.steps: step5. call RequestRecv, set inMsg with packet
      * @tc.expected: step5. RequestRecv return ok, GetRemoteSoftwareVersion is SOFTWARE_VERSION_CURRENT

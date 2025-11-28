@@ -103,15 +103,15 @@ DBProperties::DBProperties(const DBProperties &other)
 
 DBProperties &DBProperties::operator=(const DBProperties &other)
 {
-    if (&other == this) {
-        return *this;
-    }
     CopyProperties(other);
     return *this;
 }
 
 void DBProperties::CopyProperties(const DBProperties &other)
 {
+    if (&other == this) {
+        return;
+    }
     std::scoped_lock<std::mutex, std::mutex> scopedLock(dataMutex_, other.dataMutex_);
     stringProperties_ = other.stringProperties_;
     boolProperties_ = other.boolProperties_;
