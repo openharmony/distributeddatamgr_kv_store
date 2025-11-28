@@ -83,7 +83,7 @@ public:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual int32_t GetCloudSyncTaskCount() = 0;
 
-    virtual int DoClean(ClearMode mode) = 0;
+    virtual int DoClean(ClearMode mode, const std::vector<std::string> &tableNameList) = 0;
 
     virtual int ClearCloudWatermark(const std::set<std::string> &tableNames) = 0;
 

@@ -188,7 +188,7 @@ int32_t SQLiteRelationalStoreConnection::GetCloudSyncTaskCount()
     return count;
 }
 
-int SQLiteRelationalStoreConnection::DoClean(ClearMode mode)
+int SQLiteRelationalStoreConnection::DoClean(ClearMode mode, const std::vector<std::string> &tableList)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -196,7 +196,7 @@ int SQLiteRelationalStoreConnection::DoClean(ClearMode mode)
         return -E_INVALID_CONNECTION;
     }
 
-    int errCode = store->CleanCloudData(mode);
+    int errCode = store->CleanCloudData(mode, tableList);
     if (errCode != E_OK) {
         LOGE("[RelationalConnection] failed to clean cloud data, %d.", errCode);
     }

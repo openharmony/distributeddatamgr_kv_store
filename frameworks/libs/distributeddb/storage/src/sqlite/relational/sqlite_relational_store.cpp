@@ -24,6 +24,7 @@
 #include "db_errno.h"
 #include "log_print.h"
 #include "db_types.h"
+#include "param_check_utils.h"
 #include "res_finalizer.h"
 #include "sqlite_log_table_manager.h"
 #include "sqlite_relational_utils.h"
@@ -494,20 +495,68 @@ int32_t SQLiteRelationalStore::GetCloudSyncTaskCount()
     return cloudSyncer_->GetCloudSyncTaskCount();
 }
 
-int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
+int SQLiteRelationalStore::CheckAndCollectCloudTables(ClearMode mode, const RelationalSchemaObject &localSchema,
+    const std::vector<std::string> &tableList, std::vector<std::string> &cloudTableNameList)
 {
-    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     TableInfoMap tables = localSchema.GetTables();
-    std::vector<std::string> cloudTableNameList;
+    std::vector<std::string> allCloudTable;
     for (const auto &tableInfo : tables) {
         bool isSharedTable = tableInfo.second.GetSharedTableMark();
         if ((mode == CLEAR_SHARED_TABLE && !isSharedTable) || (mode != CLEAR_SHARED_TABLE && isSharedTable)) {
             continue;
         }
         if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION) {
-            cloudTableNameList.push_back(tableInfo.first);
+            allCloudTable.push_back(tableInfo.first);
         }
     }
+    if (tableList.empty()) {
+        cloudTableNameList = allCloudTable;
+        return E_OK;
+    }
+    std::unordered_set<std::string> tableFilter(tableList.begin(), tableList.end());
+
+    for (const auto &tableName : tableFilter) {
+        if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
+            LOGE("[RelationalStore] invalid table name: [%s length[%u]] ",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length());
+            return -E_INVALID_ARGS;
+        }
+        auto tableInfoIter = tables.find(tableName);
+        if (tableInfoIter == tables.end()) {
+            LOGE("[RelationalStore] table [%s length[%u]] not found in schema when clean cloud data",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length());
+            return -E_NOT_FOUND;
+        }
+        if (tableInfoIter->second.GetSharedTableMark() ||
+                tableInfoIter->second.GetTableSyncType() != CLOUD_COOPERATION) {
+            LOGE("[RelationalStore] clearing of shared tables and P2P tables is not supported");
+            return -E_NOT_SUPPORT;
+        }
+        cloudTableNameList.push_back(tableName);
+    }
+
+    auto [table, errCode] = sqliteStorageEngine_->CalTableRef(cloudTableNameList,
+        storageEngine_->GetSharedTableOriginNames());
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] failed to expand related cloud tables, %d", errCode);
+        return errCode;
+    }
+    cloudTableNameList = table;
+    return E_OK;
+}
+
+int SQLiteRelationalStore::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableList)
+{
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfoMap tables = localSchema.GetTables();
+    std::vector<std::string> cloudTableNameList;
+    int errCode = CheckAndCollectCloudTables(mode, localSchema, tableList, cloudTableNameList);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore]no distributed tables exist, or the table names are all invalid or do not exist, %d",
+            errCode);
+        return errCode;
+    }
+
     if (cloudTableNameList.empty()) {
         LOGI("[RelationalStore] device doesn't has cloud table, clean cloud data finished.");
         return E_OK;
@@ -516,7 +565,7 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
         LOGE("[RelationalStore] cloudSyncer was not initialized when clean cloud data");
         return -E_INVALID_DB;
     }
-    int errCode = cloudSyncer_->CleanCloudData(mode, cloudTableNameList, localSchema);
+    errCode = cloudSyncer_->CleanCloudData(mode, cloudTableNameList, localSchema);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] failed to clean cloud data, %d.", errCode);
     }

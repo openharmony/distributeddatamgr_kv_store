@@ -81,6 +81,11 @@ public:
 
     DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
 
+    DB_API virtual DBStatus RemoveDeviceData(const ClearDeviceDataOption &option)
+    {
+        return RemoveDeviceTableDataInner(option);
+    }
+    
     // timeout is in ms.
     DB_API virtual DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, std::shared_ptr<ResultSet> &result) = 0;
@@ -194,6 +199,10 @@ public:
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;
+    virtual DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option)
+    {
+        return DBStatus::OK;
+    }
 };
 } // namespace DistributedDB
 #endif // RELATIONAL_STORE_DELEGATE_H

@@ -56,13 +56,38 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
     }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-    int errCode = conn_->DoClean(mode);
+    int errCode = conn_->DoClean(mode, {});
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
 #endif
     return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::RemoveDeviceTableDataInner(const ClearDeviceDataOption &option)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] invalid connection for RemoveDeviceData!");
+        return DB_ERROR;
+    }
+    if (option.mode >= BUTT || option.mode < 0) {
+        LOGE("[RelationalStore Delegate] invalid mode for Remove device data, %d.", option.mode);
+        return INVALID_ARGS;
+    }
+    if (option.mode == ClearMode::DEFAULT || option.mode == ClearMode::CLEAR_SHARED_TABLE) {
+        LOGE("[RelationalStore Delegate] not Support mode for Remove device data, %d.", option.mode);
+        return NOT_SUPPORT;
+    }
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int errCode = conn_->DoClean(option.mode, option.tableList);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] remove device cloud data failed: %d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+#endif
+    return NOT_SUPPORT;
 }
 
 DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)

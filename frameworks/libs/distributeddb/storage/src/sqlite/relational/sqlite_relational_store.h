@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "irelational_store.h"
@@ -108,7 +109,10 @@ public:
 
     int32_t GetCloudSyncTaskCount();
 
-    int CleanCloudData(ClearMode mode);
+    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableList = {});
+
+    int CheckAndCollectCloudTables(ClearMode mode, const RelationalSchemaObject &localSchema,
+        const std::vector<std::string> &tableList, std::vector<std::string> &cloudTableNameList);
 
     int ClearCloudWatermark(const std::set<std::string> &tableNames);
 
