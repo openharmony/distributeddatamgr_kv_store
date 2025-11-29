@@ -55,6 +55,7 @@ void Setup()
 
 void TearDown()
 {
+    RuntimeContext::GetInstance()->StopTaskPool();
     g_mgr.CloseStore(g_delegate);
     g_delegate = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);

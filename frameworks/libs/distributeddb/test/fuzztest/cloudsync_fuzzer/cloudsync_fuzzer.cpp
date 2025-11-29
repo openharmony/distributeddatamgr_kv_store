@@ -269,6 +269,7 @@ public:
 
     void TearDown()
     {
+        RuntimeContext::GetInstance()->StopTaskPool();
         if (delegate_ != nullptr) {
             DBStatus errCode = mgr_->CloseStore(delegate_);
             LOGI("delegate close with errCode %d", static_cast<int>(errCode));
