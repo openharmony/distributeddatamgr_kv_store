@@ -69,9 +69,8 @@ SingleStoreImpl::SingleStoreImpl(
     if (options.syncable) {
         std::string dbPath = "";
         DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
-        std::string fullPath = path + "/kvdb/" +dbPath + "/";
-        StoreUtil::SetDirGid(fullPath, "database");
-        StoreUtil::SetDbFileGid(fullPath);
+        std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
+        StoreUtil::SetGid(fullPath, "database");
     }
 }
 
@@ -823,9 +822,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     if (syncable_) {
         std::string dbPath = "";
         DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
-        std::string fullPath = path_ + "/kvdb/" +dbPath + "/";
-        StoreUtil::SetDirGid(fullPath, "database");
-        StoreUtil::SetDbFileGid(fullPath);
+        std::string fullPath = path_ + "/kvdb/" +dbPath + "/single_ver/";
+        StoreUtil::SetGid(fullPath, "database");
     }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };

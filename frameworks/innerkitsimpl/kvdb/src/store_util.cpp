@@ -328,7 +328,7 @@ bool StoreUtil::HasPermit(const std::string &path, mode_t mode)
     return false;
 }
 
-void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target)
+void StoreUtil::SetGid(const std::string &fullPath, const std::string &target)
 {
     std::string tempDir = fullPath;
     size_t pos = tempDir.find('/');
@@ -351,13 +351,14 @@ void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target
             acl.SetAccessGroup(SERVICE_GID, mode);
         }
     }
-}
-
-void StoreUtil::SetDbFileGid(const std::string &path)
-{
-    auto dbFiles = GenerateDbFiles(path);
-    for (const auto &dbFile : dbFiles) {
-        SetFileGid(dbFile);
+    if (target == "backup") {
+        std::string backFile = fullPath + "autoBackup.bak";
+        SetFileGid(backFile);
+    } else if (target == "database") {
+        auto dbFiles = GenerateDbFiles(path);
+        for (const auto &dbFile : dbFiles) {
+            SetFileGid(dbFile);
+        }
     }
 }
 
@@ -384,7 +385,6 @@ std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
     if (path.empty()) {
         return dbFiles;
     }
-    dbFiles.push_back(path + "single_ver");
     dbFiles.push_back(path + "single_ver/main");
     dbFiles.push_back(path + "single_ver/main/gen_natural_store.db");
     dbFiles.push_back(path + "single_ver/main/gen_natural_store.db-shm");
@@ -393,7 +393,7 @@ std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
     dbFiles.push_back(path + "single_ver/meta/meta.db");
     dbFiles.push_back(path + "single_ver/meta/meta.db-shm");
     dbFiles.push_back(path + "single_ver/meta/meta.db-wal");
-    dbFiles.push_back(path + "single_ver/catch");
+    dbFiles.push_back(path + "single_ver/cache");
     return dbFiles;
 }
 } // namespace OHOS::DistributedKv
