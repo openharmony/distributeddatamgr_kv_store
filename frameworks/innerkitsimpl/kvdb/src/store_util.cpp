@@ -347,8 +347,7 @@ void StoreUtil::SetGid(const std::string &fullPath, const std::string &target)
         }
         path = path + "/" + dir;
         if (isSetAcl && !HasPermit(path, S_IXOTH)) {
-            Acl acl(path, Acl::ACL_XATTR_ACCESS);
-            acl.SetAccessGroup(SERVICE_GID, mode);
+            SetFileGid(path);
         }
     }
     if (target == "backup") {
@@ -385,15 +384,15 @@ std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
     if (path.empty()) {
         return dbFiles;
     }
-    dbFiles.push_back(path + "single_ver/main");
-    dbFiles.push_back(path + "single_ver/main/gen_natural_store.db");
-    dbFiles.push_back(path + "single_ver/main/gen_natural_store.db-shm");
-    dbFiles.push_back(path + "single_ver/main/gen_natural_store.db-wal");
-    dbFiles.push_back(path + "single_ver/meta");
-    dbFiles.push_back(path + "single_ver/meta/meta.db");
-    dbFiles.push_back(path + "single_ver/meta/meta.db-shm");
-    dbFiles.push_back(path + "single_ver/meta/meta.db-wal");
-    dbFiles.push_back(path + "single_ver/cache");
+    dbFiles.push_back(path + "/main");
+    dbFiles.push_back(path + "/main/gen_natural_store.db");
+    dbFiles.push_back(path + "/main/gen_natural_store.db-shm");
+    dbFiles.push_back(path + "/main/gen_natural_store.db-wal");
+    dbFiles.push_back(path + "/meta");
+    dbFiles.push_back(path + "/meta/meta.db");
+    dbFiles.push_back(path + "/meta/meta.db-shm");
+    dbFiles.push_back(path + "/meta/meta.db-wal");
+    dbFiles.push_back(path + "/cache");
     return dbFiles;
 }
 } // namespace OHOS::DistributedKv
