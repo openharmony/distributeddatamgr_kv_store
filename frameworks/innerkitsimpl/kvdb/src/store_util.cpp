@@ -334,7 +334,6 @@ void StoreUtil::SetGid(const std::string &fullPath, const std::string &target)
     size_t pos = tempDir.find('/');
     std::string path = "";
     bool isSetAcl = false;
-    uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
     while (pos != std::string::npos) {
         std::string dir = tempDir.substr(0, pos);
         tempDir = tempDir.substr(pos + 1);
