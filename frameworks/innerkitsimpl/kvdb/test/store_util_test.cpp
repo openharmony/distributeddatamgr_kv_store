@@ -219,24 +219,24 @@ HWTEST_F(StoreUtilTest, SetGid001, TestSize.Level1)
 
     storeUtil_.SetGid(path, "test");
     std::string fileName = path + "/test002.db";
-    storeUtil_.SetFileGid(fileName);
+    storeUtil_.SetServiceGid(fileName);
     auto fp = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
     ASSERT_GE(fp, 0);
     close(fp);
     ret = stat(fileName.c_str(), &buf);
     ASSERT_GE(ret, 0);
     ASSERT_TRUE(buf.st_mode & S_IRWXO);
-    storeUtil_.SetFileGid(fileName);
+    storeUtil_.SetServiceGid(fileName);
 
     std::string BkfileName = path + "/autoBackup.bak";
-    storeUtil_.SetFileGid(BkfileName);
+    storeUtil_.SetServiceGid(BkfileName);
     fp = open(BkfileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
     ASSERT_GE(fp, 0);
     close(fp);
     ret = stat(BkfileName.c_str(), &buf);
     ASSERT_GE(ret, 0);
     ASSERT_TRUE(buf.st_mode & S_IRWXO);
-    storeUtil_.SetFileGid(BkfileName);
+    storeUtil_.SetServiceGid(BkfileName);
 
     remove(fileName.c_str());
     remove(BkfileName.c_str());

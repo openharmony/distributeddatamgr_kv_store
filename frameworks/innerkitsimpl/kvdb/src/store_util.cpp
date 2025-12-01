@@ -346,21 +346,12 @@ void StoreUtil::SetGid(const std::string &fullPath, const std::string &target)
         }
         path = path + "/" + dir;
         if (isSetAcl && !HasPermit(path, S_IXOTH)) {
-            SetFileGid(path);
-        }
-    }
-    if (target == "backup") {
-        std::string backFile = fullPath + "autoBackup.bak";
-        SetFileGid(backFile);
-    } else if (target == "database") {
-        auto dbFiles = GenerateDbFiles(path);
-        for (const auto &dbFile : dbFiles) {
-            SetFileGid(dbFile);
+            SetServiceGid(path);
         }
     }
 }
 
-void StoreUtil::SetFileGid(const std::string &filePath)
+void StoreUtil::SetServiceGid(const std::string &filePath)
 {
     if (filePath.empty()) {
         return;
@@ -370,10 +361,14 @@ void StoreUtil::SetFileGid(const std::string &filePath)
         ZLOGE("file not exit, filePath:%{public}s ,code:%{public}d", Anonymous(filePath).c_str(), errno);
         return;
     }
+    uint32_t E_OK = 0;
     uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
     Acl acl(filePath, Acl::ACL_XATTR_ACCESS);
     if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
-        acl.SetAccessGroup(SERVICE_GID, mode);
+        auto res = acl.SetAccessGroup(SERVICE_GID, mode);
+        if (res != E_OK) {
+            ZLOGE("access group set failed, error code is :%{public}d", res);
+        }
     }
 }
 

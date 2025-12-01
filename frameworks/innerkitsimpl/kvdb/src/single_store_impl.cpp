@@ -55,9 +55,6 @@ SingleStoreImpl::SingleStoreImpl(
     hapName_ = options.hapName;
     subUser_ = options.subUser;
     syncable_ = options.syncable;
-    if (options.backup) {
-        BackupManager::GetInstance().Prepare(path, storeId_);
-    }
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
@@ -66,11 +63,11 @@ SingleStoreImpl::SingleStoreImpl(
     if (!isApplication_) {
         isCheckIntegrity_ = true;
     }
-    if (options.syncable) {
-        std::string dbPath = "";
-        DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
-        std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
-        StoreUtil::SetGid(fullPath, "database");
+    if (options.syncable || options.backup) {
+        SetAcl(storeId_, path);
+        if (options.backup) {
+            BackupManager::GetInstance().Prepare(path, storeId_);
+        }
     }
 }
 
@@ -820,10 +817,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
     if (syncable_) {
-        std::string dbPath = "";
-        DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
-        std::string fullPath = path_ + "/kvdb/" +dbPath + "/single_ver/";
-        StoreUtil::SetGid(fullPath, "database");
+        SetAcl(storeId_, path_);
     }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
@@ -1113,5 +1107,17 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
         .appId = appId_, .storeId = storeId_, .functionName = functionName };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+}
+
+void SingleStoreImpl::SetAcl(std:string storeId, std:string dbPath)
+{
+    std::string dbPath = "";
+    DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
+    std::string fullPath = path_ + "/kvdb/" +dbPath + "/single_ver/";
+    StoreUtil::SetGid(fullPath, "database");
+    auto dbFiles = StoreUtil::GenerateDbFiles(path);
+    for (const auto &dbFile : dbFiles) {
+        StoreUtil::SetServiceGid(dbFile);
+    }
 }
 } // namespace OHOS::DistributedKv
