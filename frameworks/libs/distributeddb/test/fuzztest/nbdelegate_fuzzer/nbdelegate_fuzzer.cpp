@@ -22,6 +22,7 @@
 #include "kv_store_delegate_manager.h"
 #include "kv_store_observer.h"
 #include "platform_specific.h"
+#include "runtime_context.h"
 
 class KvStoreNbDelegateCURDFuzzer {
     /* Keep C++ file names the same as the class name. */
@@ -296,6 +297,7 @@ void CombineTest(FuzzedDataProvider &fdp, KvStoreNbDelegate::Option &option)
     if (option.isEncryptedDb) {
         EncryptOperation(fdp, config.dataDir, kvNbDelegatePtr);
     }
+    RuntimeContext::GetInstance()->StopTaskPool();
     kvManager.CloseKvStore(kvNbDelegatePtr);
     kvManager.DeleteKvStore("distributed_nb_delegate_test");
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);

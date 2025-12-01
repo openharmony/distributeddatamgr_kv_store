@@ -80,6 +80,7 @@ void SetUpTestcase()
 
 void TearDownTestCase()
 {
+    RuntimeContext::GetInstance()->StopTaskPool();
     if (g_kvDelegatePtr != nullptr) {
         g_mgr.CloseKvStore(g_kvDelegatePtr);
         g_kvDelegatePtr = nullptr;
