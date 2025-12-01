@@ -1109,7 +1109,7 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
 
-void SingleStoreImpl::SetAcl(std::string storeId, std::string path)
+void SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
 {
     std::string dbPath = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
