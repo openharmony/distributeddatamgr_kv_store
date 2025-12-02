@@ -136,7 +136,8 @@ private:
     void DoNotifyChange();
     void Register();
     void ReportDBFaultEvent(Status status, const std::string &functionName) const;
-    void SetAcl(std::string storeId, std::string dbPath) const;
+    int32_t SetAcl(std::string storeId, std::string dbPath) const;
+    static std::vector<std::string> GenerateDbFiles(const std::string &path);
 
     int32_t subUser_ = 0;
     int32_t apiVersion_ = -1;

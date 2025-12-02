@@ -1109,15 +1109,40 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
 
-void SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
+int32_t SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
 {
     std::string dbPath = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
     std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
-    StoreUtil::SetGid(fullPath, "database");
-    auto dbFiles = StoreUtil::GenerateDbFiles(path);
-    for (const auto &dbFile : dbFiles) {
-        StoreUtil::SetServiceGid(dbFile);
+    auto res = StoreUtil::SetGid(fullPath, "database");
+    if (res != Acl::E_OK) {
+        return res;
     }
+    auto dbFiles = GenerateDbFiles(path);
+    for (const auto &dbFile : dbFiles) {
+        res = StoreUtil::SetServiceGid(dbFile);
+        if (res != Acl::E_OK) {
+            return res;
+        }
+    }
+    return Acl::E_OK;
+}
+
+std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
+{
+    std::vector<std::string> dbFiles;
+    if (path.empty()) {
+        return dbFiles;
+    }
+    dbFiles.push_back(path + "/main");
+    dbFiles.push_back(path + "/main/gen_natural_store.db");
+    dbFiles.push_back(path + "/main/gen_natural_store.db-shm");
+    dbFiles.push_back(path + "/main/gen_natural_store.db-wal");
+    dbFiles.push_back(path + "/meta");
+    dbFiles.push_back(path + "/meta/meta.db");
+    dbFiles.push_back(path + "/meta/meta.db-shm");
+    dbFiles.push_back(path + "/meta/meta.db-wal");
+    dbFiles.push_back(path + "/cache");
+    return dbFiles;
 }
 } // namespace OHOS::DistributedKv
