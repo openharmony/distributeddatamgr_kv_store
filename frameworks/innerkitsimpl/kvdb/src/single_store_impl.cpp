@@ -1128,7 +1128,7 @@ int32_t SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
     return Acl::E_OK;
 }
 
-std::vector<std::string> StoreUtil::GenerateDbFiles(const std::string &path)
+std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path)
 {
     std::vector<std::string> dbFiles;
     if (path.empty()) {
