@@ -816,9 +816,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
-    if (syncable_) {
-        SetAcl(storeId_, path_);
-    }
+    SetAcl(storeId_, path_);
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
