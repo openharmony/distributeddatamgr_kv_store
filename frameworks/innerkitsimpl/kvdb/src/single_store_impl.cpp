@@ -1116,7 +1116,7 @@ bool SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
     std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
     if (!StoreUtil::SetDatabaseGid(fullPath)) {
-        return ;
+        return false;
     }
     auto dbFiles = GenerateDbFiles(path);
     for (const auto &dbFile : dbFiles) {
