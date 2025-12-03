@@ -137,6 +137,7 @@ private:
     void Register();
     void ReportDBFaultEvent(Status status, const std::string &functionName) const;
     void SetAcl(std::string storeId, std::string path) const;
+    std::vector<std::string> GenerateDbFiles(const std::string &path);
 
     int32_t subUser_ = 0;
     int32_t apiVersion_ = -1;
@@ -153,14 +154,15 @@ private:
     uint32_t roleType_ = 0;
     uint64_t taskId_ = 0;
     bool isCheckIntegrity_ = false;
-    
+
     bool syncable_ = false;
     bool encrypt_ = false;
+    bool autoBackup_ = false;
     int32_t securityLevel_ = -1;
     int32_t area_ = 1;
     std::string hapName_ = "";
     std::string path_ = "";
-    bool autobackup_ = false;
+    bool backup_ = false;
 
     std::mutex notifyMutex_;
     uint64_t notifyExpiredTime_ = 0;
