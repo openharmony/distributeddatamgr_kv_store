@@ -78,11 +78,11 @@ void BackupManager::Prepare(const std::string &path, const std::string &storeId)
     (void)StoreUtil::InitPath(storePath);
     (void)StoreUtil::CreateFile(autoBackupName);
     auto res = StoreUtil::SetServiceGid(topPath);
-    if (res != Acl::E_OK) {
+    if (res != DATABASE_UTILS::Acl::E_OK) {
         return;
     }
     res = StoreUtil::SetServiceGid(storePath);
-    if (res != Acl::E_OK) {
+    if (res != DATABASE_UTILS::Acl::E_OK) {
         return;
     }
     res = StoreUtil::SetServiceGid(autoBackupName);

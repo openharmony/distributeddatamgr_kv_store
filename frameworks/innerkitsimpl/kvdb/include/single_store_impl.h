@@ -161,6 +161,7 @@ private:
     int32_t area_ = 1;
     std::string hapName_ = "";
     std::string path_ = "";
+    bool backup_ = false;
 
     std::mutex notifyMutex_;
     uint64_t notifyExpiredTime_ = 0;

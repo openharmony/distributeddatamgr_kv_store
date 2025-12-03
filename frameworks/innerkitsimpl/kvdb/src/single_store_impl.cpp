@@ -55,6 +55,7 @@ SingleStoreImpl::SingleStoreImpl(
     hapName_ = options.hapName;
     subUser_ = options.subUser;
     syncable_ = options.syncable;
+    backup_ = options.backup;
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
@@ -816,7 +817,12 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
-    SetAcl(storeId_, path_);
+    if (syncable_ || backup_) {
+        SetAcl(storeId_, path_);
+        if (backup_) {
+            BackupManager::GetInstance().Prepare(path_, storeId_);
+        }
+    }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,

@@ -202,11 +202,11 @@ HWTEST_F(StoreUtilTest, CheckPermissions002, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetGid001
+ * @tc.name: SetDatabaseGid001
  * @tc.desc: Set ACL
  * @tc.type: FUNC
  */
-HWTEST_F(StoreUtilTest, SetGid001, TestSize.Level1)
+HWTEST_F(StoreUtilTest, SetDatabaseGid001, TestSize.Level1)
 {
     std::string path = "/data/test/SetDbDirGid001";
     StoreUtil storeUtil_;
