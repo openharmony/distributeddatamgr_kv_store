@@ -328,12 +328,13 @@ bool StoreUtil::HasPermit(const std::string &path, mode_t mode)
     return false;
 }
 
-int32_t StoreUtil::SetGid(const std::string &fullPath, const std::string &target)
+int32_t StoreUtil::SetDatabaseGid(const std::string &fullPath)
 {
     std::string tempDir = fullPath;
     size_t pos = tempDir.find('/');
     std::string path = "";
     bool isSetAcl = false;
+    std::string target = "database";
     while (pos != std::string::npos) {
         std::string dir = tempDir.substr(0, pos);
         tempDir = tempDir.substr(pos + 1);
@@ -358,6 +359,7 @@ int32_t StoreUtil::SetGid(const std::string &fullPath, const std::string &target
 int32_t StoreUtil::SetServiceGid(const std::string &filePath)
 {
     if (filePath.empty()) {
+        ZLOGE("filePath is empty");
         return Acl::E_ERROR;
     }
     struct stat fileStat;

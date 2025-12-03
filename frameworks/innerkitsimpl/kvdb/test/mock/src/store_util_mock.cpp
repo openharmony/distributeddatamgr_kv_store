@@ -144,7 +144,7 @@ StoreUtil::DBMode StoreUtil::GetDBMode(SyncMode syncMode)
     return dbMode;
 }
 
-int32_t StoreUtil::SetGid(const std::string &fullPath, const std::string &target)
+int32_t StoreUtil::SetDatabaseGid(const std::string &fullPath)
 {
     return 0;
 }

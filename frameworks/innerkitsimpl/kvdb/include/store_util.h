@@ -51,7 +51,7 @@ public:
     static void Flush();
     static uint64_t GenSequenceId();
     static bool RemoveRWXForOthers(const std::string &path);
-    static int32_t SetGid(const std::string &fullPath, const std::string &target);
+    static int32_t SetDatabaseGid(const std::string &fullPath);
     static int32_t SetServiceGid(const std::string &filePath);
 private:
     static bool HasPermit(const std::string &path, mode_t mode);
