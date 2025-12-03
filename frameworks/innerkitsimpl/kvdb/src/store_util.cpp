@@ -332,7 +332,7 @@ bool StoreUtil::SetDatabaseGid(const std::string &path)
 {
     std::string tempDir = path;
     size_t pos = tempDir.find('/');
-    std::string path = "";
+    std::string targetPath = "";
     bool isSetAcl = false;
     while (pos != std::string::npos) {
         std::string dir = tempDir.substr(0, pos);
@@ -344,9 +344,9 @@ bool StoreUtil::SetDatabaseGid(const std::string &path)
         if (dir == "database") {
             isSetAcl = true;
         }
-        path = path + "/" + dir;
-        if (isSetAcl && !HasPermit(path, S_IXOTH)) {
-            if (!SetServiceGid(path)) {
+        targetPath = targetPath + "/" + dir;
+        if (isSetAcl && !HasPermit(targetPath, S_IXOTH)) {
+            if (!SetServiceGid(targetPath)) {
                 return false;
             }
         }
