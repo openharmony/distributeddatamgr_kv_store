@@ -121,8 +121,6 @@ public:
     static constexpr uint16_t R_RIGHT = 4;
     static constexpr uint16_t W_RIGHT = 2;
     static constexpr uint16_t E_RIGHT = 1;
-    static constexpr int32_t E_OK = 0;
-    static constexpr int32_t E_ERROR = -1;
     static constexpr const char *ACL_XATTR_DEFAULT = "system.posix_acl_default";
     static constexpr const char *ACL_XATTR_ACCESS = "system.posix_acl_access";
 
@@ -139,6 +137,8 @@ public:
     API_EXPORT bool HasAccessUser(uint32_t gid, uint16_t mode);
 
 private:
+    static constexpr int32_t E_OK = 0;
+    static constexpr int32_t E_ERROR = -1;
     static constexpr int32_t USER_OFFSET = 6;
     static constexpr int32_t GROUP_OFFSET = 3;
     static constexpr int32_t BUF_SIZE = 400;

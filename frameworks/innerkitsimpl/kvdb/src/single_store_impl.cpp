@@ -55,7 +55,7 @@ SingleStoreImpl::SingleStoreImpl(
     hapName_ = options.hapName;
     subUser_ = options.subUser;
     syncable_ = options.syncable;
-    backup_ = options.backup;
+    autobackup_ = options.backup;
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
@@ -64,9 +64,9 @@ SingleStoreImpl::SingleStoreImpl(
     if (!isApplication_) {
         isCheckIntegrity_ = true;
     }
-    if (options.syncable || options.backup) {
+    if (syncable_ || autobackup_) {
         SetAcl(storeId_, path);
-        if (options.backup) {
+        if (autobackup_) {
             BackupManager::GetInstance().Prepare(path, storeId_);
         }
     }
@@ -817,11 +817,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
-    if (syncable_ || backup_) {
+    if (syncable_ || autobackup_) {
         SetAcl(storeId_, path_);
-        if (backup_) {
-            BackupManager::GetInstance().Prepare(path_, storeId_);
-        }
     }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
@@ -1118,18 +1115,16 @@ int32_t SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
     std::string dbPath = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
     std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
-    auto res = StoreUtil::SetDatabaseGid(fullPath);
-    if (res != Acl::E_OK) {
-        return res;
+    if (!StoreUtil::SetDatabaseGid(fullPath)) {
+        return false
     }
     auto dbFiles = GenerateDbFiles(path);
     for (const auto &dbFile : dbFiles) {
-        res = StoreUtil::SetServiceGid(dbFile);
-        if (res != Acl::E_OK) {
-            return res;
+        if (!StoreUtil::SetServiceGid(dbFile)) {
+            return false;
         }
     }
-    return Acl::E_OK;
+    return true;
 }
 
 std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path)

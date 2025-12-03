@@ -328,13 +328,12 @@ bool StoreUtil::HasPermit(const std::string &path, mode_t mode)
     return false;
 }
 
-int32_t StoreUtil::SetDatabaseGid(const std::string &fullPath)
+bool StoreUtil::SetDatabaseGid(const std::string &path)
 {
-    std::string tempDir = fullPath;
+    std::string tempDir = path;
     size_t pos = tempDir.find('/');
     std::string path = "";
     bool isSetAcl = false;
-    std::string target = "database";
     while (pos != std::string::npos) {
         std::string dir = tempDir.substr(0, pos);
         tempDir = tempDir.substr(pos + 1);
@@ -342,40 +341,39 @@ int32_t StoreUtil::SetDatabaseGid(const std::string &fullPath)
         if (dir.empty()) {
             continue;
         }
-        if (dir == target) {
+        if (dir == "database") {
             isSetAcl = true;
         }
         path = path + "/" + dir;
         if (isSetAcl && !HasPermit(path, S_IXOTH)) {
-            auto res = SetServiceGid(path);
-            if (res != Acl::E_OK) {
-                return res;
+            if (!SetServiceGid(path)) {
+                return false;
             }
         }
     }
-    return Acl::E_OK;
+    return true;
 }
 
-int32_t StoreUtil::SetServiceGid(const std::string &filePath)
+bool StoreUtil::SetServiceGid(const std::string &filePath)
 {
     if (filePath.empty()) {
         ZLOGE("filePath is empty");
-        return Acl::E_ERROR;
+        return false;
     }
     struct stat fileStat;
     if (stat(filePath.c_str(), &fileStat) != 0) {
         ZLOGE("file not exit, filePath:%{public}s ,code:%{public}d", Anonymous(filePath).c_str(), errno);
-        return Acl::E_ERROR;
+        return false;
     }
     uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
     Acl acl(filePath, Acl::ACL_XATTR_ACCESS);
     if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
         auto res = acl.SetAccessGroup(SERVICE_GID, mode);
-        if (res != Acl::E_OK) {
+        if (res != 0) {
             ZLOGE("access group set failed, error code is :%{public}d", res);
-            return res;
+            return false;
         }
     }
-    return Acl::E_OK;
+    return true;
 }
 } // namespace OHOS::DistributedKv

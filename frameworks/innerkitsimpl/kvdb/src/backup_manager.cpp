@@ -19,7 +19,6 @@
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "task_executor.h"
-#include "acl.h"
 namespace OHOS::DistributedKv {
 namespace {
 constexpr const char *BACKUP_POSTFIX = ".bak";
@@ -78,14 +77,14 @@ void BackupManager::Prepare(const std::string &path, const std::string &storeId)
     (void)StoreUtil::InitPath(storePath);
     (void)StoreUtil::CreateFile(autoBackupName);
     auto res = StoreUtil::SetServiceGid(topPath);
-    if (res != DATABASE_UTILS::Acl::E_OK) {
+    if (!res) {
         return;
     }
     res = StoreUtil::SetServiceGid(storePath);
-    if (res != DATABASE_UTILS::Acl::E_OK) {
+    if (!res) {
         return;
     }
-    res = StoreUtil::SetServiceGid(autoBackupName);
+    StoreUtil::SetServiceGid(autoBackupName);
 }
 
 void BackupManager::KeepData(const std::string &name, bool isCreated)
