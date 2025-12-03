@@ -137,7 +137,7 @@ private:
     void Register();
     void ReportDBFaultEvent(Status status, const std::string &functionName) const;
     void SetAcl(std::string storeId, std::string path) const;
-    std::vector<std::string> GenerateDbFiles(const std::string &path);
+    std::vector<std::string> GenerateDbFiles(const std::string &path) const;
 
     int32_t subUser_ = 0;
     int32_t apiVersion_ = -1;
@@ -162,7 +162,6 @@ private:
     int32_t area_ = 1;
     std::string hapName_ = "";
     std::string path_ = "";
-    bool backup_ = false;
 
     std::mutex notifyMutex_;
     uint64_t notifyExpiredTime_ = 0;

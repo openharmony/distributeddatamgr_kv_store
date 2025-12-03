@@ -1126,7 +1126,7 @@ void SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
     }
 }
 
-std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path)
+std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path) const
 {
     std::vector<std::string> dbFiles;
     if (path.empty()) {
