@@ -326,6 +326,8 @@ public:
     {
         return E_OK;
     }
+
+    virtual int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) = 0;
 };
 }
 

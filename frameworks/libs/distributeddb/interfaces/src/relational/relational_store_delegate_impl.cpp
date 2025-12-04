@@ -90,7 +90,8 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceTableDataInner(const ClearDevi
     return NOT_SUPPORT;
 }
 
-DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
+DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
+    const CreateDistributedTableConfig &config)
 {
     LOGI("[RelationalStore Delegate] Create distributed table for [%s length[%u]], type[%d]",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), static_cast<int>(type));
@@ -105,12 +106,17 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
         return INVALID_ARGS;
     }
 
+    if (type != CLOUD_COOPERATION && config.isAsync) {
+        LOGE("[RelationalStore Delegate] Only supports create cloud distributed table asynchronously");
+        return NOT_SUPPORT;
+    }
+
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");
         return DB_ERROR;
     }
 
-    int errCode = conn_->CreateDistributedTable(tableName, type);
+    int errCode = conn_->CreateDistributedTable(tableName, type, config.isAsync);
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
     if (duration > CloudDbConstant::DFX_TIME_THRESHOLD) {
         int64_t costTimeMs = duration.count();

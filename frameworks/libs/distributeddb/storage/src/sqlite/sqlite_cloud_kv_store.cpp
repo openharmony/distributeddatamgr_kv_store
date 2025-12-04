@@ -838,5 +838,10 @@ int SqliteCloudKvStore::GetLocalDataCount(const std::string &tableName, int &dat
     storageHandle_->RecycleStorageExecutor(handle);
     return errCode;
 }
+
+int SqliteCloudKvStore::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables)
+{
+    return E_OK;
+}
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD

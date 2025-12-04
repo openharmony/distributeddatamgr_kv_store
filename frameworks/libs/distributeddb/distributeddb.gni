@@ -173,6 +173,7 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/sqlite/relational/split_device_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_database_upgrader.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_store.cpp",
+  "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_store_extend.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_store_connection.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_utils.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_utils_client.cpp",

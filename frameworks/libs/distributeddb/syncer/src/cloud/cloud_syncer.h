@@ -156,6 +156,8 @@ protected:
 
     int DoSync(TaskId taskId);
 
+    int DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload, bool &isFirstDownload);
+
     int PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index);
 
     int DoSyncInner(const CloudTaskInfo &taskInfo);
@@ -554,6 +556,8 @@ protected:
     bool IsCloudForcePush(TaskId taskId);
 
     TaskId GetCurrentTaskId();
+
+    int WaitAsyncGenLogTaskFinished(TaskId triggerTaskId);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

@@ -61,11 +61,11 @@ public:
     int ResetLogStatus(const std::string &tableName);
 
     int CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
-        TableInfo &table);
+        TableInfo &table, bool isAsync);
 
     // The parameter "identity" is a hash string that identifies a device
     int CreateDistributedTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
-        TableInfo &table);
+        TableInfo &table, bool isAsync);
 
     int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema, TableSyncType syncType);

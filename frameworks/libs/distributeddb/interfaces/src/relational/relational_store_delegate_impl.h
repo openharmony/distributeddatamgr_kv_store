@@ -38,7 +38,8 @@ public:
 
     DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option) override;
 
-    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;
+    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
+        const CreateDistributedTableConfig &config) override;
 
     DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
 

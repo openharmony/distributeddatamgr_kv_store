@@ -36,7 +36,7 @@ public:
     int Close() override;
     int SyncToDevice(SyncInfo &info) override;
     std::string GetIdentifier() override;
-    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) override;
+    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
     int RemoveDeviceData() override;
     int RemoveDeviceData(const std::string &device) override;

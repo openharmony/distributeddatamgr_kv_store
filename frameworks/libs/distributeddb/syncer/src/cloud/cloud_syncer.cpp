@@ -193,10 +193,12 @@ void CloudSyncer::DoSyncIfNeed()
         CancelBackgroundDownloadAssetsTaskIfNeed();
         // do sync logic
         std::vector<std::string> usersList;
+        std::vector<std::string> tables;
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             usersList = cloudTaskInfos_[triggerTaskId].users;
             currentContext_.currentUserIndex = 0;
+            tables = cloudTaskInfos_[triggerTaskId].table;
         }
         int errCode = E_OK;
         if (usersList.empty()) {
@@ -215,6 +217,12 @@ void CloudSyncer::DoSyncIfNeed()
 
 int CloudSyncer::DoSync(TaskId taskId)
 {
+    int errCode = WaitAsyncGenLogTaskFinished(taskId);
+    if (errCode != E_OK) {
+        SyncMachineDoFinished();
+        LOGE("[CloudSyncer] Wait async gen log task finished failed: %d", errCode);
+        return errCode;
+    }
     std::lock_guard<std::mutex> lock(syncMutex_);
     ResetCurrentTableUploadBatchIndex();
     CloudTaskInfo taskInfo;
@@ -239,23 +247,11 @@ int CloudSyncer::DoSync(TaskId taskId)
     bool isFirstDownload = true;
     if (isNeedFirstDownload) {
         // do first download
-        int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
-        SetTaskFailed(taskId, errCode);
+        errCode = DoFirstDownload(taskId, taskInfo, needUpload, isNeedFirstDownload);
         if (errCode != E_OK) {
-            SyncMachineDoFinished();
+            LOGE("[CloudSyncer] do first download failed: %d", errCode);
             return errCode;
         }
-        bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            isActuallyNeedUpload = currentContext_.isNeedUpload;
-        }
-        if (!isActuallyNeedUpload) {
-            LOGI("[CloudSyncer] no table need upload!");
-            SyncMachineDoFinished();
-            return E_OK;
-        }
-        isFirstDownload = false;
     }
 
     {
@@ -264,6 +260,28 @@ int CloudSyncer::DoSync(TaskId taskId)
         currentContext_.isRealNeedUpload = needUpload;
     }
     return DoSyncInner(taskInfo);
+}
+
+int CloudSyncer::DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload, bool &isFirstDownload)
+{
+    int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+    SetTaskFailed(taskId, errCode);
+    if (errCode != E_OK) {
+        SyncMachineDoFinished();
+        return errCode;
+    }
+    bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        isActuallyNeedUpload = currentContext_.isNeedUpload;
+    }
+    if (!isActuallyNeedUpload) {
+        LOGI("[CloudSyncer] no table need upload!");
+        SyncMachineDoFinished();
+        return E_OK;
+    }
+    isFirstDownload = false;
+    return E_OK;
 }
 
 int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)

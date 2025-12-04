@@ -277,6 +277,10 @@ public:
     Property GetProperty() const override;
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids) override;
+
+    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) override;
+
+    int ResetGenLogTaskStatus();
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

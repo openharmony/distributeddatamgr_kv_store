@@ -216,7 +216,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTable(sqlite3 *db, co
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded,
-    const std::string &identity, TableInfo &table)
+    const std::string &identity, TableInfo &table, bool isAsync)
 {
     // create log table
     std::unique_ptr<SqliteLogTableManager> tableManager;
@@ -236,8 +236,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
         LOGE("[CreateDistributedTable] Add relational log table trigger failed.");
         return errCode;
     }
-    if (table.GetTableSyncType() == CLOUD_COOPERATION && !table.GetSharedTableMark() &&
-        table.GetTrackerTable().GetTableName().empty()) {
+    if (isAsync) {
         return SetLogTriggerStatus(true);
     }
     std::string tableName = table.GetTableName();
@@ -268,7 +267,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
-    const std::string &identity, TableInfo &table)
+    const std::string &identity, TableInfo &table, bool isAsync)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
@@ -301,7 +300,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
         return errCode;
     }
 
-    return CreateRelationalLogTable(mode, isUpgraded, identity, table);
+    return CreateRelationalLogTable(mode, isUpgraded, identity, table, isAsync);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const std::string &tableName)
