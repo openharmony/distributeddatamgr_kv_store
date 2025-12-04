@@ -77,14 +77,10 @@ void BackupManager::Prepare(const std::string &path, const std::string &storeId)
     (void)StoreUtil::InitPath(storePath);
     (void)StoreUtil::CreateFile(autoBackupName);
     auto res = StoreUtil::SetServiceGid(topPath);
-    if (!res) {
+    if (!StoreUtil::SetServiceGid(topPath) || !StoreUtil::SetServiceGid(storePath) ||
+        !StoreUtil::SetServiceGid(autoBackupName)) {
         return;
     }
-    res = StoreUtil::SetServiceGid(storePath);
-    if (!res) {
-        return;
-    }
-    StoreUtil::SetServiceGid(autoBackupName);
 }
 
 void BackupManager::KeepData(const std::string &name, bool isCreated)
