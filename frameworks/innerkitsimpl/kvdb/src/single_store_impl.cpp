@@ -1110,7 +1110,7 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
 
-void SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
+void SingleStoreImpl::SetAcl(const std::string &storeId, const std::string &path)
 {
     std::string dbPath = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
@@ -1119,14 +1119,14 @@ void SingleStoreImpl::SetAcl(std::string storeId, std::string path) const
         return;
     }
     auto dbFiles = GenerateDbFiles(path);
-    for (const auto &dbFile : dbFiles) {
+    for (auto &dbFile : dbFiles) {
         if (!StoreUtil::SetServiceGid(dbFile)) {
             return;
         }
     }
 }
 
-std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path) const
+std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path)
 {
     std::vector<std::string> dbFiles;
     if (path.empty()) {
