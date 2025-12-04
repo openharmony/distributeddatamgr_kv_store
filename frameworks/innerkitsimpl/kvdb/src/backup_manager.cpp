@@ -76,7 +76,6 @@ void BackupManager::Prepare(const std::string &path, const std::string &storeId)
     (void)StoreUtil::InitPath(topPath);
     (void)StoreUtil::InitPath(storePath);
     (void)StoreUtil::CreateFile(autoBackupName);
-    auto res = StoreUtil::SetServiceGid(topPath);
     if (!StoreUtil::SetServiceGid(topPath) || !StoreUtil::SetServiceGid(storePath) ||
         !StoreUtil::SetServiceGid(autoBackupName)) {
         return;
