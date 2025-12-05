@@ -329,19 +329,20 @@ int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const st
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const TableInfo &localTableInfo,
     DistributedTableMode mode, bool &schemaChanged, RelationalSchemaObject &schema, TableSyncType syncType)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
     }
     TableInfo newTableInfo;
+    auto tableName = localTableInfo.GetTableName();
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, newTableInfo);
     if (errCode != E_OK) {
         LOGE("[UpgradeDistributedTable] analysis table schema failed. %d", errCode);
         return errCode;
     }
-
+    newTableInfo.SetCloudTable(localTableInfo.GetCloudTable());
     if (CheckTableConstraint(newTableInfo, mode, syncType)) {
         LOGE("[UpgradeDistributedTable] Not support create distributed table when violate constraints.");
         return -E_NOT_SUPPORT;
@@ -1869,7 +1870,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
                 return errCode;
             }
         } else {
-            updateLogSql += GetUpdateDataFlagSql(vBucket) + ", cloud_gid = ?";
+            updateLogSql += GetUpdateDataFlagSql(opType, vBucket) + ", cloud_gid = ?";
             updateColName.push_back(CloudDbConstant::GID_FIELD);
             CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
         }
@@ -1996,6 +1997,11 @@ std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetInsertFields(con
         return SQLiteRelationalUtils::GetSaveSyncField(vBucket, tableSchema, true);
     }
     return tableSchema.fields;
+}
+
+std::pair<int, TableInfo> SQLiteSingleVerRelationalStorageExecutor::AnalyzeTable(const std::string &tableName) const
+{
+    return SQLiteRelationalUtils::AnalyzeTable(dbHandle_, tableName);
 }
 } // namespace DistributedDB
 #endif

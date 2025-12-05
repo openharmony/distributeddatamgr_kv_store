@@ -23,6 +23,7 @@ enum class ConflictRet : uint32_t {
     UPSERT = 0,
     DELETE,
     NOT_HANDLE,
+    INTEGRATE, // update data but no change flag
     BUTT
 };
 

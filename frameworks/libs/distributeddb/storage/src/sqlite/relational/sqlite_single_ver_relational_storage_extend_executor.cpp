@@ -1732,8 +1732,11 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
     return static_cast<int64_t>(flag);
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql(const VBucket &data)
+std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql(OpType opType, const VBucket &data)
 {
+    if (opType == OpType::INTEGRATE) {
+        return "flag = flag";
+    }
     std::string retentionFlag = "flag = (flag & " +
                                 std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
                                                static_cast<uint32_t>(LogInfoFlag::FLAG_ASSET_DOWNLOADING_FOR_ASYNC)) +
@@ -1970,12 +1973,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindShareValueToInsertLogStatement
         LOGE("Bind shareUri to insert log statement failed, %d", errCode);
     }
     return errCode;
-}
-
-void SQLiteSingleVerRelationalStorageExecutor::CheckAndCreateTrigger(const TableInfo &table)
-{
-    auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
-    tableManager->CheckAndCreateTrigger(dbHandle_, table, "");
 }
 
 void SQLiteSingleVerRelationalStorageExecutor::ClearLogOfMismatchedData(const std::string &tableName)

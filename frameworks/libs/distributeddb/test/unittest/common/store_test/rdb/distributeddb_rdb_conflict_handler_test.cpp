@@ -27,13 +27,15 @@ public:
     void TearDown() override;
 protected:
     static constexpr const char *CLOUD_SYNC_TABLE_A = "CLOUD_SYNC_TABLE_A";
-    void InitTables();
-    void InitSchema();
+    void InitTables(const std::string &table = CLOUD_SYNC_TABLE_A);
+    void InitSchema(const std::string &table = CLOUD_SYNC_TABLE_A);
+    void InitDistributedTable(const std::vector<std::string> &tables = {CLOUD_SYNC_TABLE_A});
     void Store1InsertStore2Pull();
     void Store1InsertStore2Pull(const Query &pushQuery);
     void Store1DeleteStore2Pull();
     void AbortCloudSyncTest(const std::function<void(void)> &forkFunc, const std::function<void(void)> &cancelForkFunc,
         SyncMode mode);
+    void PrepareEnv(const UtDateBaseSchemaInfo &info);
     StoreInfo info1_ = {USER_ID, APP_ID, STORE_ID_1};
     StoreInfo info2_ = {USER_ID, APP_ID, STORE_ID_2};
 };
@@ -46,10 +48,7 @@ void DistributedDBRDBConflictHandlerTest::SetUp()
     EXPECT_EQ(BasicUnitTest::InitDelegate(info2_, "dev2"), E_OK);
     EXPECT_NO_FATAL_FAILURE(InitTables());
     InitSchema();
-    RDBGeneralUt::SetCloudDbConfig(info1_);
-    RDBGeneralUt::SetCloudDbConfig(info2_);
-    ASSERT_EQ(SetDistributedTables(info1_, {CLOUD_SYNC_TABLE_A}, TableSyncType::CLOUD_COOPERATION), E_OK);
-    ASSERT_EQ(SetDistributedTables(info2_, {CLOUD_SYNC_TABLE_A}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    InitDistributedTable();
 }
 
 void DistributedDBRDBConflictHandlerTest::TearDown()
@@ -57,29 +56,37 @@ void DistributedDBRDBConflictHandlerTest::TearDown()
     RDBGeneralUt::TearDown();
 }
 
-void DistributedDBRDBConflictHandlerTest::InitTables()
+void DistributedDBRDBConflictHandlerTest::InitTables(const std::string &table)
 {
-    std::string sql = "CREATE TABLE IF NOT EXISTS CLOUD_SYNC_TABLE_A("
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + table + "("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "intCol INTEGER, stringCol1 TEXT, stringCol2 TEXT, uuidCol TEXT UNIQUE)";
     EXPECT_EQ(ExecuteSQL(sql, info1_), E_OK);
     EXPECT_EQ(ExecuteSQL(sql, info2_), E_OK);
 }
 
-void DistributedDBRDBConflictHandlerTest::InitSchema()
+void DistributedDBRDBConflictHandlerTest::InitSchema(const std::string &table)
 {
     const std::vector<UtFieldInfo> filedInfo = {
         {{"intCol", TYPE_INDEX<int64_t>, false, true}, false},
         {{"stringCol1", TYPE_INDEX<std::string>, false, true}, false},
-        {{"uuidCol", TYPE_INDEX<std::string>, false, true, true}, false},
+        {{"uuidCol", TYPE_INDEX<std::string>, true, true, true}, false},
     };
     UtDateBaseSchemaInfo schemaInfo = {
         .tablesInfo = {
-            {.name = CLOUD_SYNC_TABLE_A, .fieldInfo = filedInfo}
+            {.name = table, .fieldInfo = filedInfo}
         }
     };
     RDBGeneralUt::SetSchemaInfo(info1_, schemaInfo);
     RDBGeneralUt::SetSchemaInfo(info2_, schemaInfo);
+}
+
+void DistributedDBRDBConflictHandlerTest::InitDistributedTable(const std::vector<std::string> &tables)
+{
+    RDBGeneralUt::SetCloudDbConfig(info1_);
+    RDBGeneralUt::SetCloudDbConfig(info2_);
+    ASSERT_EQ(SetDistributedTables(info1_, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
+    ASSERT_EQ(SetDistributedTables(info2_, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
 }
 
 void DistributedDBRDBConflictHandlerTest::Store1InsertStore2Pull()
@@ -117,6 +124,20 @@ void DistributedDBRDBConflictHandlerTest::Store1DeleteStore2Pull()
     EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, pullQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL, OK, OK));
 }
 
+void DistributedDBRDBConflictHandlerTest::PrepareEnv(const UtDateBaseSchemaInfo &info)
+{
+    RDBGeneralUt::SetSchemaInfo(info1_, info);
+    RDBGeneralUt::SetSchemaInfo(info2_, info);
+    RDBGeneralUt::SetCloudDbConfig(info1_);
+    RDBGeneralUt::SetCloudDbConfig(info2_);
+    std::vector<std::string> tables;
+    for (const auto &item : info.tablesInfo) {
+        tables.push_back(item.name);
+    }
+    ASSERT_EQ(SetDistributedTables(info1_, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
+    ASSERT_EQ(SetDistributedTables(info2_, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
+}
+
 /**
  * @tc.name: SimpleSync001
  * @tc.desc: Test store1 insert/delete local and custom push, store2 custom pull.
@@ -128,6 +149,7 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync001, TestSize.Level0)
     SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &old, const VBucket &, VBucket &) {
         EXPECT_EQ(old.find(CloudDbConstant::CREATE_FIELD), old.end());
         EXPECT_EQ(old.find(CloudDbConstant::MODIFY_FIELD), old.end());
+        EXPECT_EQ(old.find(CloudDbConstant::VERSION_FIELD), old.end());
         return ConflictRet::UPSERT;
     });
     // step1 store1 push one row and store2 pull
@@ -279,18 +301,14 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync006, TestSize.Level0)
         {{"intCol", TYPE_INDEX<int64_t>, false, true}, false},
         {{"stringCol1", TYPE_INDEX<std::string>, false, true}, false},
         {{"uuidCol", TYPE_INDEX<std::string>, false, true, true}, false},
+        {{"nonExist", TYPE_INDEX<std::string>, false, true}, false},
     };
     UtDateBaseSchemaInfo schemaInfo = {
         .tablesInfo = {
             {.name = tableName, .fieldInfo = filedInfo}
         }
     };
-    RDBGeneralUt::SetSchemaInfo(info1_, schemaInfo);
-    RDBGeneralUt::SetSchemaInfo(info2_, schemaInfo);
-    RDBGeneralUt::SetCloudDbConfig(info1_);
-    RDBGeneralUt::SetCloudDbConfig(info2_);
-    ASSERT_EQ(SetDistributedTables(info1_, {tableName}, TableSyncType::CLOUD_COOPERATION), E_OK);
-    ASSERT_EQ(SetDistributedTables(info2_, {tableName}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    PrepareEnv(schemaInfo);
     SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &, const VBucket &, VBucket &) {
         return ConflictRet::UPSERT;
     });
@@ -315,6 +333,121 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync006, TestSize.Level0)
         "id = 1 AND intCol=1 AND stringCol1='text3' AND uuidCol='uuid1' AND stringCol2='text2'"), 1);
 }
 
+/**
+ * @tc.name: SimpleSync007
+ * @tc.desc: Test unique col with null data.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync007, TestSize.Level0)
+{
+    const std::string table = "SimpleSync007";
+    InitTables(table);
+    InitSchema(table);
+    /**
+     * @tc.steps:step1. Prepare data which unique col is null
+     * @tc.expected: step1. Return OK.
+     */
+    auto sql = "INSERT INTO " + table + " VALUES(1, 1, 'text1', 'text2', null)";
+    auto ret = ExecuteSQL(sql, info1_);
+    ASSERT_EQ(ret, E_OK);
+    /**
+     * @tc.steps:step2. Create distributed table with null data
+     * @tc.expected: step2. Create OK.
+     */
+    ASSERT_NO_FATAL_FAILURE(InitDistributedTable({table}));
+    /**
+     * @tc.steps:step3. Update data and set uuid
+     * @tc.expected: step3. Update OK.
+     */
+    sql = "UPDATE " + table + " SET uuidCol='123' WHERE intCol=1";
+    ret = ExecuteSQL(sql, info1_);
+    ASSERT_EQ(ret, E_OK);
+    /**
+     * @tc.steps:step4. Store1 sync to store2
+     * @tc.expected: step4. Sync OK.
+     */
+    SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &, const VBucket &, VBucket &upsert) {
+        return ConflictRet::UPSERT;
+    });
+    Query pushQuery = Query::Select().From(table).EqualTo("intCol", 1);
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, pushQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH, OK, OK));
+    Query pullQuery = Query::Select().FromTable({table});
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, pullQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL, OK, OK));
+    EXPECT_EQ(CountTableData(info2_, table,
+        "id = 1 AND intCol=1 AND stringCol1='text1' AND uuidCol='123' AND stringCol2 IS NULL"), 1);
+}
+
+/**
+ * @tc.name: SimpleSync008
+ * @tc.desc: Test save sync data when local has null data.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync008, TestSize.Level0)
+{
+    SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::UPSERT;
+    });
+    /**
+     * @tc.steps:step1. Prepare data which unique col is null
+     * @tc.expected: step1. Return OK.
+     */
+    auto sql = "INSERT INTO " + std::string(CLOUD_SYNC_TABLE_A) + " VALUES(1, 1, 'text1', 'text2', null)";
+    auto ret = ExecuteSQL(sql, info2_);
+    ASSERT_EQ(ret, E_OK);
+    /**
+    * @tc.steps:step2. Store1 push one row and store2 pull
+    * @tc.expected: step2. Sync OK.
+    */
+    Store1InsertStore2Pull();
+    EXPECT_EQ(CountTableData(info2_, CLOUD_SYNC_TABLE_A,
+        "intCol=1 AND stringCol1='text1' AND uuidCol='uuid1' AND stringCol2 IS NULL"), 1);
+    EXPECT_EQ(CountTableData(info2_, CLOUD_SYNC_TABLE_A,
+        "intCol=1 AND stringCol1='text1' AND stringCol2='text2' AND uuidCol IS NULL"), 1);
+}
+
+/**
+ * @tc.name: SimpleSync009
+ * @tc.desc: Test save sync data with integrate.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync009, TestSize.Level0)
+{
+    SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &, const VBucket &, VBucket &update) {
+        update["stringCol1"] = std::string("INTEGRATE");
+        return ConflictRet::INTEGRATE;
+    });
+    SetCloudConflictHandler(info1_, [](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::UPSERT;
+    });
+    /**
+     * @tc.steps:step1. Prepare data which unique col is uuid1
+     * @tc.expected: step1. Return OK.
+     */
+    auto sql = "INSERT INTO " + std::string(CLOUD_SYNC_TABLE_A) + " VALUES(1, 1, 'text1', 'text2', 'uuid1')";
+    auto ret = ExecuteSQL(sql, info2_);
+    ASSERT_EQ(ret, E_OK);
+    /**
+    * @tc.steps:step2. Store1 push one row and store2 pull
+    * @tc.expected: step2. Sync OK.
+    */
+    Store1InsertStore2Pull();
+    EXPECT_EQ(CountTableData(info2_, CLOUD_SYNC_TABLE_A,
+        "intCol=1 AND stringCol1='INTEGRATE' AND uuidCol='uuid1'"), 1);
+    /**
+    * @tc.steps:step3. Store2 push and store1 pull
+    * @tc.expected: step3. Sync OK.
+    */
+    Query pushQuery = Query::Select().From({CLOUD_SYNC_TABLE_A}).EqualTo("stringCol1", "INTEGRATE");
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, pushQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH, OK, OK));
+    Query pullQuery = Query::Select().FromTable({CLOUD_SYNC_TABLE_A});
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, pullQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL, OK, OK));
+    EXPECT_EQ(CountTableData(info1_, CLOUD_SYNC_TABLE_A,
+        "intCol=1 AND stringCol1='INTEGRATE' AND uuidCol='uuid1'"), 1);
+}
+
 void DistributedDBRDBConflictHandlerTest::AbortCloudSyncTest(const std::function<void(void)> &forkFunc,
     const std::function<void(void)> &cancelForkFunc, SyncMode mode)
 {
@@ -335,7 +468,7 @@ void DistributedDBRDBConflictHandlerTest::AbortCloudSyncTest(const std::function
     Query query = Query::Select().FromTable({CLOUD_SYNC_TABLE_A});
     EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, query, SYNC_MODE_CLOUD_MERGE, OK, OK));
     forkFunc();
-    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, query, mode, OK, CLOUD_ERROR));
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, query, mode, OK, TASK_INTERRUPTED));
     /**
      * @tc.steps:step3. Sync again.
      * @tc.expected: step3. Return OK.
@@ -520,6 +653,70 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, LogTrigger001, TestSize.Level0)
     ASSERT_EQ(ret, E_OK);
     EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(CLOUD_SYNC_TABLE_A),
         "data_key=1 AND cursor=3"), 1);
+}
+
+/**
+ * @tc.name: LogTrigger002
+ * @tc.desc: Test change pk with no dup check table.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBConflictHandlerTest, LogTrigger002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare table
+     * @tc.expected: step1. Return OK.
+     */
+    std::string tableName = "CLOUD_SYNC_TABLE_B";
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + tableName + "("
+        "id INTEGER PRIMARY KEY NOT NULL, intCol INTEGER, stringCol1 TEXT, stringCol2 TEXT)";
+    EXPECT_EQ(ExecuteSQL(sql, info1_), E_OK);
+    EXPECT_EQ(ExecuteSQL(sql, info2_), E_OK);
+    const std::vector<UtFieldInfo> filedInfo = {
+        {{"id", TYPE_INDEX<int64_t>, true, false}, false},
+        {{"intCol", TYPE_INDEX<int64_t>, false, true}, false},
+        {{"stringCol1", TYPE_INDEX<std::string>, false, true}, false},
+    };
+    UtDateBaseSchemaInfo schemaInfo = {
+        .tablesInfo = {
+            {.name = tableName, .fieldInfo = filedInfo}
+        }
+    };
+    PrepareEnv(schemaInfo);
+    /**
+     * @tc.steps:step2. store2 insert data and sync to cloud
+     * @tc.expected: step2. Sync OK.
+     */
+    sql = "INSERT INTO " + tableName + "(rowid, id, intCol, stringCol1, stringCol2) VALUES(1, 2, 1, 'text1', 'text2')";
+    auto ret = ExecuteSQL(sql, info2_);
+    ASSERT_EQ(ret, E_OK);
+    sql = "UPDATE " + tableName + " SET id=1 WHERE intCol=1";
+    ret = ExecuteSQL(sql, info2_);
+    ASSERT_EQ(ret, E_OK);
+    EXPECT_EQ(CountTableData(info2_, DBCommon::GetLogTableName(tableName)), 1);
+}
+
+/**
+ * @tc.name: UpgradeTest001
+ * @tc.desc: Test upgrade distributed table.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBConflictHandlerTest, UpgradeTest001, TestSize.Level0)
+{
+    const std::vector<UtFieldInfo> filedInfo = {
+        {{"intCol", TYPE_INDEX<int64_t>, false, true}, false},
+        {{"stringCol1", TYPE_INDEX<std::string>, false, true}, false},
+        {{"stringCol2", TYPE_INDEX<std::string>, false, true}, false},
+        {{"uuidCol", TYPE_INDEX<std::string>, false, true, true}, false},
+    };
+    UtDateBaseSchemaInfo schemaInfo = {
+        .tablesInfo = {
+            {.name = CLOUD_SYNC_TABLE_A, .fieldInfo = filedInfo}
+        }
+    };
+    RDBGeneralUt::SetSchemaInfo(info1_, schemaInfo);
+    EXPECT_EQ(SetDistributedTables(info1_, {CLOUD_SYNC_TABLE_A}, TableSyncType::CLOUD_COOPERATION), E_OK);
 }
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD

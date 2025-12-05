@@ -262,7 +262,8 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
                 errCode = InsertCloudData(vBucket, tableSchema, trackerTable, GetLocalDataKey(index, downloadData));
                 break;
             case OpType::UPDATE:
-                errCode = UpdateCloudData(vBucket, tableSchema);
+            case OpType::INTEGRATE:
+                errCode = UpdateCloudData(op, tableSchema, vBucket);
                 break;
             case OpType::DELETE:
                 errCode = DeleteCloudData(tableName, vBucket, tableSchema, trackerTable);
@@ -690,14 +691,15 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
         LOGW("get cloud data count failed, %d", errCodeCount);
     }
     LOGI("save cloud data of table %s [length %zu]:%d, cloud data count:%lld, ins:%d, upd:%d, del:%d, only gid:%d,"
-        "flag zero:%d, flag one:%d, upd timestamp:%d, clear gid:%d, not handle:%d, lock:%d",
+        "flag zero:%d, flag one:%d, upd timestamp:%d, clear gid:%d, not handle:%d, lock:%d, integrate:%d",
          DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode, count,
          statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
          statisticMap[static_cast<int>(OpType::DELETE)], statisticMap[static_cast<int>(OpType::ONLY_UPDATE_GID)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE)],
          statisticMap[static_cast<int>(OpType::UPDATE_TIMESTAMP)], statisticMap[static_cast<int>(OpType::CLEAR_GID)],
-         statisticMap[static_cast<int>(OpType::NOT_HANDLE)], statisticMap[static_cast<int>(OpType::LOCKED_NOT_HANDLE)]);
+         statisticMap[static_cast<int>(OpType::NOT_HANDLE)], statisticMap[static_cast<int>(OpType::LOCKED_NOT_HANDLE)],
+         statisticMap[static_cast<int>(OpType::INTEGRATE)]);
     return errCode == E_OK ? ret : errCode;
 }
 
@@ -1090,7 +1092,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(VBucket &vBucket, const TableSchema &tableSchema)
+int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(OpType op, const TableSchema &tableSchema,
+    VBucket &vBucket)
 {
     if (putDataMode_ == PutDataMode::SYNC) {
         CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetBeforeDownload);
@@ -1115,7 +1118,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(VBucket &vBucket, 
     SQLiteUtils::ResetStatement(updateStmt, true, ret);
 
     // update log
-    errCode = UpdateLogRecord(vBucket, tableSchema, OpType::UPDATE);
+    errCode = UpdateLogRecord(vBucket, tableSchema, op);
     if (errCode != E_OK) {
         LOGE("update log record failed when update cloud data, errCode = %d", errCode);
     }

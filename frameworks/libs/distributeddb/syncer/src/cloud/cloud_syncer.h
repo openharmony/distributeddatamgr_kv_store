@@ -62,7 +62,7 @@ public:
 
     int ClearCloudWatermark(const std::vector<std::string> &tableNameList);
 
-    int StopSyncTask(const std::function<int(void)> &removeFunc);
+    int StopSyncTask(const std::function<int(void)> &removeFunc, int errCode = -E_CLOUD_ERROR);
 
     int CleanWaterMarkInMemory(const std::set<std::string> &tableNameList);
 

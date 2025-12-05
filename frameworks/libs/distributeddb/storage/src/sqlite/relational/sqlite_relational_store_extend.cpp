@@ -27,7 +27,7 @@ void SQLiteRelationalStore::StopAllBackgroundTask()
     if (cloudSyncer_ == nullptr) {
         LOGW("[RelationalStore] cloudSyncer was not initialized when stop all background task");
     } else {
-        (void) cloudSyncer_->StopSyncTask(nullptr);
+        (void) cloudSyncer_->StopSyncTask(nullptr, -E_TASK_INTERRUPTED);
     }
 #endif
 }
@@ -44,6 +44,33 @@ int SQLiteRelationalStore::StopGenLogTask(const std::vector<std::string> &tableL
 SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId) const
 {
     return cloudSyncer_->GetCloudTaskStatus(taskId);
+}
+
+std::pair<int, DataBaseSchema> SQLiteRelationalStore::FilterCloudDbSchema(const DataBaseSchema &schema)
+{
+    std::pair<int, DataBaseSchema> res;
+    auto &[errCode, databaseSchema] = res;
+    if (sqliteStorageEngine_ == nullptr) {
+        errCode = -E_INVALID_DB;
+        return res;
+    }
+    for (const auto &item : schema.tables) {
+        auto [ret, tableInfo] = sqliteStorageEngine_->AnalyzeTable(item.name);
+        if (ret == -E_NOT_FOUND) {
+            databaseSchema.tables.emplace_back(item);
+            continue;
+        }
+        if (ret != E_OK) {
+            LOGW("[SQLiteRelationalStore] FilterCloudDbSchema analyze table[%s] errCode[%d]",
+                DBCommon::StringMiddleMaskingWithLen(item.name).c_str(), ret);
+            errCode = ret;
+            return res;
+        }
+        TableSchema tableSchema = item;
+        SQLiteRelationalUtils::FilterTableSchema(tableInfo, tableSchema);
+        databaseSchema.tables.emplace_back(tableSchema);
+    }
+    return res;
 }
 #endif
 } // namespace DistributedDB

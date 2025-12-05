@@ -31,6 +31,7 @@ enum class OpType : uint8_t {
     INSERT = 1,
     UPDATE, // update data, gid and timestamp at same time
     DELETE,
+    INTEGRATE, // update data but no change flag
     ONLY_UPDATE_GID,
     // used in Cloud Force Push strategy, when SET_CLOUD_FORCE_PUSH_FLAG_ONE, upload process won't process this record
     SET_CLOUD_FORCE_PUSH_FLAG_ONE,
