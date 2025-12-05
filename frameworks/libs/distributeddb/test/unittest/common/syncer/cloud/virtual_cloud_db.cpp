@@ -63,6 +63,9 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
     if (cloudNetworkError_) {
         return CLOUD_NETWORK_ERROR;
     }
+    if (cloudSpaceInsufficient_) {
+        return CLOUD_ASSET_SPACE_INSUFFICIENT;
+    }
     return OK;
 }
 
@@ -90,6 +93,9 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
         }
         if (localAssetNotFound_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+        }
+        if (cloudSpaceInsufficient_) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
         }
         extend[i][g_gidField] = std::to_string(currentGid_++);
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
@@ -185,6 +191,11 @@ DBStatus VirtualCloudDb::BatchDelete(const std::string &tableName, std::vector<V
 void VirtualCloudDb::SetLocalAssetNotFound(bool isLocalFileNotFound)
 {
     localAssetNotFound_ = isLocalFileNotFound;
+}
+
+void VirtualCloudDb::SetCloudAssetSpaceInsufficient(bool isInsufficient)
+{
+    cloudSpaceInsufficient_ = isInsufficient;
 }
 
 DBStatus VirtualCloudDb::HeartBeat()
@@ -445,6 +456,9 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
     if (cloudNetworkError_) {
         return CLOUD_NETWORK_ERROR;
     }
+    if (cloudSpaceInsufficient_) {
+        return CLOUD_ASSET_SPACE_INSUFFICIENT;
+    }
     return OK;
 }
 
@@ -469,6 +483,9 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
         }
         if (localAssetNotFound_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+        }
+        if (cloudSpaceInsufficient_) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         AddAssetIdForExtend(record[i], extend[i]);

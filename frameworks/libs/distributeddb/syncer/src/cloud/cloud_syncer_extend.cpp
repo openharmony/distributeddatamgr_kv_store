@@ -229,7 +229,7 @@ int CloudSyncer::BackFillAfterBatchUpload(CloudSyncData &uploadData, bool isInse
     }
     OpType opType = isInsert ? OpType::INSERT : OpType::UPDATE;
     if (errCode != E_OK) {
-        storageProxy_->FillCloudGidIfSuccess(opType, uploadData);
+        storageProxy_->FillCloudGidAndLogIfSuccess(opType, uploadData);
         CloudSyncBatch &data = isInsert ? uploadData.insData : uploadData.updData;
         bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(data.extend);
         if (isSkip) {
@@ -745,7 +745,7 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
     }
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Failed to batch delete, %d", errCode);
-        storageProxy_->FillCloudGidIfSuccess(OpType::DELETE, uploadData);
+        storageProxy_->FillCloudGidAndLogIfSuccess(OpType::DELETE, uploadData);
         return errCode;
     }
     errCode = storageProxy_->FillCloudLogAndAsset(OpType::DELETE, uploadData);

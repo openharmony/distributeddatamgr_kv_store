@@ -308,7 +308,7 @@ namespace {
         bool isSharedTable = true;
         EXPECT_EQ(proxyObj.IsSharedTable(TABLE_NAME_1, isSharedTable), -E_INVALID_DB);
         CloudSyncData data;
-        proxyObj.FillCloudGidIfSuccess(OpType::INSERT, data);
+        proxyObj.FillCloudGidAndLogIfSuccess(OpType::INSERT, data);
         std::vector<QuerySyncObject> syncQuery;
         std::vector<std::string> users;
         EXPECT_EQ(proxyObj.GetCompensatedSyncQuery(syncQuery, users, true), -E_INVALID_DB);

@@ -104,6 +104,8 @@ public:
     void ForkAfterQueryResult(const std::function<DBStatus(VBucket &, std::vector<VBucket> &)> &func);
 
     void SetLocalAssetNotFound(bool isLocalFileNotFound);
+
+    void SetCloudAssetSpaceInsufficient(bool isInsufficient);
 private:
     DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend);
@@ -137,6 +139,7 @@ private:
     std::atomic<bool> lockStatus_ = false;
     std::atomic<bool> conflictInUpload_ = false;
     std::atomic<bool> localAssetNotFound_ = false;
+    std::atomic<bool> cloudSpaceInsufficient_ = false;
     std::atomic<int32_t> blockTimeMs_ = 0;
     std::atomic<int32_t> heartbeatBlockTimeMs_ = 0;
     std::atomic<int64_t> currentGid_ = 0;

@@ -572,7 +572,7 @@ int StorageProxy::IsSharedTable(const std::string &tableName, bool &IsSharedTabl
     return E_OK;
 }
 
-void StorageProxy::FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data)
+void StorageProxy::FillCloudGidAndLogIfSuccess(const OpType opType, const CloudSyncData &data)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {

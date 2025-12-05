@@ -124,7 +124,7 @@ public:
 
     int IsSharedTable(const std::string &tableName, bool &isSharedTable);
 
-    void FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data);
+    void FillCloudGidAndLogIfSuccess(const OpType opType, const CloudSyncData &data);
 
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const std::string &tableName, bool isAsyncDownload,
         const std::string &gid, const Bytes &hashKey, VBucket &assets);
