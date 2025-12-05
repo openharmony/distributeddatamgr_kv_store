@@ -1905,35 +1905,6 @@ int RelationalSyncAbleStorage::UpdateRecordFlag(const std::string &tableName, bo
     return transactionHandle_->UpdateRecordFlag(tableName, sql, logInfo);
 }
 
-int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelationalStorageExecutor *handle,
-    OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid)
-{
-    TableSchema tableSchema;
-    int errCode = GetCloudTableSchema(data.tableName, tableSchema);
-    if (errCode != E_OK) {
-        LOGE("get table schema failed when fill log and asset. %d", errCode);
-        return errCode;
-    }
-    errCode = handle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (opType == OpType::INSERT) {
-        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::INSERT, tableSchema}, data.insData, uploadRecorder_);
-    } else if (opType == OpType::UPDATE) {
-        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::UPDATE, tableSchema}, data.updData, uploadRecorder_);
-    } else if (opType == OpType::DELETE) {
-        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::DELETE, tableSchema}, data.delData, uploadRecorder_);
-    } else if (opType == OpType::LOCKED_NOT_HANDLE) {
-        errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::BUTT, tableSchema}, data.lockData, uploadRecorder_, true);
-    }
-    return errCode;
-}
-
 int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
     std::vector<std::string> &users, bool isQueryDownloadRecords)
 {

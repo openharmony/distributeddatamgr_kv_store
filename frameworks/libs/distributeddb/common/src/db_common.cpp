@@ -564,6 +564,19 @@ bool DBCommon::IsCloudRecordNotFound(const VBucket &record)
     return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND);
 }
 
+bool DBCommon::IsCloudSpaceInsufficient(const VBucket &record)
+{
+    auto recordIter = record.find(CloudDbConstant::ERROR_FIELD);
+    if (recordIter == record.end()) {
+        return false;
+    }
+    if (recordIter->second.index() != TYPE_INDEX<int64_t>) {
+        return false;
+    }
+    auto status = std::get<int64_t>(recordIter->second);
+    return status == static_cast<int64_t>(DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
+}
+
 bool DBCommon::IsCloudRecordAlreadyExisted(const VBucket &record)
 {
     if (record.find(CloudDbConstant::ERROR_FIELD) == record.end()) {

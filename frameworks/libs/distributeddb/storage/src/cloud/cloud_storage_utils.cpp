@@ -1451,6 +1451,28 @@ int CloudStorageUtils::HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationa
     return E_OK;
 }
 
+int CloudStorageUtils::ProcessUploadRecord(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const CloudSyncBatch &updateData, const LogInfo &logInfo, const CloudSyncParam &param, size_t recordIndex)
+{
+    const auto &record = updateData.extend[recordIndex];
+    std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(
+        param.tableName, DBCommon::IsRecordIgnored(record), logInfo, record, param.type);
+    int errCode = handle->UpdateRecordFlag(param.tableName, sql, logInfo);
+    if (errCode != E_OK) {
+        LOGE("[CloudStorageUtils] Update record flag failed in index %zu", recordIndex);
+        return errCode;
+    }
+    std::vector<VBucket> assets;
+    errCode = handle->GetDownloadAssetRecordsByGid(param.tableSchema, logInfo.cloudGid, assets);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor]Get downloading assets records by gid failed: %d", errCode);
+        return errCode;
+    }
+    handle->MarkFlagAsUploadFinished(param.tableName, updateData.hashKey[recordIndex],
+        updateData.timestamp[recordIndex], !assets.empty());
+    return E_OK;
+}
+
 int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
     const CloudSyncParam &param, const CloudSyncBatch &updateData, CloudUploadRecorder &recorder, bool isLock)
 {
@@ -1459,6 +1481,8 @@ int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStor
             updateData.extend.size(), updateData.timestamp.size());
         return -E_INVALID_ARGS;
     }
+    bool isSetNotCompensation = false;
+    int errCode = E_OK;
     for (size_t i = 0; i < updateData.extend.size(); ++i) {
         const auto &record = updateData.extend[i];
         std::string cloudGid;
@@ -1468,30 +1492,35 @@ int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStor
         logInfo.timestamp = updateData.timestamp[i];
         logInfo.dataKey = updateData.rowid[i];
         logInfo.hashKey = updateData.hashKey[i];
-        std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(
-            param.tableName, DBCommon::IsRecordIgnored(record), logInfo, record, param.type);
+        if (DBCommon::IsCloudSpaceInsufficient(record)) {
+            isSetNotCompensation = true;
+        }
         if (DBCommon::IsRecordError(record) || DBCommon::IsRecordAssetsMissing(record) ||
             DBCommon::IsRecordVersionConflict(record) || isLock) {
-            int errCode = CloudStorageUtils::HandleRecordErrorOrAssetsMissing(handle, record, logInfo, param);
+            errCode = CloudStorageUtils::HandleRecordErrorOrAssetsMissing(handle, record, logInfo, param);
             if (errCode != E_OK) {
                 return errCode;
             }
             continue;
         }
-        int errCode = handle->UpdateRecordFlag(param.tableName, sql, logInfo);
+        errCode = ProcessUploadRecord(handle, updateData, logInfo, param, i);
         if (errCode != E_OK) {
-            LOGE("[CloudStorageUtils] Update record flag failed in index %zu", i);
+            LOGE("[CloudStorageUtils][UpdateRecordFlagAfterUpload] process upload record failed, errCode=%d", errCode);
             return errCode;
         }
-        std::vector<VBucket> assets;
-        errCode = handle->GetDownloadAssetRecordsByGid(param.tableSchema, logInfo.cloudGid, assets);
-        if (errCode != E_OK) {
-            LOGE("[RDBExecutor]Get downloading assets records by gid failed: %d", errCode);
-            return errCode;
-        }
-        handle->MarkFlagAsUploadFinished(param.tableName, updateData.hashKey[i], updateData.timestamp[i],
-            !assets.empty());
         recorder.RecordUploadRecord(param.tableName, logInfo.hashKey, param.type, updateData.timestamp[i]);
+    }
+    if (isSetNotCompensation) {
+        for (auto tableName : param.tableList) {
+            LOGI("[CloudStorageUtils] set all data without compensation for table %s, len %d",
+                DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+            errCode = handle->ClearTableCompensatedFlag(tableName);
+            if (errCode != E_OK) {
+                LOGE("[CloudStorageUtils] clear compensated flag failed for table %s, len %d, errCode=%d",
+                    DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode);
+                return errCode;
+            }
+        }
     }
     return E_OK;
 }
