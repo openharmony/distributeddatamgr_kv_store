@@ -228,13 +228,13 @@ HWTEST_F(BackupManagerTest, Restore001, TestSize.Level0)
     options.kvStoreType = SINGLE_VERSION;
     options.securityLevel = S1;
     options.area = EL1;
-    options.autoSync = false;
+    options.syncable = false;
     options.backup = false;
     options.baseDir = baseDir;
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    status = kvStore_->Restore("testbackup", baseDir);
+    status = kvStore->Restore("testbackup", baseDir);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
@@ -253,13 +253,13 @@ HWTEST_F(BackupManagerTest, Restore002, TestSize.Level0)
     options.kvStoreType = SINGLE_VERSION;
     options.securityLevel = S1;
     options.area = EL1;
-    options.autoSync = true;
+    options.syncable = true;
     options.backup = false;
     options.baseDir = baseDir;
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    status = kvStore_->Restore("testbackup", baseDir);
+    status = kvStore->Restore("testbackup", baseDir);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
@@ -278,13 +278,13 @@ HWTEST_F(BackupManagerTest, Restore003, TestSize.Level0)
     options.kvStoreType = SINGLE_VERSION;
     options.securityLevel = S1;
     options.area = EL1;
-    options.autoSync = false;
+    options.syncable = false;
     options.backup = true;
     options.baseDir = baseDir;
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    status = kvStore_->Restore("testbackup", baseDir);
+    status = kvStore->Restore("testbackup", baseDir);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
@@ -303,13 +303,13 @@ HWTEST_F(BackupManagerTest, Restore004, TestSize.Level0)
     options.kvStoreType = SINGLE_VERSION;
     options.securityLevel = S1;
     options.area = EL1;
-    options.autoSync = true;
+    options.syncable = true;
     options.backup = true;
     options.baseDir = baseDir;
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
-    status = kvStore_->Restore("testbackup", baseDir);
+    status = kvStore->Restore("testbackup", baseDir);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 
