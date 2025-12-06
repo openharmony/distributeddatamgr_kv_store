@@ -218,7 +218,7 @@ HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
  * @tc.desc: the kvstore ReStore
  * @tc.type: FUNC
  */
-HWTEST_F(SingleStoreImplTest, Restore001, TestSize.Level0)
+HWTEST_F(BackupManagerTest, Restore001, TestSize.Level0)
 {
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     AppId appId = { "BackupManagerTest" };
@@ -243,7 +243,7 @@ HWTEST_F(SingleStoreImplTest, Restore001, TestSize.Level0)
  * @tc.desc: the kvstore ReStore
  * @tc.type: FUNC
  */
-HWTEST_F(SingleStoreImplTest, Restore002, TestSize.Level0)
+HWTEST_F(BackupManagerTest, Restore002, TestSize.Level0)
 {
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     AppId appId = { "BackupManagerTest" };
@@ -268,7 +268,7 @@ HWTEST_F(SingleStoreImplTest, Restore002, TestSize.Level0)
  * @tc.desc: the kvstore ReStore
  * @tc.type: FUNC
  */
-HWTEST_F(SingleStoreImplTest, Restore003, TestSize.Level0)
+HWTEST_F(BackupManagerTest, Restore003, TestSize.Level0)
 {
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     AppId appId = { "BackupManagerTest" };
@@ -293,7 +293,7 @@ HWTEST_F(SingleStoreImplTest, Restore003, TestSize.Level0)
  * @tc.desc: the kvstore ReStore
  * @tc.type: FUNC
  */
-HWTEST_F(SingleStoreImplTest, Restore004, TestSize.Level0)
+HWTEST_F(BackupManagerTest, Restore004, TestSize.Level0)
 {
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     AppId appId = { "BackupManagerTest" };
