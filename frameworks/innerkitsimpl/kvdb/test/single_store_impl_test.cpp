@@ -1995,7 +1995,7 @@ HWTEST_F(SingleStoreImplTest, IsRemoteChanged, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GenerateDbFiles, TestSize.Level0)
 {
-    std::shared_ptr kvStore;
+    std::shared_ptr<SingleStoreImpl> kvStore;
     kvStore = CreateKVStore(true);
     ASSERT_NE(kvStore, nullptr);
     StoreId storeId = { "SingleKVStore" };
