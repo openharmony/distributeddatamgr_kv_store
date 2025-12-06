@@ -1118,7 +1118,7 @@ void SingleStoreImpl::SetAcl(const std::string &storeId, const std::string &path
     if (!StoreUtil::SetDatabaseGid(fullPath)) {
         return;
     }
-    auto dbFiles = GenerateDbFiles(path);
+    auto dbFiles = GenerateDbFiles(fullPath);
     for (auto &dbFile : dbFiles) {
         if (!StoreUtil::SetServiceGid(dbFile)) {
             return;
