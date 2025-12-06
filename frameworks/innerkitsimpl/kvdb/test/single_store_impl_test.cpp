@@ -1987,4 +1987,20 @@ HWTEST_F(SingleStoreImplTest, IsRemoteChanged, TestSize.Level0)
     bool ret = kvStore->IsRemoteChanged("");
     ASSERT_TRUE(ret);
 }
+
+/**
+ * @tc.name: GenerateDbFiles
+ * @tc.desc: GenerateDbFiles test
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, GenerateDbFiles, TestSize.Level0)
+{
+    std::shared_ptr kvStore;
+    kvStore = CreateKVStore(true);
+    ASSERT_NE(kvStore, nullptr);
+    StoreId storeId = { "SingleKVStore" };
+    kvStore->SetAcl(storeId, "");
+    auto res = kvStore->GenerateDbFiles("");
+    ASSERT_EQ(res.size(), 0);
+}
 } // namespace OHOS::Test
