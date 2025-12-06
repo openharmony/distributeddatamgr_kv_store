@@ -210,6 +210,7 @@ HWTEST_F(StoreUtilTest, SetDatabaseGid001, TestSize.Level1)
 {
     std::string path = "/data/test/SetDbDirGid001";
     StoreUtil storeUtil_;
+    storeUtil_.SetDatabaseGid("");
     storeUtil_.SetDatabaseGid(path);
     auto ret = mkdir(path.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     struct stat buf;
@@ -219,6 +220,7 @@ HWTEST_F(StoreUtilTest, SetDatabaseGid001, TestSize.Level1)
 
     storeUtil_.SetDatabaseGid(path);
     std::string fileName = path + "/test002.db";
+    storeUtil_.SetServiceGid("");
     storeUtil_.SetServiceGid(fileName);
     auto fp = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRWXU | S_IRWXG | S_IRWXO));
     ASSERT_GE(fp, 0);
