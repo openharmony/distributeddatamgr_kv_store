@@ -162,6 +162,9 @@ void DistributedDBCloudSyncerLockTest::SetUp(void)
 
 void DistributedDBCloudSyncerLockTest::TearDown(void)
 {
+    g_cloudStoreHook->SetSyncFinishHook(nullptr);
+    g_cloudStoreHook->SetDoUploadHook(nullptr);
+    g_cloudStoreHook->SetBeforeUploadTransaction(nullptr);
     RefObject::DecObjRef(g_store);
     g_virtualCloudDb->ForkUpload(nullptr);
     CloseDb();

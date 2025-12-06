@@ -936,4 +936,9 @@ std::vector<std::string> TableInfo::GetCloudSyncFields() const
     }
     return res;
 }
+
+std::optional<TableSchema> TableInfo::GetCloudTable() const
+{
+    return cloudTable_;
+}
 } // namespace DistributeDB

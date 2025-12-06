@@ -104,6 +104,8 @@ public:
     int GetAsyncGenLogTasks(std::vector<std::pair<int, std::string>> &asyncGenLogTasks);
     int GetAsyncGenLogTasksWithTables(const std::set<std::string> &tables,
         std::vector<std::pair<int, std::string>> &tasks);
+
+    std::pair<int, TableInfo> AnalyzeTable(const std::string &tableName);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
@@ -115,7 +117,7 @@ private:
     // For db.
     int RegisterFunction(sqlite3 *db) const;
 
-    int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged, TableSyncType syncType);
+    int UpgradeDistributedTable(const TableInfo &tableInfo, bool &schemaChanged, TableSyncType syncType);
 
     int CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, bool isUpgraded,
         const CreateDistributedTableParam &param, TableInfo &table, RelationalSchemaObject &schema);

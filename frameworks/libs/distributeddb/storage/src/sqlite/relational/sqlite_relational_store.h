@@ -219,6 +219,8 @@ protected:
         CloudSyncer::CloudTaskInfo &info);
 
     int CheckCloudSchema(const DataBaseSchema &schema);
+
+    std::pair<int, DataBaseSchema> FilterCloudDbSchema(const DataBaseSchema &schema);
 #endif
 
     int OperateDataStatusInner(const std::vector<std::string> &tables, uint64_t virtualTime) const;

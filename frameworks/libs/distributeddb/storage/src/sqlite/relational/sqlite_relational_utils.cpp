@@ -1061,6 +1061,7 @@ int SQLiteRelationalUtils::GetLocalDataByRowid(sqlite3 *db, const TableInfo &tab
         static_cast<int64_t>(dataInfoWithLog.logInfo.timestamp)});
     dataInfoWithLog.localData.insert({CloudDbConstant::CREATE_FIELD,
         static_cast<int64_t>(dataInfoWithLog.logInfo.wTimestamp)});
+    dataInfoWithLog.localData.insert({CloudDbConstant::VERSION_FIELD, dataInfoWithLog.logInfo.version});
     return E_OK;
 }
 
@@ -1196,4 +1197,61 @@ std::vector<Field> SQLiteRelationalUtils::GetSaveSyncField(const VBucket &vBucke
     }
     return fields;
 }
+
+std::pair<int, TableInfo> SQLiteRelationalUtils::AnalyzeTable(sqlite3 *db, const std::string &tableName)
+{
+    std::pair<int, TableInfo> res;
+    auto &[errCode, tableInfo] = res;
+    errCode = SQLiteUtils::AnalysisSchema(db, tableName, tableInfo);
+    return res;
+}
+
+void SQLiteRelationalUtils::FilterTableSchema(const TableInfo &tableInfo, TableSchema &table)
+{
+    FieldInfoMap localFields = tableInfo.GetFields();
+    // remove the fields that are not found in local schema from cloud schema
+    for (auto it = table.fields.begin(); it != table.fields.end();) {
+        if (localFields.find((*it).colName) == localFields.end()) {
+            LOGW("Column mismatch, colName: %s, length: %zu", DBCommon::StringMiddleMasking((*it).colName).c_str(),
+                (*it).colName.length());
+            it = table.fields.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+void SQLiteRelationalUtils::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    ICloudSyncer::CloudTaskInfo &info)
+{
+    auto syncObject = QuerySyncObject::GetQuerySyncObject(option.query);
+    if (syncObject.empty()) {
+        QuerySyncObject querySyncObject(option.query);
+        info.table = querySyncObject.GetRelationTableNames();
+        for (const auto &item : info.table) {
+            QuerySyncObject object(Query::Select());
+            object.SetTableName(item);
+            info.queryList.push_back(object);
+        }
+    } else {
+        for (auto &item : syncObject) {
+            info.table.push_back(item.GetRelationTableName());
+            info.queryList.push_back(std::move(item));
+        }
+    }
+    info.devices = option.devices;
+    info.mode = option.mode;
+    info.callback = onProcess;
+    info.timeout = option.waitTime;
+    info.priorityTask = option.priorityTask;
+    info.compensatedTask = option.compensatedSyncOnly;
+    info.priorityLevel = option.priorityLevel;
+    info.users.emplace_back("");
+    info.lockAction = option.lockAction;
+    info.merge = option.merge;
+    info.prepareTraceId = option.prepareTraceId;
+    info.asyncDownloadAssets = option.asyncDownloadAssets;
+}
+#endif
 } // namespace DistributedDB

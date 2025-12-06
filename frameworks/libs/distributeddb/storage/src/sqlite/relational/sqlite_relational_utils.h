@@ -18,6 +18,7 @@
 
 #include <vector>
 #include "cloud/cloud_store_types.h"
+#include "cloud/icloud_syncer.h"
 #include "data_value.h"
 #include "sqlite_import.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
@@ -141,6 +142,15 @@ public:
 
     static std::vector<Field> GetSaveSyncField(const VBucket &vBucket, const TableSchema &tableSchema,
         bool isContainDupCheck);
+
+    static std::pair<int, TableInfo> AnalyzeTable(sqlite3 *db, const std::string &tableName);
+
+    static void FilterTableSchema(const TableInfo &tableInfo, TableSchema &table);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    static void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        ICloudSyncer::CloudTaskInfo &info);
+#endif
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

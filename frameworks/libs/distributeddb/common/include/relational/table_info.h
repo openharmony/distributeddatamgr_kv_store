@@ -152,6 +152,8 @@ public:
     std::vector<std::string> GetCloudSyncDistributedPk() const;
 
     std::vector<std::string> GetCloudSyncFields() const;
+
+    std::optional<TableSchema> GetCloudTable() const;
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;

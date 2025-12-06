@@ -169,14 +169,18 @@ int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity
     sql += GetExtendValue(tableInfo.GetTrackerTable());
     sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a ";
     if (param.isTrackerTable) {
-        sql += "WHERE 1 = 1;";
+        sql += "WHERE 1 = 1";
     } else {
-        sql += "WHERE NOT EXISTS (SELECT 1 FROM " + logTable + " WHERE data_key = a._rowid_);";
-        if (param.batchLimit > 0) {
-            sql.pop_back();
-            sql += " LIMIT " + std::to_string(param.batchLimit) + ";";
-        }
+        sql += "WHERE NOT EXISTS (SELECT 1 FROM " + logTable + " WHERE data_key = a._rowid_)";
     }
+    auto pk = tableInfo.GetCloudSyncDistributedPk();
+    for (const auto &item : pk) {
+        sql += " AND " + item + " IS NOT NULL";
+    }
+    if (!param.isTrackerTable && param.batchLimit > 0) {
+        sql += " LIMIT " + std::to_string(param.batchLimit);
+    }
+    sql += ";";
     errCode = trackerTable.ReBuildTempTrigger(param.db, TriggerMode::TriggerModeEnum::INSERT, [db = param.db, &sql]() {
         int ret = SQLiteUtils::ExecuteRawSQL(db, sql);
         if (ret != E_OK) {

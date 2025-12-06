@@ -581,4 +581,38 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest011, TestSize.Level0)
     localInfo.originDev = "originDev";
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
 }
+
+/**
+ * @tc.name: TagOpTyeTest012
+ * @tc.desc: Verify custom pull strategy.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest012, TestSize.Level0)
+{
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL);
+    ASSERT_NE(strategy, nullptr);
+    auto handler = std::make_shared<TestCloudConflictHandler>();
+    handler->SetCallback([](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::UPSERT;
+    });
+    strategy->SetCloudConflictHandler(handler);
+    DataStatusInfo statusInfo;
+    VBucket localData;
+    VBucket cloudData;
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+    statusInfo.isExistInLocal = true;
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData),
+        OpType::UPDATE);
+    handler->SetCallback([](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::NOT_HANDLE;
+    });
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData),
+        OpType::ONLY_UPDATE_GID);
+    localInfo.cloudGid = "1";
+    cloudInfo.version = "v";
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData),
+        OpType::ONLY_UPDATE_GID);
+}
 }

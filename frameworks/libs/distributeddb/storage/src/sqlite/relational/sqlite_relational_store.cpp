@@ -1153,17 +1153,21 @@ int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &sche
         LOGE("[RelationalStore][PrepareAndSetCloudDbSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    int errCode = CheckCloudSchema(schema);
+    auto [errCode, filterSchema] = FilterCloudDbSchema(schema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CheckCloudSchema(filterSchema);
     if (errCode != E_OK) {
         return errCode;
     }
     // delete, update and create shared table and its distributed table
-    errCode = ExecuteCreateSharedTable(schema);
+    errCode = ExecuteCreateSharedTable(filterSchema);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
         return errCode;
     }
-    return storageEngine_->SetCloudDbSchema(schema);
+    return storageEngine_->SetCloudDbSchema(filterSchema);
 }
 
 int SQLiteRelationalStore::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
@@ -1392,34 +1396,8 @@ int SQLiteRelationalStore::CheckTableName(const std::vector<std::string> &tableN
 void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)
 {
-    auto syncObject = QuerySyncObject::GetQuerySyncObject(option.query);
-    if (syncObject.empty()) {
-        QuerySyncObject querySyncObject(option.query);
-        info.table = querySyncObject.GetRelationTableNames();
-        for (const auto &item : info.table) {
-            QuerySyncObject object(Query::Select());
-            object.SetTableName(item);
-            info.queryList.push_back(object);
-        }
-    } else {
-        for (auto &item : syncObject) {
-            info.table.push_back(item.GetRelationTableName());
-            info.queryList.push_back(std::move(item));
-        }
-    }
-    info.devices = option.devices;
-    info.mode = option.mode;
-    info.callback = onProcess;
-    info.timeout = option.waitTime;
-    info.priorityTask = option.priorityTask;
-    info.compensatedTask = option.compensatedSyncOnly;
-    info.priorityLevel = option.priorityLevel;
-    info.users.emplace_back("");
-    info.lockAction = option.lockAction;
-    info.merge = option.merge;
+    SQLiteRelationalUtils::FillSyncInfo(option, onProcess, info);
     info.storeId = sqliteStorageEngine_->GetRelationalProperties().GetStringProp(DBProperties::STORE_ID, "");
-    info.prepareTraceId = option.prepareTraceId;
-    info.asyncDownloadAssets = option.asyncDownloadAssets;
 }
 #endif
 

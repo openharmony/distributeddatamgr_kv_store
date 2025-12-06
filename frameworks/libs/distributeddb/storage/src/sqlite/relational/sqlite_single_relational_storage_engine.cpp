@@ -209,18 +209,19 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
 {
     const auto &tableName = param.tableName;
     const auto &syncType = param.syncType;
-    auto trackerSchemaChanged = param.isTrackerSchemaChanged;
     std::lock_guard<std::mutex> autoLock(createDistributedTableMutex_);
     RelationalSchemaObject schema = GetSchema();
+    auto tableInfo = schema.GetTable(tableName);
+    tableInfo.SetCloudTable(param.cloudTable);
     bool isUpgraded = false;
-    if (DBCommon::CaseInsensitiveCompare(schema.GetTable(tableName).GetTableName(), tableName)) {
+    if (DBCommon::CaseInsensitiveCompare(tableInfo.GetTableName(), tableName)) {
         LOGI("distributed table bas been created.");
         if (schema.GetTable(tableName).GetTableSyncType() != syncType) {
             LOGE("table sync type mismatch.");
             return -E_TYPE_MISMATCH;
         }
         isUpgraded = true;
-        int errCode = UpgradeDistributedTable(tableName, schemaChanged, syncType);
+        int errCode = UpgradeDistributedTable(tableInfo, schemaChanged, syncType);
         if (errCode != E_OK) {
             LOGE("Upgrade distributed table failed. %d", errCode);
             return errCode;
@@ -252,7 +253,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
             return errCode;
         }
     }
-    if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
+    if (isUpgraded && (schemaChanged || param.isTrackerSchemaChanged)) {
         // Used for upgrading the stock data of the trackerTable
         errCode = GenLogInfoForUpgrade(tableName, schemaChanged);
     }
@@ -368,7 +369,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
     return E_OK;
 }
 
-int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged,
+int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const TableInfo &tableInfo, bool &schemaChanged,
     TableSyncType syncType)
 {
     LOGD("Upgrade distributed table.");
@@ -387,7 +388,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
     }
 
     auto mode = GetRelationalProperties().GetDistributedTableMode();
-    errCode = handle->UpgradeDistributedTable(tableName, mode, schemaChanged, schema, syncType);
+    errCode = handle->UpgradeDistributedTable(tableInfo, mode, schemaChanged, schema, syncType);
     if (errCode != E_OK) {
         LOGE("Upgrade distributed table failed. %d", errCode);
         (void)handle->Rollback();
@@ -1653,6 +1654,22 @@ int SQLiteSingleRelationalStorageEngine::TriggerGenLogTask(const std::string &id
         RefObject::DecObjRef(this);
     });
     return errCode;
+}
+
+std::pair<int, TableInfo> SQLiteSingleRelationalStorageEngine::AnalyzeTable(const std::string &tableName)
+{
+    std::pair<int, TableInfo> res;
+    auto &[errCode, _] = res;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(false, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return res;
+    }
+    ResFinalizer resFinalizer([this, handle]() {
+        auto rdbHandle = handle;
+        ReleaseExecutor(rdbHandle);
+    });
+    return handle->AnalyzeTable(tableName);
 }
 }
 #endif

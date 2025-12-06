@@ -22,6 +22,8 @@
 #include "cloud/cloud_store_types.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "sqlite_relational_utils.h"
+
 namespace DistributedDB {
 SchemaMgr::SchemaMgr()
 {
@@ -150,6 +152,10 @@ bool SchemaMgr::CompareNullable(const FieldInfo &localField, const Field &cloudF
 
 bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField)
 {
+    if (cloudField.dupCheckCol) {
+        // dup check field ignored its primary
+        return true;
+    }
     // whether the corresponding field in local schema is primary key
     bool isLocalFieldPrimary = false;
     for (const auto &kvPair : localPrimaryKeys) {
@@ -175,18 +181,7 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaO
             missingTables++;
             continue;
         }
-        FieldInfoMap localFields = tableInfo.GetFields();
-
-        // remove the fields that are not found in local schema from cloud schema
-        for (auto it = table.fields.begin(); it != table.fields.end();) {
-            if (localFields.find((*it).colName) == localFields.end()) {
-                LOGW("Column mismatch, colName: %s, length: %zu", DBCommon::StringMiddleMasking((*it).colName).c_str(),
-                    (*it).colName.length());
-                it = table.fields.erase(it);
-            } else {
-                ++it;
-            }
-        }
+        SQLiteRelationalUtils::FilterTableSchema(tableInfo, table);
     }
     if (missingTables > 0u) {
         LOGD("Local schema does not contain following %" PRIu32 " tables: %s", missingTables, msg.c_str());

@@ -40,7 +40,11 @@ private:
     std::vector<std::string> GetDropTriggers(const TableInfo &table) override;
     std::string CalcPrimaryKeyHashInner(const std::string &references, const std::vector<std::string> &sourceFields,
         const FieldInfoMap &fieldInfos);
+    std::string GetInsertLogSQL(const TableInfo &table, const std::string &identity, bool isReplace);
+    std::string GetUpdateLog(const TableInfo &table, const std::string &identity);
     static std::string GetUpdateCondition(const TableInfo &table);
+    static std::string GetInsertCondition(const TableInfo &table);
+    static std::string GetUpdateConflictKey(const TableInfo &table);
 };
 
 } // DistributedDB

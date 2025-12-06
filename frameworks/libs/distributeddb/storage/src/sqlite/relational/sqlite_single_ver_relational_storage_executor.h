@@ -67,7 +67,7 @@ public:
     int CreateDistributedTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
         TableInfo &table, bool isAsync);
 
-    int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
+    int UpgradeDistributedTable(const TableInfo &localTableInfo, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema, TableSyncType syncType);
 
     int StartTransaction(TransactType type);
@@ -260,10 +260,6 @@ public:
 
     int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
 
-    void CheckAndCreateTrigger(const TableInfo &table);
-
-    bool CheckNullExtendLog(const TrackerTable &table);
-
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 
     int CompareSchemaTableColumns(const std::string &tableName);
@@ -288,6 +284,8 @@ public:
         std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly);
 
     int GetLocalDataByRowid(const TableInfo &table, const TableSchema &tableSchema, DataInfoWithLog &dataInfoWithLog);
+
+    std::pair<int, TableInfo> AnalyzeTable(const std::string &tableName) const;
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
@@ -419,7 +417,7 @@ private:
 
     int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
 
-    int UpdateCloudData(VBucket &vBucket, const TableSchema &tableSchema);
+    int UpdateCloudData(OpType op, const TableSchema &tableSchema, VBucket &vBucket);
 
     int GetUpdateLogRecordStatement(const TableSchema &tableSchema, const VBucket &vBucket, OpType opType,
         std::vector<std::string> &updateColName, sqlite3_stmt *&updateLogStmt);
@@ -523,7 +521,7 @@ private:
 
     int64_t GetDataFlag();
 
-    std::string GetUpdateDataFlagSql(const VBucket &data);
+    std::string GetUpdateDataFlagSql(OpType opType, const VBucket &data);
 
     std::string GetDev();
 

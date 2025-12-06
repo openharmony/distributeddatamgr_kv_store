@@ -1137,7 +1137,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level1)
     ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
     ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
     DataBaseSchema dataBaseSchema = GetSchema();
-    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
     communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
     ASSERT_TRUE(communicatorAggregator_ != nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
