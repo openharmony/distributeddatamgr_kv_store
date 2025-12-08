@@ -328,13 +328,12 @@ bool StoreUtil::HasPermit(const std::string &path, mode_t mode)
     return false;
 }
 
-void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target)
+bool StoreUtil::SetDatabaseGid(const std::string &path)
 {
-    std::string tempDir = fullPath;
+    std::string tempDir = path;
     size_t pos = tempDir.find('/');
-    std::string path = "";
+    std::string targetPath = "";
     bool isSetAcl = false;
-    uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
     while (pos != std::string::npos) {
         std::string dir = tempDir.substr(0, pos);
         tempDir = tempDir.substr(pos + 1);
@@ -342,42 +341,39 @@ void StoreUtil::SetDirGid(const std::string &fullPath, const std::string &target
         if (dir.empty()) {
             continue;
         }
-        if (dir == target) {
+        if (dir == "database") {
             isSetAcl = true;
         }
-        path = path + "/" + dir;
-        if (isSetAcl && !HasPermit(path, S_IXOTH)) {
-            Acl acl(path, Acl::ACL_XATTR_ACCESS);
-            acl.SetAccessGroup(SERVICE_GID, mode);
+        targetPath = targetPath + "/" + dir;
+        if (isSetAcl && !HasPermit(targetPath, S_IXOTH)) {
+            if (!SetServiceGid(targetPath)) {
+                return false;
+            }
         }
     }
+    return true;
 }
 
-void StoreUtil::SetDbFileGid(const std::string &path, const std::string &fileName)
+bool StoreUtil::SetServiceGid(const std::string &filePath)
 {
+    if (filePath.empty()) {
+        ZLOGE("filePath is empty");
+        return false;
+    }
     struct stat fileStat;
-    if (stat(path.c_str(), &fileStat) != 0) {
-        ZLOGW("file not exit, path:%{public}s ,code:%{public}d", Anonymous(path).c_str(), errno);
-        return;
+    if (stat(filePath.c_str(), &fileStat) != 0) {
+        ZLOGE("file not exit, filePath:%{public}s ,code:%{public}d", Anonymous(filePath).c_str(), errno);
+        return false;
     }
     uint16_t mode = Acl::R_RIGHT | Acl::W_RIGHT | Acl::E_RIGHT;
-    if (fileName == "autoBackup.bak") {
-        std::string fullPath = path + fileName;
-        Acl acl(fullPath, Acl::ACL_XATTR_ACCESS);
-        if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
-            acl.SetAccessGroup(SERVICE_GID, mode);
+    Acl acl(filePath, Acl::ACL_XATTR_ACCESS);
+    if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
+        auto res = acl.SetAccessGroup(SERVICE_GID, mode);
+        if (res != 0) {
+            ZLOGE("access group set failed, error code is :%{public}d", res);
+            return false;
         }
     }
-    std::error_code ec;
-    for (const auto &entry : std::filesystem::recursive_directory_iterator(path, ec)) {
-        if (ec) {
-            ec.clear();
-            continue;
-        }
-        Acl acl(entry.path(), Acl::ACL_XATTR_ACCESS);
-        if (!acl.HasAccessGroup(SERVICE_GID, mode)) {
-            acl.SetAccessGroup(SERVICE_GID, mode);
-        }
-    }
+    return true;
 }
 } // namespace OHOS::DistributedKv

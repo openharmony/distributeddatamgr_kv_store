@@ -55,9 +55,7 @@ SingleStoreImpl::SingleStoreImpl(
     hapName_ = options.hapName;
     subUser_ = options.subUser;
     syncable_ = options.syncable;
-    if (options.backup) {
-        BackupManager::GetInstance().Prepare(path, storeId_);
-    }
+    autoBackup_ = options.backup;
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
@@ -66,17 +64,11 @@ SingleStoreImpl::SingleStoreImpl(
     if (!isApplication_) {
         isCheckIntegrity_ = true;
     }
-    if (options.syncable) {
-        std::string dbPath = "";
-        DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
-        std::string fullPath = path + "/kvdb/" +dbPath + "/";
-        StoreUtil::SetDirGid(fullPath, "database");
-        StoreUtil::SetDbFileGid(fullPath);
-    }
-    if (options.backup) {
-        std::string bkPath = path + "/kvdb/backup/" + storeId_ + "/";
-        StoreUtil::SetDirGid(bkPath, "backup");
-        StoreUtil::SetDbFileGid(bkPath, "autoBackup.bak");
+    if (syncable_ || autoBackup_) {
+        SetAcl(storeId_, path);
+        if (autoBackup_) {
+            BackupManager::GetInstance().Prepare(path, storeId_);
+        }
     }
 }
 
@@ -825,12 +817,8 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
             StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
-    if (syncable_) {
-        std::string dbPath = "";
-        DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
-        std::string fullPath = path_ + "/kvdb/" +dbPath + "/";
-        StoreUtil::SetDirGid(fullPath, "database");
-        StoreUtil::SetDbFileGid(fullPath);
+    if (syncable_ || autoBackup_) {
+        SetAcl(storeId_, path_);
     }
     Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
         .area = area_, .hapName = hapName_ };
@@ -1120,5 +1108,39 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
         .appId = appId_, .storeId = storeId_, .functionName = functionName };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+}
+
+void SingleStoreImpl::SetAcl(const std::string &storeId, const std::string &path)
+{
+    std::string dbPath = "";
+    DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
+    std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
+    if (!StoreUtil::SetDatabaseGid(fullPath)) {
+        return;
+    }
+    auto dbFiles = GenerateDbFiles(fullPath);
+    for (auto &dbFile : dbFiles) {
+        if (!StoreUtil::SetServiceGid(dbFile)) {
+            return;
+        }
+    }
+}
+
+std::vector<std::string> SingleStoreImpl::GenerateDbFiles(const std::string &path)
+{
+    std::vector<std::string> dbFiles;
+    if (path.empty()) {
+        return dbFiles;
+    }
+    dbFiles.push_back(path + "/main");
+    dbFiles.push_back(path + "/main/gen_natural_store.db");
+    dbFiles.push_back(path + "/main/gen_natural_store.db-shm");
+    dbFiles.push_back(path + "/main/gen_natural_store.db-wal");
+    dbFiles.push_back(path + "/meta");
+    dbFiles.push_back(path + "/meta/meta.db");
+    dbFiles.push_back(path + "/meta/meta.db-shm");
+    dbFiles.push_back(path + "/meta/meta.db-wal");
+    dbFiles.push_back(path + "/cache");
+    return dbFiles;
 }
 } // namespace OHOS::DistributedKv

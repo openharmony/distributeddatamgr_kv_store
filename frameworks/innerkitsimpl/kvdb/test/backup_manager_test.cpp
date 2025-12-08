@@ -212,6 +212,107 @@ HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
     status = kvStore_->Restore("testbackup", baseDir1);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
+
+/**
+ * @tc.name: ReStore001
+ * @tc.desc: the kvstore ReStore
+ * @tc.type: FUNC
+ */
+HWTEST_F(BackupManagerTest, Restore001, TestSize.Level0)
+{
+    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "RestoreTest001" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.syncable = false;
+    options.backup = false;
+    options.baseDir = baseDir;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = kvStore->Restore("testbackup", baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: ReStore002
+ * @tc.desc: the kvstore ReStore
+ * @tc.type: FUNC
+ */
+HWTEST_F(BackupManagerTest, Restore002, TestSize.Level0)
+{
+    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "RestoreTest002" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.syncable = true;
+    options.backup = false;
+    options.baseDir = baseDir;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = kvStore->Restore("testbackup", baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: ReStore003
+ * @tc.desc: the kvstore ReStore
+ * @tc.type: FUNC
+ */
+HWTEST_F(BackupManagerTest, Restore003, TestSize.Level0)
+{
+    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "RestoreTest003" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.syncable = false;
+    options.backup = true;
+    options.baseDir = baseDir;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = kvStore->Restore("testbackup", baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: ReStore004
+ * @tc.desc: the kvstore ReStore
+ * @tc.type: FUNC
+ */
+HWTEST_F(BackupManagerTest, Restore004, TestSize.Level0)
+{
+    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "RestoreTest004" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.syncable = true;
+    options.backup = true;
+    options.baseDir = baseDir;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+    status = kvStore->Restore("testbackup", baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
 /**
  * @tc.name: DeleteBackup
  * @tc.desc: the kvstore DeleteBackup
