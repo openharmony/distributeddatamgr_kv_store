@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,7 +35,7 @@ StoreId storeId = { "fuzzer_single" };
 void GetEntriesQueryFuzz(FuzzedDataProvider &provider)
 {
     InitKvstoreFuzzer fuzzer;
-    fuzzer.SetUpTestCase(appId, storeId, KvStoreType::DEVICE_COLLABORATION, singleKvStore_);
+    fuzzer.SetUpTestCase(appId, storeId, KvStoreType::SINGLE_VERSION, singleKvStore_);
     std::string prefix = provider.ConsumeRandomLengthString();
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
