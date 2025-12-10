@@ -911,6 +911,22 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest003, 
 }
 
 /**
+  * @tc.name: PragmaTest004
+  * @tc.desc: Test pragma publish local
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest004, TestSize.Level1)
+{
+    PragmaPublishInfo info;
+    g_store->ReleaseHandle(g_handle);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_NOT_FOUND);
+    info.deleteLocal = true;
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_INVALID_ARGS);
+}
+
+/**
   * @tc.name: ExecutorCache001
   * @tc.desc: Fail to operate data
   * @tc.type: FUNC

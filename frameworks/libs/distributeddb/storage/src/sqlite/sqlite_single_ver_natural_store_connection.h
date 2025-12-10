@@ -161,12 +161,34 @@ private:
 
     int StartTransactionInner(TransactType transType = TransactType::DEFERRED);
 
-    int CommitInner();
+    int PutBatchInner(const IOption &option, const std::vector<Entry> &entries,
+        SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
+
+    int DeleteBatchInner(const IOption &option, const std::vector<Key> &keys,
+        SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
+
+    int PublishLocal(const PragmaPublishInfo *info,
+        SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
+
+    int UnpublishToLocal(const Key &key, bool deletePublic, bool updateTimestamp,
+        SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
+
+    void NotifyDataAfterCommit(SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
+
+    int Commit(SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
+
+    int CommitInner(SingleVerNaturalStoreCommitNotifyData *&committedData, // data need commit in sync table
+        SingleVerNaturalStoreCommitNotifyData *&localCommittedData); // data need commit in local table
 
     int RollbackInner();
 
-    int PublishLocal(const Key &key, bool deleteLocal, bool updateTimestamp,
-        const KvStoreNbPublishAction &onConflict);
+    int PublishLocal(const PragmaPublishInfo *info);
 
     int PublishLocalCallback(bool updateTimestamp, const SingleVerRecord &localRecord,
         const SingleVerRecord &syncRecord, const KvStoreNbPublishAction &onConflict);
