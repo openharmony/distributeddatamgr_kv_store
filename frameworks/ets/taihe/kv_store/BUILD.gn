@@ -1,0 +1,112 @@
+# Copyright (C) 2025-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/components/ets_frontend/ets2abc_config.gni")
+import("//build/ohos.gni")
+import("//build/ohos/taihe_idl/taihe.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+subsystem_name = "distributeddatamgr"
+part_name = "kv_store"
+taihe_generated_file_path = "$taihe_file_path/out/$subsystem_name/$part_name"
+
+copy_taihe_idl("copy_taihe") {
+  sources = [ "${kv_store_base_path}/frameworks/ets/taihe/kv_store/idl/ohos.data.distributedkvstore.taihe" ]
+}
+
+ohos_taihe("run_taihe") {
+  taihe_generated_file_path = "$taihe_generated_file_path"
+  deps = [ ":copy_taihe" ]
+  outputs = [
+    "$taihe_generated_file_path/src/ohos.data.distributedkvstore.ani.cpp",
+    "$taihe_generated_file_path/src/ohos.data.distributedkvstore.abi.c",
+  ]
+}
+
+taihe_shared_library("distributedkvstore_ani") {
+  taihe_generated_file_path = "$taihe_generated_file_path"
+  subsystem_name = "$subsystem_name"
+  part_name = "$part_name"
+  include_dirs = [
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/include",
+    "${kv_store_base_path}/frameworks/common",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
+  ]
+  sources = get_target_outputs(":run_taihe")
+  sources += [
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_ability_utils.cpp",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_constructor.cpp",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_error_utils.cpp",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_kvstore_utils.cpp",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_observer_utils.cpp",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_utils.cpp",
+    "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ohos.data.distributedkvstore.impl.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+  ]
+  deps = [
+    ":run_taihe",
+    "${kv_store_base_path}/frameworks/common:datamgr_common",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+  ]
+
+  if (os_level == "standard") {
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+  }
+  cflags = [
+    "-DHILOG_ENABLE",
+    "-fPIC",
+    "-g3",
+  ]
+  external_deps = [
+    "ability_runtime:abilitykit_native",
+    "ability_runtime:ani_base_context",
+    "ability_runtime:app_context",
+    "ability_runtime:extensionkit_native",
+    "ability_runtime:napi_base_context",
+    "cJSON:cjson",
+    "data_share:datashare_common",
+    "data_share:datashare_common_lite",
+    "eventhandler:libeventhandler",
+    "hilog:libhilog",
+    "napi:ace_napi",
+  ]
+}
+
+generate_static_abc("distributedkvstore_abc") {
+  base_url = "$taihe_generated_file_path"
+  files = [ "$taihe_generated_file_path/@ohos.data.distributedKVStore.ets" ]
+  dst_file = "$target_out_dir/distributedkvstore.abc"
+  is_boot_abc = "True"
+  device_dst_file = "/system/framework/distributedkvstore.abc"
+  dependencies = [ ":run_taihe" ]
+}
+
+ohos_prebuilt_etc("distributedkvstore_etc") {
+  source = "$target_out_dir/distributedkvstore.abc"
+  module_install_dir = "framework"
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+  deps = [ ":distributedkvstore_abc" ]
+}
+
+group("distributedkvstore_ani_pack") {
+  deps = [
+    ":distributedkvstore_ani",
+    ":distributedkvstore_etc",
+  ]
+}
