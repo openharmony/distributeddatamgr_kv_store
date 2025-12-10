@@ -68,6 +68,8 @@ public:
 
     // Task interfaces.
     virtual int ScheduleTask(const TaskAction &task) = 0;
+    virtual int ScheduleTask(const TaskAction &task, TaskId &taskId) = 0;
+    virtual bool RemoveTask(const TaskId &taskId, bool wait) const = 0;
     virtual int ScheduleQueuedTask(const std::string &queueTag,
         const TaskAction &task) = 0;
 

@@ -164,9 +164,7 @@ protected:
     std::condition_variable conditionVar_;
     mutable std::mutex cvLock_;
     NotificationChain::Listener *timeChangedListener_;
-    std::condition_variable timeDriverCond_;
     std::mutex timeDriverLock_;
-    int timeDriverLockCount_;
     bool isOnline_;
     bool closed_;
     std::mutex beginTimeMutex_;
@@ -174,6 +172,7 @@ protected:
     std::vector<uint8_t> dbId_;
     static std::mutex timeSyncSetLock_;
     static std::set<TimeSync *> timeSyncSet_;
+    TaskId timeDriverTaskId_;
 };
 } // namespace DistributedDB
 

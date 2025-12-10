@@ -208,6 +208,8 @@ public:
     static constexpr const char *DEFAULT_USER = "default_user";
 
     static constexpr const char *DISTRIBUTED_DEFAULT_APP_ID = "distributeddata";
+
+    static constexpr const uint64_t INVALID_TASK_ID = static_cast<uint64_t>(0L);
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H
