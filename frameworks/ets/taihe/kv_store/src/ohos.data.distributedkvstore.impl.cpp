@@ -452,78 +452,90 @@ public:
     }
 
     ::ohos::data::distributedkvstore::Query EqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::DoubleStringBool const& value)
+        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleStringBool const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::F64) {
+        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::F64) {
             nativeQueryPtr_->EqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::STRING) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
+            nativeQueryPtr_->EqualTo(stdField, value.get_INT64_ref());
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
             nativeQueryPtr_->EqualTo(stdField, std::string(value.get_STRING_ref()));
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::BOOL) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
             nativeQueryPtr_->EqualTo(stdField, value.get_BOOL_ref());
         }
         return thiz;
     }
 
     ::ohos::data::distributedkvstore::Query NotEqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::DoubleStringBool const& value)
+        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleStringBool const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::F64) {
+        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::F64) {
             nativeQueryPtr_->NotEqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::STRING) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
+            nativeQueryPtr_->NotEqualTo(stdField, value.get_INT64_ref());
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
             nativeQueryPtr_->NotEqualTo(stdField, std::string(value.get_STRING_ref()));
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::BOOL) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
             nativeQueryPtr_->NotEqualTo(stdField, value.get_BOOL_ref());
         }
         return thiz;
     }
 
     ::ohos::data::distributedkvstore::Query GreaterThan(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::DoubleStringBool const& value)
+        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleStringBool const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::F64) {
+        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::F64) {
             nativeQueryPtr_->GreaterThan(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::STRING) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
+            nativeQueryPtr_->GreaterThan(stdField, value.get_INT64_ref());
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
             nativeQueryPtr_->GreaterThan(stdField, std::string(value.get_STRING_ref()));
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleStringBool::tag_t::BOOL) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
             nativeQueryPtr_->GreaterThan(stdField, value.get_BOOL_ref());
         }
         return thiz;
     }
 
     ::ohos::data::distributedkvstore::Query LessThan(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::DoubleString const& value)
+        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleString const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleString::tag_t::F64) {
+        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::F64) {
             nativeQueryPtr_->LessThan(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleString::tag_t::STRING) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::INT64) {
+            nativeQueryPtr_->LessThan(stdField, value.get_INT64_ref());
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::STRING) {
             nativeQueryPtr_->LessThan(stdField, std::string(value.get_STRING_ref()));
         }
         return thiz;
     }
 
     ::ohos::data::distributedkvstore::Query GreaterThanOrEqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::DoubleString const& value)
+        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleString const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleString::tag_t::F64) {
+        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::F64) {
             nativeQueryPtr_->GreaterThanOrEqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleString::tag_t::STRING) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::INT64) {
+            nativeQueryPtr_->GreaterThanOrEqualTo(stdField, value.get_INT64_ref());
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::STRING) {
             nativeQueryPtr_->GreaterThanOrEqualTo(stdField, std::string(value.get_STRING_ref()));
         }
         return thiz;
     }
 
     ::ohos::data::distributedkvstore::Query LessThanOrEqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::DoubleString const& value)
+        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleString const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleString::tag_t::F64) {
+        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::F64) {
             nativeQueryPtr_->LessThanOrEqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::DoubleString::tag_t::STRING) {
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::INT64) {
+            nativeQueryPtr_->LessThanOrEqualTo(stdField, value.get_INT64_ref());
+        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::STRING) {
             nativeQueryPtr_->LessThanOrEqualTo(stdField, std::string(value.get_STRING_ref()));
         }
         return thiz;
@@ -538,34 +550,27 @@ public:
     }
 
     ::ohos::data::distributedkvstore::Query InNumber(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::taihe::array_view<::ohos::data::distributedkvstore::IntLongDouble> valueList)
+        ::taihe::string_view field, ::taihe::array_view<::ohos::data::distributedkvstore::LongDouble> valueList)
     {
         if (valueList.size() == 0) {
             return thiz;
         }
         std::string stdField(field);
         auto &tempItem = valueList[0];
-        if (tempItem.get_tag() == ::ohos::data::distributedkvstore::IntLongDouble::tag_t::F64) {
+        if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::F64) {
             std::vector<double> doubleVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), doubleVector.begin(),
-                [](::ohos::data::distributedkvstore::IntLongDouble c) {
+                [](::ohos::data::distributedkvstore::LongDouble c) {
                 return c.get_F64_ref();
             });
             nativeQueryPtr_->In(stdField, doubleVector);
-        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::IntLongDouble::tag_t::I64) {
+        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::INT64) {
             std::vector<int64_t> longVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), longVector.begin(),
-                [](::ohos::data::distributedkvstore::IntLongDouble c) {
-                return c.get_I64_ref();
+                [](::ohos::data::distributedkvstore::LongDouble c) {
+                return c.get_INT64_ref();
             });
             nativeQueryPtr_->In(stdField, longVector);
-        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::IntLongDouble::tag_t::I32) {
-            std::vector<int> intVector(valueList.size());
-            std::transform(valueList.begin(), valueList.end(), intVector.begin(),
-                [](::ohos::data::distributedkvstore::IntLongDouble c) {
-                return c.get_I32_ref();
-            });
-            nativeQueryPtr_->In(stdField, intVector);
         }
         return thiz;
     }
@@ -579,34 +584,27 @@ public:
     }
 
     ::ohos::data::distributedkvstore::Query NotInNumber(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::taihe::array_view<::ohos::data::distributedkvstore::IntLongDouble> valueList)
+        ::taihe::string_view field, ::taihe::array_view<::ohos::data::distributedkvstore::LongDouble> valueList)
     {
         if (valueList.size() == 0) {
             return thiz;
         }
         std::string stdField(field);
         auto &tempItem = valueList[0];
-        if (tempItem.get_tag() == ::ohos::data::distributedkvstore::IntLongDouble::tag_t::F64) {
+        if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::F64) {
             std::vector<double> doubleVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), doubleVector.begin(),
-                [](::ohos::data::distributedkvstore::IntLongDouble c) {
+                [](::ohos::data::distributedkvstore::LongDouble c) {
                 return c.get_F64_ref();
             });
             nativeQueryPtr_->NotIn(stdField, doubleVector);
-        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::IntLongDouble::tag_t::I64) {
+        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::INT64) {
             std::vector<int64_t> longVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), longVector.begin(),
-                [](::ohos::data::distributedkvstore::IntLongDouble c) {
-                return c.get_I64_ref();
+                [](::ohos::data::distributedkvstore::LongDouble c) {
+                return c.get_INT64_ref();
             });
             nativeQueryPtr_->NotIn(stdField, longVector);
-        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::IntLongDouble::tag_t::I32) {
-            std::vector<int> intVector(valueList.size());
-            std::transform(valueList.begin(), valueList.end(), intVector.begin(),
-                [](::ohos::data::distributedkvstore::IntLongDouble c) {
-                return c.get_I32_ref();
-            });
-            nativeQueryPtr_->NotIn(stdField, intVector);
         }
         return thiz;
     }
@@ -775,6 +773,11 @@ public:
         std::string stdkey(key);
         DistributedKv::Key kvkey(stdkey);
         bool isSchemaStore = IsSchemaStore();
+        if (isSchemaStore && !std::holds_alternative<std::string>(paramVariant)) {
+            ZLOGE("isSchemaStore, and value is not string");
+            ThrowAniError(Status::INVALID_ARGUMENT, "");
+            return;
+        }
         DistributedKv::Value nativeValue = isSchemaStore ? DistributedKv::Blob(std::get<std::string>(paramVariant))
                                                    : ani_kvstoreutils::VariantValue2Blob(paramVariant);
         Status status = nativeStore_->Put(kvkey, nativeValue);
@@ -791,14 +794,18 @@ public:
         }
         bool isSchemaStore = IsSchemaStore();
         std::vector<DistributedKv::Entry> kvEntris;
-        ani_kvstoreutils::EntryArrayToNative(entries, kvEntris, isSchemaStore);
+        if (false == ani_kvstoreutils::EntryArrayToNative(entries, kvEntris, isSchemaStore)) {
+            ZLOGE("isSchemaStore, and value is not string");
+            ThrowAniError(Status::INVALID_ARGUMENT, "");
+            return;
+        }
         Status status = nativeStore_->PutBatch(kvEntris);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
         }
     }
 
-    void PutBatchValuesBucketsSync(::taihe::array_view<
+    void PutValuesBucketsSync(::taihe::array_view<
         ::taihe::map<::taihe::string, ::ohos::data::distributedkvstore::DataShareValueTypeUnion>> value)
     {
         if (!IsSystemApp()) {
@@ -934,7 +941,8 @@ public:
         if (isSchemaStore) {
             return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(kvblob.ToString());
         } else {
-            return ani_kvstoreutils::Blob2TaiheValue(kvblob);
+            uint8_t resultType = 0;
+            return ani_kvstoreutils::Blob2TaiheValue(kvblob, resultType);
         }
     }
 
@@ -1268,7 +1276,8 @@ public:
         if (env == nullptr) {
             return;
         }
-        if (opq.has_value() && !ani_utils::AniIsInstanceOf(env, reinterpret_cast<ani_ref>(opq.value()), "std.core.Object")) {
+        if (opq.has_value() &&
+            !ani_utils::AniIsInstanceOf(env, reinterpret_cast<ani_ref>(opq.value()), "std.core.Object")) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
             return;
         }
@@ -1304,7 +1313,8 @@ public:
         if (env == nullptr) {
             return;
         }
-        if (opq.has_value() && !ani_utils::AniIsInstanceOf(env, reinterpret_cast<ani_ref>(opq.value()), "std.core.Object")) {
+        if (opq.has_value() &&
+            !ani_utils::AniIsInstanceOf(env, reinterpret_cast<ani_ref>(opq.value()), "std.core.Object")) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
             return;
         }
@@ -1598,7 +1608,8 @@ public:
         if (isSchemaStore) {
             return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(kvblob.ToString());
         } else {
-            return ani_kvstoreutils::Blob2TaiheValue(kvblob);
+            uint8_t resultType = 0;
+            return ani_kvstoreutils::Blob2TaiheValue(kvblob, resultType);
         }
     }
 
@@ -1928,7 +1939,8 @@ public:
         return ::taihe::array<::taihe::string>(::taihe::copy_data_t{}, stringArray.data(), stringArray.size());
     }
 
-    void OnDataServiceDie(::taihe::callback_view<void(::ohos::data::distributedkvstore::OneUndef const& para)> f, uintptr_t opq)
+    void OnDistributedDataServiceDie(::taihe::callback_view<void(::ohos::data::distributedkvstore::OneUndef const& para)> f,
+        uintptr_t opq)
     {
         ani_env *env = taihe::get_env();
         if (env == nullptr) {
@@ -1950,14 +1962,15 @@ public:
         jsDeathCbList_.emplace_back(std::move(observer));
     }
 
-    void OffDataServiceDie(::taihe::optional_view<uintptr_t> opq)
+    void OffDistributedDataServiceDie(::taihe::optional_view<uintptr_t> opq)
     {
         ani_env *env = taihe::get_env();
         if (env == nullptr) {
             ZLOGE("failed to get_env");
             return;
         }
-        if (opq.has_value() && !ani_utils::AniIsInstanceOf(env, reinterpret_cast<ani_ref>(opq.value()), "std.core.Object")) {
+        if (opq.has_value() &&
+            !ani_utils::AniIsInstanceOf(env, reinterpret_cast<ani_ref>(opq.value()), "std.core.Object")) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
             return;
         }
@@ -1996,7 +2009,7 @@ protected:
     void UnregisterAllObserver()
     {
         ::taihe::optional<uintptr_t> empty;
-        OffDataServiceDie(empty);
+        OffDistributedDataServiceDie(empty);
     }
 
 protected:

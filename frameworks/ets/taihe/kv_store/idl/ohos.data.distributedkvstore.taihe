@@ -43,9 +43,8 @@ import BaseContext from 'application.BaseContext';
   }
 
   union ValueTypeUnion {
-    INT32: i32;
+    INT64: i64;
     F64: f64;
-    F32: f32;
     STRING: String;
     BOOL: bool;
     Uint8Array: @typedarray Array<u8>;
@@ -161,21 +160,22 @@ import BaseContext from 'application.BaseContext';
     GetEntry(): Entry;
   }
 
-  union DoubleString {
-    F64: f64;
-    STRING: String;
-  }
-
-  union DoubleStringBool {
+  union LongDoubleStringBool {
+    INT64: i64;
     F64: f64;
     STRING: String;
     BOOL: bool;
   }
 
-  union IntLongDouble {
+  union LongDoubleString {
+    INT64: i64;
     F64: f64;
-    I32: i32;
-    I64: i64;
+    STRING: String;
+  }
+
+  union LongDouble {
+    F64: f64;
+    INT64: i64;
   }
 
   @class
@@ -184,25 +184,25 @@ import BaseContext from 'application.BaseContext';
 
     Reset(@sts_this thiz : Query): Query;
 
-    EqualTo(@sts_this thiz : Query, field: String, value: DoubleStringBool): Query;
+    EqualTo(@sts_this thiz : Query, field: String, value: LongDoubleStringBool): Query;
 
-    NotEqualTo(@sts_this thiz : Query, field: String, value: DoubleStringBool): Query;
+    NotEqualTo(@sts_this thiz : Query, field: String, value: LongDoubleStringBool): Query;
 
-    GreaterThan(@sts_this thiz : Query, field: String, value: DoubleStringBool): Query;
+    GreaterThan(@sts_this thiz : Query, field: String, value: LongDoubleStringBool): Query;
 
-    LessThan(@sts_this thiz : Query, field: String, value: DoubleString): Query;
+    LessThan(@sts_this thiz : Query, field: String, value: LongDoubleString): Query;
 
-    GreaterThanOrEqualTo(@sts_this thiz : Query, field: String, value: DoubleString): Query;
+    GreaterThanOrEqualTo(@sts_this thiz : Query, field: String, value: LongDoubleString): Query;
 
-    LessThanOrEqualTo(@sts_this thiz : Query, field: String, value: DoubleString): Query;
+    LessThanOrEqualTo(@sts_this thiz : Query, field: String, value: LongDoubleString): Query;
 
     IsNull(@sts_this thiz : Query, field: String): Query;
 
-    InNumber(@sts_this thiz : Query, field: String, valueList: Array<IntLongDouble>): Query;
+    InNumber(@sts_this thiz : Query, field: String, valueList: Array<LongDouble>): Query;
 
     InString(@sts_this thiz : Query, field: String, valueList: Array<String>): Query;
 
-    NotInNumber(@sts_this thiz : Query, field: String, valueList: Array<IntLongDouble>): Query;
+    NotInNumber(@sts_this thiz : Query, field: String, valueList: Array<LongDouble>): Query;
 
     NotInString(@sts_this thiz : Query, field: String, valueList: Array<String>): Query;
 
@@ -237,20 +237,6 @@ import BaseContext from 'application.BaseContext';
   @ctor("Query")
   function CreateQuery(): Query;
 
-  union PutGetParaUnion {
-    INT32: i32;
-    F64: f64;
-    F32: f32;
-    STRING: String;
-    BOOL: bool;
-    Uint8Array: @typedarray Array<u8>;
-  }
-
-  union StrIntUnion {
-    INT32: i32;
-    STRING: String;
-  }
-
   interface SingleKVStore {
     GetInner (): i64;
 
@@ -262,8 +248,8 @@ import BaseContext from 'application.BaseContext';
     @gen_promise("putBatch")
     PutBatchEntrySync(entries: Array<Entry>): void;
 
-    @gen_promise("putBatchValuesBuckets")
-    PutBatchValuesBucketsSync(value: Array<@record Map<String, DataShareValueTypeUnion>>): void;
+    @gen_promise("putValuesBuckets")
+    PutValuesBucketsSync(value: Array<@record Map<String, DataShareValueTypeUnion>>): void;
 
     @gen_async("delete")
     @gen_promise("delete")
@@ -421,6 +407,6 @@ import BaseContext from 'application.BaseContext';
     @gen_promise("getAllKVStoreId")
     GetAllKVStoreIdSync(appId: String): Array<String>;
 
-    OnDataServiceDie(f: (para: OneUndef) => void, @sts_last opq: Opaque);
-    OffDataServiceDie(opq: Optional<@sts_type("Function1<undefined, void>") Opaque>);
+    OnDistributedDataServiceDie(f: (para: OneUndef) => void, @sts_last opq: Opaque);
+    OffDistributedDataServiceDie(opq: Optional<@sts_type("Function1<undefined, void>") Opaque>);
   }

@@ -83,16 +83,12 @@ void TaiheValueTypeUnionToNativeVariant(::ohos::data::distributedkvstore::ValueT
 {
     auto tag = value.get_tag();
     switch (tag) {
-        case ValueTypeUnion::tag_t::INT32: {
-            resultObj = value.get_INT32_ref();
-        }
-            break;
         case ValueTypeUnion::tag_t::F64: {
             resultObj = value.get_F64_ref();
         }
             break;
-        case ValueTypeUnion::tag_t::F32: {
-            resultObj = value.get_F32_ref();
+        case ValueTypeUnion::tag_t::INT64: {
+            resultObj = value.get_INT64_ref();
         }
             break;
         case ValueTypeUnion::tag_t::STRING: {
@@ -121,16 +117,12 @@ void TaiheValueToVariant(::ohos::data::distributedkvstore::Value const& value,
     ::ohos::data::distributedkvstore::ValueTypeUnion valueUnion = value.value;
     auto tag = valueUnion.get_tag();
     switch (tag) {
-        case ValueTypeUnion::tag_t::INT32: {
-            resultObj = valueUnion.get_INT32_ref();
-        }
-            break;
         case ValueTypeUnion::tag_t::F64: {
             resultObj = valueUnion.get_F64_ref();
         }
             break;
-        case ValueTypeUnion::tag_t::F32: {
-            resultObj = valueUnion.get_F32_ref();
+        case ValueTypeUnion::tag_t::INT64: {
+            resultObj = valueUnion.get_INT64_ref();
         }
             break;
         case ValueTypeUnion::tag_t::STRING: {
@@ -214,25 +206,26 @@ DistributedKv::SubscribeType SubscribeTypeToNative(uint8_t type)
     }
 }
 
-::ohos::data::distributedkvstore::ValueTypeUnion Blob2TaiheValue(DistributedKv::Blob const& blob)
+::ohos::data::distributedkvstore::ValueTypeUnion Blob2TaiheValue(DistributedKv::Blob const& blob, uint8_t &resultType)
 {
     auto& data = blob.Data();
-    // number 2 means: valid Blob must have more than 2 bytes.
     if (data.size() < 1) {
         ZLOGE("Blob have no data!");
         return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(std::string(""));
     }
-    // number 1 means: skip the first byte, byte[0] is real data type.
+    resultType = data[0];
     std::vector<uint8_t> real(data.begin() + 1, data.end());
     ZLOGD("Blob::type %{public}d size=%{public}d", static_cast<int>(data[0]), static_cast<int>(real.size()));
     if (data[0] == ani_kvstoreutils::INTEGER) {
+        resultType = ani_kvstoreutils::LONG;
         uint32_t tmp4int = be32toh(*reinterpret_cast<uint32_t*>(&(real[0])));
         int32_t tmp = *reinterpret_cast<int32_t*>(&tmp4int);
-        return ::ohos::data::distributedkvstore::ValueTypeUnion::make_INT32(tmp);
+        return ::ohos::data::distributedkvstore::ValueTypeUnion::make_INT64(tmp);
     } else if (data[0] == ani_kvstoreutils::FLOAT) {
+        resultType = ani_kvstoreutils::DOUBLE;
         uint32_t tmp4flt = be32toh(*reinterpret_cast<uint32_t*>(&(real[0])));
         float tmp = *reinterpret_cast<float*>((void*)(&tmp4flt));
-        return ::ohos::data::distributedkvstore::ValueTypeUnion::make_F32(tmp);
+        return ::ohos::data::distributedkvstore::ValueTypeUnion::make_F64(tmp);
     } else if (data[0] == ani_kvstoreutils::BYTE_ARRAY) {
         auto tmp = std::vector<uint8_t>(real.begin(), real.end());
         return ::ohos::data::distributedkvstore::ValueTypeUnion::make_Uint8Array(tmp);
@@ -245,8 +238,13 @@ DistributedKv::SubscribeType SubscribeTypeToNative(uint8_t type)
     } else if (data[0] == ani_kvstoreutils::STRING) {
         auto tmp = std::string(real.begin(), real.end());
         return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(tmp);
+    } else if (data[0] == ani_kvstoreutils::LONG) {
+        uint64_t tmp8int = be64toh(*reinterpret_cast<uint64_t*>(&(real[0])));
+        int64_t tmp = *reinterpret_cast<int64_t*>(&tmp8int);
+        return ::ohos::data::distributedkvstore::ValueTypeUnion::make_INT64(tmp);
     } else {
         // for schema-db, if (data[0] == JSUtil::STRING), no beginning byte!
+        resultType = ani_kvstoreutils::STRING;
         auto tmp = std::string(data.begin(), data.end());
         return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(tmp);
     }
@@ -278,6 +276,14 @@ DistributedKv::Blob VariantValue2Blob(ValueVariant const& value)
         res = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(ani_kvstoreutils::INTEGER);
         data.insert(data.end(), res, res + sizeof(int32_t) / sizeof(uint8_t));
+    }
+    auto int64Value = std::get_if<int64_t>(&value);
+    if (int64Value != nullptr) {
+        int64_t tmp = *int64Value; // copy value, and make it available in stack space.
+        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp64);
+        data.push_back(ani_kvstoreutils::LONG);
+        data.insert(data.end(), res, res + sizeof(int64_t) / sizeof(uint8_t));
     }
     auto fltValue = std::get_if<float>(&value);
     if (fltValue != nullptr) {
@@ -317,6 +323,9 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
         ani_kvstoreutils::ValueVariant variant;
         TaiheValueToVariant(item.value, variant);
         if (hasSchema) {
+            if (!std::holds_alternative<std::string>(variant)) {
+                return false;
+            }
             kvEntry.value = std::get<std::string>(variant);
         } else {
             kvEntry.value = VariantValue2Blob(variant);
@@ -342,15 +351,18 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
         ZLOGW("KvEntryToTaihe ret empty");
         return taiEntryEmpty;
     }
-    auto taiheValueType = ohos::data::distributedkvstore::ValueType::from_value(kventry.value[0]);
     if (hasSchema) {
+        auto strValueType = ohos::data::distributedkvstore::ValueType::from_value(0);
         ::ohos::data::distributedkvstore::Entry taiEntry = { kventry.key.ToString(),
-            {taiheValueType, ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(kventry.value.ToString()) }
+            {strValueType, ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(kventry.value.ToString()) }
         };
         return taiEntry;
     } else {
+        uint8_t resultType = kventry.value[0];
+        auto taiheTemp = Blob2TaiheValue(kventry.value, resultType);
+        auto taiheValueType = ohos::data::distributedkvstore::ValueType::from_value(resultType);
         ::ohos::data::distributedkvstore::Entry taiEntry = { kventry.key.ToString(),
-            {taiheValueType, Blob2TaiheValue(kventry.value) }
+            {taiheValueType, taiheTemp }
         };
         return taiEntry;
     }
@@ -379,7 +391,8 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
     return result;
 }
 
-::taihe::map<::taihe::string, int32_t> KvStatusMapToTaiheMap(std::map<std::string, DistributedKv::Status> const& mapInfo)
+::taihe::map<::taihe::string, int32_t> KvStatusMapToTaiheMap(
+    std::map<std::string, DistributedKv::Status> const& mapInfo)
 {
     ::taihe::map<::taihe::string, int32_t> result;
     for (auto &[key, value] : mapInfo) {
@@ -389,7 +402,8 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
     return result;
 }
 
-::taihe::array<uintptr_t> KvStatusMapToTaiheArray(ani_env* env, std::map<std::string, DistributedKv::Status> const& mapInfo)
+::taihe::array<uintptr_t> KvStatusMapToTaiheArray(ani_env* env,
+    std::map<std::string, DistributedKv::Status> const& mapInfo)
 {
     if (env == nullptr) {
         return {};

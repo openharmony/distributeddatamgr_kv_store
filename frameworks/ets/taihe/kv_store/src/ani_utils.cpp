@@ -182,7 +182,7 @@ bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value 
         return false;
     }
     if (ANI_OK != env->Object_New(tupleCls, tupleCtorMethod, &tupleObj, item1, item2)) {
-         ZLOGE("Object_New tupleCls failed");
+        ZLOGE("Object_New tupleCls failed");
         return false;
     }
     tuple = static_cast<ani_tuple_value>(tupleObj);

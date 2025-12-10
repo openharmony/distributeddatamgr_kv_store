@@ -64,7 +64,7 @@ enum {
 
 namespace ani_kvstoreutils {
 using namespace OHOS;
-using ValueVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
+using ValueVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double, int64_t>;
 using DataShareValueVariant = DataShare::DataShareValueObject::Type;
 
 enum {
@@ -75,6 +75,7 @@ enum {
     BYTE_ARRAY = 3,
     BOOLEAN = 4,
     DOUBLE = 5,
+    LONG = 6,
     INVALID = 255
 };
 
@@ -98,7 +99,7 @@ void TaiheValueToVariant(::ohos::data::distributedkvstore::Value const& value,
     ValueVariant &resultObj);
 void TaiheDataShareValueToVariant(::ohos::data::distributedkvstore::DataShareValueTypeUnion const& value,
     DataShareValueVariant &resultObj);
-::ohos::data::distributedkvstore::ValueTypeUnion Blob2TaiheValue(DistributedKv::Blob const& blob);
+::ohos::data::distributedkvstore::ValueTypeUnion Blob2TaiheValue(DistributedKv::Blob const& blob, uint8_t &resultType);
 DistributedKv::Blob VariantValue2Blob(ValueVariant const& value);
 bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::Entry> const& taiheEntries,
     std::vector<DistributedKv::Entry> &out, bool hasSchema);
