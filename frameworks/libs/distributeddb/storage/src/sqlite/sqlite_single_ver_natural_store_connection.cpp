@@ -287,7 +287,8 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransaction()
     return errCode;
 }
 
-int SQLiteSingleVerNaturalStoreConnection::Commit()
+int SQLiteSingleVerNaturalStoreConnection::Commit(SingleVerNaturalStoreCommitNotifyData *&committedData,
+    SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
 {
     std::lock_guard<std::mutex> lock(transactionMutex_);
     if (writeHandle_ == nullptr) {
@@ -295,11 +296,29 @@ int SQLiteSingleVerNaturalStoreConnection::Commit()
         return -E_INVALID_DB;
     }
 
-    int errCode = CommitInner();
+    int errCode = CommitInner(committedData, localCommittedData);
     if (errCode == E_OK) {
         transactionExeFlag_.store(false);
     }
     return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::Commit()
+{
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
+    int errCode = Commit(committedData, localCommittedData);
+    NotifyDataAfterCommit(committedData, localCommittedData);
+    return errCode;
+}
+
+void SQLiteSingleVerNaturalStoreConnection::NotifyDataAfterCommit(SingleVerNaturalStoreCommitNotifyData *&committedData,
+    SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
+{
+    CommitAndReleaseNotifyData(committedData, true,
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+    CommitAndReleaseNotifyData(localCommittedData, true,
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
 }
 
 int SQLiteSingleVerNaturalStoreConnection::RollBack()
@@ -836,6 +855,16 @@ int SQLiteSingleVerNaturalStoreConnection::GetDeviceIdentifier(PragmaEntryDevice
 
 int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, const std::vector<Entry> &entries)
 {
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
+    int errCode = PutBatchInner(option, entries, committedData, localCommittedData);
+    NotifyDataAfterCommit(committedData, localCommittedData);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, const std::vector<Entry> &entries,
+    SingleVerNaturalStoreCommitNotifyData *&committedData, SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
+{
     DBDfxAdapter::StartTracing();
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
@@ -871,7 +900,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
 
     if (isAuto) {
         if (errCode == E_OK) {
-            errCode = CommitInner();
+            errCode = CommitInner(committedData, localCommittedData);
         } else {
             int innerCode = RollbackInner();
             errCode = (innerCode != E_OK) ? innerCode : errCode;
@@ -882,6 +911,16 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
 }
 
 int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys)
+{
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
+    int errCode = DeleteBatchInner(option, keys, committedData, localCommittedData);
+    NotifyDataAfterCommit(committedData, localCommittedData);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys,
+    SingleVerNaturalStoreCommitNotifyData *&committedData, SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
 {
     DBDfxAdapter::StartTracing();
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
@@ -919,7 +958,7 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
 
     if (isAuto) {
         if (errCode == E_OK) {
-            errCode = CommitInner();
+            errCode = CommitInner(committedData, localCommittedData);
         } else {
             int innerCode = RollbackInner();
             errCode = (innerCode != E_OK) ? innerCode : errCode;
@@ -1347,7 +1386,8 @@ void SQLiteSingleVerNaturalStoreConnection::InitConflictNotifiedFlag()
     committedData_->SetConflictedNotifiedFlag(static_cast<int>(conflictFlag));
 }
 
-int SQLiteSingleVerNaturalStoreConnection::CommitInner()
+int SQLiteSingleVerNaturalStoreConnection::CommitInner(SingleVerNaturalStoreCommitNotifyData *&committedData,
+    SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
 {
     bool isCacheOrMigrating = IsExtendedCacheDBMode();
 
@@ -1356,10 +1396,10 @@ int SQLiteSingleVerNaturalStoreConnection::CommitInner()
     transactionEntryLen_ = 0;
 
     if (!isCacheOrMigrating) {
-        CommitAndReleaseNotifyData(committedData_, true,
-            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
-        CommitAndReleaseNotifyData(localCommittedData_, true,
-            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
+        committedData = committedData_;
+        localCommittedData = localCommittedData_;
+        committedData_ = nullptr;
+        localCommittedData_ = nullptr;
     }
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
@@ -1429,17 +1469,26 @@ void SQLiteSingleVerNaturalStoreConnection::ReleaseExecutor(SQLiteSingleVerStora
     }
 }
 
-int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const Key &key, bool deleteLocal, bool updateTimestamp,
-    const KvStoreNbPublishAction &onConflict)
+int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const PragmaPublishInfo *info)
+{
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
+    int errCode = PublishLocal(info, committedData, localCommittedData);
+    NotifyDataAfterCommit(committedData, localCommittedData);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const PragmaPublishInfo *info,
+    SingleVerNaturalStoreCommitNotifyData *&committedData, SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
 {
     int errCode = CheckWritePermission();
     if (errCode != E_OK) {
         return errCode;
     }
 
-    bool isNeedCallback = (onConflict != nullptr);
+    bool isNeedCallback = (info->action != nullptr);
     SingleVerRecord localRecord;
-    localRecord.key = key;
+    localRecord.key = info->key;
     SingleVerRecord syncRecord;
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
@@ -1457,33 +1506,33 @@ int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const Key &key, bool del
             return errCode;
         }
 
-        SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
-        if (deleteLocal) {
-            localCommittedData = new (std::nothrow) SingleVerNaturalStoreCommitNotifyData;
-            if (localCommittedData == nullptr) {
+        SingleVerNaturalStoreCommitNotifyData *innerCommittedData = nullptr;
+        if (info->deleteLocal) {
+            innerCommittedData = new (std::nothrow) SingleVerNaturalStoreCommitNotifyData;
+            if (innerCommittedData == nullptr) {
                 errCode = -E_OUT_OF_MEMORY;
             }
         }
         if (errCode == E_OK) {
-            errCode = PublishInner(localCommittedData, updateTimestamp, localRecord, syncRecord, isNeedCallback);
+            errCode = PublishInner(innerCommittedData, info->updateTimestamp, localRecord, syncRecord, isNeedCallback);
         }
 
         if (errCode != E_OK || isNeedCallback) {
             int innerCode = RollbackInner();
             errCode = (innerCode != E_OK) ? innerCode : errCode;
         } else {
-            errCode = CommitInner();
+            errCode = CommitInner(committedData, localCommittedData);
             if (errCode == E_OK) {
-                CommitAndReleaseNotifyData(localCommittedData, true,
+                CommitAndReleaseNotifyData(innerCommittedData, true,
                     static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
             }
         }
-        ReleaseCommitData(localCommittedData);
+        ReleaseCommitData(innerCommittedData);
     }
 
     // need to release the handle lock before callback invoked
     if (isNeedCallback) {
-        return PublishLocalCallback(updateTimestamp, localRecord, syncRecord, onConflict);
+        return PublishLocalCallback(info->updateTimestamp, localRecord, syncRecord, info->action);
     }
 
     return errCode;
@@ -1557,6 +1606,16 @@ int SQLiteSingleVerNaturalStoreConnection::PublishInner(SingleVerNaturalStoreCom
 
 int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool deletePublic, bool updateTimestamp)
 {
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
+    int errCode = UnpublishToLocal(key, deletePublic, updateTimestamp, committedData, localCommittedData);
+    NotifyDataAfterCommit(committedData, localCommittedData);
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool deletePublic, bool updateTimestamp,
+    SingleVerNaturalStoreCommitNotifyData *&committedData, SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
+{
     int errCode = CheckWritePermission();
     if (errCode != E_OK) {
         return errCode;
@@ -1582,8 +1641,8 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
     int innerErrCode = E_OK;
     SingleVerRecord syncRecord;
     std::pair<Key, Key> keyPair = { key, hashKey };
-    SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
-    errCode = UnpublishInner(keyPair, localCommittedData, syncRecord, updateTimestamp, innerErrCode);
+    SingleVerNaturalStoreCommitNotifyData *innerCommittedData = nullptr;
+    errCode = UnpublishInner(keyPair, innerCommittedData, syncRecord, updateTimestamp, innerErrCode);
     if (errCode != E_OK) {
         goto END;
     }
@@ -1598,13 +1657,13 @@ END:
         int rollbackRet = RollbackInner();
         errCode = (rollbackRet != E_OK) ? rollbackRet : errCode;
     } else {
-        errCode = CommitInner();
+        errCode = CommitInner(committedData, localCommittedData);
         if (errCode == E_OK) {
-            CommitAndReleaseNotifyData(localCommittedData, true,
+            CommitAndReleaseNotifyData(innerCommittedData, true,
                 static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
         }
     }
-    ReleaseCommitData(localCommittedData);
+    ReleaseCommitData(innerCommittedData);
 
     return (errCode == E_OK) ? innerErrCode : errCode;
 }
@@ -1703,7 +1762,7 @@ int SQLiteSingleVerNaturalStoreConnection::PragmaPublish(void *parameter)
         LOGE("[PragmaPublish]Existed cache database can not read data, errCode = [%d]!", err);
         return err;
     }
-    return PublishLocal(info->key, info->deleteLocal, info->updateTimestamp, info->action);
+    return PublishLocal(info);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::PragmaUnpublish(void *parameter)
