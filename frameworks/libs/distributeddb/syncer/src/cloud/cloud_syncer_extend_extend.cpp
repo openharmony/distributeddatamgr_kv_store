@@ -146,4 +146,33 @@ int CloudSyncer::WaitAsyncGenLogTaskFinished(TaskId triggerTaskId)
     }
     return storageProxy_->WaitAsyncGenLogTaskFinished(tables);
 }
+
+void CloudSyncer::RetainCurrentTaskInfo(TaskId taskId)
+{
+    std::multimap<int, TaskId, std::greater<int>> retainQueue;
+    for (const auto &kv : std::as_const(taskQueue_)) {
+        if (kv.second == taskId) {
+            retainQueue.emplace(kv.first, kv.second);
+            break;
+        }
+    }
+    taskQueue_ = std::move(retainQueue);
+    // clear info and retain current taskinfo
+    auto cloudTaskIter = cloudTaskInfos_.find(taskId);
+    if (cloudTaskIter != cloudTaskInfos_.end()) {
+        const CloudTaskInfo cloudTaskInfo = cloudTaskIter->second;
+        cloudTaskInfos_.clear();
+        cloudTaskInfos_.emplace(taskId, cloudTaskInfo);
+    } else {
+        cloudTaskInfos_.clear();
+    }
+    auto resumeTaskIter = resumeTaskInfos_.find(taskId);
+    if (resumeTaskIter != resumeTaskInfos_.end()) {
+        const ResumeTaskInfo resumeTaskInfo = resumeTaskIter->second;
+        resumeTaskInfos_.clear();
+        resumeTaskInfos_.emplace(taskId, resumeTaskInfo);
+    } else {
+        resumeTaskInfos_.clear();
+    }
+}
 } // namespace DistributedDB

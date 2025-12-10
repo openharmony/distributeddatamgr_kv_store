@@ -450,8 +450,8 @@ protected:
     bool IsNeedLock(const UploadParam &param);
 
     int UploadVersionRecordIfNeed(const UploadParam &uploadParam);
-
-    std::vector<CloudTaskInfo> CopyAndClearTaskInfos();
+    
+    std::vector<CloudTaskInfo> CopyAndClearTaskInfos(const std::optional<TaskId> taskId = {});
 
     void WaitCurTaskFinished();
 
@@ -558,6 +558,8 @@ protected:
     TaskId GetCurrentTaskId();
 
     int WaitAsyncGenLogTaskFinished(TaskId triggerTaskId);
+    
+    void RetainCurrentTaskInfo(TaskId taskId);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
