@@ -33,13 +33,21 @@ import BaseContext from 'application.BaseContext';
     context: @sts_type("BaseContext") Opaque;
   }
 
+  enum Constants : i32 {
+    MAX_KEY_LENGTH = 1024,
+    MAX_VALUE_LENGTH = 4194303,
+    MAX_KEY_LENGTH_DEVICE = 896,
+    MAX_STORE_ID_LENGTH = 128,
+    MAX_QUERY_LENGTH = 512000,
+    MAX_BATCH_SIZE = 128,
+  }
+
   enum ValueType : i32 {
     STRING = 0,
-    INTEGER = 1,
-    FLOAT = 2,
     BYTE_ARRAY = 3,
     BOOLEAN = 4,
-    DOUBLE = 5
+    DOUBLE = 5,
+    LONG = 6
   }
 
   union ValueTypeUnion {
@@ -248,6 +256,7 @@ import BaseContext from 'application.BaseContext';
     @gen_promise("putBatch")
     PutBatchEntrySync(entries: Array<Entry>): void;
 
+    @gen_async("putValuesBuckets")
     @gen_promise("putValuesBuckets")
     PutValuesBucketsSync(value: Array<@record Map<String, DataShareValueTypeUnion>>): void;
 

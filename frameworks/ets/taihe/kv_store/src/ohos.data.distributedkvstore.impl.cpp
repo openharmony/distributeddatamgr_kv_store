@@ -49,7 +49,8 @@ static std::map<uint32_t, std::string> valueTypeToString_ = {
     { ani_kvstoreutils::FLOAT, std::string("DOUBLE") },
     { ani_kvstoreutils::BYTE_ARRAY, std::string("BYTE_ARRAY") },
     { ani_kvstoreutils::BOOLEAN, std::string("BOOL") },
-    { ani_kvstoreutils::DOUBLE, std::string("DOUBLE") }
+    { ani_kvstoreutils::DOUBLE, std::string("DOUBLE") },
+    { ani_kvstoreutils::LONG, std::string("LONG") }
 };
 
 namespace {
