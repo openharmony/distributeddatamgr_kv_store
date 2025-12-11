@@ -43,6 +43,8 @@ constexpr const char* DATABASE_REBUILD = "RestoreType:Rebuild";
 static constexpr const char* FUNCTION = "FunctionName ";
 static constexpr const char* DBPATH = "dbPath";
 static constexpr const char* FILEINFO = "fileInfo";
+static constexpr const char *KEY_DIR = "/key";
+static constexpr const char *SLASH = "/";
 std::set<std::string> KVDBFaultHiViewReporter::storeFaults_ = {};
 std::mutex KVDBFaultHiViewReporter::mutex_;
 
@@ -50,6 +52,8 @@ static constexpr Suffix FILE_SUFFIXES[] = {
     {"", "DB"},
     {"-shm", "SHM"},
     {"-wal", "WAL"},
+    {".key_v1", "KEYV1"},
+
 };
 
 static constexpr const char *BUSINESS_TYPE[] = {
@@ -75,6 +79,7 @@ struct KVDBFaultEvent {
     std::string faultType = "common";
     std::string businessType;
     std::string functionName;
+    std::string baseDir;
 
     explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
     {
@@ -82,6 +87,7 @@ struct KVDBFaultEvent {
         securityLevel = static_cast<uint32_t>(options.securityLevel);
         pathArea = static_cast<uint32_t>(options.area);
         encryptStatus = static_cast<uint32_t>(options.encrypt);
+        baseDir = options.getDatabaseDir();
     }
 };
 
@@ -201,7 +207,7 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     return oss.str();
 }
 
-std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath)
+std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath, const std::string &name)
 {
     std::string fileTimeInfo;
     const uint32_t permission = 0777;
@@ -220,7 +226,7 @@ std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath)
             << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
             << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
             << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
-        fileTimeInfo += "\n" + std::string(suffix.name_) + " :" + oss.str();
+        fileTimeInfo += "\n" + std::string(name) + " :" + oss.str();
     }
     return fileTimeInfo;
 }
@@ -331,7 +337,25 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
 
 std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &eventInfo)
 {
-    std::string fileStatInfo = GetFileStatInfo(eventInfo.appendix);
+    std::string fileStatInfo;
+    std::string file;
+    bool encryptStatus = (eventInfo.encryptStatus!=0);
+    for (auto &suffix : FILE_SUFFIXES) {
+        if (suffix.name_ == nullptr) {
+            continue;
+        }
+		std::string suffixName = std::string(suffix.name_);
+        if (suffixName == "KEYV1" ) {
+            if (encryptStatus) {
+				file = eventInfo.baseDir + KEY_DIR + SLASH + eventInfo.storeName + suffix.suffix_;
+			} else {
+				continue;
+			}
+        } else {
+            file = eventInfo.appendix + DEFAULT_PATH + suffix.suffix_;
+        }
+        fileTimeInfo += "\n" + GetFileStatInfo(file, std::string(suffix.name_));
+    }
     std::string appenDix = "";
     appenDix = FUNCTION + eventInfo.functionName + "\n" +
                DBPATH + eventInfo.appendix + "\n" +

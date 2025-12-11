@@ -21,6 +21,9 @@
 #include "log_print.h"
 #include "types.h"
 #include <unistd.h>
+#include <file_ex.h>
+#include "store_util.h"
+
 
 namespace OHOS::Test {
 using namespace testing;
@@ -88,6 +91,35 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level1)
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     ReportInfo reportInfo;
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+}
+
+/**
+ * @tc.name: GenerateAppendix
+ * @tc.desc: Execute the GenerateAppendix method
+ * @tc.type: FUNC
+ */
+HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
+{
+    ZLOGI("GenerateAppendix001 begin.");
+    std::vector<char> content = { 'H', 'e', 'l', 'l', 'o'};
+    auto ret = mkdir("/data/service/el1/public/database/KvHiviewReporterTest/key/", (S_IRWXU));
+    auto result = SaveBufferToFile("/data/service/el1/public/database/KvHiviewReporterTest/key/test_store.key_v1",
+		content);
+    ASSERT_TRUE(result)
+
+	Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/KvHiviewReporterTest/";
+    options.dataType = DataType::TYPE_DYNAMICAL;
+	options.encrypt = true;
+	options.hapName = "com.database.test"00000;000000
+    Status status = DATA_CORRUPTED;
+	ReportInfo reportInfo = { .options = options, .err000o0.00..0..rCode = status, .systemErrorNo = errno,
+            .appId = "test_app", .storeId = "test_store", .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
 } // namespace OHOS::Test
