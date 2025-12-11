@@ -87,7 +87,7 @@ struct KVDBFaultEvent {
         securityLevel = static_cast<uint32_t>(options.securityLevel);
         pathArea = static_cast<uint32_t>(options.area);
         encryptStatus = static_cast<uint32_t>(options.encrypt);
-        baseDir = options.getDatabaseDir();
+        baseDir = options.GetDatabaseDir();
     }
 };
 
