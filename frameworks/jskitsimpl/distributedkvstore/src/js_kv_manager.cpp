@@ -140,7 +140,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
         AppId appId = { kvm->bundleName_ };
         StoreId storeId = { ctxt->storeId };
-        ctxt->options.baseDir = kvm->param_->baseDir;
+        ctxt->options.baseDir = ctxt->options.isCustomDir ? ctxt->options.baseDir : kvm->param_->baseDir;
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
         ctxt->options.apiVersion = kvm->param_->apiVersion;
@@ -180,6 +180,7 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
         std::string appId;
         std::string storeId;
         napi_value kvStore;
+        Options options;
     };
     auto ctxt = std::make_shared<ContextInfo>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
@@ -192,6 +193,13 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->storeId);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && JSUtil::IsValid(ctxt->storeId), Status::INVALID_ARGUMENT,
             "Parameter error:storeId must be string,consist of letters, digits, underscores(_), limit 128 characters");
+        if (argc >= 3 && argv[2] != nullptr) {
+            napi_valuetype type = napi_undefined;
+            napi_typeof(env, argv[2], &type);
+            if (type == napi_object) {
+                (void)JSUtil::GetValue(env, argv[2], ctxt->options);
+            }
+        }
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "CloseKVStore exits");
@@ -199,7 +207,11 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         AppId appId { ctxt->appId };
         StoreId storeId { ctxt->storeId };
-        Status status = reinterpret_cast<JsKVManager*>(ctxt->native)->kvDataManager_.CloseKvStore(appId, storeId);
+        Status status = ctxt->options.isCustomDir == true
+            ? reinterpret_cast<JsKVManager*>(ctxt->native)->kvDataManager_.CloseKvStore(appId, storeId,
+                ctxt->options.baseDir)
+            : reinterpret_cast<JsKVManager*>(ctxt->native)->kvDataManager_.CloseKvStore(appId, storeId);
+
         status = GenerateNapiError(status, ctxt->jsCode, ctxt->error);
         ZLOGD("CloseKVStore return status:%{public}d", status);
         ctxt->status
@@ -220,6 +232,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
     struct ContextInfo : public ContextBase {
         std::string appId;
         std::string storeId;
+        Options options;
     };
     auto ctxt = std::make_shared<ContextInfo>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
@@ -233,6 +246,14 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->storeId);
         ASSERT_BUSINESS_ERR(ctxt, JSUtil::IsValid(ctxt->storeId), Status::INVALID_ARGUMENT,
             "error:storeId must be string; consist of only letters, digits underscores (_),limit 128 characters");
+        if (argc >= 3 && argv[2] != nullptr) {
+            napi_valuetype type = napi_undefined;
+            ctxt->status = napi_typeof(env, argv[2], &type);
+            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok), Status::INVALID_ARGUMENT, "napi_typeof failed");
+            if (type == napi_object) {
+                ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->options);
+            }
+        }
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteKVStore exits");
@@ -242,7 +263,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         StoreId storeId { ctxt->storeId };
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
         ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
-        std::string databaseDir = kvm->param_->baseDir;
+        std::string databaseDir = ctxt->options.isCustomDir ? ctxt->options.baseDir : kvm->param_->baseDir;
         ZLOGD("DeleteKVStore databaseDir is: %{public}s", JSUtil::Anonymous(databaseDir).c_str());
         Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, databaseDir);
         ZLOGD("DeleteKvStore status:%{public}d", status);
