@@ -116,7 +116,7 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/KvHiviewReporterTest/";
     options.dataType = DataType::TYPE_DYNAMICAL;
 	options.encrypt = true;
-	options.hapName = "com.database.test"00000;000000
+	options.hapName = "com.database.test";
     Status status = DATA_CORRUPTED;
 	ReportInfo reportInfo = { .options = options, .err000o0.00..0..rCode = status, .systemErrorNo = errno,
             .appId = "test_app", .storeId = "test_store", .functionName = std::string(__FUNCTION__) };

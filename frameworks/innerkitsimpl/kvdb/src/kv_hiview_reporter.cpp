@@ -354,7 +354,7 @@ std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &even
         } else {
             file = eventInfo.appendix + DEFAULT_PATH + suffix.suffix_;
         }
-        fileTimeInfo += "\n" + GetFileStatInfo(file, std::string(suffix.name_));
+        fileStatInfo += "\n" + GetFileStatInfo(file, std::string(suffix.name_));
     }
     std::string appenDix = "";
     appenDix = FUNCTION + eventInfo.functionName + "\n" +
