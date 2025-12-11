@@ -1176,24 +1176,25 @@ std::vector<Field> SQLiteRelationalUtils::GetSaveSyncField(const VBucket &vBucke
 {
     std::vector<Field> fields;
     std::map<std::string, Field, CaseInsensitiveComparator> colFields;
-    std::for_each(tableSchema.fields.begin(), tableSchema.fields.end(), [&colFields](const Field &field) {
+    std::for_each(tableSchema.fields.begin(), tableSchema.fields.end(), [isContainDupCheck, &colFields, &fields]
+        (const Field &field) {
         colFields.insert({field.colName, field});
+        if (isContainDupCheck || !field.dupCheckCol) {
+            fields.push_back(field);
+        }
     });
     for (const auto &[colName, val] : vBucket) {
         if (colName.empty() || colName[0] == '#') {
             continue;
         }
         auto iter = colFields.find(colName);
-        if (iter == colFields.end()) {
-            Field field;
-            field.colName = colName;
-            field.type = static_cast<int32_t>(val.index());
-            fields.push_back(field);
+        if (iter != colFields.end()) {
             continue;
         }
-        if (isContainDupCheck || !iter->second.dupCheckCol) {
-            fields.push_back(iter->second);
-        }
+        Field field;
+        field.colName = colName;
+        field.type = static_cast<int32_t>(val.index());
+        fields.push_back(field);
     }
     return fields;
 }
