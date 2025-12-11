@@ -360,7 +360,7 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
     } else {
         uint8_t resultType = kventry.value[0];
         auto taiheTemp = Blob2TaiheValue(kventry.value, resultType);
-        auto taiheValueType = ohos::data::distributedkvstore::ValueType::from_value(resultType);
+        auto taiheValueType = NativeTypeToTaihe(resultType);
         ::ohos::data::distributedkvstore::Entry taiEntry = { kventry.key.ToString(),
             {taiheValueType, taiheTemp }
         };
@@ -422,6 +422,60 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
         stdArray.push_back(reinterpret_cast<uintptr_t>(tupleItem));
     }
     return ::taihe::array<uintptr_t>(::taihe::copy_data_t{}, stdArray.data(), stdArray.size());
+}
+
+int32_t TaiheValueTypeToNative(int32_t taiheType)
+{
+    switch (taiheType) {
+        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::STRING:
+            return ani_kvstoreutils::STRING;
+        break;
+        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::BYTE_ARRAY:
+            return ani_kvstoreutils::BYTE_ARRAY;
+        break;
+        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::BOOLEAN:
+            return ani_kvstoreutils::BOOLEAN;
+        break;
+        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::DOUBLE:
+            return ani_kvstoreutils::DOUBLE;
+        break;
+        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::LONG:
+            return ani_kvstoreutils::LONG;
+        break;
+        default: {
+            ZLOGE("TaiheValueTypeToNative, unexpected taiheType type %{public}d", taiheType);
+            return ani_kvstoreutils::DOUBLE;
+        }
+        break;
+    }
+}
+
+::ohos::data::distributedkvstore::ValueType NativeTypeToTaihe(int32_t nativeType)
+{
+    ::ohos::data::distributedkvstore::ValueType::key_t key = ::ohos::data::distributedkvstore::ValueType::key_t::DOUBLE;
+    switch (nativeType) {
+        case ani_kvstoreutils::STRING:
+            key = ::ohos::data::distributedkvstore::ValueType::key_t::STRING;
+        break;
+        case ani_kvstoreutils::BYTE_ARRAY:
+            key = ::ohos::data::distributedkvstore::ValueType::key_t::BYTE_ARRAY;
+        break;
+        case ani_kvstoreutils::BOOLEAN:
+            key = ::ohos::data::distributedkvstore::ValueType::key_t::BOOLEAN;
+        break;
+        case ani_kvstoreutils::DOUBLE:
+            key = ::ohos::data::distributedkvstore::ValueType::key_t::DOUBLE;
+        break;
+        case ani_kvstoreutils::LONG:
+            key = ::ohos::data::distributedkvstore::ValueType::key_t::LONG;
+        break;
+        default: {
+            ZLOGE("NativeTypeToTaihe, unexpected nativeType type %{public}d", nativeType);
+            key = ::ohos::data::distributedkvstore::ValueType::key_t::DOUBLE;
+        }
+        break;
+    }
+    return ::ohos::data::distributedkvstore::ValueType(key);
 }
 
 } // namespace ani_kvstoreutils

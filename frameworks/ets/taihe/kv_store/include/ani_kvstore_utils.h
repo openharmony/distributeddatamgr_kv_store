@@ -114,5 +114,7 @@ std::vector<std::string> StringArrayToNative(::taihe::array_view<::taihe::string
     std::map<std::string, DistributedKv::Status> const& mapInfo);
 ::taihe::array<uintptr_t> KvStatusMapToTaiheArray(ani_env* env,
     std::map<std::string, DistributedKv::Status> const& mapInfo);
+int32_t TaiheValueTypeToNative(int32_t taiheType);
+::ohos::data::distributedkvstore::ValueType NativeTypeToTaihe(int32_t taiheType);
 }  // namespace ani_kvstoreutils
 #endif  // OHOS_ANI_KVSTORE_UTILS_H

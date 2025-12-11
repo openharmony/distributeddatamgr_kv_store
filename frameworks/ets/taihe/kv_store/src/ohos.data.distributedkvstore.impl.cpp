@@ -85,8 +85,9 @@ public:
     cJSON* GetValueForJson()
     {
         if (fields_.empty()) {
-            std::string jsonDesc = TypeToString(GetType()) + (GetNullable() ? SPLIT : NOT_NULL) + DEFAULT;
-            if (valueType_ == ani_kvstoreutils::STRING) {
+            int32_t nativeType = ani_kvstoreutils::TaiheValueTypeToNative(GetType());
+            std::string jsonDesc = TypeToString(nativeType) + (GetNullable() ? SPLIT : NOT_NULL) + DEFAULT;
+            if (nativeType == ani_kvstoreutils::STRING) {
                 jsonDesc += MARK + std::string(GetDefaultValue()) + MARK;
             } else {
                 jsonDesc += std::string(GetDefaultValue());
@@ -158,7 +159,7 @@ protected:
     std::list<::ohos::data::distributedkvstore::FieldNode> fields_;
     ::taihe::string fieldName_;
     ::taihe::string default_;
-    int32_t valueType_ = ani_kvstoreutils::STRING;
+    int32_t valueType_ = static_cast<int32_t>(::ohos::data::distributedkvstore::ValueType::key_t::STRING);
     bool nullable_ = false;
 };
 
