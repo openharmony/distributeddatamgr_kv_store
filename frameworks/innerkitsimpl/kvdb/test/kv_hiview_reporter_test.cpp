@@ -111,8 +111,9 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
     auto result = SaveBufferToFile(KEY_FULL_PATH,content);
     ASSERT_TRUE(result);
 	HiSysEventMock mock;
-    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
 	Options options;
+	options.baseDir = BASE_DIR;
 	options.encrypt = true;
     Status status = DATA_CORRUPTED;
 	ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
