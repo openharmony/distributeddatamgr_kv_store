@@ -118,7 +118,7 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
 	options.encrypt = true;
 	options.hapName = "com.database.test";
     Status status = DATA_CORRUPTED;
-	ReportInfo reportInfo = { .options = options, .err000o0.00..0..rCode = status, .systemErrorNo = errno,
+	ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
             .appId = "test_app", .storeId = "test_store", .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
