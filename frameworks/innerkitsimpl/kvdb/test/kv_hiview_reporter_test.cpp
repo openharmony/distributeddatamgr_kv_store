@@ -109,7 +109,7 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
     std::vector<char> content = { 'H', 'e', 'l', 'l', 'o'};
     (void) mkdir(KEY_DIR, (S_IRWXU));
     auto result = SaveBufferToFile(KEY_FULL_PATH,content);
-    ASSERT_TRUE(result)
+    ASSERT_TRUE(result);
 
 	Options options;
     options.kvStoreType = SINGLE_VERSION;
