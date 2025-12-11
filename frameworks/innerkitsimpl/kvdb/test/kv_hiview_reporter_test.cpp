@@ -110,16 +110,10 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
     (void) mkdir(KEY_DIR, (S_IRWXU));
     auto result = SaveBufferToFile(KEY_FULL_PATH,content);
     ASSERT_TRUE(result);
-
+	HiSysEventMock mock;
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
 	Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.securityLevel = S1;
-    options.area = EL1;
-    options.rebuild = true;
-    options.baseDir = std::string(BASE_DIR);
-    options.dataType = DataType::TYPE_DYNAMICAL;
 	options.encrypt = true;
-	options.hapName = "com.database.test";
     Status status = DATA_CORRUPTED;
 	ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
             .appId = "test_app", .storeId = "test_store", .functionName = std::string(__FUNCTION__) };

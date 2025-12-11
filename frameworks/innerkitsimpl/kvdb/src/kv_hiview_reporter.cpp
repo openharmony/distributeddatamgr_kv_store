@@ -342,7 +342,7 @@ std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &even
             continue;
         }
 	    std::string suffixName = std::string(suffix.name_);
-        if (suffixName == "KEYV1" ) {
+        if (suffixName == "KEYV1") {
             if (encryptStatus) {
 			    file = eventInfo.baseDir + KEY_DIR + SLASH + eventInfo.storeName + suffix.suffix_;
 		    } else {
