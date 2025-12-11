@@ -33,6 +33,8 @@ using namespace OHOS::DistributedKv;
 static constexpr const char *BASE_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/";
 static constexpr const char *STOREID = "test_storeId";
 static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
+static constexpr const char *KEY_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/key";
+static constexpr const char *KEY_FULL_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/test_store.key_v1";
 
 class KvHiviewReporterTest : public testing::Test {
 public:
@@ -53,6 +55,8 @@ void KvHiviewReporterTest::SetUpTestCase(void)
 
 void KvHiviewReporterTest::TearDownTestCase(void)
 {
+	(void) remove(KEY_FULL_PATH);
+    (void) remove(KEY_DIR);
     auto ret = remove(BASE_DIR);
     if (ret != 0) {
         ZLOGE("Remove failed, result:%{public}d, path:%{public}s", ret, BASE_DIR);
@@ -103,9 +107,8 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
 {
     ZLOGI("GenerateAppendix001 begin.");
     std::vector<char> content = { 'H', 'e', 'l', 'l', 'o'};
-    (void) mkdir("/data/service/el1/public/database/KvHiviewReporterTest/key/", (S_IRWXU));
-    auto result = SaveBufferToFile("/data/service/el1/public/database/KvHiviewReporterTest/key/test_store.key_v1",
-		content);
+    (void) mkdir(KEY_DIR, (S_IRWXU));
+    auto result = SaveBufferToFile(KEY_FULL_PATH,content);
     ASSERT_TRUE(result)
 
 	Options options;
@@ -113,7 +116,7 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
     options.securityLevel = S1;
     options.area = EL1;
     options.rebuild = true;
-    options.baseDir = "/data/service/el1/public/database/KvHiviewReporterTest/";
+    options.baseDir = std::string(BASE_DIR);
     options.dataType = DataType::TYPE_DYNAMICAL;
 	options.encrypt = true;
 	options.hapName = "com.database.test";

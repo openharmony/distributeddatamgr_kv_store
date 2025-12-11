@@ -207,27 +207,24 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     return oss.str();
 }
 
-std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &dbPath, const std::string &name)
+std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &filePath, const std::string &name)
 {
     std::string fileTimeInfo;
     const uint32_t permission = 0777;
-    for (auto &suffix : FILE_SUFFIXES) {
-        if (suffix.name_ == nullptr) {
-            continue;
-        }
-        auto file = dbPath + DEFAULT_PATH + suffix.suffix_;
-        struct stat fileStat;
-        if (stat(file.c_str(), &fileStat) != 0) {
-            continue;
-        }
-        std::stringstream oss;
-        oss << " dev:0x" << std::hex << fileStat.st_dev << " ino:0x" << std::hex << fileStat.st_ino;
-        oss << " mode:0" << std::oct << (fileStat.st_mode & permission) << " size:" << std::dec << fileStat.st_size
-            << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
-            << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
-            << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
-        fileTimeInfo += "\n" + std::string(name) + " :" + oss.str();
+    if (filePath.empty()) {
+        return fileTimeInfo;
     }
+    struct stat fileStat;
+    if (stat(filePath.c_str(), &fileStat) != 0) {
+        return fileTimeInfo;
+    }
+    std::stringstream oss;
+    oss << " dev:0x" << std::hex << fileStat.st_dev << " ino:0x" << std::hex << fileStat.st_ino;
+    oss << " mode:0" << std::oct << (fileStat.st_mode & permission) << " size:" << std::dec << fileStat.st_size
+        << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
+        << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
+        << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
+    fileTimeInfo += "\n" + std::string(name) + " :" + oss.str();
     return fileTimeInfo;
 }
 
