@@ -1440,13 +1440,11 @@ int CloudSyncer::StopSyncTask(const std::function<int(void)> &removeFunc, int er
         StopAllTasks(errCode);
     }
     errCode = E_OK;
-    {
+    if (removeFunc != nullptr) {
         std::lock_guard<std::mutex> lock(syncMutex_);
-        if (removeFunc != nullptr) {
-            errCode = removeFunc();
-        }
-        hasKvRemoveTask = false;
+        errCode = removeFunc();
     }
+    hasKvRemoveTask = false;
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] removeFunc execute failed errCode: %d.", errCode);
     }
@@ -1462,10 +1460,14 @@ void CloudSyncer::StopAllTasks(int errCode)
     }
     // mark current task user_change
     SetTaskFailed(currentTask, errCode);
-    UnlockIfNeed();
-    WaitCurTaskFinished();
-
-    std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos();
+    std::optional<TaskId> currentTaskId;
+    if (errCode != -E_TASK_INTERRUPTED) {
+        UnlockIfNeed();
+        WaitCurTaskFinished();
+    } else {
+        currentTaskId = GetCurrentTaskId();
+    }
+    std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos(currentTaskId);
     for (auto &info: infoList) {
         LOGI("[CloudSyncer] finished taskId %" PRIu64 " with errCode %d, isPriority %d.", info.taskId, errCode,
             info.priorityTask);
@@ -2114,17 +2116,24 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     return info;
 }
 
-std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
+std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos(const std::optional<TaskId> taskId)
 {
     std::vector<CloudTaskInfo> infoList;
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    for (const auto &item: cloudTaskInfos_) {
-        infoList.push_back(item.second);
+    for (const auto& [infoTaskId, info]: cloudTaskInfos_) {
+        if (!taskId.has_value() || infoTaskId != taskId.value()) {
+            infoList.push_back(info);
+        }
     }
-    taskQueue_.clear();
-    cloudTaskInfos_.clear();
-    resumeTaskInfos_.clear();
-    currentContext_.notifier = nullptr;
+
+    if (taskId.has_value()) {
+        RetainCurrentTaskInfo(taskId.value());
+    } else {
+        taskQueue_.clear();
+        cloudTaskInfos_.clear();
+        resumeTaskInfos_.clear();
+        currentContext_.notifier = nullptr;
+    }
     return infoList;
 }
 
