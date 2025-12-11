@@ -103,7 +103,7 @@ HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
 {
     ZLOGI("GenerateAppendix001 begin.");
     std::vector<char> content = { 'H', 'e', 'l', 'l', 'o'};
-    auto ret = mkdir("/data/service/el1/public/database/KvHiviewReporterTest/key/", (S_IRWXU));
+    (void) mkdir("/data/service/el1/public/database/KvHiviewReporterTest/key/", (S_IRWXU));
     auto result = SaveBufferToFile("/data/service/el1/public/database/KvHiviewReporterTest/key/test_store.key_v1",
 		content);
     ASSERT_TRUE(result)
