@@ -51,7 +51,7 @@ public:
 private:
     static void ReportFaultEvent(KVDBFaultEvent eventInfo);
 
-    static void ReportCurruptedEvent(KVDBFaultEvent eventInfo);
+    static void ReportCorruptedEvent(KVDBFaultEvent eventInfo);
 
     static void ReportCommonFault(const KVDBFaultEvent &eventInfo);
 
@@ -66,7 +66,7 @@ private:
 
     static void DeleteCorruptedFlag(const std::string& dbPath, const std::string& storeId);
 
-    static std::string GetFileStatInfo(const std::string &dbPath, const std::string &name);
+    static std::string GetFileStatInfo(const std::string &dbPath);
 
     static std::string GetTimeWithMilliseconds(time_t sec, int64_t nsec);
 

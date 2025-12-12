@@ -21,9 +21,7 @@
 #include "log_print.h"
 #include "types.h"
 #include <unistd.h>
-#include <file_ex.h>
-#include "store_util.h"
-
+#include "store_manager.h"
 
 namespace OHOS::Test {
 using namespace testing;
@@ -33,8 +31,6 @@ using namespace OHOS::DistributedKv;
 static constexpr const char *BASE_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/";
 static constexpr const char *STOREID = "test_storeId";
 static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
-static constexpr const char *KEY_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/key";
-static constexpr const char *KEY_FULL_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/test_store.key_v1";
 
 class KvHiviewReporterTest : public testing::Test {
 public:
@@ -55,8 +51,6 @@ void KvHiviewReporterTest::SetUpTestCase(void)
 
 void KvHiviewReporterTest::TearDownTestCase(void)
 {
-	(void) remove(KEY_FULL_PATH);
-    (void) remove(KEY_DIR);
     auto ret = remove(BASE_DIR);
     if (ret != 0) {
         ZLOGE("Remove failed, result:%{public}d, path:%{public}s", ret, BASE_DIR);
@@ -99,25 +93,35 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level1)
 }
 
 /**
- * @tc.name: GenerateAppendix
- * @tc.desc: Execute the GenerateAppendix method
+ * @tc.name: ReportKVFaultEvent002
+ * @tc.desc: Execute the ReportFaultEvent method
  * @tc.type: FUNC
  */
-HWTEST_F(KvHiviewReporterTest, GenerateAppendix001, TestSize.Level1)
+HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
 {
-    ZLOGI("GenerateAppendix001 begin.");
-    std::vector<char> content = { 'H', 'e', 'l', 'l', 'o'};
-    (void) mkdir(KEY_DIR, (S_IRWXU));
-    auto result = SaveBufferToFile(KEY_FULL_PATH,content);
-    ASSERT_TRUE(result);
-	HiSysEventMock mock;
-    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
-	Options options;
-	options.baseDir = BASE_DIR;
-	options.encrypt = true;
-    Status status = DATA_CORRUPTED;
-	ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
-            .appId = "test_app", .storeId = "test_store", .functionName = std::string(__FUNCTION__) };
+    ZLOGI("ReportKVFaultEvent002 getKvStore begin.");
+    std::shared_ptr<SingleKvStore> kvStore;
+    AppId appId = { "KvHiviewReporterTest" };
+    StoreId storeId = { "SingleKVStore" };
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.baseDir = BASE_DIR;
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+
+    ZLOGI("ReportKVFaultEvent002 reportKVFaultEvent begin.");
+    HiSysEventMock mock;
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
+    ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+                .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+
+    ZLOGI("ReportKVFaultEvent002 delete kvStore begin.");
+    std::string baseDir = BASE_DIR;
+    StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ZLOGI("ReportKVFaultEvent002 delete kvStore end.");
 }
 } // namespace OHOS::Test

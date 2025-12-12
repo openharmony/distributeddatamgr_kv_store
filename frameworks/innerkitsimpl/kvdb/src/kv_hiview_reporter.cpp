@@ -34,27 +34,25 @@ static constexpr int MAX_TIME_BUF_LEN = 32;
 static constexpr int MILLISECONDS_LEN = 3;
 static constexpr int NANO_TO_MILLI = 1000000;
 static constexpr int MILLI_PRE_SEC = 1000;
+static constexpr uint32_t PERMISSION_CODE = 0777;
 static constexpr const char *CORRUPTED_EVENT_NAME = "DATABASE_CORRUPTED";
 static constexpr const char *FAULT_EVENT_NAME = "DISTRIBUTED_DATA_KV_FAULT";
 static constexpr const char *DISTRIBUTED_DATAMGR = "DISTDATAMGR";
 constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
-static constexpr const char *DEFAULT_PATH = "single_ver/main/gen_natural_store.db";
 constexpr const char* DATABASE_REBUILD = "RestoreType:Rebuild";
 static constexpr const char* FUNCTION = "FunctionName ";
 static constexpr const char* DBPATH = "dbPath";
 static constexpr const char* FILEINFO = "fileInfo";
-static constexpr const char *KEY_DIR = "/key";
-static constexpr const char *SLASH = "/";
+static constexpr const char *KEY_NAME = "KEY";
+static constexpr const char *SUFFIX_KEY = ".key_v1";
+static constexpr const char *DB_NAME = "DB";
+static constexpr const char *DB_PATH = "single_ver/main/gen_natural_store.db";
+static constexpr const char *SHM_NAME = "SHM";
+static constexpr const char *SHM_PATH = "single_ver/main/gen_natural_store.db-shm";
+static constexpr const char *WAL_NAME = "WAL";
+static constexpr const char *WAL_PATH = "single_ver/main/gen_natural_store.db-wal";
 std::set<std::string> KVDBFaultHiViewReporter::storeFaults_ = {};
 std::mutex KVDBFaultHiViewReporter::mutex_;
-
-static constexpr Suffix FILE_SUFFIXES[] = {
-    {"", "DB"},
-    {"-shm", "SHM"},
-    {"-wal", "WAL"},
-    {".key_v1", "KEYV1"},
-
-};
 
 static constexpr const char *BUSINESS_TYPE[] = {
     "sqlite",
@@ -79,7 +77,8 @@ struct KVDBFaultEvent {
     std::string faultType = "common";
     std::string businessType;
     std::string functionName;
-    std::string baseDir;
+    std::string dbPath;
+    std::string keyPath;
 
     explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
     {
@@ -87,13 +86,11 @@ struct KVDBFaultEvent {
         securityLevel = static_cast<uint32_t>(options.securityLevel);
         pathArea = static_cast<uint32_t>(options.area);
         encryptStatus = static_cast<uint32_t>(options.encrypt);
-        baseDir = options.GetDatabaseDir();
     }
 };
 
 void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
 {
-    auto reportDir = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
     KVDBFaultEvent eventInfo(reportInfo.options);
     eventInfo.errorCode = reportInfo.errorCode;
     eventInfo.storeName = reportInfo.storeId;
@@ -101,19 +98,22 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
     eventInfo.functionName = reportInfo.functionName;
     eventInfo.systemErrorNo = reportInfo.systemErrorNo;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    eventInfo.appendix = reportDir;
+    eventInfo.dbPath = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
+    if (eventInfo.encryptStatus) {
+        eventInfo.keyPath = reportInfo.options.GetDatabaseDir() + "/key/" + reportInfo.storeId + SUFFIX_KEY;
+    }
     if (!IsReportedFault(eventInfo)) {
-            ReportFaultEvent(eventInfo);
-        }
+        ReportFaultEvent(eventInfo);
+    }
     if (eventInfo.errorCode == DATA_CORRUPTED) {
-        ReportCurruptedEvent(eventInfo);
+        ReportCorruptedEvent(eventInfo);
     }
 }
 
 void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
 {
-    auto reportDir = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
-    if (!IsReportedCorruptedFault(reportInfo.appId, reportInfo.storeId, reportDir)) {
+    auto dbPath = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
+    if (!IsReportedCorruptedFault(reportInfo.appId, reportInfo.storeId, dbPath)) {
         return;
     }
     KVDBFaultEvent eventInfo(reportInfo.options);
@@ -123,7 +123,8 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
     eventInfo.functionName = reportInfo.functionName;
     eventInfo.systemErrorNo = reportInfo.systemErrorNo;
     eventInfo.errorOccurTime = GetCurrentMicrosecondTimeFormat();
-    eventInfo.appendix = reportDir;
+    eventInfo.dbPath = dbPath;
+    eventInfo.keyPath = reportInfo.options.GetDatabaseDir() + "/key/" + reportInfo.storeId + SUFFIX_KEY;
     if (eventInfo.errorCode == 0) {
         ZLOGI("Db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
         DeleteCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
@@ -163,14 +164,14 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
                         HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
 
-void KVDBFaultHiViewReporter::ReportCurruptedEvent(KVDBFaultEvent eventInfo)
+void KVDBFaultHiViewReporter::ReportCorruptedEvent(KVDBFaultEvent eventInfo)
 {
-    if (eventInfo.appendix.empty() || eventInfo.storeName.empty()) {
+    if (eventInfo.dbPath.empty() || eventInfo.storeName.empty()) {
         ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s",
             StoreUtil::Anonymous(eventInfo.appendix).c_str(), StoreUtil::Anonymous(eventInfo.storeName).c_str());
         return;
     }
-    if (IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName, eventInfo.appendix)) {
+    if (IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName, eventInfo.dbPath)) {
         return;
     }
     CreateCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
@@ -205,27 +206,6 @@ std::string KVDBFaultHiViewReporter::GetCurrentMicrosecondTimeFormat()
     oss << std::put_time(tm, "%Y-%m-%d %H:%M:%S.") << std::setfill('0') << std::setw(width)
         << ((timestamp / offset) % offset) << "." << std::setfill('0') << std::setw(width) << (timestamp % offset);
     return oss.str();
-}
-
-std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &filePath, const std::string &name)
-{
-    std::string fileTimeInfo;
-    const uint32_t permission = 0777;
-    if (filePath.empty()) {
-        return fileTimeInfo;
-    }
-    struct stat fileStat;
-    if (stat(filePath.c_str(), &fileStat) != 0) {
-        return fileTimeInfo;
-    }
-    std::stringstream oss;
-    oss << " dev:0x" << std::hex << fileStat.st_dev << " ino:0x" << std::hex << fileStat.st_ino;
-    oss << " mode:0" << std::oct << (fileStat.st_mode & permission) << " size:" << std::dec << fileStat.st_size
-        << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
-        << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
-        << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
-    fileTimeInfo += "\n" + std::string(name) + " :" + oss.str();
-    return fileTimeInfo;
 }
 
 std::string KVDBFaultHiViewReporter::GetTimeWithMilliseconds(time_t sec, int64_t nsec)
@@ -329,34 +309,31 @@ std::string KVDBFaultHiViewReporter::GetDBPath(const std::string &path, const st
     std::string reporterDir = "";
     DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId, reporterDir);
     reporterDir = path + "/kvdb/" + reporterDir + "/";
-    return StoreUtil::Anonymous(reporterDir).c_str();
+    return reporterDir;
+}
+
+std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &filePath)
+{
+    struct stat fileStat;
+    if (filePath.empty() || stat(filePath.c_str(), &fileStat) != 0) {
+        return "";
+    }
+    std::stringstream oss;
+    oss << " dev:0x" << std::hex << fileStat.st_dev << " ino:0x" << std::hex << fileStat.st_ino
+        << " mode:0" << std::oct << (fileStat.st_mode & PERMISSION_CODE) << " size:" << std::dec << fileStat.st_size
+        << " atime:" << GetTimeWithMilliseconds(fileStat.st_atime, fileStat.st_atim.tv_nsec)
+        << " mtime:" << GetTimeWithMilliseconds(fileStat.st_mtime, fileStat.st_mtim.tv_nsec)
+        << " ctime:" << GetTimeWithMilliseconds(fileStat.st_ctime, fileStat.st_ctim.tv_nsec);
+    return oss.str();
 }
 
 std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &eventInfo)
 {
-    std::string fileStatInfo;
-    std::string file;
-    bool encryptStatus = (eventInfo.encryptStatus!=0);
-    for (auto &suffix : FILE_SUFFIXES) {
-        if (suffix.name_ == nullptr) {
-            continue;
-        }
-	    std::string suffixName = std::string(suffix.name_);
-        if (suffixName == "KEYV1") {
-            if (encryptStatus) {
-			    file = eventInfo.baseDir + KEY_DIR + SLASH + eventInfo.storeName + suffix.suffix_;
-		    } else {
-			    continue;
-		    }
-        } else {
-            file = eventInfo.appendix + DEFAULT_PATH + suffix.suffix_;
-        }
-        fileStatInfo += "\n" + GetFileStatInfo(file, std::string(suffix.name_));
-    }
-    std::string appenDix = "";
-    appenDix = FUNCTION + eventInfo.functionName + "\n" +
-               DBPATH + eventInfo.appendix + "\n" +
-               FILEINFO + fileStatInfo;
-    return appenDix;
+    std::string fileInfo;
+    fileInfo += std::string(DB_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + DB_PATH) + "\n";
+    fileInfo += std::string(SHM_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + SHM_PATH) + "\n";
+    fileInfo += std::string(WAL_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + WAL_PATH) + "\n";
+    fileInfo += std::string(KEY_NAME) + ":" + GetFileStatInfo(eventInfo.keyPath);
+    return FUNCTION + eventInfo.functionName + "\n" + DBPATH + eventInfo.appendix + "\n" + FILEINFO + fileInfo;
 }
 } // namespace OHOS::DistributedKv
