@@ -490,10 +490,7 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, AbortCloudSyncTest001, TestSize.Le
     auto delegate = GetDelegate(info1_);
     std::function<void(void)> forkFunc = [&virtualCloudDb, &delegate]() {
         virtualCloudDb->ForkQuery([&delegate](const std::string &, VBucket &) {
-            std::thread subThread([&delegate]() {
-                EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
-            });
-            subThread.detach();
+            EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
         });
     };
     std::function<void(void)> cancelForkFunc = [&virtualCloudDb]() {
@@ -522,10 +519,7 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, AbortCloudSyncTest002, TestSize.Le
     std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
     std::function<void(void)> forkFunc = [&virtualCloudDb, &delegate]() {
         virtualCloudDb->ForkQuery([&delegate](const std::string &, VBucket &) {
-            std::thread subThread([&delegate]() {
-                EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
-            });
-            subThread.detach();
+            EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
         });
     };
     std::function<void(void)> cancelForkFunc = [&virtualCloudDb]() {
@@ -551,10 +545,7 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, AbortCloudSyncTest003, TestSize.Le
             if (isStopTask) {
                 return;
             }
-            std::thread subThread([&]() {
-                EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
-            });
-            subThread.detach();
+            EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
             isStopTask = true;
         });
     };
@@ -588,10 +579,7 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, AbortCloudSyncTest004, TestSize.Le
             if (isStopTask) {
                 return;
             }
-            std::thread subThread([&]() {
-                EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
-            });
-            subThread.detach();
+            EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
             isStopTask = true;
         });
     };
@@ -615,10 +603,7 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, AbortCloudSyncTest005, TestSize.Le
     std::function<void(void)> forkFunc = [&virtualCloudDb, &delegate]() {
         virtualCloudDb->ForkBeforeBatchUpdate([&delegate](const std::string &, std::vector<VBucket> &,
             std::vector<VBucket> &, bool) {
-            std::thread subThread([&]() {
-                EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
-            });
-            subThread.detach();
+            EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
         });
     };
     std::function<void(void)> cancelForkFunc = [&virtualCloudDb]() {

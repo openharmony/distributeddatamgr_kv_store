@@ -2199,6 +2199,13 @@ namespace {
         dataVec.push_back(type);
         changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
         g_observer->SetExpectedResult(changedData);
+        const int maxAttempts = 200; // 200 * 10ms = 2s
+        const std::chrono::milliseconds pollInterval(10);
+        bool isOnChange = false;
+        for (int i = 0; i < maxAttempts && !isOnChange; ++i) {
+            std::this_thread::sleep_for(pollInterval);
+            isOnChange = g_observer->IsAllChangedDataEq();
+        }
         EXPECT_EQ(g_observer->IsAllChangedDataEq(), true);
     }
 
