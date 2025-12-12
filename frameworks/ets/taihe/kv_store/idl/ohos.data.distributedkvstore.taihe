@@ -17,97 +17,97 @@
 @!sts_export_default
 
 @!sts_inject_into_module("""
+import BaseContext from 'application.BaseContext';
+import common from '@ohos.app.ability.common';
 import { AsyncCallback, Callback } from '@ohos.base';
 import { ValuesBucket } from '@ohos.data.ValuesBucket';
 import dataSharePredicates from '@ohos.data.dataSharePredicates';
-import common from '@ohos.app.ability.common';
-import BaseContext from 'application.BaseContext';
 """)
 
 @!sts_inject("""
-  static { loadLibrary("distributedkvstore_ani.z"); }
+    static { loadLibrary("distributedkvstore_ani.z"); }
 """)
 
-  struct KVManagerConfig {
+struct KVManagerConfig {
     bundleName: String;
     context: @sts_type("BaseContext") Opaque;
-  }
+}
 
-  enum Constants : i32 {
+enum Constants : i32 {
     MAX_KEY_LENGTH = 1024,
     MAX_VALUE_LENGTH = 4194303,
     MAX_KEY_LENGTH_DEVICE = 896,
     MAX_STORE_ID_LENGTH = 128,
     MAX_QUERY_LENGTH = 512000,
     MAX_BATCH_SIZE = 128,
-  }
+}
 
-  enum ValueType : i32 {
+enum ValueType : i32 {
     STRING,
     BYTE_ARRAY,
     BOOLEAN,
     DOUBLE,
     LONG
-  }
+}
 
-  union ValueTypeUnion {
+union ValueUnion {
+    STRING: String;
+    UINT8Array: @typedarray Array<u8>;
+    BOOL: bool;
+    F64: f64;
+    INT64: i64;
+}
+
+union DataShareValueUnion {
     INT64: i64;
     F64: f64;
     STRING: String;
     BOOL: bool;
-    Uint8Array: @typedarray Array<u8>;
-  }
+    UINT8Array: @typedarray Array<u8>;
+}
 
-  union DataShareValueTypeUnion {
-    INT64: i64;
-    F64: f64;
-    STRING: String;
-    BOOL: bool;
-    Uint8Array: @typedarray Array<u8>;
-  }
-
-  struct Value {
+struct Value {
     type: ValueType;
-    value: ValueTypeUnion;
-  }
+    value: ValueUnion;
+}
 
-  struct Entry {
+struct Entry {
     key: String;
     value: Value;
-  }
+}
 
-  struct ChangeNotification {
+struct ChangeNotification {
     insertEntries: Array<Entry>;
     updateEntries: Array<Entry>;
     deleteEntries: Array<Entry>;
     deviceId: String;
-  }
+}
 
-  enum SyncMode : i32 {
+enum SyncMode : i32 {
     PULL_ONLY,
     PUSH_ONLY,
     PUSH_PULL
-  }
+}
 
-  enum SubscribeType : i32 {
+enum SubscribeType : i32 {
     SUBSCRIBE_TYPE_LOCAL = 1,
     SUBSCRIBE_TYPE_REMOTE,
     SUBSCRIBE_TYPE_ALL
-  }
+}
 
-  enum KVStoreType : i32 {
+enum KVStoreType : i32 {
     DEVICE_COLLABORATION,
     SINGLE_VERSION
-  }
+}
 
-  enum SecurityLevel : i32 {
+enum SecurityLevel : i32 {
     S1,
     S2,
     S3,
     S4
-  }
+}
 
-  struct Options {
+struct Options {
     createIfMissing: Optional<bool>;
     encrypt: Optional<bool>;
     backup: Optional<bool>;
@@ -115,14 +115,14 @@ import BaseContext from 'application.BaseContext';
     kvStoreType: Optional<KVStoreType>;
     securityLevel: Optional<SecurityLevel>;
     schema: Optional<Schema>;
-  }
+}
 
-  union OneUndef {
+union OneUndef {
     @undefined UNDEFINED;
-  }
+}
 
-  @class
-  interface Schema {
+@class
+interface Schema {
     GetInner (): i64;
     @get GetRoot(): FieldNode;
     @set SetRoot(para :FieldNode): void;
@@ -132,12 +132,12 @@ import BaseContext from 'application.BaseContext';
     @set SetMode(para :i32): void;
     @get GetSkip(): i32;
     @set SetSkip(para :i32): void;
-  }
-  @ctor("Schema")
-  function CreateSchema(): Schema;
+}
+@ctor("Schema")
+function CreateSchema(): Schema;
 
-  @class
-  interface FieldNode {
+@class
+interface FieldNode {
     GetInner (): i64;
     AppendChild(child: FieldNode): bool;
     @get GetDefaultValue(): String;
@@ -146,11 +146,11 @@ import BaseContext from 'application.BaseContext';
     @set SetNullable(para :bool): void;
     @get GetType(): i32;
     @set SetType(para : i32): void;
-  }
-  @ctor("FieldNode")
-  function CreateFieldNode(name: String): FieldNode;
+}
+@ctor("FieldNode")
+function CreateFieldNode(name: String): FieldNode;
 
-  interface KVStoreResultSet {
+interface KVStoreResultSet {
     GetInner (): i64;
     GetProxy (): i64;
     GetCount(): i32;
@@ -166,28 +166,28 @@ import BaseContext from 'application.BaseContext';
     IsBeforeFirst(): bool;
     IsAfterLast(): bool;
     GetEntry(): Entry;
-  }
+}
 
-  union LongDoubleStringBool {
+union LongDoubleStringBool {
     INT64: i64;
     F64: f64;
     STRING: String;
     BOOL: bool;
-  }
+}
 
-  union LongDoubleString {
+union LongDoubleString {
     INT64: i64;
     F64: f64;
     STRING: String;
-  }
+}
 
-  union LongDouble {
+union LongDouble {
     F64: f64;
     INT64: i64;
-  }
+}
 
-  @class
-  interface Query {
+@class
+interface Query {
     GetInner (): i64;
 
     Reset(@sts_this thiz : Query): Query;
@@ -241,24 +241,24 @@ import BaseContext from 'application.BaseContext';
     DeviceId(@sts_this thiz : Query, deviceId: String): Query;
 
     GetSqlLike(): String;
-  }
-  @ctor("Query")
-  function CreateQuery(): Query;
+}
+@ctor("Query")
+function CreateQuery(): Query;
 
-  interface SingleKVStore {
+interface SingleKVStore {
     GetInner (): i64;
 
     @gen_async("put")
     @gen_promise("put")
-    PutSync(key: String, value: ValueTypeUnion): void;
+    PutSync(key: String, value: ValueUnion): void;
 
     @gen_async("putBatch")
     @gen_promise("putBatch")
-    PutBatchEntrySync(entries: Array<Entry>): void;
+    PutBatchSync(entries: Array<Entry>): void;
 
     @gen_async("putValuesBuckets")
     @gen_promise("putValuesBuckets")
-    PutValuesBucketsSync(value: Array<@record Map<String, DataShareValueTypeUnion>>): void;
+    PutValuesBucketsSync(value: Array<@record Map<String, DataShareValueUnion>>): void;
 
     @gen_async("delete")
     @gen_promise("delete")
@@ -266,7 +266,7 @@ import BaseContext from 'application.BaseContext';
 
     @gen_async("delete")
     @gen_promise("delete")
-    DeleteByPredicateSync(predicates: @sts_type("dataSharePredicates.DataSharePredicates") Opaque): void;
+    DeleteByPredicatesSync(predicates: @sts_type("dataSharePredicates.DataSharePredicates") Opaque): void;
 
     @gen_async("deleteBatch")
     @gen_promise("deleteBatch")
@@ -278,7 +278,7 @@ import BaseContext from 'application.BaseContext';
 
     @gen_async("get")
     @gen_promise("get")
-    GetSync(key: String): ValueTypeUnion;
+    GetSync(key: String): ValueUnion;
 
     @gen_async("getEntries")
     @gen_promise("getEntries")
@@ -286,7 +286,7 @@ import BaseContext from 'application.BaseContext';
 
     @gen_async("getEntries")
     @gen_promise("getEntries")
-    getEntriesByQuerySync(query: Query): Array<Entry>;
+    GetEntriesByQuerySync(query: Query): Array<Entry>;
 
     @gen_async("getResultSet")
     @gen_promise("getResultSet")
@@ -298,7 +298,7 @@ import BaseContext from 'application.BaseContext';
 
     @gen_async("getResultSet")
     @gen_promise("getResultSet")
-    GetResultSetByPredicateSync(predicates: @sts_type("dataSharePredicates.DataSharePredicates") Opaque): KVStoreResultSet;
+    GetResultSetByPredicatesSync(predicates: @sts_type("dataSharePredicates.DataSharePredicates") Opaque): KVStoreResultSet;
 
     @gen_async("closeResultSet")
     @gen_promise("closeResultSet")
@@ -350,21 +350,21 @@ import BaseContext from 'application.BaseContext';
     @overload("sync")
     SyncByQuery(deviceIds: Array<String>, query: Query, mode: SyncMode, delayMs: Optional<i32>): void;
 
-    OnDataChange(type: SubscribeType, f: (info: ChangeNotification) => void, @sts_last opq: Opaque) : void;
-    OffDataChange(opq: Optional<@sts_type("Function1<String, void>") Opaque>) : void;
+    OnDataChange(type: SubscribeType, f: (info: ChangeNotification) => void, @sts_last opq: Opaque): void;
+    OffDataChange(opq: Optional<@sts_type("Function1<String, void>") Opaque>): void;
 
-    OnSyncComplete(f: (info: Array<Opaque>) => void, @sts_last opq: Opaque) : void;
-    OffSyncComplete(opq: Optional<@sts_type("Function1<Array<[string, int]>, void>") Opaque>) : void;
+    OnSyncComplete(f: (info: Array<Opaque>) => void, @sts_last opq: Opaque): void;
+    OffSyncComplete(opq: Optional<@sts_type("Function1<Array<[string, int]>, void>") Opaque>): void;
 
     @gen_async("getSecurityLevel")
     @gen_promise("getSecurityLevel")
     GetSecurityLevelSync(): SecurityLevel;
-  }
+}
 
-  interface DeviceKVStore : SingleKVStore {
+interface DeviceKVStore : SingleKVStore {
     @gen_async("get")
     @gen_promise("get")
-    GetByDeviceIdSync(deviceId: String, key: String): ValueTypeUnion;
+    GetByDeviceIdSync(deviceId: String, key: String): ValueUnion;
 
     @gen_async("getEntries")
     @gen_promise("getEntries")
@@ -389,17 +389,17 @@ import BaseContext from 'application.BaseContext';
     @gen_async("getResultSize")
     @gen_promise("getResultSize")
     GetResultSizeByDeviceIdSync(deviceId: String, query: Query): i32;
+}
 
-  }
+function createKVManager(config: KVManagerConfig): KVManager;
 
-  function createKVManager(config: KVManagerConfig): KVManager;
-
-  union KvStoreTypeUnion{
+union KvStoreTypeUnion {
     singleKVStore: SingleKVStore;
     deviceKVStore: DeviceKVStore;
-  }
+    kvStore: Opaque;
+}
 
-  interface KVManager {
+interface KVManager {
     @gen_async("getKVStore")
     @gen_promise("getKVStore")
     GetKVStoreSync(storeId: String, options: Options): KvStoreTypeUnion;
@@ -416,6 +416,6 @@ import BaseContext from 'application.BaseContext';
     @gen_promise("getAllKVStoreId")
     GetAllKVStoreIdSync(appId: String): Array<String>;
 
-    OnDistributedDataServiceDie(f: (para: OneUndef) => void, @sts_last opq: Opaque);
-    OffDistributedDataServiceDie(opq: Optional<@sts_type("Function1<undefined, void>") Opaque>);
-  }
+    OnDistributedDataServiceDie(f: (para: OneUndef) => void, @sts_last opq: Opaque): void;
+    OffDistributedDataServiceDie(opq: Optional<@sts_type("Function1<undefined, void>") Opaque>): void;
+}

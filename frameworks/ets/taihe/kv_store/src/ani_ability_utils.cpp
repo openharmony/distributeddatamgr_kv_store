@@ -19,7 +19,8 @@
 
 #include <string>
 
-namespace ani_abilityutils {
+namespace OHOS {
+namespace DistributedKVStore {
 
 using namespace taihe;
 using namespace OHOS;
@@ -112,4 +113,5 @@ int32_t AniGetContext(ani_object jsValue, ContextParam &param)
     return ANI_OK;
 }
 
-} //namespace ani_abilityutils
+}
+}

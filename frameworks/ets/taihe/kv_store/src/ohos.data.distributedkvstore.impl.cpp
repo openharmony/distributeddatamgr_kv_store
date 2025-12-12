@@ -18,6 +18,7 @@
 #include "stdexcept"
 
 #include <optional>
+#include <nlohmann/json.hpp>
 
 #define LOG_TAG "AniKvstoreImpl"
 #include "log_print.h"
@@ -26,7 +27,6 @@
 #include "ani_kvstore_utils.h"
 #include "ani_error_utils.h"
 #include "ani_observer_utils.h"
-#include "cJSON.h"
 #include "types.h"
 #include "distributed_kv_data_manager.h"
 #include "datashare_abs_predicates.h"
@@ -37,16 +37,16 @@
 
 using namespace OHOS;
 using namespace OHOS::DistributedKVStore;
+using namespace ::ohos::data;
+using TaiheOptions = distributedkvstore::Options;
 
 static constexpr int MAX_APP_ID_LEN = 256;
 static constexpr int DEVICEID_WIDTH = 4;
-static constexpr const char* EVENT_DATACHANGE = "dataChange";
-static constexpr const char* EVENT_SYNCCOMPLETE = "syncComplete";
+static constexpr const char* DATA_CHANGE_EVENT = "dataChange";
+static constexpr const char* SYNC_COMPLETE_EVENT = "syncComplete";
 
 static std::map<uint32_t, std::string> valueTypeToString_ = {
     { ani_kvstoreutils::STRING, std::string("STRING") },
-    { ani_kvstoreutils::INTEGER, std::string("INTEGER") },
-    { ani_kvstoreutils::FLOAT, std::string("DOUBLE") },
     { ani_kvstoreutils::BYTE_ARRAY, std::string("BYTE_ARRAY") },
     { ani_kvstoreutils::BOOLEAN, std::string("BOOL") },
     { ani_kvstoreutils::DOUBLE, std::string("DOUBLE") },
@@ -82,7 +82,7 @@ public:
         }
     }
 
-    cJSON* GetValueForJson()
+    nlohmann::json GetValueForJson()
     {
         if (fields_.empty()) {
             int32_t nativeType = ani_kvstoreutils::TaiheValueTypeToNative(GetType());
@@ -92,34 +92,21 @@ public:
             } else {
                 jsonDesc += std::string(GetDefaultValue());
             }
-            return cJSON_CreateString(jsonDesc.c_str());
+            return jsonDesc;
         }
 
-        cJSON* jsFields = cJSON_CreateObject();
-        if (jsFields == nullptr) {
-            return nullptr;
-        }
+        nlohmann::json jsFields;
         for (auto fld : fields_) {
             FieldNodeImpl* impl = reinterpret_cast<FieldNodeImpl*>(fld->GetInner());
             if (impl == nullptr) {
                 continue;
             }
-            cJSON* childItem = impl->GetValueForJson();
-            if (childItem == nullptr) {
-                cJSON_Delete(jsFields);
-                return nullptr;
-            }
-            auto status = cJSON_AddItemToObject(jsFields, impl->fieldName_.c_str(), childItem);
-            if (!status) {
-                cJSON_Delete(childItem);
-                cJSON_Delete(jsFields);
-                return nullptr;
-            }
+            jsFields[std::string(impl->fieldName_)] = impl->GetValueForJson();
         }
         return jsFields;
     }
 
-    bool AppendChild(::ohos::data::distributedkvstore::weak::FieldNode child)
+    bool AppendChild(distributedkvstore::weak::FieldNode child)
     {
         fields_.push_back(child);
         return true;
@@ -156,10 +143,10 @@ public:
     }
 
 protected:
-    std::list<::ohos::data::distributedkvstore::FieldNode> fields_;
+    std::list<distributedkvstore::FieldNode> fields_;
     ::taihe::string fieldName_;
     ::taihe::string default_;
-    int32_t valueType_ = static_cast<int32_t>(::ohos::data::distributedkvstore::ValueType::key_t::STRING);
+    int32_t valueType_ = static_cast<int32_t>(distributedkvstore::ValueType::key_t::STRING);
     bool nullable_ = false;
 };
 
@@ -174,15 +161,15 @@ public:
         return reinterpret_cast<int64_t>(this);
     }
 
-    ::ohos::data::distributedkvstore::FieldNode GetRoot()
+    distributedkvstore::FieldNode GetRoot()
     {
         if (!root_.has_value()) {
-            root_ = taihe::make_holder<FieldNodeImpl, ::ohos::data::distributedkvstore::FieldNode>(SCHEMA_DEFINE);
+            root_ = taihe::make_holder<FieldNodeImpl, distributedkvstore::FieldNode>(SCHEMA_DEFINE);
         }
         return root_.value();
     }
 
-    void SetRoot(::ohos::data::distributedkvstore::weak::FieldNode para)
+    void SetRoot(distributedkvstore::weak::FieldNode para)
     {
         root_ = para;
     }
@@ -217,7 +204,7 @@ public:
         skip_ = para;
     }
 
-    static FieldNodeImpl* GetRootNodeImpl(::ohos::data::distributedkvstore::Schema const& taiheSchema)
+    static FieldNodeImpl* GetRootNodeImpl(distributedkvstore::Schema const& taiheSchema)
     {
         auto nativeSchemaPtr = reinterpret_cast<SchemaImpl*>(taiheSchema->GetInner());
         if (nativeSchemaPtr == nullptr) {
@@ -228,59 +215,30 @@ public:
         return rootNodeImpl;
     }
 
-    static std::string DumpSchema(::ohos::data::distributedkvstore::Schema const& taiheSchema)
+    static std::string DumpSchema(distributedkvstore::Schema const& taiheSchema)
     {
         auto rootNodeImpl = GetRootNodeImpl(taiheSchema);
         if (rootNodeImpl == nullptr) {
             ZLOGE("DumpSchema, rootNodeImpl nullptr");
             return "";
         }
-        cJSON* jsNode = cJSON_CreateObject();
-        if (jsNode == nullptr) {
-            return "";
+        nlohmann::json jsIndexes = nlohmann::json::array();
+        auto indexs = taiheSchema->GetIndexes();
+        for (auto idx : indexs) {
+            jsIndexes.push_back(idx);
         }
-        cJSON_AddStringToObject(jsNode, SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION);
-        cJSON_AddStringToObject(jsNode, SCHEMA_MODE,
-            (taiheSchema->GetMode() == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE);
-        cJSON* childJson = rootNodeImpl ? rootNodeImpl->GetValueForJson() : nullptr;
-        if (childJson == nullptr || !cJSON_AddItemToObject(jsNode, SCHEMA_DEFINE, childJson)) {
-            cJSON_AddNullToObject(jsNode, SCHEMA_DEFINE);
-            if (childJson != nullptr) {
-                cJSON_Delete(childJson);
-            }
-        }
-        cJSON* jsIndexes = cJSON_CreateArray();
-        if (jsIndexes != nullptr) {
-            auto indexs = taiheSchema->GetIndexes();
-            for (auto it = indexs.begin(); it != indexs.end(); ++it) {
-                cJSON* item = cJSON_CreateString(std::string(*it).c_str());
-                if (item == nullptr) {
-                    continue;
-                }
-                auto addResult = cJSON_AddItemToArray(jsIndexes, item);
-                if (!addResult) {
-                    cJSON_Delete(item);
-                }
-            }
-        }
-        cJSON* indexesNode = jsIndexes ? jsIndexes : cJSON_CreateNull();
-        auto addResult = cJSON_AddItemToObject(jsNode, SCHEMA_INDEXES, indexesNode);
-        if (!addResult) {
-            cJSON_Delete(indexesNode);
-        }
-        cJSON_AddNumberToObject(jsNode, SCHEMA_SKIPSIZE, taiheSchema->GetSkip());
-        char* jsonPtr = cJSON_Print(jsNode);
-        std::string jsonStr;
-        if (jsonPtr != nullptr) {
-            jsonStr = jsonPtr;
-            cJSON_free(jsonPtr);
-        }
-        cJSON_Delete(jsNode);
-        return jsonStr;
+        nlohmann::json js = {
+            { SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION },
+            { SCHEMA_MODE, (taiheSchema->GetMode() == SCHEMA_MODE_STRICT) ? SCHEMA_STRICT : SCHEMA_COMPATIBLE },
+            { SCHEMA_DEFINE, rootNodeImpl->GetValueForJson() },
+            { SCHEMA_INDEXES, jsIndexes },
+            { SCHEMA_SKIPSIZE, taiheSchema->GetSkip() },
+        };
+        return js.dump();
     }
 
 protected:
-    std::optional<::ohos::data::distributedkvstore::FieldNode> root_;
+    std::optional<distributedkvstore::FieldNode> root_;
     ::taihe::array<::taihe::string> indexes_ = {};
     int32_t mode_ = 0;
     int32_t skip_ = 0;
@@ -412,7 +370,7 @@ public:
         return nativeResultSet_->IsAfterLast();
     }
 
-    ::ohos::data::distributedkvstore::Entry GetEntry()
+    distributedkvstore::Entry GetEntry()
     {
         ANI_ASSERT(nativeResultSet_ != nullptr, "kvResultSet is nullptr!", ani_kvstoreutils::GetEmptyTaiheEntry());
         DistributedKv::Entry kventry;
@@ -447,103 +405,103 @@ public:
         return reinterpret_cast<int64_t>(this);
     }
 
-    ::ohos::data::distributedkvstore::Query Reset(::ohos::data::distributedkvstore::weak::Query thiz)
+    distributedkvstore::Query Reset(distributedkvstore::weak::Query thiz)
     {
         nativeQueryPtr_->Reset();
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query EqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleStringBool const& value)
+    distributedkvstore::Query EqualTo(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, distributedkvstore::LongDoubleStringBool const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::F64) {
+        if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::F64) {
             nativeQueryPtr_->EqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
             nativeQueryPtr_->EqualTo(stdField, value.get_INT64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
             nativeQueryPtr_->EqualTo(stdField, std::string(value.get_STRING_ref()));
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
             nativeQueryPtr_->EqualTo(stdField, value.get_BOOL_ref());
         }
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query NotEqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleStringBool const& value)
+    distributedkvstore::Query NotEqualTo(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, distributedkvstore::LongDoubleStringBool const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::F64) {
+        if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::F64) {
             nativeQueryPtr_->NotEqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
             nativeQueryPtr_->NotEqualTo(stdField, value.get_INT64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
             nativeQueryPtr_->NotEqualTo(stdField, std::string(value.get_STRING_ref()));
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
             nativeQueryPtr_->NotEqualTo(stdField, value.get_BOOL_ref());
         }
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query GreaterThan(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleStringBool const& value)
+    distributedkvstore::Query GreaterThan(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, distributedkvstore::LongDoubleStringBool const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::F64) {
+        if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::F64) {
             nativeQueryPtr_->GreaterThan(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::INT64) {
             nativeQueryPtr_->GreaterThan(stdField, value.get_INT64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::STRING) {
             nativeQueryPtr_->GreaterThan(stdField, std::string(value.get_STRING_ref()));
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleStringBool::tag_t::BOOL) {
             nativeQueryPtr_->GreaterThan(stdField, value.get_BOOL_ref());
         }
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query LessThan(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleString const& value)
+    distributedkvstore::Query LessThan(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, distributedkvstore::LongDoubleString const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::F64) {
+        if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::F64) {
             nativeQueryPtr_->LessThan(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::INT64) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::INT64) {
             nativeQueryPtr_->LessThan(stdField, value.get_INT64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::STRING) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::STRING) {
             nativeQueryPtr_->LessThan(stdField, std::string(value.get_STRING_ref()));
         }
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query GreaterThanOrEqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleString const& value)
+    distributedkvstore::Query GreaterThanOrEqualTo(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, distributedkvstore::LongDoubleString const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::F64) {
+        if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::F64) {
             nativeQueryPtr_->GreaterThanOrEqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::INT64) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::INT64) {
             nativeQueryPtr_->GreaterThanOrEqualTo(stdField, value.get_INT64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::STRING) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::STRING) {
             nativeQueryPtr_->GreaterThanOrEqualTo(stdField, std::string(value.get_STRING_ref()));
         }
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query LessThanOrEqualTo(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::ohos::data::distributedkvstore::LongDoubleString const& value)
+    distributedkvstore::Query LessThanOrEqualTo(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, distributedkvstore::LongDoubleString const& value)
     {
         std::string stdField(field);
-        if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::F64) {
+        if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::F64) {
             nativeQueryPtr_->LessThanOrEqualTo(stdField, value.get_F64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::INT64) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::INT64) {
             nativeQueryPtr_->LessThanOrEqualTo(stdField, value.get_INT64_ref());
-        } else if (value.get_tag() == ::ohos::data::distributedkvstore::LongDoubleString::tag_t::STRING) {
+        } else if (value.get_tag() == distributedkvstore::LongDoubleString::tag_t::STRING) {
             nativeQueryPtr_->LessThanOrEqualTo(stdField, std::string(value.get_STRING_ref()));
         }
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query IsNull(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query IsNull(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field)
     {
         std::string stdField(field);
@@ -551,25 +509,25 @@ public:
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query InNumber(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::taihe::array_view<::ohos::data::distributedkvstore::LongDouble> valueList)
+    distributedkvstore::Query InNumber(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, ::taihe::array_view<distributedkvstore::LongDouble> valueList)
     {
         if (valueList.size() == 0) {
             return thiz;
         }
         std::string stdField(field);
         auto &tempItem = valueList[0];
-        if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::F64) {
+        if (tempItem.get_tag() == distributedkvstore::LongDouble::tag_t::F64) {
             std::vector<double> doubleVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), doubleVector.begin(),
-                [](::ohos::data::distributedkvstore::LongDouble c) {
+                [](distributedkvstore::LongDouble c) {
                 return c.get_F64_ref();
             });
             nativeQueryPtr_->In(stdField, doubleVector);
-        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::INT64) {
+        } else if (tempItem.get_tag() == distributedkvstore::LongDouble::tag_t::INT64) {
             std::vector<int64_t> longVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), longVector.begin(),
-                [](::ohos::data::distributedkvstore::LongDouble c) {
+                [](distributedkvstore::LongDouble c) {
                 return c.get_INT64_ref();
             });
             nativeQueryPtr_->In(stdField, longVector);
@@ -577,7 +535,7 @@ public:
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query InString(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query InString(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field, ::taihe::array_view<::taihe::string> valueList)
     {
         auto stdArray = ani_kvstoreutils::StringArrayToNative(valueList);
@@ -585,25 +543,25 @@ public:
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query NotInNumber(::ohos::data::distributedkvstore::weak::Query thiz,
-        ::taihe::string_view field, ::taihe::array_view<::ohos::data::distributedkvstore::LongDouble> valueList)
+    distributedkvstore::Query NotInNumber(distributedkvstore::weak::Query thiz,
+        ::taihe::string_view field, ::taihe::array_view<distributedkvstore::LongDouble> valueList)
     {
         if (valueList.size() == 0) {
             return thiz;
         }
         std::string stdField(field);
         auto &tempItem = valueList[0];
-        if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::F64) {
+        if (tempItem.get_tag() == distributedkvstore::LongDouble::tag_t::F64) {
             std::vector<double> doubleVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), doubleVector.begin(),
-                [](::ohos::data::distributedkvstore::LongDouble c) {
+                [](distributedkvstore::LongDouble c) {
                 return c.get_F64_ref();
             });
             nativeQueryPtr_->NotIn(stdField, doubleVector);
-        } else if (tempItem.get_tag() == ::ohos::data::distributedkvstore::LongDouble::tag_t::INT64) {
+        } else if (tempItem.get_tag() == distributedkvstore::LongDouble::tag_t::INT64) {
             std::vector<int64_t> longVector(valueList.size());
             std::transform(valueList.begin(), valueList.end(), longVector.begin(),
-                [](::ohos::data::distributedkvstore::LongDouble c) {
+                [](distributedkvstore::LongDouble c) {
                 return c.get_INT64_ref();
             });
             nativeQueryPtr_->NotIn(stdField, longVector);
@@ -611,7 +569,7 @@ public:
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query NotInString(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query NotInString(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field, ::taihe::array_view<::taihe::string> valueList)
     {
         auto stdArray = ani_kvstoreutils::StringArrayToNative(valueList);
@@ -619,87 +577,87 @@ public:
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query Like(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query Like(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field, ::taihe::string_view value)
     {
         nativeQueryPtr_->Like(std::string(field), std::string(value));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query Unlike(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query Unlike(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field, ::taihe::string_view value)
     {
         nativeQueryPtr_->Unlike(std::string(field), std::string(value));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query And(::ohos::data::distributedkvstore::weak::Query thiz)
+    distributedkvstore::Query And(distributedkvstore::weak::Query thiz)
     {
         nativeQueryPtr_->And();
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query Or(::ohos::data::distributedkvstore::weak::Query thiz)
+    distributedkvstore::Query Or(distributedkvstore::weak::Query thiz)
     {
         nativeQueryPtr_->Or();
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query OrderByAsc(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query OrderByAsc(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field)
     {
         nativeQueryPtr_->OrderByAsc(std::string(field));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query OrderByDesc(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query OrderByDesc(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field)
     {
         nativeQueryPtr_->OrderByDesc(std::string(field));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query Limit(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query Limit(distributedkvstore::weak::Query thiz,
         int32_t total, int32_t offset)
     {
         nativeQueryPtr_->Limit(total, offset);
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query IsNotNull(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query IsNotNull(distributedkvstore::weak::Query thiz,
         ::taihe::string_view field)
     {
         nativeQueryPtr_->IsNotNull(std::string(field));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query BeginGroup(::ohos::data::distributedkvstore::weak::Query thiz)
+    distributedkvstore::Query BeginGroup(distributedkvstore::weak::Query thiz)
     {
         nativeQueryPtr_->BeginGroup();
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query EndGroup(::ohos::data::distributedkvstore::weak::Query thiz)
+    distributedkvstore::Query EndGroup(distributedkvstore::weak::Query thiz)
     {
         nativeQueryPtr_->EndGroup();
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query PrefixKey(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query PrefixKey(distributedkvstore::weak::Query thiz,
         ::taihe::string_view prefix)
     {
         nativeQueryPtr_->KeyPrefix(std::string(prefix));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query SetSuggestIndex(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query SetSuggestIndex(distributedkvstore::weak::Query thiz,
         ::taihe::string_view index)
     {
         nativeQueryPtr_->SetSuggestIndex(std::string(index));
         return thiz;
     }
 
-    ::ohos::data::distributedkvstore::Query DeviceId(::ohos::data::distributedkvstore::weak::Query thiz,
+    distributedkvstore::Query DeviceId(distributedkvstore::weak::Query thiz,
         ::taihe::string_view deviceId)
     {
         nativeQueryPtr_->DeviceId(std::string(deviceId));
@@ -759,19 +717,19 @@ public:
         isSchemaStore_ = isSchemaStore;
     }
 
-    void SetContextParam(ani_abilityutils::ContextParam const& param)
+    void SetContextParam(ContextParam const& param)
     {
         contextParam_ = param;
     }
 
-    void PutSync(::taihe::string_view key, ::ohos::data::distributedkvstore::ValueTypeUnion const& value)
+    void PutSync(::taihe::string_view key, distributedkvstore::ValueUnion const& value)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
         ani_kvstoreutils::ValueVariant paramVariant;
-        ani_kvstoreutils::TaiheValueTypeUnionToNativeVariant(value, paramVariant);
+        ani_kvstoreutils::TaiheValueUnionToNativeVariant(value, paramVariant);
         std::string stdkey(key);
         DistributedKv::Key kvkey(stdkey);
         bool isSchemaStore = IsSchemaStore();
@@ -788,7 +746,7 @@ public:
         }
     }
 
-    void PutBatchEntrySync(::taihe::array_view<::ohos::data::distributedkvstore::Entry> entries)
+    void PutBatchSync(::taihe::array_view<distributedkvstore::Entry> entries)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
@@ -808,7 +766,7 @@ public:
     }
 
     void PutValuesBucketsSync(::taihe::array_view<
-        ::taihe::map<::taihe::string, ::ohos::data::distributedkvstore::DataShareValueTypeUnion>> value)
+        ::taihe::map<::taihe::string, distributedkvstore::DataShareValueUnion>> value)
     {
         if (!IsSystemApp()) {
             ThrowAniError(Status::PERMISSION_DENIED, "");
@@ -855,7 +813,7 @@ public:
         }
     }
 
-    void DeleteByPredicateSync(uintptr_t predicates)
+    void DeleteByPredicatesSync(uintptr_t predicates)
     {
         if (!IsSystemApp()) {
             ThrowAniError(Status::PERMISSION_DENIED, "");
@@ -870,7 +828,7 @@ public:
         OHOS::DataShare::DataShareAbsPredicates *holder =
             ani_utils::AniObjectUtils::Unwrap<OHOS::DataShare::DataShareAbsPredicates>(env, object);
         if (holder == nullptr) {
-            ZLOGE("DeleteByPredicateSync, holder is nullptr");
+            ZLOGE("DeleteByPredicatesSync, holder is nullptr");
             return ;
         }
         std::vector<OHOS::DistributedKv::Key> kvkeys;
@@ -920,9 +878,9 @@ public:
         }
     }
 
-    ::ohos::data::distributedkvstore::ValueTypeUnion GetSync(::taihe::string_view key)
+    distributedkvstore::ValueUnion GetSync(::taihe::string_view key)
     {
-        auto emptyResult = ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(std::string(""));
+        auto emptyResult = distributedkvstore::ValueUnion::make_STRING(std::string(""));
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return emptyResult;
@@ -941,14 +899,14 @@ public:
             return emptyResult;
         }
         if (isSchemaStore) {
-            return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(kvblob.ToString());
+            return distributedkvstore::ValueUnion::make_STRING(kvblob.ToString());
         } else {
             uint8_t resultType = 0;
             return ani_kvstoreutils::Blob2TaiheValue(kvblob, resultType);
         }
     }
 
-    ::taihe::array<::ohos::data::distributedkvstore::Entry> GetEntriesSync(::taihe::string_view keyPrefix)
+    ::taihe::array<distributedkvstore::Entry> GetEntriesSync(::taihe::string_view keyPrefix)
     {
         if (keyPrefix.empty()) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
@@ -968,8 +926,8 @@ public:
         return ani_kvstoreutils::KvEntryArrayToTaihe(kventries, isSchemaStore);
     }
 
-    ::taihe::array<::ohos::data::distributedkvstore::Entry> getEntriesByQuerySync(
-        ::ohos::data::distributedkvstore::weak::Query query)
+    ::taihe::array<distributedkvstore::Entry> GetEntriesByQuerySync(
+        distributedkvstore::weak::Query query)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
@@ -987,32 +945,32 @@ public:
         return ani_kvstoreutils::KvEntryArrayToTaihe(kventries, isSchemaStore);
     }
 
-    ::ohos::data::distributedkvstore::KVStoreResultSet GetResultSetSync(::taihe::string_view keyPrefix)
+    distributedkvstore::KVStoreResultSet GetResultSetSync(::taihe::string_view keyPrefix)
     {
         if (keyPrefix.empty()) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet;
         Status status = nativeStore_->GetResultSet(std::string(keyPrefix), kvResultSet);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
-        return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>(
+        return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>(
             kvResultSet, isSchemaStore_);
     }
 
-    ::ohos::data::distributedkvstore::KVStoreResultSet GetResultSetByQuerySync(
-        ::ohos::data::distributedkvstore::weak::Query query)
+    distributedkvstore::KVStoreResultSet GetResultSetByQuerySync(
+        distributedkvstore::weak::Query query)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         auto queryImpl = reinterpret_cast<QueryImpl*>(query->GetInner());
         auto nativeQueryPtr = queryImpl->GetNativePtr();
@@ -1020,47 +978,47 @@ public:
         Status status = nativeStore_->GetResultSet(*nativeQueryPtr, kvResultSet);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
-        return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>(
+        return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>(
             kvResultSet, isSchemaStore_);
     }
 
-    ::ohos::data::distributedkvstore::KVStoreResultSet GetResultSetByPredicateSync(uintptr_t predicates)
+    distributedkvstore::KVStoreResultSet GetResultSetByPredicatesSync(uintptr_t predicates)
     {
         if (!IsSystemApp()) {
             ThrowAniError(Status::PERMISSION_DENIED, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         ani_env *env = taihe::get_env();
         ani_object object = reinterpret_cast<ani_object>(predicates);
         OHOS::DataShare::DataShareAbsPredicates *holder =
             ani_utils::AniObjectUtils::Unwrap<OHOS::DataShare::DataShareAbsPredicates>(env, object);
         if (holder == nullptr) {
-            ZLOGE("GetResultSetByPredicateSync, holder is nullptr");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            ZLOGE("GetResultSetByPredicatesSync, holder is nullptr");
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         DistributedKv::DataQuery kvquery;
         Status status = OHOS::DistributedKv::KvUtils::ToQuery(*holder, kvquery);
         if (status != Status::SUCCESS) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet;
         status = nativeStore_->GetResultSet(kvquery, kvResultSet);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
-        return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>(
+        return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>(
             kvResultSet, isSchemaStore_);
     }
 
-    void CloseResultSetSync(::ohos::data::distributedkvstore::weak::KVStoreResultSet resultSet)
+    void CloseResultSetSync(distributedkvstore::weak::KVStoreResultSet resultSet)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
@@ -1074,7 +1032,7 @@ public:
         }
     }
 
-    int32_t GetResultSizeSync(::ohos::data::distributedkvstore::weak::Query query)
+    int32_t GetResultSizeSync(distributedkvstore::weak::Query query)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
@@ -1210,7 +1168,7 @@ public:
         }
     }
 
-    void Sync(::taihe::array_view<::taihe::string> deviceIds, ::ohos::data::distributedkvstore::SyncMode mode,
+    void Sync(::taihe::array_view<::taihe::string> deviceIds, distributedkvstore::SyncMode mode,
         ::taihe::optional_view<int32_t> delayMs)
     {
         if (nativeStore_ == nullptr) {
@@ -1230,8 +1188,8 @@ public:
     }
 
     void SyncByQuery(::taihe::array_view<::taihe::string> deviceIds,
-        ::ohos::data::distributedkvstore::weak::Query query,
-        ::ohos::data::distributedkvstore::SyncMode mode, ::taihe::optional_view<int32_t> delayMs)
+        distributedkvstore::weak::Query query,
+        distributedkvstore::SyncMode mode, ::taihe::optional_view<int32_t> delayMs)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
@@ -1252,8 +1210,8 @@ public:
         }
     }
 
-    void OnDataChange(::ohos::data::distributedkvstore::SubscribeType type,
-        ::taihe::callback_view<void(::ohos::data::distributedkvstore::ChangeNotification const& info)> f, uintptr_t opq)
+    void OnDataChange(distributedkvstore::SubscribeType type,
+        ::taihe::callback_view<void(distributedkvstore::ChangeNotification const& info)> f, uintptr_t opq)
     {
         ani_env *env = taihe::get_env();
         if (env == nullptr) {
@@ -1269,7 +1227,7 @@ public:
         }
         auto kvsubscribeType = ani_kvstoreutils::SubscribeTypeToNative(type);
         ani_observerutils::VarCallbackType varcb = f;
-        RegisterListener(EVENT_DATACHANGE, kvsubscribeType, varcb, opq);
+        RegisterListener(DATA_CHANGE_EVENT, kvsubscribeType, varcb, opq);
     }
 
     void OffDataChange(::taihe::optional_view<uintptr_t> opq)
@@ -1288,7 +1246,7 @@ public:
             return;
         }
         bool isUpdated = false;
-        UnregisterListener(EVENT_DATACHANGE, opq, isUpdated);
+        UnregisterListener(DATA_CHANGE_EVENT, opq, isUpdated);
     }
 
     void OnSyncComplete(::taihe::callback_view<void(::taihe::array_view<uintptr_t> info)> f, uintptr_t opq)
@@ -1306,7 +1264,7 @@ public:
             return;
         }
         ani_observerutils::VarCallbackType varcb = f;
-        RegisterListener(EVENT_SYNCCOMPLETE, DistributedKv::SubscribeType::SUBSCRIBE_TYPE_ALL, varcb, opq);
+        RegisterListener(SYNC_COMPLETE_EVENT, DistributedKv::SubscribeType::SUBSCRIBE_TYPE_ALL, varcb, opq);
     }
 
     void OffSyncComplete(::taihe::optional_view<uintptr_t> opq)
@@ -1325,28 +1283,28 @@ public:
             return;
         }
         bool isUpdated = false;
-        UnregisterListener(EVENT_SYNCCOMPLETE, opq, isUpdated);
+        UnregisterListener(SYNC_COMPLETE_EVENT, opq, isUpdated);
     }
 
-    ::ohos::data::distributedkvstore::SecurityLevel GetSecurityLevelSync()
+    distributedkvstore::SecurityLevel GetSecurityLevelSync()
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
-            return ::ohos::data::distributedkvstore::SecurityLevel::from_value(-1);
+            return distributedkvstore::SecurityLevel::from_value(-1);
         }
         DistributedKv::SecurityLevel secLevel;
         Status status = nativeStore_->GetSecurityLevel(secLevel);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return ::ohos::data::distributedkvstore::SecurityLevel::from_value(-1);
+            return distributedkvstore::SecurityLevel::from_value(-1);
         }
         int32_t jslevel = -1;
         bool result = ani_kvstoreutils::SecurityLevelToTaihe(secLevel, jslevel);
         if (!result) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
-            return ::ohos::data::distributedkvstore::SecurityLevel::from_value(-1);
+            return distributedkvstore::SecurityLevel::from_value(-1);
         }
-        return ::ohos::data::distributedkvstore::SecurityLevel::from_value(jslevel);
+        return distributedkvstore::SecurityLevel::from_value(jslevel);
     }
 
 protected:
@@ -1366,9 +1324,9 @@ protected:
             return;
         }
         Status status = Status::SUCCESS;
-        if (event == EVENT_DATACHANGE) {
+        if (event == DATA_CHANGE_EVENT) {
             status = RegisterDataChangeObserver(type, cb, callbackRef);
-        } else if (event == EVENT_SYNCCOMPLETE) {
+        } else if (event == SYNC_COMPLETE_EVENT) {
             status = RegisterSyncCompleteObserver(cb, callbackRef);
         }
         if (status != Status::SUCCESS) {
@@ -1390,7 +1348,7 @@ protected:
             ZLOGE("%{public}s is not registered", event.c_str());
             return;
         }
-        if (event == EVENT_SYNCCOMPLETE) {
+        if (event == SYNC_COMPLETE_EVENT) {
             DistributedKv::SubscribeType kvtype = DistributedKv::SubscribeType::SUBSCRIBE_TYPE_ALL;
             Status status = UnRegisterObserver(event, kvtype, opq, isUpdateFlag);
             if (status != Status::SUCCESS) {
@@ -1422,7 +1380,7 @@ protected:
             return Status::SUCCESS;
         }
         std::lock_guard<std::recursive_mutex> lock(cbMapMutex_);
-        auto &cbVec = jsCbMap_[EVENT_DATACHANGE];
+        auto &cbVec = jsCbMap_[DATA_CHANGE_EVENT];
         auto observer = std::make_shared<ani_observerutils::DataObserver>(cb, callbackRef);
         observer->SetIsSchemaStore(isSchemaStore_);
         Status status = nativeStore_->SubscribeKvStore(type, observer);
@@ -1442,7 +1400,7 @@ protected:
             return Status::SUCCESS;
         }
         std::lock_guard<std::recursive_mutex> lock(cbMapMutex_);
-        auto &cbVec = jsCbMap_[EVENT_SYNCCOMPLETE];
+        auto &cbVec = jsCbMap_[SYNC_COMPLETE_EVENT];
         auto observer = std::make_shared<ani_observerutils::DataObserver>(cb, callbackRef);
         observer->SetIsSchemaStore(isSchemaStore_);
         Status status = nativeStore_->RegisterSyncCallback(observer);
@@ -1468,7 +1426,7 @@ protected:
         if (!opq.has_value()) {
             for (auto iter = callbackList.begin(); iter != callbackList.end();) {
                 result = Status::SUCCESS;
-                if (event == EVENT_DATACHANGE) {
+                if (event == DATA_CHANGE_EVENT) {
                     result = nativeStore_->UnSubscribeKvStore(type, *iter);
                 }
                 if (result == Status::SUCCESS || result == Status::ALREADY_CLOSED) {
@@ -1481,7 +1439,7 @@ protected:
                 }
             }
             if (callbackList.empty()) {
-                if (event == EVENT_SYNCCOMPLETE) {
+                if (event == SYNC_COMPLETE_EVENT) {
                     result = nativeStore_->UnRegisterSyncCallback();
                     ZLOGI("UnRegisterObserver syncComplete, unregister native, %{public}d", result);
                 }
@@ -1519,7 +1477,7 @@ protected:
         const auto it = std::find_if(callbackList.begin(), callbackList.end(), pred);
         Status result = Status::SUCCESS;
         if (it != callbackList.end()) {
-            if (event == EVENT_DATACHANGE) {
+            if (event == DATA_CHANGE_EVENT) {
                 result = nativeStore_->UnSubscribeKvStore(type, *it);
             }
             if (result == Status::SUCCESS || result == Status::ALREADY_CLOSED) {
@@ -1531,7 +1489,7 @@ protected:
             }
         }
         if (callbackList.empty()) {
-            if (event == EVENT_SYNCCOMPLETE) {
+            if (event == SYNC_COMPLETE_EVENT) {
                 result = nativeStore_->UnRegisterSyncCallback();
                 ZLOGI("UnRegisterObserver syncComplete, unregister native, %{public}d", result);
             }
@@ -1548,14 +1506,14 @@ protected:
         ::taihe::optional<uintptr_t> empty;
         for (uint8_t type = ani_kvstoreutils::SUBSCRIBE_LOCAL; type < ani_kvstoreutils::SUBSCRIBE_COUNT; type++) {
             DistributedKv::SubscribeType kvtype = ani_kvstoreutils::SubscribeTypeToNative(type);
-            UnRegisterObserver(EVENT_DATACHANGE, kvtype, empty, isUpdated);
+            UnRegisterObserver(DATA_CHANGE_EVENT, kvtype, empty, isUpdated);
         }
-        UnRegisterObserver(EVENT_SYNCCOMPLETE, DistributedKv::SubscribeType::SUBSCRIBE_TYPE_ALL, empty, isUpdated);
+        UnRegisterObserver(SYNC_COMPLETE_EVENT, DistributedKv::SubscribeType::SUBSCRIBE_TYPE_ALL, empty, isUpdated);
     }
 
 protected:
     std::shared_ptr<OHOS::DistributedKv::SingleKvStore> nativeStore_;
-    ani_abilityutils::ContextParam contextParam_;
+    ContextParam contextParam_;
     bool isSchemaStore_ = false;
     std::recursive_mutex cbMapMutex_;
     std::map<std::string, std::vector<std::shared_ptr<ani_observerutils::DataObserver>>> jsCbMap_;
@@ -1589,13 +1547,13 @@ public:
         return oss.str();
     }
 
-    ::ohos::data::distributedkvstore::ValueTypeUnion GetByDeviceIdSync(::taihe::string_view deviceId,
+    distributedkvstore::ValueUnion GetByDeviceIdSync(::taihe::string_view deviceId,
         ::taihe::string_view key)
     {
         std::string stdkey(key);
         if (stdkey.empty()) {
             ThrowAniError(Status::INVALID_ARGUMENT, "Parameter error:params key must be string and not allow empty");
-            return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(std::string(""));
+            return distributedkvstore::ValueUnion::make_STRING(std::string(""));
         }
         std::string stddeviceid(deviceId);
         bool isSchemaStore = IsSchemaStore();
@@ -1605,17 +1563,17 @@ public:
         Status status = nativeStore_->Get(kvkey, kvblob);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(std::string(""));
+            return distributedkvstore::ValueUnion::make_STRING(std::string(""));
         }
         if (isSchemaStore) {
-            return ::ohos::data::distributedkvstore::ValueTypeUnion::make_STRING(kvblob.ToString());
+            return distributedkvstore::ValueUnion::make_STRING(kvblob.ToString());
         } else {
             uint8_t resultType = 0;
             return ani_kvstoreutils::Blob2TaiheValue(kvblob, resultType);
         }
     }
 
-    ::taihe::array<::ohos::data::distributedkvstore::Entry> GetEntriesByDeviceIdSync(::taihe::string_view deviceId,
+    ::taihe::array<distributedkvstore::Entry> GetEntriesByDeviceIdSync(::taihe::string_view deviceId,
         ::taihe::string_view keyPrefix)
     {
         if (keyPrefix.empty()) {
@@ -1637,8 +1595,8 @@ public:
         return ani_kvstoreutils::KvEntryArrayToTaihe(kventries, isSchemaStore);
     }
 
-    ::taihe::array<::ohos::data::distributedkvstore::Entry> GetEntriesByDeviceIdAndQuerySync(
-        ::taihe::string_view deviceId, ::ohos::data::distributedkvstore::weak::Query query)
+    ::taihe::array<distributedkvstore::Entry> GetEntriesByDeviceIdAndQuerySync(
+        ::taihe::string_view deviceId, distributedkvstore::weak::Query query)
     {
         std::string stddeviceid(deviceId);
         bool isSchemaStore = IsSchemaStore();
@@ -1654,12 +1612,12 @@ public:
         return ani_kvstoreutils::KvEntryArrayToTaihe(kventries, isSchemaStore);
     }
 
-    ::ohos::data::distributedkvstore::KVStoreResultSet GetResultSetByDeviceIdAndPrefixSync(
+    distributedkvstore::KVStoreResultSet GetResultSetByDeviceIdAndPrefixSync(
         ::taihe::string_view deviceId, ::taihe::string_view keyPrefix)
     {
         if (keyPrefix.empty()) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         DistributedKv::DataQuery query;
         query.KeyPrefix(std::string(keyPrefix));
@@ -1668,14 +1626,14 @@ public:
         Status status = nativeStore_->GetResultSet(query, kvResultSet);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
-        return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>(
+        return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>(
             kvResultSet, isSchemaStore_);
     }
 
-    ::ohos::data::distributedkvstore::KVStoreResultSet GetResultSetByDeviceIdAndQuerySync(::taihe::string_view deviceId,
-        ::ohos::data::distributedkvstore::weak::Query query)
+    distributedkvstore::KVStoreResultSet GetResultSetByDeviceIdAndQuerySync(::taihe::string_view deviceId,
+        distributedkvstore::weak::Query query)
     {
         auto queryImpl = reinterpret_cast<QueryImpl*>(query->GetInner());
         auto nativeQueryPtr = queryImpl->GetNativePtr();
@@ -1684,18 +1642,18 @@ public:
         Status status = nativeStore_->GetResultSet(*nativeQueryPtr, kvResultSet);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
-        return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>(
+        return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>(
             kvResultSet, isSchemaStore_);
     }
 
-    ::ohos::data::distributedkvstore::KVStoreResultSet GetResultSetByDeviceIdAndPredicateSync(
+    distributedkvstore::KVStoreResultSet GetResultSetByDeviceIdAndPredicateSync(
         ::taihe::string_view deviceId, uintptr_t predicates)
     {
         if (!IsSystemApp()) {
             ThrowAniError(Status::PERMISSION_DENIED, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         ani_env *env = taihe::get_env();
         ani_object object = reinterpret_cast<ani_object>(predicates);
@@ -1703,27 +1661,27 @@ public:
             ani_utils::AniObjectUtils::Unwrap<OHOS::DataShare::DataShareAbsPredicates>(env, object);
         if (holder == nullptr) {
             ZLOGE("GetResultSetByDeviceIdAndPredicateSync, holder is nullptr");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         DistributedKv::DataQuery kvquery;
         Status status = OHOS::DistributedKv::KvUtils::ToQuery(*holder, kvquery);
         if (status != Status::SUCCESS) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
         kvquery.DeviceId(std::string(deviceId));
         std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet;
         status = nativeStore_->GetResultSet(kvquery, kvResultSet);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
-            return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>();
+            return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>();
         }
-        return taihe::make_holder<KVStoreResultSetImpl, ::ohos::data::distributedkvstore::KVStoreResultSet>(
+        return taihe::make_holder<KVStoreResultSetImpl, distributedkvstore::KVStoreResultSet>(
             kvResultSet, isSchemaStore_);
     }
 
     int32_t GetResultSizeByDeviceIdSync(::taihe::string_view deviceId,
-        ::ohos::data::distributedkvstore::weak::Query query)
+        distributedkvstore::weak::Query query)
     {
         auto queryImpl = reinterpret_cast<QueryImpl*>(query->GetInner());
         auto nativeQueryPtr = queryImpl->GetNativePtr();
@@ -1739,11 +1697,7 @@ public:
 
 class KVManagerImpl {
 public:
-    KVManagerImpl()
-    {
-    }
-
-    explicit KVManagerImpl(::ohos::data::distributedkvstore::KVManagerConfig const& config)
+    explicit KVManagerImpl(const distributedkvstore::KVManagerConfig &config)
     {
         bundleName_ = std::string(config.bundleName);
         if (bundleName_.empty()) {
@@ -1751,7 +1705,7 @@ public:
                 "Parameter error:The type of bundleName must be string.");
             return;
         }
-        int32_t result = ani_abilityutils::AniGetContext(reinterpret_cast<ani_object>(config.context), contextParam_);
+        int32_t result = AniGetContext(reinterpret_cast<ani_object>(config.context), contextParam_);
         if (result != ANI_OK) {
             ThrowAniError(Status::INVALID_ARGUMENT, "Parameter error:get context failed");
             return;
@@ -1764,8 +1718,7 @@ public:
         UnregisterAllObserver();
     }
 
-    static bool ParseOptions(::ohos::data::distributedkvstore::Options const& taiheOptions,
-        DistributedKv::Options& options)
+    static bool ParseOptions(TaiheOptions const& taiheOptions, DistributedKv::Options& options)
     {
         if (taiheOptions.createIfMissing.has_value()) {
             options.createIfMissing = taiheOptions.createIfMissing.value();
@@ -1783,14 +1736,13 @@ public:
             options.kvStoreType = static_cast<DistributedKv::KvStoreType>(taiheOptions.kvStoreType.value().get_value());
         }
         if (taiheOptions.schema.has_value()) {
-            ::ohos::data::distributedkvstore::Schema schema = taiheOptions.schema.value();
+            distributedkvstore::Schema schema = taiheOptions.schema.value();
             options.schema = SchemaImpl::DumpSchema(schema);
         }
         if (taiheOptions.securityLevel.has_value()) {
             auto taiheLevel = taiheOptions.securityLevel.value().get_value();
             bool result = ani_kvstoreutils::TaiheSecurityLevelToNative(taiheLevel, options.securityLevel);
             if (!result) {
-                ZLOGE("TaiheSecurityLevelToNative failed");
                 ThrowAniError(Status::INVALID_ARGUMENT, "Parameter error:The params type not matching option");
                 return false;
             }
@@ -1807,14 +1759,14 @@ public:
         return true;
     }
 
-    ::ohos::data::distributedkvstore::KvStoreTypeUnion MakeEmptyKvStore()
+    distributedkvstore::KvStoreTypeUnion MakeEmptyKvStore()
     {
-        auto emptyResult = taihe::make_holder<SingleKVStoreImpl, ::ohos::data::distributedkvstore::SingleKVStore>();
-        return ::ohos::data::distributedkvstore::KvStoreTypeUnion::make_singleKVStore(emptyResult);
+        auto emptyResult = taihe::make_holder<SingleKVStoreImpl, distributedkvstore::SingleKVStore>();
+        return distributedkvstore::KvStoreTypeUnion::make_singleKVStore(emptyResult);
     }
 
-    ::ohos::data::distributedkvstore::KvStoreTypeUnion GetKVStoreSync(::taihe::string_view storeId,
-        ::ohos::data::distributedkvstore::Options const& options)
+    distributedkvstore::KvStoreTypeUnion GetKVStoreSync(::taihe::string_view storeId,
+        TaiheOptions const& options)
     {
         if (kvDataManager_ == nullptr) {
             ZLOGE("KVManager is null, failed!");
@@ -1845,24 +1797,23 @@ public:
             return MakeEmptyKvStore();
         }
         if (options.kvStoreType.has_value() &&
-            options.kvStoreType.value() == ::ohos::data::distributedkvstore::KVStoreType::key_t::SINGLE_VERSION) {
+            options.kvStoreType.value() == distributedkvstore::KVStoreType::key_t::SINGLE_VERSION) {
             auto nativeKVStore =
-                taihe::make_holder<SingleKVStoreImpl, ::ohos::data::distributedkvstore::SingleKVStore>(kvStore);
+                taihe::make_holder<SingleKVStoreImpl, distributedkvstore::SingleKVStore>(kvStore);
             (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->GetInner()))->SetContextParam(contextParam_);
             (reinterpret_cast<SingleKVStoreImpl*>(nativeKVStore->GetInner()))->SetSchemaInfo(!kvOptions.schema.empty());
-            return ::ohos::data::distributedkvstore::KvStoreTypeUnion::make_singleKVStore(nativeKVStore);
+            return distributedkvstore::KvStoreTypeUnion::make_singleKVStore(nativeKVStore);
         }
         auto nativeKVStore =
-            taihe::make_holder<DeviceKVStoreImpl, ::ohos::data::distributedkvstore::DeviceKVStore>(kvStore);
+            taihe::make_holder<DeviceKVStoreImpl, distributedkvstore::DeviceKVStore>(kvStore);
         (reinterpret_cast<DeviceKVStoreImpl*>(nativeKVStore->GetInner()))->SetContextParam(contextParam_);
         (reinterpret_cast<DeviceKVStoreImpl*>(nativeKVStore->GetInner()))->SetSchemaInfo(!kvOptions.schema.empty());
-        return ::ohos::data::distributedkvstore::KvStoreTypeUnion::make_deviceKVStore(nativeKVStore);
+        return distributedkvstore::KvStoreTypeUnion::make_deviceKVStore(nativeKVStore);
     }
 
     void CloseKVStoreSync(::taihe::string_view appId, ::taihe::string_view storeId)
     {
         if (kvDataManager_ == nullptr) {
-            ZLOGE("KVManager is null, failed!");
             ThrowAniError(Status::INVALID_ARGUMENT, "KVManager is null, failed!");
             return;
         }
@@ -1887,7 +1838,6 @@ public:
     void DeleteKVStoreSync(::taihe::string_view appId, ::taihe::string_view storeId)
     {
         if (kvDataManager_ == nullptr) {
-            ZLOGE("KVManager is null, failed!");
             ThrowAniError(Status::INVALID_ARGUMENT, "KVManager is null, failed!");
             return;
         }
@@ -1941,7 +1891,7 @@ public:
         return ::taihe::array<::taihe::string>(::taihe::copy_data_t{}, stringArray.data(), stringArray.size());
     }
 
-    void OnDistributedDataServiceDie(::taihe::callback_view<void(::ohos::data::distributedkvstore::OneUndef const& para)> f,
+    void OnDistributedDataServiceDie(::taihe::callback_view<void(distributedkvstore::OneUndef const& para)> f,
         uintptr_t opq)
     {
         ani_env *env = taihe::get_env();
@@ -2016,31 +1966,30 @@ protected:
 
 protected:
     std::shared_ptr<DistributedKv::DistributedKvDataManager> kvDataManager_;
-    ani_abilityutils::ContextParam contextParam_;
+    ContextParam contextParam_;
     std::string bundleName_;
     std::recursive_mutex cbDeathListMutex_;
     std::vector<std::shared_ptr<ani_observerutils::ManagerObserver>> jsDeathCbList_;
 };
 
-::ohos::data::distributedkvstore::Schema CreateSchema()
+distributedkvstore::Schema CreateSchema()
 {
-    return taihe::make_holder<SchemaImpl, ::ohos::data::distributedkvstore::Schema>();
+    return taihe::make_holder<SchemaImpl, distributedkvstore::Schema>();
 }
 
-::ohos::data::distributedkvstore::FieldNode CreateFieldNode(::taihe::string_view name)
+distributedkvstore::FieldNode CreateFieldNode(::taihe::string_view name)
 {
-    return taihe::make_holder<FieldNodeImpl, ::ohos::data::distributedkvstore::FieldNode>(name);
+    return taihe::make_holder<FieldNodeImpl, distributedkvstore::FieldNode>(name);
 }
 
-::ohos::data::distributedkvstore::Query CreateQuery()
+distributedkvstore::Query CreateQuery()
 {
-    return taihe::make_holder<QueryImpl, ::ohos::data::distributedkvstore::Query>();
+    return taihe::make_holder<QueryImpl, distributedkvstore::Query>();
 }
 
-::ohos::data::distributedkvstore::KVManager createKVManager(
-    ::ohos::data::distributedkvstore::KVManagerConfig const& config)
+distributedkvstore::KVManager createKVManager(const distributedkvstore::KVManagerConfig &config)
 {
-    return taihe::make_holder<KVManagerImpl, ::ohos::data::distributedkvstore::KVManager>(config);
+    return taihe::make_holder<KVManagerImpl, distributedkvstore::KVManager>(config);
 }
 }  // namespace
 

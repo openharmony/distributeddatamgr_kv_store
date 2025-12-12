@@ -93,13 +93,13 @@ bool TaiheSecurityLevelToNative(int32_t level, int32_t &out);
 bool SecurityLevelToTaihe(int32_t level, int32_t &out);
 DistributedKv::SubscribeType SubscribeTypeToNative(::ohos::data::distributedkvstore::SubscribeType type);
 DistributedKv::SubscribeType SubscribeTypeToNative(uint8_t type);
-void TaiheValueTypeUnionToNativeVariant(::ohos::data::distributedkvstore::ValueTypeUnion const& value,
+void TaiheValueUnionToNativeVariant(::ohos::data::distributedkvstore::ValueUnion const& value,
     ValueVariant &resultObj);
 void TaiheValueToVariant(::ohos::data::distributedkvstore::Value const& value,
     ValueVariant &resultObj);
-void TaiheDataShareValueToVariant(::ohos::data::distributedkvstore::DataShareValueTypeUnion const& value,
+void TaiheDataShareValueToVariant(::ohos::data::distributedkvstore::DataShareValueUnion const& value,
     DataShareValueVariant &resultObj);
-::ohos::data::distributedkvstore::ValueTypeUnion Blob2TaiheValue(DistributedKv::Blob const& blob, uint8_t &resultType);
+::ohos::data::distributedkvstore::ValueUnion Blob2TaiheValue(DistributedKv::Blob const& blob, uint8_t &resultType);
 DistributedKv::Blob VariantValue2Blob(ValueVariant const& value);
 bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::Entry> const& taiheEntries,
     std::vector<DistributedKv::Entry> &out, bool hasSchema);

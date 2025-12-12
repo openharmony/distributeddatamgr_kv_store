@@ -19,7 +19,8 @@
 #include "ani_base_context.h"
 #include "types.h"
 
-namespace ani_abilityutils {
+namespace OHOS {
+namespace DistributedKVStore {
 using namespace OHOS;
 
 struct ContextParam {
@@ -34,5 +35,5 @@ int32_t GetHapVersion(ani_env *env, ani_object value);
 std::shared_ptr<AbilityRuntime::Context> GetStageModeContext(ani_env *env, ani_object value);
 int32_t AniGetContext(ani_object jsValue, ContextParam &param);
 }
-
+}
 #endif

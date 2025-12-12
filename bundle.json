@@ -68,7 +68,6 @@
         "device_manager",
         "dmsfwk",
         "eventhandler",
-        "ffrt",
         "hilog",
         "hisysevent",
         "hitrace",

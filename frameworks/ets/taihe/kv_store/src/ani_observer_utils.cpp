@@ -19,7 +19,6 @@
 #include <endian.h>
 
 #include "log_print.h"
-#include "cJSON.h"
 
 using namespace ::ohos::data::distributedkvstore;
 using namespace OHOS::DistributedKVStore;
