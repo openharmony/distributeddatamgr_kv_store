@@ -67,6 +67,7 @@
         "c_utils",
         "device_manager",
         "dmsfwk",
+        "eventhandler",
         "hilog",
         "hisysevent",
         "hitrace",
@@ -97,8 +98,8 @@
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
         "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils",
-        "//foundation/distributeddatamgr/kv_store/frameworks/ets:kvstore_taihe",
-        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock:build_module"
+        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock:build_module",
+        "//foundation/distributeddatamgr/kv_store/frameworks/ets/taihe/kv_store:distributedkvstore_ani_pack"
       ],
       "inner_kits": [
         {
@@ -326,7 +327,7 @@
           }
         },
         {
-          "name": "//foundation/distributeddatamgr/kv_store/frameworks/ets:kvstore_taihe"
+          "name": "//foundation/distributeddatamgr/kv_store/frameworks/ets/taihe/kv_store:distributedkvstore_ani_pack"
         }
       ],
       "test": [

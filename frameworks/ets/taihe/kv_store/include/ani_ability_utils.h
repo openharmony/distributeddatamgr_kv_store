@@ -12,15 +12,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "kvstoreimport.proj.hpp"
-#include "kvstoreimport.impl.hpp"
+#ifndef OHOS_KV_STORE_ANI_ABILITY_UTILS_H_
+#define OHOS_KV_STORE_ANI_ABILITY_UTILS_H_
+
 #include "taihe/runtime.hpp"
-#include "stdexcept"
+#include "ani_base_context.h"
+#include "types.h"
 
-namespace {
-// To be implemented.
-} // namespace
+namespace OHOS {
+namespace DistributedKVStore {
+using namespace OHOS;
 
-// Since these macros are auto-generate, lint will cause false positive.
-NOLINTBEGIN
-NOLINTEND
+struct ContextParam {
+    std::string baseDir = "";
+    std::string hapName = "";
+    int32_t area = DistributedKv::Area::EL1;
+    bool isSystemApp = false;
+    int32_t apiVersion = 9;
+};
+
+int32_t GetHapVersion(ani_env *env, ani_object value);
+std::shared_ptr<AbilityRuntime::Context> GetStageModeContext(ani_env *env, ani_object value);
+int32_t AniGetContext(ani_object jsValue, ContextParam &param);
+}
+}
+#endif
