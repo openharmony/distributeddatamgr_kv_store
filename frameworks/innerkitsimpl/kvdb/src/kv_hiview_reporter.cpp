@@ -127,7 +127,7 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
     eventInfo.keyPath = reportInfo.options.GetDatabaseDir() + "/key/" + reportInfo.storeId + SUFFIX_KEY;
     if (eventInfo.errorCode == 0) {
         ZLOGI("Db rebuild report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
-        DeleteCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
+        DeleteCorruptedFlag(eventInfo.dbPath, eventInfo.storeName);
         eventInfo.appendix = GenerateAppendix(eventInfo);
         eventInfo.appendix += "\n" + std::string(DATABASE_REBUILD);
         ReportCommonFault(eventInfo);
@@ -174,7 +174,7 @@ void KVDBFaultHiViewReporter::ReportCorruptedEvent(KVDBFaultEvent eventInfo)
     if (IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName, eventInfo.dbPath)) {
         return;
     }
-    CreateCorruptedFlag(eventInfo.appendix, eventInfo.storeName);
+    CreateCorruptedFlag(eventInfo.dbPath, eventInfo.storeName);
     eventInfo.appendix = GenerateAppendix(eventInfo);
     ZLOGI("Db corrupted report:storeId:%{public}s", StoreUtil::Anonymous(eventInfo.storeName).c_str());
     ReportCommonFault(eventInfo);
@@ -334,6 +334,6 @@ std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &even
     fileInfo += std::string(SHM_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + SHM_PATH) + "\n";
     fileInfo += std::string(WAL_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + WAL_PATH) + "\n";
     fileInfo += std::string(KEY_NAME) + ":" + GetFileStatInfo(eventInfo.keyPath);
-    return FUNCTION + eventInfo.functionName + "\n" + DBPATH + eventInfo.appendix + "\n" + FILEINFO + fileInfo;
+    return FUNCTION + eventInfo.functionName + "\n" + DBPATH + eventInfo.dbPath + "\n" + FILEINFO + fileInfo;
 }
 } // namespace OHOS::DistributedKv
