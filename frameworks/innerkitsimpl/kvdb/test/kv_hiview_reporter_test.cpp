@@ -111,7 +111,7 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
     options.kvStoreType = SINGLE_VERSION;
     options.securityLevel = S1;
     options.area = EL1;
-    options.baseDir = BASE_DIR
+    options.baseDir = BASE_DIR;
     options.backup = false;
     options.encrypt = true;
     Status status;
@@ -132,7 +132,7 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
     ZLOGI("ReportKVFaultEvent002 delete kvStore end.");
 
     ZLOGI("ReportKVFaultEvent002 delete dir begin.");
-    stde::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
     auto ret = remove(dbPath.c_str());
     ASSERT_EQ(ret, 0);
     ret = remove(FULL_KVDB_PATH);
