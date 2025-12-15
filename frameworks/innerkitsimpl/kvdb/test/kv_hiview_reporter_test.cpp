@@ -31,6 +31,10 @@ using namespace OHOS::DistributedKv;
 static constexpr const char *BASE_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/";
 static constexpr const char *STOREID = "test_storeId";
 static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
+static constexpr const char *FULL_KVDB_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/kvdb/";
+static constexpr const char *FULL_KEY_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/";
+
+
 
 class KvHiviewReporterTest : public testing::Test {
 public:
@@ -123,5 +127,15 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
     std::string baseDir = BASE_DIR;
     StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ZLOGI("ReportKVFaultEvent002 delete kvStore end.");
+
+    ZLOGI("ReportKVFaultEvent002 delete dir begin.");
+    stde::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
+    auto ret = remove(dbPath.c_str());
+    ASSERT_EQ(ret, 0);
+    ret = remove(FULL_KVDB_PATH);
+    ASSERT_EQ(ret, 0);
+    ret = remove(FULL_KEY_PATH);
+    ASSERT_EQ(ret, 0);
+    ZLOGI("ReportKVFaultEvent002 delete dir end.");
 }
 } // namespace OHOS::Test
