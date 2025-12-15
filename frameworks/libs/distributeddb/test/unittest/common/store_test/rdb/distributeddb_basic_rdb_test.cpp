@@ -340,35 +340,6 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample006, TestSize.Level0)
     EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 0);
     EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable2), 2);
 }
-
-/**
- * @tc.name: RdbCloudSyncExample007
- * @tc.desc: sync when cloud asset space insufficient
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiefengzhu
- */
-HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample007, TestSize.Level0)
-{
-    // step1: init local assets
-    RelationalStoreDelegate::Option option;
-    option.tableMode = DistributedTableMode::COLLABORATION;
-    SetOption(option);
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
-    InsertLocalDBData(0, 30, info1);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 30);
-    // step2: init virtual cloudDB and set cloud asset space insufficient
-    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
-    ASSERT_NE(virtualCloudDb, nullptr);
-    virtualCloudDb->SetCloudAssetSpaceInsufficient(true);
-    // step3: sync when cloud asset space insufficient
-    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
-    RDBGeneralUt::SetCloudDbConfig(info1);
-    Query query = Query::Select().FromTable({g_defaultTable1});
-    RDBGeneralUt::CloudBlockSync(info1, query, OK, CLOUD_ASSET_SPACE_INSUFFICIENT);
-    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT), 30);
-}
 #endif // USE_DISTRIBUTEDDB_CLOUD
 
 /**

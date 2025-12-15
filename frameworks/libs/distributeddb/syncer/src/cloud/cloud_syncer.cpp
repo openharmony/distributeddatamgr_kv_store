@@ -1949,9 +1949,18 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     }
     // generate compensated sync
     // if already have compensated sync task in queue, no need to generate new compensated sync task
-    if (!info.compensatedTask && !IsAlreadyHaveCompensatedSyncTask()) {
+    if (!info.compensatedTask && !IsAlreadyHaveCompensatedSyncTask() &&
+        !CloudSyncUtils::NotNeedToCompensated(info.errCode)) {
         CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo(info);
         GenerateCompensatedSync(taskInfo);
+    }
+    if (CloudSyncUtils::NotNeedToCompensated(info.errCode)) {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        for (auto& cloudTaskInfoIter : cloudTaskInfos_) {
+            if (cloudTaskInfoIter.second.compensatedTask) {
+                cloudTaskInfoIter.second.errCode = info.errCode;
+            }
+        }
     }
 }
 

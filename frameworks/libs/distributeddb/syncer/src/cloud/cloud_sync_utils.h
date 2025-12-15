@@ -153,6 +153,8 @@ public:
     static bool CanStartAsyncDownload(int scheduleCount);
 
     static bool IsAssetsMissing(const std::vector<VBucket> &extend);
+
+    static bool NotNeedToCompensated(int errCode);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

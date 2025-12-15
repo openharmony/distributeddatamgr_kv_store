@@ -204,8 +204,6 @@ public:
 
     int UpdateRecordFlag(const std::string &tableName, const std::string &sql, const LogInfo &logInfo);
 
-    int ClearTableCompensatedFlag(const std::string &tableName);
-
     void MarkFlagAsUploadFinished(const std::string &tableName, const Key &hashKey, Timestamp timestamp,
         bool isExistAssetsDownload);
 

@@ -2414,5 +2414,40 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
     CloseDb();
 }
+
+/*
+ * @tc.name: CloudInsufficientTest001
+ * @tc.desc: Test compensated flag should be failed after cloud space insufficient
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CloudInsufficientTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 20 records on local
+     */
+    int64_t paddingSize = 20;
+    int localCount = 20;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step2. make 2th data exist
+     */
+    int upIdx = 0;
+    g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {
+        LOGD("cloud db upload index:%d", ++upIdx);
+        if (upIdx % 2) {
+            extend[CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED);
+        }
+    });
+    /**
+     * @tc.steps: step3. set cloud space insufficient and callsync
+     */
+    g_virtualCloudDb->SetCloudAssetSpaceInsufficient(true);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    g_virtualCloudDb->ForkUpload(nullptr);
+    CheckCompensatedNum(db, g_tables, {10, 0});
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE

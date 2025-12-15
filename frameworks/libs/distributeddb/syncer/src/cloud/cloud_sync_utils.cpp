@@ -1071,4 +1071,13 @@ bool CloudSyncUtils::CanStartAsyncDownload(int scheduleCount)
     }
     return scheduleCount <= 0;
 }
+
+bool CloudSyncUtils::NotNeedToCompensated(int errCode)
+{
+    if (errCode == -E_CLOUD_NETWORK_ERROR || errCode == -E_CLOUD_ASSET_SPACE_INSUFFICIENT) {
+        LOGW("[CloudSyncer] errCode = %d, not need to compensation.", errCode);
+        return true;
+    }
+    return false;
+}
 }

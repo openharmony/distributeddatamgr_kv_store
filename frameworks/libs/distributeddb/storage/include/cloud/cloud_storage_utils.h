@@ -206,7 +206,6 @@ public:
         std::string tableName;
         CloudWaterType type;
         TableSchema tableSchema;
-        std::vector<std::string> tableList;
     };
 
     static int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
@@ -217,9 +216,6 @@ public:
 
     static int HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationalStorageExecutor *handle,
         const VBucket &record, const LogInfo &logInfo, const CloudSyncParam &param);
-
-    static int ProcessUploadRecord(SQLiteSingleVerRelationalStorageExecutor *handle,
-        const CloudSyncBatch &updateData, const LogInfo &logInfo, const CloudSyncParam &param, size_t recordIndex);
         
     static void SaveChangedDataByType(const DataValue &dataValue, Type &value);
 

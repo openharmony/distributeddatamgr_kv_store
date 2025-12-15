@@ -551,7 +551,7 @@ int RDBGeneralUt::GetAbnormalCount(const std::string &tableName, const DBStatus 
     virtualCloudDb->Query(tableName, extend, data);
     for (size_t j = 0; j < data.size(); ++j) {
         auto entry = data[j].find(CloudDbConstant::DELETE_FIELD);
-        if (entry != data[j].end() && std::get<bool>(entry->second)) {
+        if (entry != data[j].end() && *std::get_if<bool>(&entry->second)) {
             continue;
         }
         auto statusIt = data[j].find(CloudDbConstant::ERROR_FIELD);
@@ -559,7 +559,7 @@ int RDBGeneralUt::GetAbnormalCount(const std::string &tableName, const DBStatus 
             continue;
         }
         auto statusVal = std::get_if<int64_t>(&statusIt->second);
-        if (statusVal && *statusVal == static_cast<int>(expectDBStatus)) {
+        if (statusVal != nullptr && *statusVal == static_cast<int>(expectDBStatus)) {
             ++abnoramlCount;
         }
     }

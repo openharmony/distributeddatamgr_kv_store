@@ -41,30 +41,26 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         LOGE("get table schema failed when fill log and asset. %d", errCode);
         return errCode;
     }
+    if (handle == nullptr) {
+        LOGE("executor is null when fill cloud log and asset.");
+        return -E_INVALID_DB;
+    }
     errCode = handle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
     if (errCode != E_OK) {
         return errCode;
     }
-    auto tableInfo = GetSchemaInfo().GetTables();
-    std::vector<std::string> tableList;
-    for (const auto &it : std::as_const(tableInfo)) {
-        if (it.second.GetTableSyncType() == CLOUD_COOPERATION) {
-            tableList.emplace_back(it.first);
-        }
-    }
     if (opType == OpType::INSERT) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::INSERT, tableSchema, tableList}, data.insData, uploadRecorder_);
+            handle, {data.tableName, CloudWaterType::INSERT, tableSchema}, data.insData, uploadRecorder_);
     } else if (opType == OpType::UPDATE) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::UPDATE, tableSchema, tableList}, data.updData, uploadRecorder_);
+            handle, {data.tableName, CloudWaterType::UPDATE, tableSchema}, data.updData, uploadRecorder_);
     } else if (opType == OpType::DELETE) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::DELETE, tableSchema, tableList}, data.delData, uploadRecorder_);
+            handle, {data.tableName, CloudWaterType::DELETE, tableSchema}, data.delData, uploadRecorder_);
     } else if (opType == OpType::LOCKED_NOT_HANDLE) {
         errCode = CloudStorageUtils::UpdateRecordFlagAfterUpload(
-            handle, {data.tableName, CloudWaterType::BUTT, tableSchema, tableList},
-            data.lockData, uploadRecorder_, true);
+            handle, {data.tableName, CloudWaterType::BUTT, tableSchema}, data.lockData, uploadRecorder_, true);
     }
     return errCode;
 }
