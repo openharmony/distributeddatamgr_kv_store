@@ -31,6 +31,10 @@ using namespace OHOS::DistributedKv;
 static constexpr const char *BASE_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/";
 static constexpr const char *STOREID = "test_storeId";
 static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
+static constexpr const char *FULL_KVDB_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/kvdb/";
+static constexpr const char *FULL_KEY_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/";
+
+
 
 class KvHiviewReporterTest : public testing::Test {
 public:
@@ -107,14 +111,17 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
     options.kvStoreType = SINGLE_VERSION;
     options.securityLevel = S1;
     options.area = EL1;
-    options.baseDir = BASE_DIR;
+    options.baseDir = BASE_DIR
+    options.backup = false;
+    options.encrypt = true;
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
 
     ZLOGI("ReportKVFaultEvent002 reportKVFaultEvent begin.");
     HiSysEventMock mock;
-    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(3);
+    status = DATA_CORRUPTED;
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
@@ -123,5 +130,15 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
     std::string baseDir = BASE_DIR;
     StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ZLOGI("ReportKVFaultEvent002 delete kvStore end.");
+
+    ZLOGI("ReportKVFaultEvent002 delete dir begin.");
+    stde::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
+    auto ret = remove(dbPath.c_str());
+    ASSERT_EQ(ret, 0);
+    ret = remove(FULL_KVDB_PATH);
+    ASSERT_EQ(ret, 0);
+    ret = remove(FULL_KEY_PATH);
+    ASSERT_EQ(ret, 0);
+    ZLOGI("ReportKVFaultEvent002 delete dir end.");
 }
 } // namespace OHOS::Test
