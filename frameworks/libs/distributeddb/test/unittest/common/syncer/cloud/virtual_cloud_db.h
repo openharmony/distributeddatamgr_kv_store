@@ -139,7 +139,6 @@ private:
     std::atomic<bool> lockStatus_ = false;
     std::atomic<bool> conflictInUpload_ = false;
     std::atomic<bool> localAssetNotFound_ = false;
-    std::atomic<bool> cloudSpaceInsufficient_ = false;
     std::atomic<int32_t> blockTimeMs_ = 0;
     std::atomic<int32_t> heartbeatBlockTimeMs_ = 0;
     std::atomic<int64_t> currentGid_ = 0;
@@ -150,6 +149,7 @@ private:
     std::atomic<int32_t> lockCount_ = 0;
     std::atomic<int32_t> insertFailedCount_ = 0;
     std::atomic<int32_t> missingExtendCount_ = 0;
+    bool cloudSpaceInsufficient_ = false;
     std::mutex cloudDataMutex_;
     std::map<std::string, std::vector<CloudData>> cloudData_;
     std::map<std::string, std::vector<CloudData>> incrementCloudData_;

@@ -1815,18 +1815,6 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string
     return errCode == E_OK ? ret : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::ClearTableCompensatedFlag(const std::string &tableName)
-{
-    const std::string compensatedBit = std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
-    const std::string sql =
-        "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = flag & ~" + compensatedBit + ";";
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
-    if (errCode != E_OK) {
-        LOGE("update extend field and cursor failed %d.", errCode);
-    }
-    return errCode;
-}
-
 void SQLiteSingleVerRelationalStorageExecutor::MarkFlagAsUploadFinished(const std::string &tableName,
     const Key &hashKey, Timestamp timestamp, bool isExistAssetsDownload)
 {

@@ -1567,36 +1567,4 @@ namespace {
         field.type = TYPE_INDEX<Asset>;
         EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_CLOUD_ERROR);
     }
-
-    /**
-     * @tc.name: CloudStorageUtilsTest001
-     * @tc.desc: Test ProcessUploadRecord
-     * @tc.type: FUNC
-     * @tc.require:
-     * @tc.author: xiefengzhu
-     */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, CloudStorageUtilsTest001, TestSize.Level0)
-    {
-        sqlite3 *db = nullptr;
-        auto executor = new SQLiteSingleVerRelationalStorageExecutor(db, true, DistributedTableMode::COLLABORATION);
-        VBucket bucket;
-        std::vector<VBucket> extend{bucket};
-        CloudSyncBatch updateData;
-        updateData.extend = extend;
-        LogInfo logInfo;
-        logInfo.cloudGid = "";
-        logInfo.dataKey = DBConstant::DEFAULT_ROW_ID;
-        CloudStorageUtils::CloudSyncParam param;
-        param.tableName = "tableName";
-        param.type = CloudWaterType::UPDATE;
-        EXPECT_EQ(CloudStorageUtils::ProcessUploadRecord(executor, updateData, logInfo, param, 0), -E_INVALID_ARGS);
-        updateData.timestamp = std::vector<int64_t>({1});
-        updateData.rowid = std::vector<int64_t>({1});
-        Key hashKey;
-        updateData.hashKey = std::vector<Bytes>({hashKey});
-        CloudUploadRecorder recorder;
-        EXPECT_EQ(CloudStorageUtils::UpdateRecordFlagAfterUpload(executor, param, updateData, recorder, false),
-            -E_INVALID_DB);
-        delete executor;
-    }
 }
