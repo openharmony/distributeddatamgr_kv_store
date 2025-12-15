@@ -492,6 +492,8 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool001, TestSize.Level1)
 HWTEST_F(DistributedDBThreadPoolTest, TaskPool002, TestSize.Level1)
 {
     ThreadPoolStub::GetInstance().SetThreadPool(nullptr);
+    TaskId taskId = 0L;
+    EXPECT_EQ(ThreadPoolStub::GetInstance().RemoveTask(taskId, true), false);
     ThreadPoolStub::GetInstance().ShrinkMemory(std::string(""));
     TaskId currentId = 0;
     EXPECT_CALL(*threadPoolPtr_, Execute(_)).WillRepeatedly([&currentId](const Task &task) {
@@ -503,7 +505,7 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool002, TestSize.Level1)
     ThreadPoolStub::GetInstance().SetThreadPool(threadPoolPtr_);
     ThreadPoolStub::GetInstance().ScheduleTask([]() {
         LOGD("exec task ok");
-    });
+    }, taskId);
     ThreadPoolStub::GetInstance().ShrinkMemory(std::string(""));
     ThreadPoolStub::GetInstance().ScheduleQueuedTask(std::string("qu"), []() {
         LOGD("exec task ok");
@@ -511,8 +513,35 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool002, TestSize.Level1)
     ThreadPoolStub::GetInstance().SetThreadPool(nullptr);
     ThreadPoolStub::GetInstance().ScheduleTask([]() {
         LOGD("exec task ok");
-    });
+    }, taskId);
     TaskId expId = 2;
     EXPECT_EQ(currentId, expId);
+}
+
+/**
+ * @tc.name: TaskPool003
+ * @tc.desc: Test mock pool remove task
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBThreadPoolTest, TaskPool003, TestSize.Level1)
+{
+    ASSERT_NE(threadPoolPtr_, nullptr);
+    TaskId curTaskId = 0;
+    EXPECT_CALL(*threadPoolPtr_, Execute(_)).WillRepeatedly([&curTaskId](const Task &task) {
+        return ++curTaskId;
+    });
+    EXPECT_CALL(*threadPoolPtr_, Remove).WillRepeatedly([&curTaskId](const TaskId &taskId, bool) {
+        LOGI("Call remove task %" PRIu64, taskId);
+        EXPECT_EQ(curTaskId, taskId);
+        return true;
+    });
+    TaskId taskId = 0L;
+    ThreadPoolStub::GetInstance().ScheduleTask([]() {
+        LOGD("exec task ok");
+    }, taskId);
+    ThreadPoolStub::GetInstance().RemoveTask(taskId, true);
+    ThreadPoolStub::GetInstance().SetThreadPool(nullptr);
 }
 }

@@ -55,6 +55,8 @@ public:
 
     // Task interfaces.
     int ScheduleTask(const TaskAction &task) override;
+    int ScheduleTask(const TaskAction &task, TaskId &taskId) override;
+    bool RemoveTask(const TaskId &taskId, bool wait) const override;
     int ScheduleQueuedTask(const std::string &queueTag, const TaskAction &task) override;
 
     // Shrink as much memory as possible.

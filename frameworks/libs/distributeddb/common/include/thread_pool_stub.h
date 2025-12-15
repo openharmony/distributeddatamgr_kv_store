@@ -40,13 +40,14 @@ public:
     std::shared_ptr<IThreadPool> GetThreadPool() const;
 
     // Task interfaces.
-    int ScheduleTask(const TaskAction &task);
+    int ScheduleTask(const TaskAction &task, TaskId &taskId);
     int ScheduleQueuedTask(const std::string &queueTag, const TaskAction &task);
+    bool RemoveTask(const TaskId &taskId, bool wait) const;
     // Shrink as much memory as possible.
     void ShrinkMemory(const std::string &description);
     void StopTaskPool();
 private:
-    int ScheduleTaskByThreadPool(const TaskAction &task) const;
+    int ScheduleTaskByThreadPool(const TaskAction &task, TaskId &taskId) const;
     mutable std::shared_mutex threadPoolLock_;
     std::shared_ptr<IThreadPool> threadPool_;
 

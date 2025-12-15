@@ -993,10 +993,11 @@ void ClientObserverCallback(const std::string &hashFileName)
     auto it = g_clientChangedDataMap.find(hashFileName);
     if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
         ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
+        TaskId taskId = DBConstant::INVALID_TASK_ID;
         (void)DistributedDB::ThreadPoolStub::GetInstance().ScheduleTask([clientObserver, clientChangedData] {
             ClientChangedData taskClientChangedData = clientChangedData;
             clientObserver(taskClientChangedData);
-        });
+            }, taskId);
         g_clientChangedDataMap[hashFileName].tableData.clear();
     }
 }

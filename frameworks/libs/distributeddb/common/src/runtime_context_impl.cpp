@@ -256,7 +256,18 @@ void RuntimeContextImpl::RemoveTimer(TimerId timerId, bool wait)
 // Task interfaces.
 int RuntimeContextImpl::ScheduleTask(const TaskAction &task)
 {
-    return ThreadPoolStub::GetInstance().ScheduleTask(task);
+    TaskId taskId = 0L;
+    return ThreadPoolStub::GetInstance().ScheduleTask(task, taskId);
+}
+
+int RuntimeContextImpl::ScheduleTask(const TaskAction &task, TaskId &taskId)
+{
+    return ThreadPoolStub::GetInstance().ScheduleTask(task, taskId);
+}
+
+bool RuntimeContextImpl::RemoveTask(const TaskId &taskId, bool wait) const
+{
+    return ThreadPoolStub::GetInstance().RemoveTask(taskId, wait);
 }
 
 int RuntimeContextImpl::ScheduleQueuedTask(const std::string &queueTag,

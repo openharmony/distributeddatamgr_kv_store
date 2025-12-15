@@ -48,9 +48,9 @@ std::shared_ptr<IThreadPool> ThreadPoolStub::GetThreadPool() const
     return threadPool_;
 }
 
-int ThreadPoolStub::ScheduleTask(const TaskAction &task)
+int ThreadPoolStub::ScheduleTask(const TaskAction &task, TaskId &taskId)
 {
-    if (ScheduleTaskByThreadPool(task) == E_OK) {
+    if (ScheduleTaskByThreadPool(task, taskId) == E_OK) {
         return E_OK;
     }
     std::lock_guard<std::mutex> autoLock(taskLock_);
@@ -69,6 +69,15 @@ int ThreadPoolStub::ScheduleTask(const TaskAction &task)
 #else
     return taskPool_->Schedule(task);
 #endif
+}
+
+bool ThreadPoolStub::RemoveTask(const TaskId &taskId, bool wait) const
+{
+    std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
+    if (threadPool == nullptr) {
+        return false;
+    }
+    return threadPool->Remove(taskId, wait);
 }
 
 int ThreadPoolStub::PrepareTaskPool()
@@ -95,7 +104,8 @@ int ThreadPoolStub::PrepareTaskPool()
 
 int ThreadPoolStub::ScheduleQueuedTask(const std::string &queueTag, const TaskAction &task)
 {
-    if (ScheduleTaskByThreadPool(task) == E_OK) {
+    TaskId taskId = 0L;
+    if (ScheduleTaskByThreadPool(task, taskId) == E_OK) {
         return E_OK;
     }
     std::lock_guard<std::mutex> autoLock(taskLock_);
@@ -134,13 +144,13 @@ void ThreadPoolStub::StopTaskPool()
     }
 }
 
-int ThreadPoolStub::ScheduleTaskByThreadPool(const TaskAction &task) const
+int ThreadPoolStub::ScheduleTaskByThreadPool(const TaskAction &task, TaskId &taskId) const
 {
     std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
     if (threadPool == nullptr) {
         return -E_NOT_SUPPORT;
     }
-    (void)threadPool->Execute(task);
+    taskId = threadPool->Execute(task);
     return E_OK;
 }
 } // namespace DistributedDB

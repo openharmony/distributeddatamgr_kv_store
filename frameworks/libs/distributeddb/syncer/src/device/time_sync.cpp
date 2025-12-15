@@ -142,9 +142,9 @@ TimeSync::TimeSync()
       isSynced_(false),
       isAckReceived_(false),
       timeChangedListener_(nullptr),
-      timeDriverLockCount_(0),
       isOnline_(true),
-      closed_(false)
+      closed_(false),
+      timeDriverTaskId_(DBConstant::INVALID_TASK_ID)
 {
 }
 
@@ -221,8 +221,17 @@ void TimeSync::Finalize()
         timerId = driverTimerId_;
     }
     runtimeContext->RemoveTimer(timerId, true);
-    std::unique_lock<std::mutex> lock(timeDriverLock_);
-    timeDriverCond_.wait(lock, [this]() { return this->timeDriverLockCount_ == 0; });
+    TaskId timeDriverTaskId;
+    {
+        std::unique_lock<std::mutex> lock(timeDriverLock_);
+        timeDriverTaskId = timeDriverTaskId_;
+    }
+    if (timeDriverTaskId != DBConstant::INVALID_TASK_ID) {
+        bool res = RuntimeContext::GetInstance()->RemoveTask(timeDriverTaskId, true);
+        LOGI("[TimeSync][Finalize] Remove task, ID:%" PRIu64 " res:%d", timeDriverTaskId, res);
+        std::unique_lock<std::mutex> lock(timeDriverLock_);
+        timeDriverTaskId_ = DBConstant::INVALID_TASK_ID;
+    }
     LOGD("[TimeSync] Finalized!");
 }
 
@@ -505,18 +514,20 @@ int TimeSync::TimeSyncDriver(TimerId timerId)
         return E_OK;
     }
     std::lock_guard<std::mutex> lock(timeDriverLock_);
+    if (timeDriverTaskId_ != DBConstant::INVALID_TASK_ID) {
+        LOGI("[TimeSync][TimeSyncDriver] task pending ID:%" PRIu64, timeDriverTaskId_);
+        return E_OK;
+    }
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
         CommErrHandler handler = [this](int ret, bool isDirectEnd) { CommErrHandlerFunc(ret, this); };
         (void)this->SyncStart(handler);
         std::lock_guard<std::mutex> innerLock(this->timeDriverLock_);
-        this->timeDriverLockCount_--;
-        this->timeDriverCond_.notify_all();
-    });
+        this->timeDriverTaskId_ = DBConstant::INVALID_TASK_ID;
+    }, timeDriverTaskId_);
     if (errCode != E_OK) {
         LOGE("[TimeSync][TimerSyncDriver] ScheduleTask failed err %d", errCode);
         return errCode;
     }
-    timeDriverLockCount_++;
     return E_OK;
 }
 
