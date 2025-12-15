@@ -301,7 +301,6 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
         ZLOGW("Creat corrupted flg fail, flgname=%{public}s, errno=%{public}d",
             StoreUtil::Anonymous(flagFilename).c_str(), errno);
         return;
-
     }
     close(fd);
 }
