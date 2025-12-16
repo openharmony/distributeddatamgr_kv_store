@@ -44,7 +44,9 @@ public:
 
     void SetUp();
     void TearDown();
-    std::shared_ptr<SingleKvStore> kvStore_;
+
+    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
+    static std::shared_ptr<SingleKvStore> kvStore_;
 };
 
 void KvHiviewReporterTest::SetUpTestCase(void)
@@ -106,7 +108,7 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level0)
     Options options;
     options.baseDir = BASE_DIR;
     options.encrypt = true;
-    Status status = DATA_CORRUPTED;;
+    Status status = Status::DATA_CORRUPTED;;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
@@ -130,11 +132,11 @@ HWTEST_F(KvHiviewReporterTest, ReportKVRebuildEvent001, TestSize.Level0)
     Options options;
     options.baseDir = BASE_DIR;
     options.encrypt = true;
-    Status status = SUCCESS;
+    Status status = Status::SUCCESS;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
-                .appId = APPID, .storeId = STOREID, .functionName = std::string(__FUNCTION__) };
+                .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
     auto ret = remove(dbPath.c_str());
