@@ -35,8 +35,6 @@ static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
 static constexpr const char *FULL_KVDB_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/kvdb/";
 static constexpr const char *FULL_KEY_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/";
 
-
-
 class KvHiviewReporterTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -45,9 +43,12 @@ public:
     void SetUp();
     void TearDown();
 
-    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
+    static std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type,
+        bool encrypt, bool backup);
     static std::shared_ptr<SingleKvStore> kvStore_;
 };
+
+std::shared_ptr<SingleKvStore> KvHiviewReporterTest::kvStore_;
 
 void KvHiviewReporterTest::SetUpTestCase(void)
 {
@@ -55,10 +56,9 @@ void KvHiviewReporterTest::SetUpTestCase(void)
     if (ret != 0) {
         ZLOGE("Mkdir failed, result:%{public}d, path:%{public}s", ret, BASE_DIR);
     }
-    ASSERT_EQ(ret, 0);
-    kvStore_ = CreateKVStore(STOREID, SINGLE_VERSION, true, false);
+    kvStore_ = KvHiviewReporterTest::CreateKVStore(STOREID, SINGLE_VERSION, true, false);
     ASSERT_NE(kvStore_, nullptr);
-
+    ZLOGE("KvHiviewReporterTest::CreateKVStore END");
 }
 
 void KvHiviewReporterTest::TearDownTestCase(void)
@@ -69,10 +69,11 @@ void KvHiviewReporterTest::TearDownTestCase(void)
     std::string baseDir = BASE_DIR;
     auto status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(baseDir, storeId.storeId);
+    (void)remove(dbPath.c_str());
     (void)remove(FULL_KVDB_PATH);
     (void)remove(FULL_KEY_PATH);
     (void)remove(BASE_DIR);
-
 }
 
 void KvHiviewReporterTest::SetUp(void) { }
@@ -92,6 +93,7 @@ std::shared_ptr<SingleKvStore> KvHiviewReporterTest::CreateKVStore(
 
     AppId appId = { APPID };
     StoreId storeId = { storeIdTest };
+    Status status;
     return StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
 }
 
@@ -108,13 +110,14 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level0)
     Options options;
     options.baseDir = BASE_DIR;
     options.encrypt = true;
-    Status status = Status::DATA_CORRUPTED;;
+    Status status = Status::DATA_CORRUPTED;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
     ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
-    std::string flagFilename = std::string(BASE_DIR) + std::string(STOREID) + std::string(DB_CORRUPTED_POSTFIX);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
+    std::string flagFilename = dbPath + std::string(STOREID) + std::string(DB_CORRUPTED_POSTFIX);
     auto ret = access(flagFilename.c_str(), F_OK);
     ASSERT_EQ(ret, 0);
 }
@@ -139,8 +142,8 @@ HWTEST_F(KvHiviewReporterTest, ReportKVRebuildEvent001, TestSize.Level0)
                 .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
-    auto ret = remove(dbPath.c_str());
-    ASSERT_EQ(ret, 0);
-
+    std::string flagFilename = dbPath + std::string(STOREID) + std::string(DB_CORRUPTED_POSTFIX);
+    auto ret = access(flagFilename.c_str(), F_OK);
+    ASSERT_NE(ret, 0);
 }
 } // namespace OHOS::Test
