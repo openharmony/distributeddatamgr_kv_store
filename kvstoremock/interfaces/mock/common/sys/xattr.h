@@ -18,21 +18,42 @@
 
 inline  ssize_t getxattr(const char *path, const char *name, void *value, unsigned long size, int sizea, int sizeb)
 {
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    (void)sizea;
+    (void)sizeb;
     return 0;
 }
 
 inline  int setxattr(const char *path, const char *name, void const* value, unsigned long size, int sizea, int sizeb)
 {
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    (void)sizea;
+    (void)sizeb;
     return 0;
 }
 
 inline  ssize_t getxattr(const char *path, const char *name, void *value, size_t size)
 {
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
     return 0;
 }
 
 inline  int setxattr(const char *path, const char *name, const void *value, size_t size, int flags)
 {
+    (void)path;
+    (void)name;
+    (void)value;
+    (void)size;
+    (void)flags;
     return 0;
 }
 #endif // MOCK_XATTR_H
