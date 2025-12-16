@@ -101,6 +101,8 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
     eventInfo.dbPath = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
     if (eventInfo.encryptStatus) {
         eventInfo.keyPath = reportInfo.options.GetDatabaseDir() + "/key/" + reportInfo.storeId + SUFFIX_KEY;
+    }else {
+        eventInfo.keyPath = "";
     }
     if (!IsReportedFault(eventInfo)) {
         ReportFaultEvent(eventInfo);
