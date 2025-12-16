@@ -24,6 +24,7 @@ class MockKvSyncInterface : public VirtualSingleVerSyncDBInterface {
 public:
     MOCK_METHOD0(IncRefCount, void(void));
     MOCK_METHOD0(DecRefCount, void(void));
+    MOCK_CONST_METHOD0(IsSupportSubscribe, int());
     MOCK_CONST_METHOD1(GetDBInfo, void(DBInfo &));
 };
 } // namespace DistributedDB

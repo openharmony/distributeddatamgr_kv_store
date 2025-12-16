@@ -472,7 +472,7 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch005, Test
 }
 
 /**
-  * @tc.name: EnableKvStoreAutoLaunch005
+  * @tc.name: EnableKvStoreAutoLaunch006
   * @tc.desc: test the over limits for the enable list.
   * @tc.type: FUNC
   * @tc.require:
@@ -529,6 +529,25 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch006, Test
     EXPECT_EQ(KvStoreDelegateManager::DisableKvStoreAutoLaunch(USER_ID1, APP_ID1, "store_1"), NOT_FOUND);
 }
 
+/**
+  * @tc.name: EnableKvStoreAutoLaunch007
+  * @tc.desc: test invalid enable auto launch.
+  * @tc.type: FUNC
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBInterfacesAutoLaunchTest, EnableKvStoreAutoLaunch007, TestSize.Level0)
+{
+    CipherPassword passwd;
+    AutoLaunchOption launchOption = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir};
+    AutoLaunchParam param;
+    param.storeId = "store_id";
+    param.userId = USER_ID1;
+    param.appId = APP_ID1;
+    param.option = launchOption;
+    param.subUser.resize(129, 'u'); // 129 is invalid length
+    EXPECT_EQ(KvStoreDelegateManager::EnableKvStoreAutoLaunch(param), INVALID_ARGS);
+}
+
 namespace {
 void SetAutoLaunchLifeCycleTime(const std::string &storeId, uint32_t time)
 {
@@ -545,7 +564,7 @@ void SetAutoLaunchLifeCycleTime(const std::string &storeId, uint32_t time)
 }
 }
 /**
-  * @tc.name: EnableKvStoreAutoLaunch007
+  * @tc.name: DisableKvStoreAutoLaunch001
   * @tc.desc: test the over limits for the enable list.
   * @tc.type: FUNC
   * @tc.require:

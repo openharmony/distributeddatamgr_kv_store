@@ -57,12 +57,6 @@ struct ClearKvMetaDataOption {
     ClearKvMetaOpType type = ClearKvMetaOpType::CLEAN_CLOUD_WATERMARK;
 };
 
-struct ClearDeviceDataOption {
-    ClearMode mode = ClearMode::DEFAULT;
-    std::string device;
-    std::vector<std::string> tableList; // when left empty tableList, clear all tables
-};
-
 enum class AssetOpType {
     NO_CHANGE = 0,
     INSERT,
@@ -81,6 +75,12 @@ enum AssetStatus : uint32_t {
     HIDDEN = 0x20000000,
     DOWNLOAD_WITH_NULL = 0x40000000,
     UPLOADING = 0x80000000,
+};
+
+struct ClearDeviceDataOption {
+    ClearMode mode = ClearMode::DEFAULT;
+    std::string device;
+    std::vector<std::string> tableList; // when left empty tableList, clear all tables
 };
 
 struct Asset {

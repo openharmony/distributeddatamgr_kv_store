@@ -493,4 +493,88 @@ int SQLiteSingleVerStorageExecutor::GetMetaDataByPrefixKey(const Key &keyPrefix,
     std::string metaTableName = "meta_data";
     return SqliteMetaExecutor::GetMetaDataByPrefixKey(dbHandle_, isMemDb_, metaTableName, keyPrefix, data);
 }
+
+int SQLiteSingleVerStorageExecutor::GetKvDataSQL(SingleVerDataType type, std::string &sql) const
+{
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
+        sql = SELECT_LOCAL_VALUE_TIMESTAMP_SQL;
+    } else if (type == SingleVerDataType::SYNC_TYPE) {
+        sql = SELECT_SYNC_VALUE_WTIMESTAMP_SQL;
+    } else if (type == SingleVerDataType::META_TYPE) {
+        if (attachMetaMode_) {
+            sql = SELECT_ATTACH_META_VALUE_SQL;
+        } else {
+            sql = SELECT_META_VALUE_SQL;
+        }
+    } else {
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerStorageExecutor::GetKvDataInner(SingleVerDataType type, sqlite3_stmt *statement,
+    const Key &key, Value &value, Timestamp &timestamp) const
+{
+    int errCode = SQLiteUtils::BindBlobToStatement(statement, 1, key, false); // first arg.
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+        return errCode;
+    } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, value); // only one result.
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    // get timestamp
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
+        timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, GET_KV_RES_LOCAL_TIME_INDEX));
+    } else if (type == SingleVerDataType::SYNC_TYPE) {
+        timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, GET_KV_RES_SYNC_TIME_INDEX));
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerStorageExecutor::PutKvDataInner(SingleVerDataType type, const Key &key, const Value &value,
+    Timestamp timestamp, SingleVerNaturalStoreCommitNotifyData *committedData)
+{
+    // committedData is only for local data, not for meta data.
+    bool isLocal = (SingleVerDataType::LOCAL_TYPE_SQLITE == type);
+    Timestamp localTimestamp = 0;
+    Value readValue;
+    auto errCode = CheckIfKeyExisted(key, isLocal, readValue, localTimestamp, true);
+    bool isExisted = true;
+    if (errCode == -E_NOT_FOUND) {
+        isExisted = false;
+        errCode = E_OK;
+    }
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (isLocal && committedData != nullptr) {
+        ExistStatus existedStatus = isExisted ? ExistStatus::EXIST : ExistStatus::NONE;
+        Key hashKey;
+        int innerErrCode = DBCommon::CalcValueHash(key, hashKey);
+        if (innerErrCode != E_OK) {
+            return innerErrCode;
+        }
+        committedData->InitKeyPropRecord(hashKey, existedStatus);
+    }
+    errCode = SaveKvData(type, key, value, timestamp);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    if (isLocal && committedData != nullptr) {
+        Entry entry = {key, value};
+        committedData->InsertCommittedData(std::move(entry), isExisted ? DataType::UPDATE : DataType::INSERT, true);
+    }
+    return errCode;
+}
 } // namespace DistributedDB

@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -1931,7 +1930,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     g_kvNbDelegatePtr = nullptr;
 }
 
-void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int EndNum)
+void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int endNum)
 {
     while (resultSet->MoveToNext()) {
         Entry entryValue;
@@ -1940,7 +1939,7 @@ void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int EndNum)
         EXPECT_EQ(to_string(beginNum), keyStr);
         beginNum++;
     }
-    EXPECT_EQ(beginNum, EndNum + 1);
+    EXPECT_EQ(beginNum, endNum + 1);
     EXPECT_EQ(resultSet->MoveToNext(), false);
 }
 
@@ -2440,4 +2439,3 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdGetCloudVersion001, TestSize
 }
 #endif
 }
-#endif // USE_RD_KERNEL

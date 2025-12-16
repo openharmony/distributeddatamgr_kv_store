@@ -86,6 +86,9 @@ void DistributedDBStorageSQLiteSingleVerNaturalStoreTest::TearDown(void)
     g_store = nullptr;
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/" + g_identifier + "/" +
         DBConstant::SINGLE_SUB_DIR);
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
 }
 
 /**
@@ -1146,5 +1149,52 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, MigrationAndReleas
         releaseThread.join();
         RefObject::DecObjRef(store);
     }
+}
+
+/**
+ * @tc.name: GetSecurityOptionTest001
+ * @tc.desc: test GetSecurityOption, Open, Export and Import func
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, GetSecurityOptionTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Release resources.
+     * @tc.expected: Close successfully.
+     */
+    ASSERT_NE(g_store, nullptr);
+    g_store->Close();
+    /**
+     * @tc.steps: step2. Set property.
+     * @tc.expected: SetBoolProp successfully.
+     */
+    KvDBProperties property;
+    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNB");
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    property.SetBoolProp(KvDBProperties::MEMORY_MODE, true);
+
+    ASSERT_EQ(g_store->Open(property), E_OK);
+    /**
+     * @tc.steps: step3. Reopen.
+     * @tc.expected: E_OK.
+     */
+    EXPECT_EQ(g_store->Open(property), E_OK);
+    /**
+     * @tc.steps: step4. Test GetSecurityOption func when isMemDb.
+     * @tc.expected: -E_NOT_SUPPORT.
+     */
+    SecurityOption option;
+    EXPECT_EQ(g_store->GetSecurityOption(option), -E_NOT_SUPPORT);
+    /**
+     * @tc.steps: step5. Test Export and Import func when isMemDb.
+     * @tc.expected: -E_NOT_SUPPORT.
+     */
+    CipherPassword password;
+    EXPECT_EQ(g_store->Export(g_testDir, password), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_store->Import(g_testDir, password, false), -E_NOT_SUPPORT);
 }
 }

@@ -104,54 +104,28 @@ SQLiteSingleVerStorageExecutor::~SQLiteSingleVerStorageExecutor()
 }
 
 int SQLiteSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key &key, Value &value,
-    Timestamp &timestamp) const
+    Timestamp &timestamp, bool useCacheStmt) const
 {
     std::string sql;
-    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
-        sql = SELECT_LOCAL_VALUE_TIMESTAMP_SQL;
-    } else if (type == SingleVerDataType::SYNC_TYPE) {
-        sql = SELECT_SYNC_VALUE_WTIMESTAMP_SQL;
-    } else if (type == SingleVerDataType::META_TYPE) {
-        if (attachMetaMode_) {
-            sql = SELECT_ATTACH_META_VALUE_SQL;
-        } else {
-            sql = SELECT_META_VALUE_SQL;
-        }
-    } else {
-        return -E_INVALID_ARGS;
+    int errCode = GetKvDataSQL(type, sql);
+    if (errCode != E_OK) {
+        return errCode;
     }
-
+    bool useTmpStmt = true;
     sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
-    if (errCode != E_OK) {
-        goto END;
+    if (useCacheStmt && type == SingleVerDataType::LOCAL_TYPE_SQLITE &&
+        saveLocalStatements_.queryStatement != nullptr) {
+        statement = saveLocalStatements_.queryStatement;
+        useTmpStmt = false;
+    } else {
+        errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        if (errCode != E_OK) {
+            return CheckCorruptedStatus(errCode);
+        }
     }
-
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, key, false); // first arg.
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_NOT_FOUND;
-        goto END;
-    } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        goto END;
-    }
-
-    errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, value); // only one result.
-
-    // get timestamp
-    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
-        timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, GET_KV_RES_LOCAL_TIME_INDEX));
-    } else if (type == SingleVerDataType::SYNC_TYPE) {
-        timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, GET_KV_RES_SYNC_TIME_INDEX));
-    }
-
-END:
+    errCode = GetKvDataInner(type, statement, key, value, timestamp);
     int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
+    SQLiteUtils::ResetStatement(statement, useTmpStmt, ret); // finalize stmt when use tmp stmt
     return CheckCorruptedStatus(errCode);
 }
 
@@ -250,15 +224,23 @@ int SQLiteSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key
 {
     sqlite3_stmt *statement = nullptr;
     std::string sql;
+    bool useTmpStmt = true;
     if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
-        sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ? INSERT_LOCAL_SQL_FROM_CACHEHANDLE :
-            INSERT_LOCAL_SQL);
+        if (executorState_ == ExecutorState::CACHE_ATTACH_MAIN) {
+            sql = INSERT_LOCAL_SQL_FROM_CACHEHANDLE;
+        } else {
+            statement = saveLocalStatements_.insertStatement;
+            useTmpStmt = false;
+        }
     } else {
         sql = (attachMetaMode_ ? INSERT_ATTACH_META_SQL : INSERT_META_SQL);
     }
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
-    if (errCode != E_OK) {
-        goto ERROR;
+    int errCode = E_OK;
+    if (useTmpStmt) {
+        errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        if (errCode != E_OK) {
+            return CheckCorruptedStatus(errCode);
+        }
     }
 
     errCode = BindPutKvData(statement, key, value, timestamp, type);
@@ -273,7 +255,7 @@ int SQLiteSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key
 
 ERROR:
     int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
+    SQLiteUtils::ResetStatement(statement, useTmpStmt, ret);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -283,30 +265,18 @@ int SQLiteSingleVerStorageExecutor::PutKvData(SingleVerDataType type, const Key 
     if (type != SingleVerDataType::LOCAL_TYPE_SQLITE && type != SingleVerDataType::META_TYPE) {
         return -E_INVALID_ARGS;
     }
-    // committedData is only for local data, not for meta data.
-    bool isLocal = (SingleVerDataType::LOCAL_TYPE_SQLITE == type);
-    Timestamp localTimestamp = 0;
-    Value readValue;
-    bool isExisted = CheckIfKeyExisted(key, isLocal, readValue, localTimestamp);
-    if (isLocal && committedData != nullptr) {
-        ExistStatus existedStatus = isExisted ? ExistStatus::EXIST : ExistStatus::NONE;
-        Key hashKey;
-        int innerErrCode = DBCommon::CalcValueHash(key, hashKey);
-        if (innerErrCode != E_OK) {
-            return innerErrCode;
+    int errCode = E_OK;
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE && executorState_ != ExecutorState::CACHE_ATTACH_MAIN) {
+        errCode = PrepareForSavingData(SingleVerDataType::LOCAL_TYPE_SQLITE);
+        if (errCode != E_OK) {
+            return errCode;
         }
-        committedData->InitKeyPropRecord(hashKey, existedStatus);
     }
-    int errCode = SaveKvData(type, key, value, timestamp);
-    if (errCode != E_OK) {
-        return errCode;
+    errCode = PutKvDataInner(type, key, value, timestamp, committedData);
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
+        (void)ResetForSavingData(SingleVerDataType::LOCAL_TYPE_SQLITE);
     }
-
-    if (isLocal && committedData != nullptr) {
-        Entry entry = {key, value};
-        committedData->InsertCommittedData(std::move(entry), isExisted ? DataType::UPDATE : DataType::INSERT, true);
-    }
-    return E_OK;
+    return errCode;
 }
 
 int SQLiteSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix,
@@ -1074,19 +1044,15 @@ int SQLiteSingleVerStorageExecutor::Rollback()
     return E_OK;
 }
 
-bool SQLiteSingleVerStorageExecutor::CheckIfKeyExisted(const Key &key, bool isLocal,
-    Value &value, Timestamp &timestamp) const
+int SQLiteSingleVerStorageExecutor::CheckIfKeyExisted(const Key &key, bool isLocal,
+    Value &value, Timestamp &timestamp, bool useCacheStmt) const
 {
     // not local value, no need to get the value.
     if (!isLocal) {
-        return false;
+        return E_OK;
     }
 
-    int errCode = GetKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, value, timestamp);
-    if (errCode != E_OK) {
-        return false;
-    }
-    return true;
+    return GetKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, value, timestamp, useCacheStmt);
 }
 
 int SQLiteSingleVerStorageExecutor::GetDeviceIdentifier(PragmaEntryDeviceIdentifier *identifier)
@@ -1182,7 +1148,8 @@ int SQLiteSingleVerStorageExecutor::PrepareForSavingData(SingleVerDataType type)
     int errCode = -E_NOT_SUPPORT;
     if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         // currently, Local type has not been optimized, so pass updateSql parameter with INSERT_LOCAL_SQL
-        errCode = PrepareForSavingData(SELECT_LOCAL_HASH_SQL, INSERT_LOCAL_SQL, INSERT_LOCAL_SQL, saveLocalStatements_);
+        errCode = PrepareForSavingData(SELECT_LOCAL_VALUE_TIMESTAMP_SQL, INSERT_LOCAL_SQL, INSERT_LOCAL_SQL,
+            saveLocalStatements_);
     } else if (type == SingleVerDataType::SYNC_TYPE) {
         errCode = PrepareForSavingData(SELECT_SYNC_HASH_SQL, INSERT_SYNC_SQL, UPDATE_SYNC_SQL, saveSyncStatements_);
     }

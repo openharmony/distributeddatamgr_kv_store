@@ -135,12 +135,6 @@ private:
 
     int ReviseOneLocalModTime(sqlite3_stmt *stmt, const ReviseModTimeInfo &data, bool isMemory);
 
-    int CommitForAsyncDownload();
-
-    int RollbackForAsyncDownload();
-
-    int StartTransactionForAsyncDownload(TransactType type);
-
     KvStorageHandle *storageHandle_;
 
     std::mutex schemaMutex_;
@@ -148,7 +142,6 @@ private:
 
     mutable std::mutex transactionMutex_;
     SQLiteSingleVerStorageExecutor *transactionHandle_;
-    SQLiteSingleVerStorageExecutor *asyncDownloadTransactionHandle_ = nullptr;
 
     std::string user_;
 

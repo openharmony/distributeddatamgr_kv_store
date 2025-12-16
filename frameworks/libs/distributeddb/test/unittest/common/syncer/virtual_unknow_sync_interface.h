@@ -13,26 +13,20 @@
  * limitations under the License.
  */
 
-#ifndef ICLOUD_CONFLICT_HANDLER_H
-#define ICLOUD_CONFLICT_HANDLER_H
+#ifndef VIRTUAL_UNKNOW_SYNC_INTERFACE_H
+#define VIRTUAL_UNKNOW_SYNC_INTERFACE_H
 
-#include "cloud_store_types.h"
+#include "virtual_single_ver_sync_db_Interface.h"
 
 namespace DistributedDB {
-enum class ConflictRet : uint32_t {
-    UPSERT = 0,
-    DELETE,
-    NOT_HANDLE,
-    INTEGRATE, // update data but no change flag
-    BUTT
-};
-
-class ICloudConflictHandler {
+class VirtualUnKnowSyncInterface : public VirtualSingleVerSyncDBInterface {
 public:
-    ICloudConflictHandler() = default;
-    virtual ~ICloudConflictHandler() = default;
-    virtual ConflictRet HandleConflict(const std::string &table, const VBucket &oldData, const VBucket &newData,
-        VBucket &upsert) = 0;
+    VirtualUnKnowSyncInterface() = default;
+    ~VirtualUnKnowSyncInterface() = default;
+    int GetInterfaceType() const override
+    {
+        return ISyncInterface::SYNC_MVD;
+    }
 };
-}
-#endif // ICLOUD_CONFLICT_HANDLER_H
+} // namespace DistributedDB
+#endif  // #define VIRTUAL_UNKNOW_SYNC_INTERFACE_H

@@ -168,13 +168,15 @@ namespace {
         CheckExtendAndCursor(num, start, TABLE_NAME2);
     }
 
-    void OpenStore()
+    void OpenStore(DistributedTableMode tableMode = DistributedTableMode::COLLABORATION)
     {
         if (g_db == nullptr) {
             g_db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
             ASSERT_NE(g_db, nullptr);
         }
-        DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, g_delegate);
+        RelationalStoreDelegate::Option option;
+        option.tableMode = tableMode;
+        DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, option, g_delegate);
         EXPECT_EQ(status, OK);
         ASSERT_NE(g_delegate, nullptr);
     }
@@ -2895,6 +2897,40 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest048,
 }
 
 /**
+ * @tc.name: TrackerTableTest049
+ * @tc.desc: Test set tracker table on table with split mode.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest049, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore(DistributedTableMode::SPLIT_BY_DEVICE);
+
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(g_normalSchema1), NOT_SUPPORT);
+    CloseStore();
+}
+
+/**
+ * @tc.name: TrackerTableTest050
+ * @tc.desc: Test set tracker table on table with split mode.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest050, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore(DistributedTableMode::SPLIT_BY_DEVICE);
+
+    EXPECT_EQ(g_delegate->SetTrackerTable(g_normalSchema1), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
+    CloseStore();
+}
+
+/**
   * @tc.name: SchemaStrTest001
   * @tc.desc: Test open reOpen stroe when schemaStr is empty
   * @tc.type: FUNC
@@ -2988,18 +3024,18 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest041,
      */
     string querySql = "select cursor from " + std::string(DBConstant::RELATIONAL_PREFIX) + TABLE_NAME2 + "_log";
     sqlite3_stmt *stmt = nullptr;
+    int index = 0;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         std::string cursorVal;
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, cursorVal), E_OK);
-        EXPECT_EQ(cursorVal, "0");
+        EXPECT_EQ(cursorVal, std::to_string(++index));
     }
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 
     TrackerSchema schema = g_normalSchema1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), WITH_INVENTORY_DATA);
-    int index = 0;
     stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {

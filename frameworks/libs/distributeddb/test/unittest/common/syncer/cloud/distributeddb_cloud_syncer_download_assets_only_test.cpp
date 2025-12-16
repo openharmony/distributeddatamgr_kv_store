@@ -1631,12 +1631,12 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly024, 
 }
 
 /**
- * @tc.name: SetAssetsConfig001
- * @tc.desc: Test set async download assets config
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: caihaoting
- */
+  * @tc.name: SetAssetsConfig001
+  * @tc.desc: Test set async download assets config
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: caihaoting
+  */
 HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, SetAssetsConfig001, TestSize.Level0)
 {
     /**

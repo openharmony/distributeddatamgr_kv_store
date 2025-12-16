@@ -261,6 +261,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
     EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 2);
 }
 
+
 /**
  * @tc.name: RdbCloudSyncExample005
  * @tc.desc: Test upload when asset is abnormal

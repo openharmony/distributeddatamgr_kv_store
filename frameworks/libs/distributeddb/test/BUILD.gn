@@ -175,7 +175,6 @@ ohos_source_set("src_file") {
     "sqlite:sqlite",
     "zlib:libz",
   ]
-  subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
 
@@ -259,34 +258,9 @@ distributeddb_unittest("DistributedDBCloudSchemaMgrTest") {
       [ "unittest/common/storage/distributeddb_cloud_schema_mgr_test.cpp" ]
 }
 
-distributeddb_unittest("DistributedDBStorageDataOperationTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_storage_data_operation_test.cpp",
-  ]
-}
-
 distributeddb_unittest("DistributedDBStorageRegisterConflictTest") {
   sources = [
     "unittest/common/storage/distributeddb_storage_register_conflict_test.cpp",
-  ]
-}
-
-distributeddb_unittest("DistributedDBInterfacesTransactionTest") {
-  sources = [
-    "unittest/common/interfaces/distributeddb_interfaces_transaction_test.cpp",
-    "unittest/common/interfaces/distributeddb_interfaces_transaction_testcase.cpp",
-  ]
-}
-
-distributeddb_unittest("DistributedDBStorageTransactionDataTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_storage_transaction_data_test.cpp",
-  ]
-}
-
-distributeddb_unittest("DistributedDBStorageTransactionRecordTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_storage_transaction_record_test.cpp",
   ]
 }
 
@@ -295,29 +269,8 @@ distributeddb_unittest("DistributedDBNotificationChainTest") {
       [ "unittest/common/common/distributeddb_notification_chain_test.cpp" ]
 }
 
-distributeddb_unittest("DistributedDBStorageCommitStorageTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_storage_commit_storage_test.cpp",
-  ]
-}
-
-distributeddb_unittest("DistributedDBInterfacesDataOperationSyncDBTest") {
-  sources = [ "unittest/common/interfaces/distributeddb_interfaces_data_operation_syncdb_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBInterfacesRegisterSyncDBTest") {
-  sources = [ "unittest/common/interfaces/distributeddb_interfaces_register_syncdb_test.cpp" ]
-}
-
 distributeddb_unittest("DistributedDBInterfacesRelationalObserverTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_observer_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBInterfacesTransactionSyncDBTest") {
-  sources = [
-    "unittest/common/interfaces/distributeddb_interfaces_transaction_syncdb_test.cpp",
-    "unittest/common/interfaces/distributeddb_interfaces_transaction_testcase.cpp",
-  ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PSimpleSyncTest") {
@@ -432,11 +385,6 @@ distributeddb_unittest("DistributedDBSyncerDeviceManagerTest") {
       [ "unittest/common/syncer/distributeddb_syncer_device_manager_test.cpp" ]
 }
 
-distributeddb_unittest("DistributedDBMultiVerP2PSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_multi_ver_p2p_sync_test.cpp" ]
-}
-
 distributeddb_unittest("DistributedDBRelationalVerP2PSyncTest") {
   sources = [
     "unittest/common/syncer/distributeddb_relational_ver_p2p_sync_test.cpp",
@@ -501,13 +449,6 @@ distributeddb_unittest("DistributedDBInterfacesDataValueTest") {
 
 distributeddb_unittest("DistributedDBFilePackageTest") {
   sources = [ "unittest/common/storage/distributeddb_file_package_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBMultiVerVacuumTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_multi_ver_vacuum_test.cpp",
-    "unittest/common/storage/multi_ver_vacuum_executor_stub.cpp",
-  ]
 }
 
 distributeddb_unittest("DistributedDBParcelTest") {
@@ -610,6 +551,10 @@ distributeddb_unittest("DistributedDBMockSyncModuleTest") {
   sources = [ "unittest/common/syncer/distributeddb_mock_sync_module_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBMockSyncMsgTest") {
+  sources = [ "unittest/common/syncer/distributeddb_mock_sync_msg_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBInterfacesRelationalTest") {
   sources = [
     "unittest/common/interfaces/distributeddb_interfaces_relational_test.cpp",
@@ -673,12 +618,6 @@ distributeddb_unittest("DistributedDBInterfacesRelationalRoutinesTest") {
 distributeddb_unittest("DistributedDBInterfacesLogTest") {
   sources =
       [ "unittest/common/interfaces/distributeddb_interfaces_log_test.cpp" ]
-}
-
-distributeddb_unittest("DistributedDBStorageDataConnectionTest") {
-  sources = [
-    "unittest/common/storage/distributeddb_storage_data_connection_test.cpp",
-  ]
 }
 
 distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
@@ -1141,7 +1080,6 @@ ohos_source_set("distributeddb_client_src_file") {
     "sqlite:sqlite",
     "zlib:libz",
   ]
-  subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
 
@@ -1180,6 +1118,11 @@ template("distributeddb_client_unittest") {
 
 distributeddb_client_unittest("DistributedDBRDBKnowledgeClientTest") {
   sources = [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_client_test.cpp" ]
+}
+
+distributeddb_client_unittest(
+    "DistributedDBCloudInterfacesRelationalExtClientTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_ext_client_test.cpp" ]
 }
 
 ###############################################################################
@@ -1231,14 +1174,12 @@ group("unittest") {
     ":DistributedDBEventLoopTimerTest",
     ":DistributedDBFilePackageTest",
     ":DistributedDBInterfacesAutoLaunchTest",
-    ":DistributedDBInterfacesDataOperationSyncDBTest",
     ":DistributedDBInterfacesDataOperationTest",
     ":DistributedDBInterfacesDataValueTest",
     ":DistributedDBInterfacesDatabaseCorruptTest",
     ":DistributedDBInterfacesDatabaseTest",
     ":DistributedDBInterfacesEncryptDatabaseTest",
     ":DistributedDBInterfacesEncryptDelegateTest",
-    ":DistributedDBInterfacesImportAndExportRdTest",
     ":DistributedDBInterfacesImportAndExportTest",
     ":DistributedDBInterfacesIndexUnitTest",
     ":DistributedDBInterfacesLogTest",
@@ -1251,7 +1192,6 @@ group("unittest") {
     ":DistributedDBInterfacesNBTransactionTest",
     ":DistributedDBInterfacesNBUnpublishTest",
     ":DistributedDBInterfacesQueryTest",
-    ":DistributedDBInterfacesRegisterSyncDBTest",
     ":DistributedDBInterfacesRelationalObserverTest",
     ":DistributedDBInterfacesRelationalRoutinesTest",
     ":DistributedDBInterfacesRelationalSyncTest",
@@ -1262,8 +1202,6 @@ group("unittest") {
     ":DistributedDBInterfacesSpaceManagementTest",
     ":DistributedDBInterfacesStopTaskTest",
     ":DistributedDBInterfacesTransactionOptimizationTest",
-    ":DistributedDBInterfacesTransactionSyncDBTest",
-    ":DistributedDBInterfacesTransactionTest",
     ":DistributedDBJsonPrecheckUnitTest",
     ":DistributedDBKVCompressTest",
     ":DistributedDBKVDataStatusTest",
@@ -1274,8 +1212,7 @@ group("unittest") {
     ":DistributedDBKvPermissionSyncTest",
     ":DistributedDBMetaDataTest",
     ":DistributedDBMockSyncModuleTest",
-    ":DistributedDBMultiVerP2PSyncTest",
-    ":DistributedDBMultiVerVacuumTest",
+    ":DistributedDBMockSyncMsgTest",
     ":DistributedDBNotificationChainTest",
     ":DistributedDBParcelTest",
     ":DistributedDBQueryObjectHelperTest",
@@ -1315,9 +1252,6 @@ group("unittest") {
     ":DistributedDBSqliteRegisterTest",
     ":DistributedDBSqliteRelationalUtilsTest",
     ":DistributedDBSqliteUtilsTest",
-    ":DistributedDBStorageCommitStorageTest",
-    ":DistributedDBStorageDataConnectionTest",
-    ":DistributedDBStorageDataOperationTest",
     ":DistributedDBStorageIndexOptimizeTest",
     ":DistributedDBStorageMemorySingleVerNaturalStoreTest",
     ":DistributedDBStorageQuerySyncTest",
@@ -1330,8 +1264,6 @@ group("unittest") {
     ":DistributedDBStorageSingleVerDatabaseOperTest",
     ":DistributedDBStorageSingleVerUpgradeTest",
     ":DistributedDBStorageSubscribeQueryTest",
-    ":DistributedDBStorageTransactionDataTest",
-    ":DistributedDBStorageTransactionRecordTest",
     ":DistributedDBSyncerDeviceManagerTest",
     ":DistributedDBThreadPoolTest",
     ":DistributedDBTimeSyncTest",
@@ -1342,6 +1274,7 @@ group("unittest") {
   if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
     deps += [
       ":DistributedDBInterfacesDatabaseRdKernelTest",
+      ":DistributedDBInterfacesImportAndExportRdTest",
       ":DistributedDBInterfacesNBDelegateRdTest",
       ":DistributedDBStorageMemoryRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdRegisterObserverTest",

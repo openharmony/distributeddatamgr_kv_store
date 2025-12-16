@@ -462,7 +462,7 @@ CloudSyncEvent CloudSyncer::SyncMachineDoFinished()
 
 int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo)
 {
-    cloudSyncStateMachine_.SwitchStateAndStep(CloudSyncEvent::START_SYNC_EVENT);
+    cloudSyncStateMachine_.SwitchStateAndStep(static_cast<uint8_t>(CloudSyncEvent::START_SYNC_EVENT));
     DBDfxAdapter::ReportBehavior(
         {__func__, Scene::CLOUD_SYNC, State::BEGIN, Stage::CLOUD_SYNC, StageResult::SUCC, E_OK});
     return E_OK;
@@ -1599,35 +1599,7 @@ void CloudSyncer::HeartBeat(TimerId timerId, TaskId taskId)
         heartbeatCount_[taskId]++;
     }
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, taskId]() {
-        {
-            std::lock_guard<std::mutex> guard(dataLock_);
-            if (currentContext_.currentTaskId != taskId) {
-                heartbeatCount_.erase(taskId);
-                failedHeartbeatCount_.erase(taskId);
-                DecObjRef(this);
-                return;
-            }
-        }
-        if (heartbeatCount_[taskId] >= HEARTBEAT_PERIOD) {
-            // heartbeat block twice should finish task now
-            SetTaskFailed(taskId, -E_CLOUD_ERROR);
-        } else {
-            int ret = cloudDB_.HeartBeat();
-            if (ret != E_OK) {
-                HeartBeatFailed(taskId, ret);
-            } else {
-                failedHeartbeatCount_[taskId] = 0;
-            }
-        }
-        {
-            std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
-            heartbeatCount_[taskId]--;
-            if (currentContext_.currentTaskId != taskId) {
-                heartbeatCount_.erase(taskId);
-                failedHeartbeatCount_.erase(taskId);
-            }
-        }
-        DecObjRef(this);
+        ExecuteHeartBeatTask(taskId);
     });
     if (errCode != E_OK) {
         LOGW("[CloudSyncer] schedule heartbeat task failed %d", errCode);
@@ -1637,9 +1609,12 @@ void CloudSyncer::HeartBeat(TimerId timerId, TaskId taskId)
 
 void CloudSyncer::HeartBeatFailed(TaskId taskId, int errCode)
 {
-    failedHeartbeatCount_[taskId]++;
-    if (failedHeartbeatCount_[taskId] < MAX_HEARTBEAT_FAILED_LIMIT) {
-        return;
+    {
+        std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
+        failedHeartbeatCount_[taskId]++;
+        if (failedHeartbeatCount_[taskId] < MAX_HEARTBEAT_FAILED_LIMIT) {
+            return;
+        }
     }
     LOGW("[CloudSyncer] heartbeat failed too much times!");
     FinishHeartBeatTimer();

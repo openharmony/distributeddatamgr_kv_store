@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,6 +36,11 @@ public:
         syncEngine_ = engine;
     }
 
+    ISyncEngine *GetSyncEngine()
+    {
+        return syncEngine_;
+    }
+
     void CallQueryAutoSync(const InternalSyncParma &param)
     {
         SingleVerKVSyncer::QueryAutoSync(param);
@@ -65,5 +70,5 @@ public:
         LOGD("get lock success");
     }
 };
-}
+} // namespace DistributedDB
 #endif // MOCK_SINGLE_VER_KV_SYNCER_H

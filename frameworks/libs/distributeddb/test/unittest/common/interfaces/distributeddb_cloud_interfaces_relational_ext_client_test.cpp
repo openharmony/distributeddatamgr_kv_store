@@ -1249,7 +1249,7 @@ void PrepareDataForStoreObserver(sqlite3 *db, const std::string &tableName, int 
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
         sql = "update no_" + tableName + " set name = 'lisi' where _rowid_ = " + std::to_string(i + 1) + ";";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-        sql = "update mult_" + tableName + " set age = 20 where id = " + std::to_string(i + 1);
+        sql = "update mult_" + tableName + " set age = 20 where _rowid_ = " + std::to_string(i + 1);
         sql += " and name = 'zhangsan" + std::to_string(i + 1) + "';";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
@@ -1258,7 +1258,7 @@ void PrepareDataForStoreObserver(sqlite3 *db, const std::string &tableName, int 
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
         sql = "delete from no_" + tableName + " where _rowid_ = " + std::to_string(i + 1) + ";";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-        sql = "delete from mult_" + tableName + " where id = " + std::to_string(i + 1);
+        sql = "delete from mult_" + tableName + " where _rowid_ = " + std::to_string(i + 1);
         sql += " and name = 'zhangsan" + std::to_string(i + 1) + "';";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
@@ -1268,7 +1268,7 @@ void PrepareDataForStoreObserver(sqlite3 *db, const std::string &tableName, int 
 
 void CheckChangedData(int num, int times = 0, int offset = 0)
 {
-    if (num == 1) {
+    if (num != 0) {
         for (size_t i = 1; i <= g_changedData[num].primaryData[ChangeType::OP_INSERT].size(); i++) {
             EXPECT_EQ(std::get<int64_t>(g_changedData[num].primaryData[ChangeType::OP_INSERT][i - 1][0]),
                 static_cast<int64_t>(i + offset - times * 5)); // 5 is rowid times

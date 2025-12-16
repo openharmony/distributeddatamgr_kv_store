@@ -60,7 +60,6 @@ Timestamp SqliteCloudKvExecutorUtils::GetMaxTimeStamp(const std::vector<VBucket>
 {
     Timestamp maxTimeStamp = 0;
     if (dataExtend.empty()) {
-        LOGE("[SqliteCloudKvExecutorUtils] [GetMaxTimeStamp] data extend is empty.");
         return maxTimeStamp;
     }
     VBucket lastRecord = dataExtend.back();

@@ -465,6 +465,7 @@ int RdSingleVerNaturalStoreConnection::RegisterLifeCycleCallback(const DatabaseL
 // Called when Close and delete the connection.
 int RdSingleVerNaturalStoreConnection::PreClose(bool isCloseImmediately)
 {
+    (void)isCloseImmediately;
     // check if result set closed
     std::lock_guard<std::mutex> lock(kvDbResultSetsMutex_);
     if (kvDbResultSets_.size() > 0) {

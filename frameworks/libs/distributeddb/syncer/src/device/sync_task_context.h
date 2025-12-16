@@ -309,7 +309,7 @@ protected:
 
     mutable std::mutex remotePullMutex_;
     std::function<void(std::string)> remotePullNotifier_;
-    
+
     // For global ISyncTaskContext Set, used by CommErrCallback.
     static std::mutex synTaskContextSetLock_;
     static std::set<ISyncTaskContext *> synTaskContextSet_;

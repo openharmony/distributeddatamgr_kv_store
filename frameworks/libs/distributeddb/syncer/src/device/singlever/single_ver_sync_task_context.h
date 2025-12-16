@@ -16,6 +16,7 @@
 #ifndef SINGLE_VER_SYNC_TASK_CONTEXT_H
 #define SINGLE_VER_SYNC_TASK_CONTEXT_H
 
+#include <atomic>
 #include <list>
 #include <mutex>
 #include <string>

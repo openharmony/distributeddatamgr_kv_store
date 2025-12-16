@@ -568,7 +568,7 @@ int SingleVerDataSyncUtils::GetUnsyncTotal(const SingleVerSyncTaskContext *conte
 {
     SyncTimeRange waterRange;
     WaterMark startMark = context->GetInitWaterMark();
-    if (waterRange.endTime == 0 || startMark > waterRange.endTime) {
+    if ((waterRange.endTime == 0) || (startMark > waterRange.endTime)) {
         return E_OK;
     }
 

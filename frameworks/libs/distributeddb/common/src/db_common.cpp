@@ -573,7 +573,7 @@ bool DBCommon::IsCloudSpaceInsufficient(const VBucket &record)
     if (recordIter->second.index() != TYPE_INDEX<int64_t>) {
         return false;
     }
-    auto status = std::get<int64_t>(recordIter->second);
+    auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
     return status == static_cast<int64_t>(DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
 }
 

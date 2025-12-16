@@ -169,7 +169,7 @@ int ParamCheckUtils::CheckAndTransferAutoLaunchParam(const AutoLaunchParam &para
         LOGE("[AutoLaunch] CheckConflictNotifierType is invalid.");
         return -E_INVALID_ARGS;
     }
-    if (!ParamCheckUtils::CheckStoreParameter(param.storeId, param.appId, param.userId)) {
+    if (!ParamCheckUtils::CheckStoreParameter(param.storeId, param.appId, param.userId, false, param.subUser)) {
         LOGE("[AutoLaunch] CheckStoreParameter is invalid.");
         return -E_INVALID_ARGS;
     }
