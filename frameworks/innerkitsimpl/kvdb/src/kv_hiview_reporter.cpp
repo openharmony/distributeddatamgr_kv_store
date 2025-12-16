@@ -101,7 +101,7 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
     eventInfo.dbPath = GetDBPath(reportInfo.options.GetDatabaseDir(), reportInfo.storeId);
     if (eventInfo.encryptStatus) {
         eventInfo.keyPath = reportInfo.options.GetDatabaseDir() + "/key/" + reportInfo.storeId + SUFFIX_KEY;
-    }else {
+    } else {
         eventInfo.keyPath = "";
     }
     if (!IsReportedFault(eventInfo)) {
@@ -336,6 +336,7 @@ std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &even
     fileInfo += std::string(SHM_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + SHM_PATH) + "\n";
     fileInfo += std::string(WAL_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + WAL_PATH) + "\n";
     fileInfo += std::string(KEY_NAME) + ":" + GetFileStatInfo(eventInfo.keyPath);
-    return FUNCTION + eventInfo.functionName + "\n" + DBPATH + StoreUtil::Anonymous(eventInfo.dbPath).c_str() + "\n" + FILEINFO + fileInfo;
+    return FUNCTION + eventInfo.functionName + "\n" + DBPATH +
+           StoreUtil::Anonymous(eventInfo.dbPath).c_str() + "\n" + FILEINFO + fileInfo;
 }
 } // namespace OHOS::DistributedKv
