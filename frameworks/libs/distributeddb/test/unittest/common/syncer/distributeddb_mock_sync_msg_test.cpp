@@ -258,7 +258,7 @@ HWTEST_F(DistributedDBMockSyncMsgTest, SendControlAckSendError, TestSize.Level0)
     VirtualRelationalVerSyncDBInterface storage;
     auto communicator = new (std::nothrow) MockCommunicator();
     ASSERT_NE(communicator, nullptr);
-    EXPECT_CALL(*communicator, SendMessage(_,_,_,_)).WillOnce(Return(-E_NOT_INIT));
+    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillOnce(Return(-E_NOT_INIT));
 
     auto mockMetadata = std::make_shared<MockMetadata>();
     std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);

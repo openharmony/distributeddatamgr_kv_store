@@ -33,7 +33,9 @@ namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
 using namespace DistributedDBUnitTest;
-static constexpr const int MOD = 3;
+static constexpr const int MOD = 1024;
+static constexpr const uint64_t MIN_DATA_MODE = static_cast<uint64_t>(ClearMetaDataMode::CLOUD_WATERMARK);
+static constexpr const uint64_t MAX_DATA_MODE = static_cast<uint64_t>(ClearMetaDataMode::BUTT) + 1;
 constexpr const char *DB_SUFFIX = ".db";
 constexpr const char *STORE_ID = "Relational_Store_ID";
 const std::string DEVICE_A = "DEVICE_A";
@@ -92,7 +94,7 @@ void TearDown()
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     g_communicatorAggregator = nullptr;
     if (sqlite3_close_v2(g_db) != SQLITE_OK) {
-        LOGI("sqlite3_close_v2 faile");
+        LOGE("sqlite3_close_v2 faile");
     }
     g_db = nullptr;
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
@@ -135,11 +137,38 @@ void TestDistributedSchema(FuzzedDataProvider *fdp)
         for (uint32_t j = 0; j < fieldSize; j++) {
             DistributedField field;
             field.colName = fdp->ConsumeRandomLengthString();
-            table.fields.push_back(field);
+            table.fields.emplace_back(field);
         }
-        schema.tables.push_back(table);
+        schema.tables.emplace_back(table);
     }
     g_delegate->SetDistributedSchema(schema);
+}
+
+void ClearMetaDataTest(FuzzedDataProvider &fdp)
+{
+    if (g_delegate == nullptr) {
+        LOGE("delegate is null");
+        return;
+    }
+    auto mode = static_cast<ClearMetaDataMode>(fdp.ConsumeIntegralInRange<uint64_t>(MIN_DATA_MODE, MAX_DATA_MODE));
+    std::set<std::string> tableNameList;
+    std::string table = fdp.ConsumeRandomLengthString();
+    int size = fdp.ConsumeIntegralInRange<int>(0, MOD);
+    for (int i = 0; i < size; i++) {
+        tableNameList.emplace(table + std::to_string(i));
+    }
+    ClearMetaDataOption option = { mode, tableNameList };
+    g_delegate->ClearMetaData(option);
+}
+
+void OperateDataStatusTest(FuzzedDataProvider &fdp)
+{
+    if (g_delegate == nullptr) {
+        LOGE("delegate is null");
+        return;
+    }
+    uint32_t dataOperator = fdp.ConsumeIntegral<uint32_t>();
+    g_delegate->OperateDataStatus(dataOperator);
 }
 
 void CombineTest(FuzzedDataProvider &fdp)
@@ -151,7 +180,7 @@ void CombineTest(FuzzedDataProvider &fdp)
         return;
     }
     if (g_delegate == nullptr) {
-        LOGI("delegate is null");
+        LOGE("delegate is null");
         return;
     }
     g_delegate->RegisterObserver(observer);
@@ -161,8 +190,8 @@ void CombineTest(FuzzedDataProvider &fdp)
 
     std::vector<std::string> device;
     size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
-    for (int i = 0; i < size; i++) {
-        device.push_back(fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD)));
+    for (size_t i = 0; i < size; i++) {
+        device.emplace_back(fdp.ConsumeRandomLengthString(fdp.ConsumeIntegralInRange<size_t>(0, MOD)));
     }
     Query query = Query::Select();
     SyncMode mode = len % MOD == 1 ? SyncMode::SYNC_MODE_PULL_ONLY : SyncMode::SYNC_MODE_PUSH_PULL;
@@ -199,6 +228,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     OHOS::Setup();
     FuzzedDataProvider fdp(data, size);
     OHOS::CombineTest(fdp);
+    OHOS::ClearMetaDataTest(fdp);
+    OHOS::OperateDataStatusTest(fdp);
     OHOS::TearDown();
     return 0;
 }

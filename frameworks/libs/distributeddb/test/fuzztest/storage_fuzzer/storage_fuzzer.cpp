@@ -304,7 +304,7 @@ void GetHashKey(const std::string &tableName, const std::string &condition, sqli
     while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         std::vector<uint8_t> blob;
         SQLiteUtils::GetColumnBlobValue(stmt, 0, blob);
-        hashKey.push_back(blob);
+        hashKey.emplace_back(blob);
     }
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -335,6 +335,51 @@ void StoreObserverFuzz(const std::string &tableName)
     sqlite3_close_v2(db);
 }
 
+void DbHookFuzz(FuzzedDataProvider &fdp, const std::string &tableName)
+{
+    sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
+    RegisterDbHook(db);
+    std::string sql = "insert into " + tableName + " VALUES(4, 'zhaoliu'), (5, 'qianqi'), (6, 'sunba');";
+    RdbTestUtils::ExecSql(db, sql);
+    UnregisterDbHook(db);
+    sqlite3_close_v2(db);
+    bool isOpenSslClean = fdp.ConsumeBool();
+    Clean(isOpenSslClean);
+}
+
+void CreateDataChangeTempTriggerFuzz(const std::string &tableName)
+{
+    sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
+    std::string sql = "CREATE VIRTUAL TABLE IF NOT EXISTS " + tableName + " USING fts4(content);";
+    RdbTestUtils::ExecSql(db, sql);
+    CreateDataChangeTempTrigger(db);
+    sqlite3_close_v2(db);
+}
+
+void SetKnowledgeFuzz(FuzzedDataProvider &fdp)
+{
+    sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
+    std::string tableName = fdp.ConsumeRandomLengthString();
+    std::string extendColName = fdp.ConsumeRandomLengthString();
+    std::string knowledgeColName = fdp.ConsumeRandomLengthString();
+    std::set<std::string> extendColNames;
+    std::set<std::string> knowledgeColNames;
+    int size = fdp.ConsumeIntegralInRange<int>(0, MOD);
+    for (int i = 0; i < size; i++) {
+        extendColNames.emplace(extendColName);
+        knowledgeColNames.emplace(knowledgeColName);
+    }
+    KnowledgeSourceSchema schema = {
+        .tableName = tableName,
+        .extendColNames = extendColNames,
+        .knowledgeColNames = knowledgeColNames,
+    };
+    SetKnowledgeSourceSchema(db, schema);
+    uint64_t cursor = fdp.ConsumeIntegralInRange<uint64_t>(0, static_cast<uint64_t>(INT64_MAX));
+    CleanDeletedData(db, tableName, cursor);
+    sqlite3_close_v2(db);
+}
+
 void DropLogicDeletedDataFuzz(std::string tableName, uint32_t num)
 {
     sqlite3 *db = RdbTestUtils::CreateDataBase(g_dbDir + STOREID + DBSUFFIX);
@@ -360,6 +405,9 @@ void CombineClientFuzzTest(FuzzedDataProvider &fdp)
     std::string tableName = fdp.ConsumeRandomLengthString(len);
     ClientObserverFuzz(tableName);
     StoreObserverFuzz(tableName);
+    DbHookFuzz(fdp, tableName);
+    CreateDataChangeTempTriggerFuzz(tableName);
+    SetKnowledgeFuzz(fdp);
     uint32_t num = fdp.ConsumeIntegralInRange<uint32_t>(0, COUNT_MOD);
     DropLogicDeletedDataFuzz(tableName, num);
     uint32_t count = fdp.ConsumeIntegralInRange<uint32_t>(0, COUNT_MOD);

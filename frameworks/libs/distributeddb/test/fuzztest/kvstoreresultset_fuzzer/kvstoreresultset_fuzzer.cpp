@@ -26,6 +26,8 @@ using namespace std;
 namespace OHOS {
 static auto g_kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
 static constexpr const int MOD = 1024; // 1024 is mod
+static constexpr const int MIN_COLUMN_TYPE = static_cast<int>(ResultSet::ColumnType::INVALID_TYPE);
+static constexpr const int MAX_COLUMN_TYPE = static_cast<int>(ResultSet::ColumnType::NULL_VALUE) + 1;
 void ResultSetFuzzer(FuzzedDataProvider &fdp)
 {
     KvStoreNbDelegate::Option option = {true, false, true};
@@ -44,9 +46,10 @@ void ResultSetFuzzer(FuzzedDataProvider &fdp)
     Key testKey;
     Value testValue;
     size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
+    int byteLen = fdp.ConsumeIntegralInRange<int>(0, MOD);
     for (size_t i = 0; i < size; i++) {
-        testKey = fdp.ConsumeBytes<uint8_t>(1);
-        testValue = fdp.ConsumeBytes<uint8_t>(1);
+        testKey = fdp.ConsumeBytes<uint8_t>(byteLen);
+        testValue = fdp.ConsumeBytes<uint8_t>(byteLen);
         kvNbDelegatePtr->Put(testKey, testValue);
     }
 
@@ -71,6 +74,92 @@ void ResultSetFuzzer(FuzzedDataProvider &fdp)
         readResultSet->IsLast();
         readResultSet->IsBeforeFirst();
         readResultSet->IsAfterLast();
+        readResultSet->IsClosed();
+        readResultSet->Close();
+        kvNbDelegatePtr->CloseResultSet(readResultSet);
+    }
+
+    g_kvManager.CloseKvStore(kvNbDelegatePtr);
+    g_kvManager.DeleteKvStore("distributed_nb_delegate_result_set_test");
+}
+
+void GetColumnFuzzer(KvStoreResultSet *readResultSet, FuzzedDataProvider &fdp)
+{
+    std::vector<std::string> colNames;
+    std::string columnName = fdp.ConsumeRandomLengthString();
+    int size = fdp.ConsumeIntegralInRange<int>(0, MOD);
+    for (int i = 0; i < size; i++) {
+        colNames.emplace_back(columnName);
+    }
+    readResultSet->GetColumnNames(colNames);
+    int columnIndex = fdp.ConsumeIntegralInRange<int>(0, MOD);
+    readResultSet->GetColumnIndex(columnName, columnIndex);
+    ResultSet::ColumnType columnType =
+        static_cast<ResultSet::ColumnType>(fdp.ConsumeIntegralInRange<int>(MIN_COLUMN_TYPE, MAX_COLUMN_TYPE));
+    readResultSet->GetColumnType(columnIndex, columnType);
+    readResultSet->GetColumnName(columnIndex, columnName);
+    std::vector<uint8_t> valueBlob = fdp.ConsumeBytes<uint8_t>(size);
+    readResultSet->Get(columnIndex, valueBlob);
+    std::string valueString = fdp.ConsumeRandomLengthString();
+    readResultSet->Get(columnIndex, valueString);
+    int64_t valueLong = fdp.ConsumeIntegral<int64_t>();
+    readResultSet->Get(columnIndex, valueLong);
+    double valueDouble = fdp.ConsumeFloatingPoint<double>();
+    readResultSet->Get(columnIndex, valueDouble);
+    bool isNull = fdp.ConsumeBool();
+    readResultSet->IsColumnNull(columnIndex, isNull);
+    std::map<std::string, VariantData> data = {};
+    std::vector<VariantData> variants = {};
+    variants.emplace_back(valueBlob);
+    variants.emplace_back(valueString);
+    variants.emplace_back(valueLong);
+    variants.emplace_back(valueDouble);
+    for (int i = 0; i < variants.size(); i++) {
+        data[columnName] = variants[i];
+    }
+    readResultSet->GetRow(data);
+}
+
+void ResultSetColumnFuzzer(FuzzedDataProvider &fdp)
+{
+    KvStoreNbDelegate::Option option = {true, false, true};
+    KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
+
+    g_kvManager.GetKvStore("distributed_nb_delegate_result_set_test", option,
+        [&kvNbDelegatePtr](DBStatus status, KvStoreNbDelegate *kvNbDelegate) {
+            if (status == DBStatus::OK) {
+                kvNbDelegatePtr = kvNbDelegate;
+            }
+        });
+    if (kvNbDelegatePtr == nullptr) {
+        return;
+    }
+
+    Key testKey;
+    Value testValue;
+    size_t size = fdp.ConsumeIntegralInRange<size_t>(0, MOD);
+    int byteLen = fdp.ConsumeIntegralInRange<int>(0, MOD);
+    for (size_t i = 0; i < size; i++) {
+        testKey = fdp.ConsumeBytes<uint8_t>(byteLen);
+        testValue = fdp.ConsumeBytes<uint8_t>(byteLen);
+        kvNbDelegatePtr->Put(testKey, testValue);
+    }
+
+    Key keyPrefix;
+    KvStoreResultSet *readResultSet = nullptr;
+    kvNbDelegatePtr->GetEntries(keyPrefix, readResultSet);
+    if (readResultSet != nullptr) {
+        readResultSet->GetCount();
+        readResultSet->MoveToFirst();
+
+        if (size == 0) {
+            return;
+        }
+        Entry entry;
+        entry.key = fdp.ConsumeBytes<uint8_t>(byteLen);
+        entry.value = fdp.ConsumeBytes<uint8_t>(byteLen);
+        readResultSet->GetEntry(entry);
+        GetColumnFuzzer(readResultSet, fdp);
         kvNbDelegatePtr->CloseResultSet(readResultSet);
     }
 
@@ -91,6 +180,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     OHOS::g_kvManager.SetKvStoreConfig(config);
     FuzzedDataProvider fdp(data, size);
     OHOS::ResultSetFuzzer(fdp);
+    OHOS::ResultSetColumnFuzzer(fdp);
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
     return 0;
 }

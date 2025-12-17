@@ -36,6 +36,7 @@ ohos_fuzztest("RelationalstoremanagerFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/cloud",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
@@ -82,6 +83,7 @@ ohos_fuzztest("RelationalstoremanagerFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_communicator.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_communicator_aggregator.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/cloud/virtual_cloud_data_translate.cpp",
   ]
 
   defines = [
