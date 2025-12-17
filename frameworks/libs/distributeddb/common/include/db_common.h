@@ -136,7 +136,7 @@ public:
     static bool IsCloudRecordNotFound(const VBucket &record);
 
     static bool IsCloudSpaceInsufficient(const VBucket &record);
-        
+
     static bool IsCloudRecordAlreadyExisted(const VBucket &record);
 
     static bool IsNeedCompensatedForUpload(const VBucket &uploadExtend, const CloudWaterType &type);

@@ -236,9 +236,6 @@ private:
     std::mutex sendRecordMutex_;
     std::map<uint32_t, FrameSendRecord> sendRecord_;
 
-    mutable std::mutex retryCountMutex_;
-    std::map<std::string, std::map<bool, int32_t>> retryCount_; // dev, isRetryTask, count
-
     std::mutex sendSequenceMutex_;
     std::map<std::string, uint64_t> sendSequence_;
 };

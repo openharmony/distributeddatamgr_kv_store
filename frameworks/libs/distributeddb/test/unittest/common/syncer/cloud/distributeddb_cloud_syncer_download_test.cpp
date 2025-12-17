@@ -92,6 +92,7 @@ std::vector<VBucket> GetRetCloudData(uint64_t cnt)
         data.insert_or_assign("married", (bool)0);
         data.insert_or_assign("photo", photo);
         data.insert_or_assign("age", 13L);
+        data.insert_or_assign(DBConstant::ROWID, std::to_string(i));
         data.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i));
         data.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)i);
         data.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)i);
@@ -117,6 +118,15 @@ void GenerateTableSchema(TableSchema &tableSchema)
         "TestTable1",
         "",
         {{"name", TYPE_INDEX<std::string>, true}}
+    };
+}
+
+void GenerateTableSchemaRowId(TableSchema &tableSchema)
+{
+    tableSchema = {
+        "TestTable2",
+        "",
+        {{DBConstant::ROWID, TYPE_INDEX<std::string>, true}}
     };
 }
 
@@ -707,6 +717,10 @@ static void ExpectGetInfoByPrimaryKeyOrGidCall()
         .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(9, false); // Gen log info with timestamp 9
             return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
+            info = GetLogInfo(10, false); // Gen log info with timestamp 10
+            return E_OK;
         });
 }
 
@@ -776,5 +790,45 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest008, TestSize.Lev
 
     g_cloudSyncer->SetTaskResume(taskId, false);
     g_cloudSyncer->ClearResumeTaskInfo(taskId);
+}
+
+/**
+ * @tc.name: DownloadMockTest009
+ * @tc.desc: download when pk is rowid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest009, TestSize.Level1)
+{
+    // step1: pepare data
+    TaskId taskId = 1u;
+    ICloudSyncer::SyncParam param;
+    g_cloudSyncer->SetTaskResume(taskId, true);
+    g_cloudSyncer->SetResumeSyncParam(taskId, param);
+    EXPECT_CALL(*g_iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly([](const QuerySyncObject &,
+        const Timestamp &, bool, bool, int64_t &count) {
+        count = 1;
+        return E_OK;
+    });
+    EXPECT_CALL(*g_iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
+    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _))
+        .WillRepeatedly([](const TableName &, TableSchema &tableSchema) {
+            GenerateTableSchemaRowId(tableSchema);
+            return E_OK;
+        });
+    g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
+    EXPECT_CALL(*g_idb, Query(_, _, _))
+        .WillRepeatedly([](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudData(1);
+            return QUERY_END;
+        });
+    int errCode = g_cloudSyncer->CallDoDownload(taskId);
+    EXPECT_EQ(errCode, E_OK);
 }
 }

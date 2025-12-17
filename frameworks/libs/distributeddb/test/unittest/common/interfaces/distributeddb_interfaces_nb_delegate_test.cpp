@@ -233,8 +233,8 @@ void DistributedDBInterfacesNBDelegateTest::SetUpTestCase(void)
 void DistributedDBInterfacesNBDelegateTest::TearDownTestCase(void)
 {
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
-
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 void DistributedDBInterfacesNBDelegateTest::SetUp(void)

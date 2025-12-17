@@ -106,6 +106,7 @@ void DistributedDBSingleVerP2PSyncCheckTest::TearDownTestCase(void)
     /**
      * @tc.teardown: Release virtual Communicator and clear data dir.
      */
+    RuntimeContext::GetInstance()->StopTaskPool();
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }

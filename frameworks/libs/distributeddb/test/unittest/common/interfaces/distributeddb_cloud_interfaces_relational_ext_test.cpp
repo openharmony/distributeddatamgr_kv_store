@@ -1743,6 +1743,47 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
 }
 
 /**
+ * @tc.name: RegisterStoreObserverTest008
+ * @tc.desc: Test store observer in transaction
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTest008, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. prepare db.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    auto storeObserver = std::make_shared<MockStoreObserver>();
+    EXPECT_EQ(RegisterStoreObserver(db, storeObserver), OK);
+    RegisterDbHook(db);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    /**
+    * @tc.steps:step2. create tables and insert data in transaction.
+    * @tc.expected: step2. return ok.
+    */
+    g_changedData.clear();
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "begin;"), SQLITE_OK);
+    std::string tableName = "primary_test";
+    CreateTableForStoreObserver(db, tableName);
+    uint32_t dataCounts = 10; // 10 is count of insert options.
+    for (uint32_t i = 0; i < dataCounts; i++) {
+        std::string sql = "insert into " + tableName + " VALUES(" + std::to_string(i + 1) + ", 'zhangsan" +
+            std::to_string(i + 1) + "');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "commit;"), SQLITE_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    ASSERT_EQ(g_changedData.size(), 1u); // 1 table insert data
+    EXPECT_EQ(g_changedData.front().tableName, tableName);
+    ASSERT_EQ(g_changedData.front().primaryData[OP_INSERT].size(), dataCounts);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
  * @tc.name: AbnormalDelegateImplTest001
  * @tc.desc: Test delegateImpl interface after delegate is closed
  * @tc.type: FUNC

@@ -283,8 +283,6 @@ private:
 
     static void InitDataBaseOption(const KvDBProperties &kvDBProp, OpenDbProperties &option);
 
-    static int SetUserVer(const KvDBProperties &kvDBProp, int version);
-
     void NotifyRemovedData(std::vector<Entry> &entries);
 
     // Decide read only based on schema situation

@@ -95,7 +95,7 @@ public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
-    void TearDown() {};
+    void TearDown();
 };
 
 void DistributedDBAutoLaunchUnitTest::SetUpTestCase(void)
@@ -162,6 +162,11 @@ void DistributedDBAutoLaunchUnitTest::SetUp(void)
     GetProperty(g_propG, g_identifierG, STORE_ID_6, g_dualIdentifierG);
     GetProperty(g_propH, g_identifierH, STORE_ID_7, g_dualIdentifierH);
     GetProperty(g_propI, g_identifierI, STORE_ID_8, g_dualIdentifierI);
+}
+
+void DistributedDBAutoLaunchUnitTest::TearDown(void)
+{
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 static void PutSyncData(const KvDBProperties &prop, const Key &key, const Value &value)

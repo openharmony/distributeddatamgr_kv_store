@@ -118,15 +118,57 @@ void CloudSyncer::ExecuteAsyncDownloadAssets(TaskId taskId)
     asyncTaskCv_.notify_all();
 }
 
-void CloudSyncer::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
-{
-    cloudDB_.SetCloudConflictHandler(handler);
-}
-
 TaskId CloudSyncer::GetCurrentTaskId()
 {
     std::lock_guard<std::mutex> guard(dataLock_);
     return currentContext_.currentTaskId;
+}
+
+int32_t CloudSyncer::GetHeatbeatCount(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
+    return heartbeatCount_[taskId];
+}
+
+void CloudSyncer::RemoveHeatbeatData(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
+    heartbeatCount_.erase(taskId);
+    failedHeartbeatCount_.erase(taskId);
+}
+
+void CloudSyncer::ExecuteHeartBeatTask(TaskId taskId)
+{
+    if (GetCurrentTaskId() != taskId) {
+        RemoveHeatbeatData(taskId);
+        DecObjRef(this);
+        return;
+    }
+    if (GetHeatbeatCount(taskId) >= HEARTBEAT_PERIOD) {
+        // heartbeat block twice should finish task now
+        SetTaskFailed(taskId, -E_CLOUD_ERROR);
+    } else {
+        int ret = cloudDB_.HeartBeat();
+        if (ret != E_OK) {
+            HeartBeatFailed(taskId, ret);
+        } else {
+            std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
+            failedHeartbeatCount_[taskId] = 0;
+        }
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
+        heartbeatCount_[taskId]--;
+    }
+    if (GetCurrentTaskId() != taskId) {
+        RemoveHeatbeatData(taskId);
+    }
+    DecObjRef(this);
+}
+
+void CloudSyncer::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    cloudDB_.SetCloudConflictHandler(handler);
 }
 
 int CloudSyncer::WaitAsyncGenLogTaskFinished(TaskId triggerTaskId)

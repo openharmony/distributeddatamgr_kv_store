@@ -1494,7 +1494,8 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, DoOnSendEndByTaskIfNeedTest002, Test
     aggregator->Finalize();
 }
 
-void TriggerSendMsg(const std::shared_ptr<CommunicatorAggregator> &aggregator, const OnSendEnd &onEnd)
+void TriggerSendMsg(const std::shared_ptr<CommunicatorAggregator> &aggregator, const OnSendEnd &onEnd,
+    bool isRetryTask = true)
 {
     Message *msg = BuildRegedTinyMessage();
     ASSERT_NE(msg, nullptr);
@@ -1507,6 +1508,7 @@ void TriggerSendMsg(const std::shared_ptr<CommunicatorAggregator> &aggregator, c
     FrameType inType = FrameType::APPLICATION_MESSAGE;
     TaskConfig config;
     config.timeout = 1000; // timeout is 1000ms
+    config.isRetryTask = isRetryTask;
     error = aggregator->ScheduleSendTask(dstTarget, buffer, inType, config, onEnd);
     if (error == E_OK) {
         delete msg;
@@ -1566,4 +1568,47 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, SendFailed001, TestSize.Level0)
     EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_A, true), 0);
     EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_A, false), 0);
     EXPECT_GT(count.load(), 1);
+}
+
+/**
+ * @tc.name: SendFailed002
+ * @tc.desc: Test retry send count.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, SendFailed002, TestSize.Level0)
+{
+    std::condition_variable cv;
+    std::mutex endMutex;
+    bool sendEnd = false;
+    OnSendEnd onEnd = [&cv, &endMutex, &sendEnd](int, bool) {
+        std::lock_guard<std::mutex> autoLock(endMutex);
+        sendEnd = true;
+        cv.notify_all();
+    };
+    const std::shared_ptr<DBStatusAdapter> statusAdapter = std::make_shared<DBStatusAdapter>();
+    ASSERT_NE(statusAdapter, nullptr);
+    auto adapterStub = std::make_shared<AdapterStub>(DEVICE_NAME_A);
+    IAdapter *adapterPtr = adapterStub.get();
+    ASSERT_NE(adapterPtr, nullptr);
+    auto aggregator = std::make_shared<CommunicatorAggregator>();
+    ASSERT_NE(aggregator, nullptr);
+    adapterStub->ForkSendBytes([adapterStub]() {
+        adapterStub->SimulateTriggerSendableCallback(DEVICE_NAME_B, -E_INTERNAL_ERROR);
+        return -E_WAIT_RETRY;
+    });
+    EXPECT_EQ(aggregator->Initialize(adapterPtr, statusAdapter), E_OK);
+    ResFinalizer finalizer([aggregator]() {
+        aggregator->Finalize();
+    });
+    ASSERT_NO_FATAL_FAILURE(TriggerSendMsg(aggregator, onEnd, false));
+    LOGI("[SendFailed002] Begin wait send end");
+    std::unique_lock<std::mutex> uniqueLock(endMutex);
+    cv.wait_for(uniqueLock, std::chrono::seconds(5), [&sendEnd]() { // wait max 5s
+        return sendEnd;
+    });
+    LOGI("[SendFailed002] End wait send end");
+    adapterStub->ForkSendBytes(nullptr);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, true), 0);
+    EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, false), 0);
 }

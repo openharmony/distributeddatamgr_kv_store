@@ -64,6 +64,7 @@ void RuntimeContextProcessSystemApiAdapterImplTest::SetUpTestCase(void)
 
 void RuntimeContextProcessSystemApiAdapterImplTest::TearDownTestCase(void)
 {
+    RuntimeContext::GetInstance()->StopTaskPool();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
 }

@@ -187,4 +187,125 @@ HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet002, TestSize.Level0)
     EXPECT_EQ(actualValue, expectValue);
     EXPECT_EQ(store2->Commit(), OK);
 }
+
+/**
+ * @tc.name: LocalPut001
+ * @tc.desc: Test kv local put.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, LocalPut001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k1,v1) and (k2,v2)
+     * @tc.expected: step1. put ok.
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    Value actualValue;
+    EXPECT_EQ(store1->PutLocal(k1, v1), OK);
+    EXPECT_EQ(store1->GetLocal(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    Key k2 = {'k', '2'};
+    Value v2 = {'v', '2'};
+    EXPECT_EQ(store1->PutLocal(k2, v2), OK);
+    EXPECT_EQ(store1->GetLocal(k2, actualValue), OK);
+    EXPECT_EQ(v2, actualValue);
+}
+
+/**
+ * @tc.name: LocalPut002
+ * @tc.desc: Test kv local put.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, LocalPut002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put batch (k1,v1) and (k2,v2)
+     * @tc.expected: step1. put ok.
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    std::vector<Entry> entries;
+    entries.push_back({k1, v1});
+    Key k2 = {'k', '2'};
+    Value v2 = {'v', '2'};
+    entries.push_back({k2, v2});
+    ASSERT_EQ(store1->PutLocalBatch(entries), OK);
+    Value actualValue;
+    EXPECT_EQ(store1->GetLocal(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    EXPECT_EQ(store1->GetLocal(k2, actualValue), OK);
+    EXPECT_EQ(v2, actualValue);
+}
+
+/**
+ * @tc.name: LocalPut003
+ * @tc.desc: Test kv local put and publish.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, LocalPut003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k1,v1)
+     * @tc.expected: step1. put ok.
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    Value actualValue;
+    EXPECT_EQ(store1->PutLocal(k1, v1), OK);
+    EXPECT_EQ(store1->GetLocal(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    /**
+     * @tc.steps: step2. dev1 PublishLocal
+     * @tc.expected: step2. local not exist (k1,v1), sync exist (k1,v1).
+     */
+    EXPECT_EQ(store1->PublishLocal(k1, true, false, nullptr), OK);
+    EXPECT_EQ(store1->GetLocal(k1, actualValue), NOT_FOUND);
+    EXPECT_EQ(store1->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+}
+
+
+/**
+ * @tc.name: LocalPut004
+ * @tc.desc: Test kv put and unpublish.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, LocalPut004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k1,v1)
+     * @tc.expected: step1. put ok.
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    Value actualValue;
+    EXPECT_EQ(store1->Put(k1, v1), OK);
+    EXPECT_EQ(store1->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    /**
+     * @tc.steps: step2. dev1 unpublished to local
+     * @tc.expected: step2. local exist (k1,v1), sync not exist (k1,v1).
+     */
+    EXPECT_EQ(store1->UnpublishToLocal(k1, true, false), OK);
+    EXPECT_EQ(store1->Get(k1, actualValue), NOT_FOUND);
+    EXPECT_EQ(store1->GetLocal(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+}
 } // namespace DistributedDB

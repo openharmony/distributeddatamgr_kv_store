@@ -16,6 +16,8 @@
 #ifndef DEVICE_TRACKER_LOG_TABLE_MANAGER_H
 #define DEVICE_TRACKER_LOG_TABLE_MANAGER_H
 
+ #include <string>
+
 #include "sqlite_log_table_manager.h"
 
 namespace DistributedDB {

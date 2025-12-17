@@ -59,6 +59,38 @@ public:
     {
         return SingleVerDataSync::DealRemoveDeviceDataByAck(context, ackWaterMark, reserved);
     }
+
+    int CallControlCmdRequestRecvPre(SingleVerSyncTaskContext *context, const Message *message)
+    {
+        return SingleVerDataSync::ControlCmdRequestRecvPre(context, message);
+    }
+
+    int CallSubscribeRequestRecv(SingleVerSyncTaskContext *context, const Message *message)
+    {
+        return SingleVerDataSync::SubscribeRequestRecv(context, message);
+    }
+
+    int CallUnsubscribeRequestRecv(SingleVerSyncTaskContext *context, const Message *message)
+    {
+        return SingleVerDataSync::UnsubscribeRequestRecv(context, message);
+    }
+
+    int CallQuerySyncCheck(SingleVerSyncTaskContext *context)
+    {
+        return SingleVerDataSync::QuerySyncCheck(context);
+    }
+
+    int CallSendControlAck(SingleVerSyncTaskContext *context, const Message *message, int32_t recvCode,
+        uint32_t controlCmdType)
+    {
+        return SingleVerDataSync::SendControlAck(context, message, recvCode, controlCmdType);
+    }
+
+    int CallSubscribeRequestRecvPre(SingleVerSyncTaskContext *context, const SubscribeRequest *packet,
+        const Message *message)
+    {
+        return SingleVerDataSync::SubscribeRequestRecvPre(context, packet, message);
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_SINGLE_VER_DATA_SYNC_H

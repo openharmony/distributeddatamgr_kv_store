@@ -25,6 +25,7 @@ namespace DistributedDB {
 static constexpr uint32_t MAX_CAPACITY = 67108864; // 64 M bytes
 static constexpr uint32_t EXTRA_CAPACITY_FOR_NORMAL_PRIORITY = 33554432; // 32 M bytes
 static constexpr uint32_t EXTRA_CAPACITY_FOR_HIGH_PRIORITY = 67108864; // 64 M bytes
+static constexpr int MAX_SEND_RETRY = 2;
 
 SendTaskScheduler::~SendTaskScheduler()
 {
@@ -299,6 +300,7 @@ void SendTaskScheduler::InvalidSendTask(const std::string &target)
         }
         for (auto &sendTask : taskGroupByPrio_[priority][target]) {
             sendTask.isValid = false;
+            retryCount_[target][sendTask.isRetryTask] = 0;
             LOGI("[Scheduler][InvalidSendTask] invalid frameId=%" PRIu32, sendTask.frameId);
             if ((deviceCommErrCodeMap_.count(target) == 0) || (deviceCommErrCodeMap_[target] == E_OK)) {
                 continue;
@@ -331,9 +333,10 @@ void SendTaskScheduler::SetDeviceCommErrCode(const std::string &target, int devi
             if (sendTask.isRetryTask) {
                 continue;
             }
-            LOGI("[Scheduler][SetDeviceCommErrCode] Erase task that do not allow retries, target=%.3s",
-                target.c_str());
+            LOGI("[Scheduler][SetDeviceCommErrCode] Erase task that do not allow retries, target=%.3s frameId=%" PRIu32,
+                target.c_str(), sendTask.frameId);
             sendTask.isValid = false;
+            retryCount_[target][sendTask.isRetryTask] = 0;
             if (sendTask.onEnd) {
                 LOGI("[Scheduler][SetDeviceCommErrCode] On Send End, target=%.3s", target.c_str());
                 sendTask.onEnd(deviceCommErrCodeMap_[target], true);
@@ -341,5 +344,65 @@ void SendTaskScheduler::SetDeviceCommErrCode(const std::string &target, int devi
             }
         }
     }
+}
+
+int32_t SendTaskScheduler::GetRetryCount(const std::string &dev, bool isRetryTask) const
+{
+    std::lock_guard<std::mutex> autoLock(overallMutex_);
+    auto iter = retryCount_.find(dev);
+    if (iter == retryCount_.end()) {
+        return 0;
+    }
+    auto countIter = iter->second.find(isRetryTask);
+    if (countIter == iter->second.end()) {
+        return 0;
+    }
+    return countIter->second;
+}
+
+bool SendTaskScheduler::IsRetryOutOfLimit(const std::string &target, bool isRetryTask)
+{
+    std::lock_guard<std::mutex> autoLock(overallMutex_);
+    return retryCount_[target][isRetryTask] >= MAX_SEND_RETRY;
+}
+
+void SendTaskScheduler::ResetRetryCount(const std::string &dev, bool isRetryTask)
+{
+    std::lock_guard<std::mutex> autoLock(overallMutex_);
+    retryCount_[dev][isRetryTask] = 0;
+}
+
+void SendTaskScheduler::ResetRetryCount(const std::string &dev)
+{
+    std::lock_guard<std::mutex> autoLock(overallMutex_);
+    retryCount_[dev].clear();
+}
+
+void SendTaskScheduler::ResetRetryCount()
+{
+    std::lock_guard<std::mutex> autoLock(overallMutex_);
+    retryCount_.clear();
+}
+
+void SendTaskScheduler::IncreaseRetryCountIfNeed(const std::string &dev, bool isRetryTask)
+{
+    SendTask task;
+    SendTaskInfo taskInfo;
+    uint32_t totalLength = 0;
+    int errCode = ScheduleOutSendTask(task, taskInfo, totalLength);
+    if (errCode != E_OK) {
+        LOGE("[SendTaskScheduler] schedule %.3s task failed %d", dev.c_str(), errCode);
+        return;
+    }
+    if (dev != task.dstTarget) {
+        LOGI("[SendTaskScheduler] first send task has changed from %.3s to %.3s", dev.c_str(), task.dstTarget.c_str());
+        return;
+    }
+    if (!task.isValid) {
+        LOGI("[SendTaskScheduler] %.3s task has been invalid", dev.c_str());
+        return;
+    }
+    std::lock_guard<std::mutex> autoLock(overallMutex_);
+    retryCount_[dev][isRetryTask]++;
 }
 }

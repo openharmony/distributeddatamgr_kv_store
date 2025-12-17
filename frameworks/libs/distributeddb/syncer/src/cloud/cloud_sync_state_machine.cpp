@@ -32,25 +32,35 @@ namespace {
     constexpr int OUTPUT_STATE_INDEX = 2;
 
     const std::vector<std::vector<uint8_t>> STATE_SWITCH_TABLE = {
-        // In IDEL state
-        {State::IDLE, Event::START_SYNC_EVENT, State::DO_DOWNLOAD},
-        {State::IDLE, Event::ERROR_EVENT, State::DO_FINISHED},
+        // In IDLE state
+        {static_cast<uint8_t>(State::IDLE), static_cast<uint8_t>(Event::START_SYNC_EVENT),
+            static_cast<uint8_t>(State::DO_DOWNLOAD)},
+        {static_cast<uint8_t>(State::IDLE), static_cast<uint8_t>(Event::ERROR_EVENT),
+            static_cast<uint8_t>(State::DO_FINISHED)},
 
         // In DO_DOWNLOAD state
-        {State::DO_DOWNLOAD, Event::DOWNLOAD_FINISHED_EVENT, State::DO_UPLOAD},
-        {State::DO_DOWNLOAD, Event::ERROR_EVENT, State::DO_FINISHED},
+        {static_cast<uint8_t>(State::DO_DOWNLOAD), static_cast<uint8_t>(Event::DOWNLOAD_FINISHED_EVENT),
+            static_cast<uint8_t>(State::DO_UPLOAD)},
+        {static_cast<uint8_t>(State::DO_DOWNLOAD), static_cast<uint8_t>(Event::ERROR_EVENT),
+            static_cast<uint8_t>(State::DO_FINISHED)},
 
         // In DO_UPLOAD state
-        {State::DO_UPLOAD, Event::UPLOAD_FINISHED_EVENT, State::DO_FINISHED},
-        {State::DO_UPLOAD, Event::ERROR_EVENT, State::DO_FINISHED},
-        {State::DO_UPLOAD, Event::REPEAT_CHECK_EVENT, State::DO_REPEAT_CHECK},
+        {static_cast<uint8_t>(State::DO_UPLOAD), static_cast<uint8_t>(Event::UPLOAD_FINISHED_EVENT),
+            static_cast<uint8_t>(State::DO_FINISHED)},
+        {static_cast<uint8_t>(State::DO_UPLOAD), static_cast<uint8_t>(Event::ERROR_EVENT),
+            static_cast<uint8_t>(State::DO_FINISHED)},
+        {static_cast<uint8_t>(State::DO_UPLOAD), static_cast<uint8_t>(Event::REPEAT_CHECK_EVENT),
+            static_cast<uint8_t>(State::DO_REPEAT_CHECK)},
 
         // Repeat download check state
-        {State::DO_REPEAT_CHECK, Event::REPEAT_DOWNLOAD_EVENT, State::DO_DOWNLOAD},
-        {State::DO_REPEAT_CHECK, Event::ERROR_EVENT, State::DO_FINISHED},
+        {static_cast<uint8_t>(State::DO_REPEAT_CHECK), static_cast<uint8_t>(Event::REPEAT_DOWNLOAD_EVENT),
+            static_cast<uint8_t>(State::DO_DOWNLOAD)},
+        {static_cast<uint8_t>(State::DO_REPEAT_CHECK), static_cast<uint8_t>(Event::ERROR_EVENT),
+            static_cast<uint8_t>(State::DO_FINISHED)},
 
         // In DO_FINISHED state
-        {State::DO_FINISHED, Event::ALL_TASK_FINISHED_EVENT, State::IDLE},
+        {static_cast<uint8_t>(State::DO_FINISHED), static_cast<uint8_t>(Event::ALL_TASK_FINISHED_EVENT),
+            static_cast<uint8_t>(State::IDLE)},
     };
 }
 
@@ -68,14 +78,14 @@ void CloudSyncStateMachine::SyncStep()
 {
     Event event = Event::ERROR_EVENT;
     do {
-        auto iter = stateMapping_.find(currentState_);
+        auto iter = stateMapping_.find(static_cast<uint8_t>(currentState_));
         if (iter != stateMapping_.end()) {
             event = static_cast<Event>(iter->second());
         } else {
             LOGE("[CloudSyncStateMachine][SyncStep] can not find state=%d", currentState_);
             break;
         }
-    } while (SwitchMachineState(event) == E_OK && currentState_ != State::IDLE);
+    } while (SwitchMachineState(static_cast<uint8_t>(event)) == E_OK && currentState_ != State::IDLE);
 }
 
 void CloudSyncStateMachine::InitCloudStateSwitchTables()
@@ -116,7 +126,7 @@ void CloudSyncStateMachine::InitCloudStateSwitchTable(
 
 void CloudSyncStateMachine::RegisterFunc(State state, const std::function<uint8_t(void)> &function)
 {
-    stateMapping_[state] = function;
+    stateMapping_[static_cast<uint8_t>(state)] = function;
 };
 
 int CloudSyncStateMachine::SwitchMachineState(uint8_t event)
@@ -131,7 +141,7 @@ int CloudSyncStateMachine::SwitchMachineState(uint8_t event)
     }
 
     const std::map<uint8_t, EventToState> &table = (*tableIter).switchTable;
-    auto eventToStateIter = table.find(currentState_);
+    auto eventToStateIter = table.find(static_cast<uint8_t>(currentState_));
     if (eventToStateIter == table.end()) {
         LOGE("[CloudSyncStateMachine][SwitchState] Can't find EventToState with currentSate %u",
             currentState_);

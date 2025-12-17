@@ -90,15 +90,11 @@ int SqliteCloudKvStore::GetCloudTableSchema(const TableName &tableName,
 
 int SqliteCloudKvStore::StartTransaction(TransactType type, bool isAsyncDownload)
 {
-    if (isAsyncDownload) {
-        return StartTransactionForAsyncDownload(type);
-    }
-    {
-        std::lock_guard<std::mutex> autoLock(transactionMutex_);
-        if (transactionHandle_ != nullptr) {
-            LOGW("[SqliteCloudKvStore] transaction has been started");
-            return E_OK;
-        }
+    (void)isAsyncDownload; // kv has no async asset download
+    std::lock_guard<std::mutex> autoLock(transactionMutex_);
+    if (transactionHandle_ != nullptr) {
+        LOGW("[SqliteCloudKvStore] transaction has been started");
+        return E_OK;
     }
     auto [errCode, handle] = storageHandle_->GetStorageExecutor(type == TransactType::IMMEDIATE);
     if (errCode != E_OK) {
@@ -109,7 +105,6 @@ int SqliteCloudKvStore::StartTransaction(TransactType type, bool isAsyncDownload
         return -E_INTERNAL_ERROR;
     }
     errCode = handle->StartTransaction(type);
-    std::lock_guard<std::mutex> autoLock(transactionMutex_);
     transactionHandle_ = handle;
     LOGD("[SqliteCloudKvStore] start transaction!");
     return errCode;
@@ -117,9 +112,7 @@ int SqliteCloudKvStore::StartTransaction(TransactType type, bool isAsyncDownload
 
 int SqliteCloudKvStore::Commit(bool isAsyncDownload)
 {
-    if (isAsyncDownload) {
-        return CommitForAsyncDownload();
-    }
+    (void)isAsyncDownload; // kv has no async asset download
     SQLiteSingleVerStorageExecutor *handle;
     {
         std::lock_guard<std::mutex> autoLock(transactionMutex_);
@@ -138,9 +131,7 @@ int SqliteCloudKvStore::Commit(bool isAsyncDownload)
 
 int SqliteCloudKvStore::Rollback(bool isAsyncDownload)
 {
-    if (isAsyncDownload) {
-        return RollbackForAsyncDownload();
-    }
+    (void)isAsyncDownload; // kv has no async asset download
     SQLiteSingleVerStorageExecutor *handle;
     {
         std::lock_guard<std::mutex> autoLock(transactionMutex_);
@@ -150,66 +141,6 @@ int SqliteCloudKvStore::Rollback(bool isAsyncDownload)
         }
         handle = transactionHandle_;
         transactionHandle_ = nullptr;
-    }
-    int errCode = handle->Rollback();
-    storageHandle_->RecycleStorageExecutor(handle);
-    LOGD("[SqliteCloudKvStore] rollback transaction!");
-    return errCode;
-}
-
-int SqliteCloudKvStore::StartTransactionForAsyncDownload(TransactType type)
-{
-    {
-        std::lock_guard<std::mutex> autoLock(transactionMutex_);
-        if (asyncDownloadTransactionHandle_ != nullptr) {
-            LOGW("[SqliteCloudKvStore] async download transaction has been started");
-            return E_OK;
-        }
-    }
-    auto [errCode, handle] = storageHandle_->GetStorageExecutor(type == TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (handle == nullptr) {
-        LOGE("[SqliteCloudKvStore] get handle return null");
-        return -E_INTERNAL_ERROR;
-    }
-    errCode = handle->StartTransaction(type);
-    std::lock_guard<std::mutex> autoLock(transactionMutex_);
-    asyncDownloadTransactionHandle_ = handle;
-    LOGD("[SqliteCloudKvStore] start async download transaction!");
-    return errCode;
-}
-
-int SqliteCloudKvStore::CommitForAsyncDownload()
-{
-    SQLiteSingleVerStorageExecutor *handle;
-    {
-        std::lock_guard<std::mutex> autoLock(transactionMutex_);
-        if (asyncDownloadTransactionHandle_ == nullptr) {
-            LOGW("[SqliteCloudKvStore] no need to commit, transaction has not been started");
-            return E_OK;
-        }
-        handle = asyncDownloadTransactionHandle_;
-        asyncDownloadTransactionHandle_ = nullptr;
-    }
-    int errCode = handle->Commit();
-    storageHandle_->RecycleStorageExecutor(handle);
-    LOGD("[SqliteCloudKvStore] commit transaction!");
-    return errCode;
-}
-
-int SqliteCloudKvStore::RollbackForAsyncDownload()
-{
-    SQLiteSingleVerStorageExecutor *handle;
-    {
-        std::lock_guard<std::mutex> autoLock(transactionMutex_);
-        if (asyncDownloadTransactionHandle_ == nullptr) {
-            LOGW("[SqliteCloudKvStore] no need to rollback, transaction has not been started");
-            return E_OK;
-        }
-        handle = asyncDownloadTransactionHandle_;
-        asyncDownloadTransactionHandle_ = nullptr;
     }
     int errCode = handle->Rollback();
     storageHandle_->RecycleStorageExecutor(handle);

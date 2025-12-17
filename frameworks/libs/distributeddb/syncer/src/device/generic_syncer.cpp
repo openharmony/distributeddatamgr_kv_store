@@ -246,7 +246,7 @@ int GenericSyncer::PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t
         std::lock_guard<std::mutex> autoLock(syncerLock_);
         PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
         InitSyncOperation(operation, param);
-        LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %.3s, devices = %s, isRetry = %d",
+        LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %.3s, devices = %s, comm retry = %d",
             syncId, param.mode, param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str(), param.isRetry);
         engine = syncEngine_;
         RefObject::IncObjRef(engine);

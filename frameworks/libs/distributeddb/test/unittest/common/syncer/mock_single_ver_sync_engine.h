@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,17 +13,17 @@
  * limitations under the License.
  */
 
-#ifndef MOCK_SYNC_ENGINE_H
-#define MOCK_SYNC_ENGINE_H
+#ifndef MOCK_SINGLE_VER_SYNC_ENGINE_H
+#define MOCK_SINGLE_VER_SYNC_ENGINE_H
 
 #include <gmock/gmock.h>
 #include "sync_engine.h"
+#include "single_ver_sync_engine.h"
 
 namespace DistributedDB {
-class MockSyncEngine : public SyncEngine {
+class MockSingleVerSyncEngine : public SingleVerSyncEngine {
 public:
     MOCK_METHOD1(CreateSyncTaskContext, ISyncTaskContext *(const ISyncInterface &syncInterface));
-    MOCK_METHOD1(GetTargetUserId, std::string(const std::string &dev));
 
     void InitSubscribeManager()
     {
@@ -35,20 +35,21 @@ public:
         return SyncEngine::GetSyncTaskContext(target, errCode);
     }
 
-    ISyncTaskContext *CallFindSyncTaskContext(const DeviceSyncTarget &target, bool isNeedCorrectUserId)
+    void SetSyncTaskContextMap(const std::map<DeviceSyncTarget, ISyncTaskContext *> &syncTaskContextMap)
     {
-        return SyncEngine::FindSyncTaskContext(target, isNeedCorrectUserId);
+        std::unique_lock<std::mutex> lock(contextMapLock_);
+        syncTaskContextMap_ = syncTaskContextMap;
     }
 
-    ExtendInfo CallGetExtendInfo()
+    void SetQueryAutoSyncCallbackNull(bool isNeed, const InitCallbackParam &callbackParam)
     {
-        return GetExtendInfo();
-    }
-
-    ISyncInterface *GetSyncInterface() const
-    {
-        return syncInterface_;
+        if (!isNeed) {
+            this->queryAutoSyncCallback_ = nullptr;
+        } else {
+            this->queryAutoSyncCallback_ = callbackParam.queryAutoSyncCallback;
+        }
+        return;
     }
 };
 } // namespace DistributedDB
-#endif  // #define MOCK_SYNC_ENGINE_H
+#endif  // #define MOCK_SINGLE_VER_SYNC_ENGINE_H

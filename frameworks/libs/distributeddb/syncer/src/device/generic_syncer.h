@@ -120,7 +120,7 @@ public:
     int32_t GetTaskCount() override;
 
     bool ExchangeClosePending(bool expected) override;
-    
+
     int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
 protected:
 

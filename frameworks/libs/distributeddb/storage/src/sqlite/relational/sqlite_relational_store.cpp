@@ -529,7 +529,7 @@ int SQLiteRelationalStore::CheckAndCollectCloudTables(ClearMode mode, const Rela
             return -E_NOT_FOUND;
         }
         if (tableInfoIter->second.GetSharedTableMark() ||
-                tableInfoIter->second.GetTableSyncType() != CLOUD_COOPERATION) {
+            tableInfoIter->second.GetTableSyncType() != CLOUD_COOPERATION) {
             LOGE("[RelationalStore] clearing of shared tables and P2P tables is not supported");
             return -E_NOT_SUPPORT;
         }
@@ -1489,6 +1489,12 @@ int SQLiteRelationalStore::CheckTrackerTable(const TrackerSchema &trackerSchema,
             DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size());
         return -E_IGNORE_DATA;
     }
+    if (localSchema.GetTableMode() == DistributedTableMode::SPLIT_BY_DEVICE &&
+        table.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        LOGE("[CheckTrackerTable] not support set tracker table with split table mode, table[%s [%zu]]",
+            DBCommon::StringMiddleMasking(trackerSchema.tableName).c_str(), trackerSchema.tableName.size());
+        return -E_NOT_SUPPORT;
+    }
     return E_OK;
 }
 
@@ -1533,7 +1539,7 @@ int SQLiteRelationalStore::CleanWaterMarkInner(SQLiteSingleVerRelationalStorageE
     return errCode;
 }
 
-std::function<int(void)> SQLiteRelationalStore::CleanWaterMark(const std::set<std::string> clearWaterMarkTables)
+std::function<int(void)> SQLiteRelationalStore::CleanWaterMark(const std::set<std::string> &clearWaterMarkTables)
 {
     return [this, clearWaterMarkTables]()->int {
         int errCode = E_OK;

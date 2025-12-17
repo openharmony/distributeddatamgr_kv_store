@@ -456,20 +456,20 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest009, TestSize.Level0)
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
  
-    const char *sqlInsert1 =
+    const char *SQLINSERT1 =
         "INSERT INTO example(name, content) VALUES('文档1', '这是一个测试文档，用于测试中文文本的分词和索引。');";
-    SQLTest(sqlInsert1);
+    SQLTest(SQLINSERT1);
  
-    const char *sqlInsert2 =
+    const char *SQLINSERT2 =
         "INSERT INTO example(name, content) VALUES('文档2', '这是一个检测报告，需要仔细查验和核查数据。');";
-    SQLTest(sqlInsert2);
+    SQLTest(SQLINSERT2);
  
-    const char *sqlInsert3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
-    SQLTest(sqlInsert3);
+    const char *SQLINSERT3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
+    SQLTest(SQLINSERT3);
  
-    const char *sqlQuery1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content "
+    const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content "
                             "FROM example WHERE example MATCH '测试';";
-    SQLTest(sqlQuery1);
+    SQLTest(SQLQUERY1);
  
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
@@ -507,20 +507,20 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest010, TestSize.Level0)
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
  
-    const char *sqlInsert1 =
+    const char *SQLINSERT1 =
         "INSERT INTO example(name, content) VALUES('文档1', '这是一个测试文档，用于测试中文文本的分词和索引。');";
-    SQLTest(sqlInsert1);
+    SQLTest(SQLINSERT1);
  
-    const char *sqlInsert2 =
+    const char *SQLINSERT2 =
         "INSERT INTO example(name, content) VALUES('文档2', '这是一个检测报告，需要仔细查验和核查数据。');";
-    SQLTest(sqlInsert2);
+    SQLTest(SQLINSERT2);
  
-    const char *sqlInsert3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
-    SQLTest(sqlInsert3);
+    const char *SQLINSERT3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
+    SQLTest(SQLINSERT3);
  
-    const char *sqlQuery1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+    const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '测试';";
-    SQLTest(sqlQuery1);
+    SQLTest(SQLQUERY1);
  
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
@@ -559,21 +559,21 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest011, TestSize.Level0)
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
  
-    const char *sqlInsert1 = "INSERT INTO example(name, content) VALUES('卡拉ok', "
+    const char *SQLINSERT1 = "INSERT INTO example(name, content) VALUES('卡拉ok', "
                              "'\"C语言设计c++C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌C++卡拉ok卡拉OK\"');";
-    SQLTest(sqlInsert1);
+    SQLTest(SQLINSERT1);
  
-    const char *sqlQuery1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+    const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"C++\"';";
-    SQLTest(sqlQuery1);
+    SQLTest(SQLQUERY1);
  
-    const char *sqlQuery2 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+    const char *SQLQUERY2 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"卡拉OK\"';";
-    SQLTest(sqlQuery2);
+    SQLTest(SQLQUERY2);
  
-    const char *sqlQuery3 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
+    const char *SQLQUERY3 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"qq号\"';";
-    SQLTest(sqlQuery3);
+    SQLTest(SQLQUERY3);
  
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }

@@ -47,6 +47,7 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
     }
     errCode = handle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
     if (errCode != E_OK) {
+        LOGI("[RelationalSyncAbleStorage] fill handle with opType failed, errCode=%d", errCode);
         return errCode;
     }
     if (opType == OpType::INSERT) {

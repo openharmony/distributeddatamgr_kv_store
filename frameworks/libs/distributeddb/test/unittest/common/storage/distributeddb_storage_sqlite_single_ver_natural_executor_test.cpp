@@ -921,7 +921,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest004, 
 {
     PragmaPublishInfo info;
     g_store->ReleaseHandle(g_handle);
-    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_NOT_FOUND);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_INVALID_ARGS);
     info.deleteLocal = true;
     EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_INVALID_ARGS);
 }
@@ -1149,6 +1149,42 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     dataItem.flag = DataItem::DELETE_FLAG;
     EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);
     executor = nullptr;
+}
+
+/**
+  * @tc.name: ExecutorCache006
+  * @tc.desc: Save data in cache mode
+  * @tc.type: FUNC
+  * @tc.author: zqq
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Attach cache db and put data
+     */
+    string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
+    ASSERT_EQ(g_handle->ForceCheckPoint(), E_OK);
+    EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
+    CipherPassword password;
+    EXPECT_EQ(g_handle->AttachMainDbAndCacheDb(
+        CipherType::DEFAULT, password, cacheDir, EngineState::CACHEDB), E_OK);
+    Key key = {'k', '1'};
+    Value value = {'v', '1'};
+    EXPECT_EQ(g_handle->PutKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, value, 0, nullptr), E_OK);
+    /**
+     * @tc.steps: step2. Check data put success
+     */
+    sqlite3 *db = nullptr;
+    ASSERT_TRUE(sqlite3_open_v2(cacheDir.c_str(),
+        &db, SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    auto executor = std::make_unique<SQLiteSingleVerStorageExecutor>(db, false, false);
+    ASSERT_NE(executor, nullptr);
+    Value actualValue;
+    Timestamp timestamp;
+    EXPECT_EQ(executor->GetKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, actualValue, timestamp), E_OK);
+    EXPECT_EQ(value, actualValue);
+    EXPECT_EQ(timestamp, 0);
 }
 
 /**

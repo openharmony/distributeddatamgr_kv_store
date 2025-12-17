@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include <fcntl.h>
 #include <gtest/gtest.h>
 #include <sys/mman.h>
@@ -883,4 +882,3 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, DataInterceptor1, TestSize
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
 }
-#endif // USE_RD_KERNEL

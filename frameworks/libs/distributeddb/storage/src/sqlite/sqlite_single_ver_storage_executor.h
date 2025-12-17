@@ -35,7 +35,8 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerStorageExecutor);
 
     // Get the Kv data according the type(sync, meta, local data).
-    virtual int GetKvData(SingleVerDataType type, const Key &key, Value &value, Timestamp &timestamp) const;
+    virtual int GetKvData(SingleVerDataType type, const Key &key, Value &value, Timestamp &timestamp,
+        bool useCacheStmt = false) const;
 
     // Get the sync data record by hash key.
     int GetKvDataByHashKey(const Key &hashKey, SingleVerRecord &result) const;
@@ -125,7 +126,8 @@ public:
 
     int Rollback();
 
-    bool CheckIfKeyExisted(const Key &key, bool isLocal, Value &value, Timestamp &timestamp) const;
+    int CheckIfKeyExisted(const Key &key, bool isLocal, Value &value, Timestamp &timestamp,
+        bool useCacheStmt = false) const;
 
     int PrepareForSavingData(SingleVerDataType type);
 
@@ -208,6 +210,13 @@ protected:
     virtual int DeleteLocalDataInner(SingleVerNaturalStoreCommitNotifyData *committedData,
         const Key &key, const Value &value);
 
+    int GetKvDataSQL(SingleVerDataType type, std::string &sql) const;
+
+    int GetKvDataInner(SingleVerDataType type, sqlite3_stmt *statement,
+        const Key &key, Value &value, Timestamp &timestamp) const;
+
+    virtual int PutKvDataInner(SingleVerDataType type, const Key &key, const Value &value,
+        Timestamp timestamp, SingleVerNaturalStoreCommitNotifyData *committedData);
 private:
     struct SaveRecordStatements {
         sqlite3_stmt *queryStatement = nullptr;

@@ -35,7 +35,7 @@ public:
         const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
 
     DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
-
+    
     DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option) override;
 
     DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type,

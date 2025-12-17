@@ -919,6 +919,7 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
         g_communicatorAggregator->RegOnDispatch(nullptr);
     }
     g_isAfterRekey = false;
+    RuntimeContext::GetInstance()->StopTaskPool();
     LOGD("TearDown FINISH");
 }
 

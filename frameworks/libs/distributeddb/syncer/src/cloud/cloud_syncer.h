@@ -450,7 +450,7 @@ protected:
     bool IsNeedLock(const UploadParam &param);
 
     int UploadVersionRecordIfNeed(const UploadParam &uploadParam);
-    
+
     std::vector<CloudTaskInfo> CopyAndClearTaskInfos(const std::optional<TaskId> taskId = {});
 
     void WaitCurTaskFinished();
@@ -557,8 +557,14 @@ protected:
 
     TaskId GetCurrentTaskId();
 
+    int32_t GetHeatbeatCount(TaskId taskId);
+
+    void RemoveHeatbeatData(TaskId taskId);
+
+    void ExecuteHeartBeatTask(TaskId taskId);
+
     int WaitAsyncGenLogTaskFinished(TaskId triggerTaskId);
-    
+
     void RetainCurrentTaskInfo(TaskId taskId);
 
     mutable std::mutex dataLock_;

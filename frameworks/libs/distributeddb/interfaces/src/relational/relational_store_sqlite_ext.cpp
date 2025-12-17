@@ -71,7 +71,9 @@ namespace {
 const std::string DISTRIBUTED_TABLE_MODE = "distributed_table_mode";
 static std::mutex g_binlogInitMutex;
 static int g_binlogInit = -1;
-constexpr const char *COMPRESS_WHITELIST[] = {"test.db"};
+constexpr const char *COMPRESS_WHITELIST[] = {"calendardata_slave.db", "advisor_slave.db", "DeviceControl_slave.db",
+    "iotConnect_slave.db", "OhTips_slave.db", "Clock_slave.db", "quick-game-engine_slave.db",
+    "dual_write_binlog_test_slave.db", "RdbTestNO_slave.db"};
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
@@ -431,9 +433,6 @@ std::mutex g_storeObserverMutex;
 std::map<std::string, std::list<std::shared_ptr<StoreObserver>>> g_storeObserverMap;
 std::mutex g_storeChangedDataMutex;
 std::map<std::string, std::vector<ChangedData>> g_storeChangedDataMap;
-
-std::mutex g_clientCreateTableMutex;
-std::set<std::string> g_clientCreateTable;
 
 std::mutex g_registerSqliteHookMutex;
 
@@ -962,17 +961,25 @@ int GetTriggerSqls(sqlite3 *db, const std::map<std::string, bool> &tableInfos, s
     return E_OK;
 }
 
-int AuthorizerCallback([[gnu::unused]] void *data, int operation, const char *tableNameChar, const char *, const char *,
-    const char *)
+int TraceCallback(uint32_t traceType, void *traceData, void *stmt, void*)
 {
-    if (operation != SQLITE_CREATE_TABLE || tableNameChar == nullptr) {
+    if (traceType != SQLITE_TRACE_PROFILE || traceData == nullptr || stmt == nullptr) {
         return SQLITE_OK;
     }
-    std::lock_guard<std::mutex> clientCreateTableLock(g_clientCreateTableMutex);
-    std::string tableName = static_cast<std::string>(tableNameChar);
-    if (ParamCheckUtils::CheckRelationalTableName(tableName) && tableName.find("sqlite_") != 0 &&
-        tableName.find("naturalbase_") != 0) {
-        g_clientCreateTable.insert(tableName);
+    auto statement = static_cast<sqlite3_stmt *>(stmt);
+    const char *sql = sqlite3_sql(statement);
+    if (sql == nullptr) {
+        return SQLITE_OK;
+    }
+    std::string sqlStr(sql);
+    std::transform(sqlStr.begin(), sqlStr.end(), sqlStr.begin(), ::tolower);
+    if (sqlStr.find("create table ") == std::string::npos) {
+        return SQLITE_OK;
+    }
+    auto db = static_cast<sqlite3 *>(traceData);
+    int errCode = CreateDataChangeTempTrigger(db);
+    if (errCode != OK) {
+        LOGE("Create temp data change trigger failed after create table: %d", errCode);
     }
     return SQLITE_OK;
 }
@@ -1028,34 +1035,6 @@ void StoreObserverCallback(sqlite3 *db, const std::string &hashFileName)
         }
     }
     TriggerObserver(storeObserver, hashFileName);
-    std::map<std::string, bool> tableInfos;
-    {
-        std::lock_guard<std::mutex> clientCreateTableLock(g_clientCreateTableMutex);
-        if (g_clientCreateTable.empty()) {
-            return;
-        }
-        for (const auto &tableName : g_clientCreateTable) {
-            bool isRowid = true;
-            std::string type = "";
-            JudgeIfGetRowid(db, tableName, type, isRowid);
-            tableInfos.insert(std::make_pair(tableName, isRowid));
-        }
-        g_clientCreateTable.clear();
-    }
-    std::vector<std::string> triggerSqls;
-    int errCode = GetTriggerSqls(db, tableInfos, triggerSqls);
-    if (errCode != E_OK) {
-        LOGE("Get data change trigger sql failed %d", errCode);
-        return;
-    }
-    for (const auto &sql : triggerSqls) {
-        errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
-        if (errCode != E_OK) {
-            LOGE("Create data change trigger failed %d", errCode);
-            return;
-        }
-    }
-    return;
 }
 
 int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
@@ -1137,7 +1116,7 @@ int RegisterDataChangeObserver(sqlite3 *db)
 
 void RegisterCommitAndRollbackHook(sqlite3 *db)
 {
-    sqlite3_set_authorizer(db, AuthorizerCallback, nullptr);
+    sqlite3_trace_v2(db, SQLITE_TRACE_PROFILE, TraceCallback, (void*)db);
 }
 
 int ResetStatement(sqlite3_stmt *&stmt)
@@ -1664,7 +1643,6 @@ void PostHandle(bool isExists, sqlite3 *db)
     RegisterGetRawSysTime(db);
     RegisterCloudDataChangeObserver(db);
     RegisterDataChangeObserver(db);
-    RegisterCommitAndRollbackHook(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";
@@ -1911,6 +1889,8 @@ DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::sha
         LOGE("[RegisterStoreObserver] Create trigger failed.");
         return DistributedDB::DB_ERROR;
     }
+
+    RegisterCommitAndRollbackHook(db);
 
     std::lock_guard<std::mutex> lock(g_storeObserverMutex);
     if (std::find(g_storeObserverMap[hashFileName].begin(), g_storeObserverMap[hashFileName].end(), storeObserver) !=

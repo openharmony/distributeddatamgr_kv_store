@@ -674,7 +674,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, CompressSupportTest001, TestSize.
      * @tc.steps: step5. sqlite open with a non-whitelist file using compress vfs
      * @tc.expected: open ok
      */
-    std::string nonWhiteDb = g_testDir + "/nonWhiteList.db";
+    std::string nonWhiteDb = g_testDir + "/notWhiteList.db";
     EXPECT_EQ(sqlite3_open_v2(nonWhiteDb.c_str(), &db, openOption, "compressvfs"), SQLITE_OK);
     sqlite3_close_v2(db);
     db = nullptr;
@@ -682,7 +682,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, CompressSupportTest001, TestSize.
      * @tc.steps: step6. sqlite open with a whitelist file using compress vfs
      * @tc.expected: no crash
      */
-    std::string whitelistDb = g_testDir + "/test.db";
+    std::string whitelistDb = g_testDir + "/RdbTestNO_slave.db";
     ASSERT_NO_FATAL_FAILURE(sqlite3_open_v2(whitelistDb.c_str(), &db, openOption, "compressvfs"));
     sqlite3_close_v2(db);
     db = nullptr;
