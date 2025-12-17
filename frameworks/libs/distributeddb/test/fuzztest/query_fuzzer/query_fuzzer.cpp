@@ -26,6 +26,19 @@ namespace {
 }
 
 namespace OHOS {
+void FuzzFromTable(FuzzedDataProvider &provider)
+{
+    std::string rawString = provider.ConsumeRandomLengthString();
+    std::vector<std::string> values;
+    // 512 max size
+    int maxSize = 512;
+    int size = provider.ConsumeIntegralInRange<int>(0, maxSize);
+    for (int i = 0; i < size; i++) {
+        values.emplace_back(rawString);
+    }
+    Query query = Query::Select().FromTable(values);
+}
+
 void FuzzEqualTo(FuzzedDataProvider &provider)
 {
     std::string rawString = provider.ConsumeRandomLengthString();
@@ -38,6 +51,12 @@ void FuzzNotEqualTo(FuzzedDataProvider &provider)
     std::string rawString = provider.ConsumeRandomLengthString();
     Query query = Query::Select().NotEqualTo(TEST_FIELD_NAME, rawString);
 }
+
+void FuzzOrderByWriteTime(FuzzedDataProvider &provider)
+{
+    bool isAsc = provider.ConsumeBool();
+    (void)Query::Select().OrderByWriteTime(isAsc);
+}
 }
 
 /* Fuzzer entry point */
@@ -49,7 +68,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     }
     FuzzedDataProvider provider(data, size);
     // Run your code on data
+    OHOS::FuzzFromTable(provider);
     OHOS::FuzzEqualTo(provider);
     OHOS::FuzzNotEqualTo(provider);
+    OHOS::FuzzOrderByWriteTime(provider);
     return 0;
 }

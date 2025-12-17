@@ -29,6 +29,8 @@ namespace OHOS {
 void FuzzOrderBy(FuzzedDataProvider &provider)
 {
     std::string rawString = provider.ConsumeRandomLengthString();
+    bool isAsc = provider.ConsumeBool();
+    (void)Query::Select().OrderBy(rawString, isAsc);
     (void)Query::Select().GreaterThanOrEqualTo(rawString, true);
     (void)Query::Select().GreaterThanOrEqualTo(rawString, false);
 }
