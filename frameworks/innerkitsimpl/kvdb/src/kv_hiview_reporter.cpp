@@ -318,6 +318,8 @@ std::string KVDBFaultHiViewReporter::GetFileStatInfo(const std::string &filePath
 {
     struct stat fileStat;
     if (filePath.empty() || stat(filePath.c_str(), &fileStat) != 0) {
+        ZLOGW("Failed to get file stat, filePath=%{public}s, errno=%{public}d",
+            StoreUtil::Anonymous(filePath).c_str(), errno);
         return "";
     }
     std::stringstream oss;
