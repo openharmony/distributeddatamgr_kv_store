@@ -562,9 +562,11 @@ void DistributedDBCloudSyncerDownloadAssetsTest::CheckCursorData(const std::stri
 void DistributedDBCloudSyncerDownloadAssetsTest::WaitForSync(int &syncCount)
 {
     std::unique_lock<std::mutex> lock(g_processMutex);
+    const int expectSyncCount = 2; // 2 is compensated sync
     bool result = g_processCondition.wait_for(lock, std::chrono::seconds(COMPENSATED_SYNC_WAIT_TIME),
-        [&syncCount]() { return syncCount == 2; }); // 2 is compensated sync
-    ASSERT_EQ(result, true);
+        [&syncCount]() { return syncCount >= expectSyncCount; });
+    EXPECT_EQ(result, true);
+    EXPECT_EQ(expectSyncCount, syncCount);
 }
 
 const RelationalSyncAbleStorage* DistributedDBCloudSyncerDownloadAssetsTest::GetRelationalStore()

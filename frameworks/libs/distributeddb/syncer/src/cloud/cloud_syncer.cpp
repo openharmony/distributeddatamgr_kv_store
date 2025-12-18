@@ -247,10 +247,9 @@ int CloudSyncer::DoSync(TaskId taskId)
     bool isFirstDownload = true;
     if (isNeedFirstDownload) {
         // do first download
-        errCode = DoFirstDownload(taskId, taskInfo, needUpload, isNeedFirstDownload);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] do first download failed: %d", errCode);
-            return errCode;
+        auto [ret, isFinished] = DoFirstDownload(taskId, taskInfo, needUpload, isNeedFirstDownload);
+        if (isFinished) {
+            return ret;
         }
     }
 
@@ -262,13 +261,19 @@ int CloudSyncer::DoSync(TaskId taskId)
     return DoSyncInner(taskInfo);
 }
 
-int CloudSyncer::DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload, bool &isFirstDownload)
+std::pair<int, bool> CloudSyncer::DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload,
+    bool &isFirstDownload)
 {
-    int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+    std::pair<int, bool> res;
+    auto &[errCode, isFinished] = res;
+    isFinished = false;
+    errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
     SetTaskFailed(taskId, errCode);
     if (errCode != E_OK) {
+        isFinished = true;
         SyncMachineDoFinished();
-        return errCode;
+        LOGE("[CloudSyncer] first download failed[%d]", errCode);
+        return res;
     }
     bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
     {
@@ -278,10 +283,11 @@ int CloudSyncer::DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, b
     if (!isActuallyNeedUpload) {
         LOGI("[CloudSyncer] no table need upload!");
         SyncMachineDoFinished();
-        return E_OK;
+        isFinished = true;
+        return res;
     }
     isFirstDownload = false;
-    return E_OK;
+    return res;
 }
 
 int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)

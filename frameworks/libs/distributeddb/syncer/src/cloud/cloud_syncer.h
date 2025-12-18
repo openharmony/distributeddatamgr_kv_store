@@ -156,7 +156,8 @@ protected:
 
     int DoSync(TaskId taskId);
 
-    int DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload, bool &isFirstDownload);
+    std::pair<int, bool> DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload,
+        bool &isFirstDownload);
 
     int PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index);
 
