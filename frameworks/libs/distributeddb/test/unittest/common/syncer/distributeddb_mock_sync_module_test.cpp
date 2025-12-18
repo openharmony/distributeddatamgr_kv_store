@@ -1927,7 +1927,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery003, TestSize.Level1)
     DistributedDB::Message *message = nullptr;
     EXPECT_EQ(BuildRemoteQueryMsg(message), E_OK);
     message->SetMessageType(TYPE_RESPONSE);
-    message->SetErrorNo(NEED_CORRECT_TARGET_USER);
+    message->SetErrorNo(E_NEED_CORRECT_TARGET_USER);
     message->SetSessionId(executor->GetLastSessionId());
     executor->ReceiveMessage(deviceName, message);
     std::this_thread::sleep_for(std::chrono::seconds(1)); // mock one msg execute 1 s
