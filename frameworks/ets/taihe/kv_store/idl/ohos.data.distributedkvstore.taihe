@@ -59,6 +59,7 @@ union ValueUnion {
 }
 
 union DataShareValueUnion {
+    @null EMPTY;
     INT64: i64;
     F64: f64;
     STRING: String;

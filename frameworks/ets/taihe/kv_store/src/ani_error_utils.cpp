@@ -57,7 +57,7 @@ void ThrowError(const char* message)
         return;
     }
     std::string errMsg(message);
-    taihe::set_error(errMsg);
+    taihe::set_business_error(-1, errMsg);
 }
 
 void ThrowError(int32_t code, const char* message)
