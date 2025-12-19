@@ -39,7 +39,6 @@ common_external_deps = [
   "access_token:libtoken_setproc",
   "c_utils:utils",
   "cJSON:cjson",
-  "device_manager:devicemanagersdk",
   "googletest:gtest",
   "hilog:libhilog",
   "hisysevent:libhisysevent",
@@ -49,6 +48,9 @@ common_external_deps = [
   "ipc:ipc_single",
   "samgr:samgr_proxy",
 ]
+if (dm_service_enable) {
+  external_deps += [ "device_manager:devicemanagersdk" ]
+}
 
 ###############################################################################
 ohos_distributedtest("DistributedTest") {
