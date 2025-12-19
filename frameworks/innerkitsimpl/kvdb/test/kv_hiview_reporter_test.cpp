@@ -21,19 +21,35 @@
 #include "log_print.h"
 #include "types.h"
 #include <unistd.h>
-#include "store_manager.h"
-
+#include "distributed_kv_data_manager.h"
 namespace OHOS::Test {
 using namespace testing;
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 
 static constexpr const char *BASE_DIR = "/data/service/el1/public/database/KvHiviewReporterTest/";
-static constexpr const char *STOREID = "SingleKVStore";
+static constexpr const char *ENCRYPT_STOREID = "EncryptSingleKVStore";
+static constexpr const char *UNENCRYPT_STOREID = "UnencryptSingleKVStore";
 static constexpr const char *APPID = "KvHiviewReporterTest";
 static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
 static constexpr const char *FULL_KVDB_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/kvdb/";
 static constexpr const char *FULL_KEY_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/";
+Options encryptOptions_ = {
+    .kvStoreType = SINGLE_VERSION,
+    .securityLevel = S1,
+    .encrypt = true,
+    .area = EL1,
+    .backup = false,
+    .baseDir = BASE_DIR
+};
+Options unencryptOptions_ = {
+    .kvStoreType = SINGLE_VERSION,
+    .securityLevel = S1,
+    .encrypt = false,
+    .area = EL1,
+    .backup = false,
+    .baseDir = BASE_DIR
+};
 
 class KvHiviewReporterTest : public testing::Test {
 public:
@@ -42,13 +58,18 @@ public:
 
     void SetUp();
     void TearDown();
+    static std::shared_ptr<SingleKvStore> encryptKvStore_;
+    static std::shared_ptr<SingleKvStore> unencryptKvStore_;
+    static std::shared_ptr<DistributedKvDataManager> manage_;
 
-    static std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type,
-        bool encrypt, bool backup);
-    static std::shared_ptr<SingleKvStore> kvStore_;
 };
 
-std::shared_ptr<SingleKvStore> KvHiviewReporterTest::kvStore_;
+std::shared_ptr<SingleKvStore> KvHiviewReporterTest::encryptKvStore_;
+std::shared_ptr<SingleKvStore> KvHiviewReporterTest::unencryptKvStore_;
+std::shared_ptr<DistributedKvDataManager> KvHiviewReporterTest::manage_;
+
+
+
 
 void KvHiviewReporterTest::SetUpTestCase(void)
 {
@@ -56,21 +77,34 @@ void KvHiviewReporterTest::SetUpTestCase(void)
     if (ret != 0) {
         ZLOGE("Mkdir failed, result:%{public}d, path:%{public}s", ret, BASE_DIR);
     }
-    kvStore_ = KvHiviewReporterTest::CreateKVStore(STOREID, SINGLE_VERSION, true, false);
-    ASSERT_NE(kvStore_, nullptr);
-    ZLOGE("KvHiviewReporterTest::CreateKVStore END");
+    AppId appId = { APPID };
+    StoreId storeId = { ENCRYPT_STOREID };
+    auto status = manage_->GetSingleKvStore(encryptOptions_, appId, storeId, encryptKvStore_);
+    ASSERT_EQ(status, SUCCESS);
+
+    storeId = { UNENCRYPT_STOREID };
+    status = manage_->GetSingleKvStore(unencryptOptions_, appId, storeId, unencryptKvStore_);
+    ASSERT_EQ(status, SUCCESS);
+    ZLOGI("KvHiviewReporterTest getSingleKvStore end.");
 }
 
 void KvHiviewReporterTest::TearDownTestCase(void)
 {
-    kvStore_ = nullptr;
-    AppId appId = { APPID } ;
-    StoreId storeId = { STOREID };
+    AppId appId = { APPID };
+    StoreId storeId = { ENCRYPT_STOREID };
     std::string baseDir = BASE_DIR;
-    auto status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    auto status = manage_->DeleteKvStore(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
-    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(baseDir, storeId.storeId);
-    (void)remove(dbPath.c_str());
+
+    storeId = { UNENCRYPT_STOREID };
+    status = manage_->DeleteKvStore(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+    ZLOGI("KvHiviewReporterTest delete end.");
+   
+    encryptKvStore_ = nullptr;
+    unencryptKvStore_ = nullptr;
+    manage_ = nullptr;
+
     (void)remove(FULL_KVDB_PATH);
     (void)remove(FULL_KEY_PATH);
     (void)remove(BASE_DIR);
@@ -80,70 +114,52 @@ void KvHiviewReporterTest::SetUp(void) { }
 
 void KvHiviewReporterTest::TearDown(void) { }
 
-std::shared_ptr<SingleKvStore> KvHiviewReporterTest::CreateKVStore(
-    std::string storeIdTest, KvStoreType type, bool encrypt, bool backup)
-{
-    Options options;
-    options.kvStoreType = type;
-    options.securityLevel = S1;
-    options.encrypt = encrypt;
-    options.area = EL1;
-    options.backup = backup;
-    options.baseDir = BASE_DIR;
-
-    AppId appId = { APPID };
-    StoreId storeId = { storeIdTest };
-    Status status;
-    return StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
-}
-
 /**
  * @tc.name: ReportKVFaultEvent001
- * @tc.desc: Execute the ReportFaultEvent method
+ * @tc.desc: Use an unencryption library to Execute the ReportFaultEvent method. 
  * @tc.type: FUNC
  */
 HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level0)
 {
     ZLOGI("ReportKVFaultEvent001 begin.");
     AppId appId = { APPID } ;
-    StoreId storeId = { STOREID };
-    Options options;
-    options.baseDir = BASE_DIR;
-    options.encrypt = true;
-    Status status = Status::DATA_CORRUPTED;
+    StoreId storeId = { UNENCRYPT_STOREID };
+    Status status = Status::INVALID_ARGUMENT;
     HiSysEventMock mock;
-    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
-    ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
+    ReportInfo reportInfo = { .options = unencryptOptions_, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
-    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
-    std::string flagFilename = dbPath + std::string(STOREID) + std::string(DB_CORRUPTED_POSTFIX);
-    auto ret = access(flagFilename.c_str(), F_OK);
-    ASSERT_EQ(ret, 0);
 }
 
 /**
- * @tc.name: ReportKVRebuildEvent001
- * @tc.desc: Execute the ReportKVRebuildEvent method
+ * @tc.name: ReportKVFaultAndRebuildTest001
+ * @tc.desc: Use an encryption library to Execute the ReportKVFaultEvent and ReportKVRebuildEvent method. 
  * @tc.type: FUNC
  */
-HWTEST_F(KvHiviewReporterTest, ReportKVRebuildEvent001, TestSize.Level0)
+HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest001, TestSize.Level0)
 {
-    ZLOGI("ReportKVRebuildEvent001 begin.");
+    ZLOGI("KvHiviewReporterTest001 ReportKVFaultEvent begin.");
     AppId appId = { APPID } ;
-    StoreId storeId = { STOREID };
-    Options options;
-    options.baseDir = BASE_DIR;
-    options.encrypt = true;
-    Status status = Status::SUCCESS;
+    StoreId storeId = { ENCRYPT_STOREID };
+    Status status = Status::DATA_CORRUPTED;
     HiSysEventMock mock;
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
+    ReportInfo reportInfo = { .options = encryptOptions_, .errorCode = status, .systemErrorNo = errno,
+                .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(encryptOptions_.GetDatabaseDir(), storeId.storeId);
+    std::string flagFilename = dbPath + std::string(ENCRYPT_STOREID) + std::string(DB_CORRUPTED_POSTFIX);
+    auto ret = access(flagFilename.c_str(), F_OK);
+    ASSERT_EQ(ret, 0);
+
+    ZLOGI("KvHiviewReporterTest001 ReportKVRebuildEvent begin.");
+    status = Status::SUCCESS;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
-    ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+    reportInfo = { .options = encryptOptions_, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
-    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(options.GetDatabaseDir(), storeId.storeId);
-    std::string flagFilename = dbPath + std::string(STOREID) + std::string(DB_CORRUPTED_POSTFIX);
-    auto ret = access(flagFilename.c_str(), F_OK);
+    ret = access(flagFilename.c_str(), F_OK);
     ASSERT_NE(ret, 0);
 }
 } // namespace OHOS::Test
