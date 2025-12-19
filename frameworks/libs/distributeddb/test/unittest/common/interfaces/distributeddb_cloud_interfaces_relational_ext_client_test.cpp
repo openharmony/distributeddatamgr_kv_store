@@ -579,8 +579,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtClientTest, TriggerObserverTes
      */
     triggeredCount_ = 0;
     ClientObserver clientObserver2 =
-        std::bind(&DistributedDBCloudInterfacesRelationalExtClientTest::ClientObserverFunc2, this,
-        std::placeholders::_1);
+        std::bind(&DistributedDBCloudInterfacesRelationalExtClientTest::ClientObserverFunc2,
+        this, std::placeholders::_1);
     EXPECT_EQ(RegisterClientObserver(db, clientObserver2), OK);
     RegisterDbHook(db);
     sql = "update " + tableName + " set name = 'lisi2' where id = 2;";
