@@ -121,7 +121,7 @@ void KvHiviewReporterTest::TearDown(void) { }
  * @tc.desc: Use an unencryption library to Execute the ReportFaultEvent method. 
  * @tc.type: FUNC
  */
-HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level0)
+HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level1)
 {
     ZLOGI("ReportKVFaultEvent001 begin.");
     Status status = Status::INVALID_ARGUMENT;
@@ -137,7 +137,7 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level0)
  * @tc.desc: Use an encryption library to Execute the ReportKVFaultEvent and ReportKVRebuildEvent method. 
  * @tc.type: FUNC
  */
-HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest001, TestSize.Level0)
+HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest001, TestSize.Level1)
 {
     ZLOGI("KvHiviewReporterTest001 ReportKVFaultEvent begin.");
     Status status = Status::DATA_CORRUPTED;
