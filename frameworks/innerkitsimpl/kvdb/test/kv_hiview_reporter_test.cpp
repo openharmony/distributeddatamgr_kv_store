@@ -189,7 +189,8 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest002, TestSize.Level1)
     ReportInfo reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = unencryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
-    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(unencryptOptions.GetDatabaseDir(), unencryptStoreId.storeId);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(unencryptOptions.GetDatabaseDir(),
+        unencryptStoreId.storeId);
     std::string flagFilename = dbPath + std::string(UNENCRYPT_STOREID) + std::string(DB_CORRUPTED_POSTFIX);
     auto ret = access(flagFilename.c_str(), F_OK);
     ASSERT_EQ(ret, 0);
