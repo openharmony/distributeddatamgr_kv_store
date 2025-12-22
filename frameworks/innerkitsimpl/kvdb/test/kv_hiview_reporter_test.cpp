@@ -34,22 +34,6 @@ static constexpr const char *APPID = "KvHiviewReporterTest";
 static constexpr const char *DB_CORRUPTED_POSTFIX = ".corruptedflg";
 static constexpr const char *FULL_KVDB_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/kvdb/";
 static constexpr const char *FULL_KEY_PATH = "/data/service/el1/public/database/KvHiviewReporterTest/key/";
-Options encryptOptions_ = {
-    .kvStoreType = SINGLE_VERSION,
-    .securityLevel = S1,
-    .encrypt = true,
-    .area = EL1,
-    .backup = false,
-    .baseDir = BASE_DIR
-};
-Options unencryptOptions_ = {
-    .kvStoreType = SINGLE_VERSION,
-    .securityLevel = S1,
-    .encrypt = false,
-    .area = EL1,
-    .backup = false,
-    .baseDir = BASE_DIR
-};
 
 class KvHiviewReporterTest : public testing::Test {
 public:
@@ -64,16 +48,33 @@ public:
     static AppId appId;
     static StoreId encryptStoreId;
     static StoreId unencryptStoreId;
-
-
+    static Options encryptOptions;
+    static Options unencryptOptions;
 };
 
 std::shared_ptr<SingleKvStore> KvHiviewReporterTest::encryptKvStore_;
 std::shared_ptr<SingleKvStore> KvHiviewReporterTest::unencryptKvStore_;
-std::shared_ptr<DistributedKvDataManager> KvHiviewReporterTest::manage_;
+std::shared_ptr<DistributedKvDataManager> KvHiviewReporterTest::manage_ =
+    std::make_shared<DistributedKvDataManager>();
 AppId  KvHiviewReporterTest::appId = { APPID };
 StoreId KvHiviewReporterTest::encryptStoreId = { ENCRYPT_STOREID };
 StoreId KvHiviewReporterTest::unencryptStoreId = { UNENCRYPT_STOREID };
+Options KvHiviewReporterTest::encryptOptions = {
+    .kvStoreType = SINGLE_VERSION,
+    .securityLevel = S1,
+    .encrypt = true,
+    .area = EL1,
+    .backup = false,
+    .baseDir = BASE_DIR
+};
+Options KvHiviewReporterTest::unencryptOptions = {
+    .kvStoreType = SINGLE_VERSION,
+    .securityLevel = S1,
+    .encrypt = false,
+    .area = EL1,
+    .backup = false,
+    .baseDir = BASE_DIR
+};
 
 void KvHiviewReporterTest::SetUpTestCase(void)
 {
@@ -82,10 +83,10 @@ void KvHiviewReporterTest::SetUpTestCase(void)
         ZLOGE("Mkdir failed, result:%{public}d, path:%{public}s", ret, BASE_DIR);
         return;
     }
-    auto status = manage_->GetSingleKvStore(encryptOptions_, appId, encryptStoreId, encryptKvStore_);
+    auto status = manage_->GetSingleKvStore(encryptOptions, appId, encryptStoreId, encryptKvStore_);
     ASSERT_EQ(status, SUCCESS);
 
-    status = manage_->GetSingleKvStore(unencryptOptions_, appId, unencryptStoreId, unencryptKvStore_);
+    status = manage_->GetSingleKvStore(unencryptOptions, appId, unencryptStoreId, unencryptKvStore_);
     ASSERT_EQ(status, SUCCESS);
     ZLOGI("KvHiviewReporterTest getSingleKvStore end.");
 }
@@ -124,8 +125,24 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level1)
     Status status = Status::INVALID_ARGUMENT;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
-    ReportInfo reportInfo = { .options = unencryptOptions_, .errorCode = status, .systemErrorNo = errno,
+    ReportInfo reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = unencryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+}
+
+/**
+ * @tc.name: ReportKVFaultEvent002
+ * @tc.desc: Use an encryption library to Execute the ReportFaultEvent method.
+ * @tc.type: FUNC
+ */
+HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent002, TestSize.Level1)
+{
+    ZLOGI("ReportKVFaultEvent002 begin.");
+    Status status = Status::INVALID_ARGUMENT;
+    HiSysEventMock mock;
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
+    ReportInfo reportInfo = { .options = encryptOptions, .errorCode = status, .systemErrorNo = errno,
+                .appId = appId.appId, .storeId = encryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
 }
 
@@ -140,10 +157,10 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest001, TestSize.Level1)
     Status status = Status::DATA_CORRUPTED;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
-    ReportInfo reportInfo = { .options = encryptOptions_, .errorCode = status, .systemErrorNo = errno,
+    ReportInfo reportInfo = { .options = encryptOptions, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = encryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
-    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(encryptOptions_.GetDatabaseDir(), encryptStoreId.storeId);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(encryptOptions.GetDatabaseDir(), encryptStoreId.storeId);
     std::string flagFilename = dbPath + std::string(ENCRYPT_STOREID) + std::string(DB_CORRUPTED_POSTFIX);
     auto ret = access(flagFilename.c_str(), F_OK);
     ASSERT_EQ(ret, 0);
@@ -151,8 +168,37 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest001, TestSize.Level1)
     ZLOGI("KvHiviewReporterTest001 ReportKVRebuildEvent begin.");
     status = Status::SUCCESS;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
-    reportInfo = { .options = encryptOptions_, .errorCode = status, .systemErrorNo = errno,
+    reportInfo = { .options = encryptOptions, .errorCode = status, .systemErrorNo = errno,
                 .appId = appId.appId, .storeId = encryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
+    KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
+    ret = access(flagFilename.c_str(), F_OK);
+    ASSERT_NE(ret, 0);
+}
+
+/**
+ * @tc.name: ReportKVFaultAndRebuildTest002
+ * @tc.desc: Use an unencryption library to Execute the ReportKVFaultEvent and ReportKVRebuildEvent method.
+ * @tc.type: FUNC
+ */
+HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest002, TestSize.Level1)
+{
+    ZLOGI("KvHiviewReporterTest002 ReportKVFaultEvent begin.");
+    Status status = Status::DATA_CORRUPTED;
+    HiSysEventMock mock;
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
+    ReportInfo reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
+                .appId = appId.appId, .storeId = unencryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(unencryptOptions.GetDatabaseDir(), unencryptStoreId.storeId);
+    std::string flagFilename = dbPath + std::string(UNENCRYPT_STOREID) + std::string(DB_CORRUPTED_POSTFIX);
+    auto ret = access(flagFilename.c_str(), F_OK);
+    ASSERT_EQ(ret, 0);
+
+    ZLOGI("KvHiviewReporterTest002 ReportKVRebuildEvent begin.");
+    status = Status::SUCCESS;
+    EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
+    reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
+                .appId = appId.appId, .storeId = unencryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     ret = access(flagFilename.c_str(), F_OK);
     ASSERT_NE(ret, 0);
