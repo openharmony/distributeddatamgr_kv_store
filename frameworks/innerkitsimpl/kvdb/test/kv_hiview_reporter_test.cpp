@@ -75,9 +75,6 @@ AppId  KvHiviewReporterTest::appId = { APPID };
 StoreId KvHiviewReporterTest::encryptStoreId = { ENCRYPT_STOREID };
 StoreId KvHiviewReporterTest::unencryptStoreId = { UNENCRYPT_STOREID };
 
-
-
-
 void KvHiviewReporterTest::SetUpTestCase(void)
 {
     auto ret = mkdir(BASE_DIR, (S_IRWXU));
@@ -118,7 +115,7 @@ void KvHiviewReporterTest::TearDown(void) { }
 
 /**
  * @tc.name: ReportKVFaultEvent001
- * @tc.desc: Use an unencryption library to Execute the ReportFaultEvent method. 
+ * @tc.desc: Use an unencryption library to Execute the ReportFaultEvent method.
  * @tc.type: FUNC
  */
 HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level1)
@@ -134,7 +131,7 @@ HWTEST_F(KvHiviewReporterTest, ReportKVFaultEvent001, TestSize.Level1)
 
 /**
  * @tc.name: ReportKVFaultAndRebuildTest001
- * @tc.desc: Use an encryption library to Execute the ReportKVFaultEvent and ReportKVRebuildEvent method. 
+ * @tc.desc: Use an encryption library to Execute the ReportKVFaultEvent and ReportKVRebuildEvent method.
  * @tc.type: FUNC
  */
 HWTEST_F(KvHiviewReporterTest, ReportKVFaultAndRebuildTest001, TestSize.Level1)
