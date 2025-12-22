@@ -49,7 +49,7 @@ common_external_deps = [
   "samgr:samgr_proxy",
 ]
 if (dm_service_enable) {
-  external_deps += [ "device_manager:devicemanagersdk" ]
+  common_external_deps += [ "device_manager:devicemanagersdk" ]
 }
 
 ###############################################################################
