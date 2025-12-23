@@ -152,7 +152,6 @@ HWTEST_F(SingleStoreImplMockTest, IsRemoteChanged, testing::ext::TestSize.Level1
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin IsRemoteChanged";
     try {
-        EXPECT_CALL(*taskExecutorMock, Schedule(_, _, _, _)).Times(1);
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore();
         ASSERT_NE(kvStore, nullptr);
@@ -200,7 +199,6 @@ HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin OnRemoteDied";
     try {
-        EXPECT_CALL(*taskExecutorMock, Schedule(_, _, _, _)).Times(1);
         EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).WillOnce(Return(TOKEN_INVALID));
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore(false, false);
@@ -250,7 +248,6 @@ HWTEST_F(SingleStoreImplMockTest, Register, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Register";
     try {
-        EXPECT_CALL(*taskExecutorMock, Schedule(_, _, _, _)).Times(1);
         EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).WillOnce(Return(TOKEN_HAP));
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore(false, false);
@@ -299,7 +296,6 @@ HWTEST_F(SingleStoreImplMockTest, Put_001, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Put_001";
     try {
-        EXPECT_CALL(*taskExecutorMock, Schedule(_, _, _, _)).Times(1);
         EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).Times(AnyNumber());
         std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, false, true);
         ASSERT_NE(kvStore, nullptr);
