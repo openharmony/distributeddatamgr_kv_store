@@ -354,7 +354,8 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
         if (DBCommon::IsRecordAssetsMissing(data.extend.at(index))) {
             CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
                 CloudStorageUtils::FillAssetForAbnormal, CloudStorageUtils::FillAssetsForAbnormal);
-        } else if (DBCommon::IsRecordError(data.extend.at(index))) {
+        } else if (DBCommon::IsRecordAssetsSpaceInsufficient(data.extend.at(index)) ||
+            DBCommon::IsRecordError(data.extend.at(index))) {
             CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
                 CloudStorageUtils::FillAssetForUploadFailed, CloudStorageUtils::FillAssetsForUploadFailed);
         } else {
@@ -969,12 +970,8 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
     for (size_t i = 0; i < cloudDataResult.insData.extend.size(); ++i) {
         auto gidEntry = cloudDataResult.insData.extend[i].find(CloudDbConstant::GID_FIELD);
         if (gidEntry == cloudDataResult.insData.extend[i].end()) {
-            bool isSkipAssetsMissRecord = false;
-            if (DBCommon::IsRecordAssetsMissing(cloudDataResult.insData.extend[i])) {
-                LOGI("[RDBExecutor] Local assets missing and skip filling assets.");
-                isSkipAssetsMissRecord = true;
-            }
-            if (ignoreEmptyGid || isSkipAssetsMissRecord) {
+            if (ignoreEmptyGid ||
+                CloudStorageUtils::IsNeedMarkUploadFinishedWithErr(cloudDataResult.insData.extend[i])) {
                 continue;
             }
             errCode = -E_INVALID_ARGS;

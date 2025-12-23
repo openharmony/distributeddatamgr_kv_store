@@ -257,8 +257,9 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
     std::string sql = "UPDATE " + g_defaultTable1 + " SET name='update'";
     EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
+    virtualCloudDb->SetLocalAssetNotFound(false);
     RDBGeneralUt::CloudBlockSync(info1, query);
-    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 2);
+    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 0);
 }
 
 
@@ -340,6 +341,37 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample006, TestSize.Level0)
     RDBGeneralUt::CloudBlockSync(info1, query);
     EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 0);
     EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable2), 2);
+}
+
+/**
+ * @tc.name: RdbCloudSyncExample008
+ * @tc.desc: Test upload failed, when return SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample008, TestSize.Level0)
+{
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
+    InsertLocalDBData(0, 1, info1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 1);
+
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
+    ASSERT_NE(virtualCloudDb, nullptr);
+    virtualCloudDb->SetUploadRecordStatus(DBStatus::SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT);
+
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    Query query = Query::Select().FromTable({g_defaultTable1});
+    RDBGeneralUt::CloudBlockSync(info1, query, OK, SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT);
+
+    std::string sql = "UPDATE " + g_defaultTable1 + " SET name='update'";
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    virtualCloudDb->SetUploadRecordStatus(DBStatus::OK);
+    RDBGeneralUt::CloudBlockSync(info1, query, OK, OK);
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD
 

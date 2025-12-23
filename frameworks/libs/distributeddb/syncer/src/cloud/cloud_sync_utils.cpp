@@ -458,7 +458,7 @@ bool CloudSyncUtils::IsAssetsMissing(const std::vector<VBucket> &extend)
         return false;
     }
     for (size_t i = 0; i < extend.size(); ++i) {
-        if (DBCommon::IsIntTypeRecordError(extend[i]) && DBCommon::IsRecordAssetsMissing(extend[i])) {
+        if (DBCommon::IsRecordAssetsMissing(extend[i])) {
             return true;
         }
     }
@@ -474,11 +474,11 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, con
     int errCode = E_OK;
     for (size_t i = 0; i < data.assets.size(); i++) {
         if (data.assets[i].empty() || DBCommon::IsRecordIgnored(data.extend[i]) ||
-            (errorCode != E_OK &&
-                (DBCommon::IsRecordError(data.extend[i]) || DBCommon::IsRecordAssetsMissing(data.extend[i]))) ||
+            IsIgnoreFailAssetErr(data.extend[i]) ||
+            (errorCode != E_OK && DBCommon::IsRecordError(data.extend[i])) ||
             DBCommon::IsNeedCompensatedForUpload(data.extend[i], type)) {
-            if (errCode != E_OK && DBCommon::IsRecordAssetsMissing(data.extend[i])) {
-                LOGI("[CloudSyncUtils][FileAssetIdToAssets] errCode with assets missing, skip fill assets id");
+            if (IsIgnoreFailAssetErr(data.extend[i])) {
+                LOGI("[CloudSyncUtils][FileAssetIdToAssets] skip fill assets id by ignore error");
             }
             continue;
         }
@@ -1082,5 +1082,46 @@ bool CloudSyncUtils::NotNeedToCompensated(int errCode)
         return true;
     }
     return false;
+}
+
+bool CloudSyncUtils::IsCloudErrorWithoutAbort(int errCode)
+{
+    return errCode == -E_LOCAL_ASSET_NOT_FOUND || errCode == -E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT;
+}
+
+bool CloudSyncUtils::IsAssetsSpaceInsufficient(const std::vector<VBucket> &extend)
+{
+    if (extend.empty()) {
+        return false;
+    }
+    for (size_t i = 0; i < extend.size(); ++i) {
+        if (DBCommon::IsRecordAssetsSpaceInsufficient(extend[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int CloudSyncUtils::GetNoAbortErrorCode(bool isInsert, const CloudSyncData &uploadData)
+{
+    const std::vector<VBucket> &extend = isInsert ? uploadData.insData.extend : uploadData.updData.extend;
+    if (CloudSyncUtils::IsAssetsMissing(extend)) {
+        return -E_LOCAL_ASSET_NOT_FOUND;
+    }
+    if (CloudSyncUtils::IsAssetsSpaceInsufficient(extend)) {
+        return -E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT;
+    }
+    return E_OK;
+}
+
+bool CloudSyncUtils::IsIgnoreFailAction(const VBucket &extend, const CloudWaterType &type)
+{
+    return IsIgnoreFailAssetErr(extend) || DBCommon::IsRecordIgnoredForReliability(extend, type) ||
+        DBCommon::IsRecordIgnored(extend);
+}
+
+bool CloudSyncUtils::IsIgnoreFailAssetErr(const VBucket &extend)
+{
+    return DBCommon::IsRecordAssetsMissing(extend) || DBCommon::IsRecordAssetsSpaceInsufficient(extend);
 }
 }

@@ -568,6 +568,8 @@ protected:
 
     void RetainCurrentTaskInfo(TaskId taskId);
 
+    void SetCurrentTmpError(int errCode);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;

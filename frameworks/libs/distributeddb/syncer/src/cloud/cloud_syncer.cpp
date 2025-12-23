@@ -1102,9 +1102,9 @@ void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const Inne
         currentContext_.notifier->UpdateProcess(innerProcessInfo);
     } else {
         currentContext_.notifier->NotifyProcess(taskInfo, innerProcessInfo,
-            taskInfo.errCode == -E_LOCAL_ASSET_NOT_FOUND);
+            CloudSyncUtils::IsCloudErrorWithoutAbort(taskInfo.errCode));
     }
-    if (taskInfo.errCode == -E_LOCAL_ASSET_NOT_FOUND) {
+    if (CloudSyncUtils::IsCloudErrorWithoutAbort(taskInfo.errCode)) {
         cloudTaskInfos_[uploadParam.taskId].errCode = E_OK;
     }
 }

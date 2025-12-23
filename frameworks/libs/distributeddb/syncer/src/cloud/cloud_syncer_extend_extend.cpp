@@ -217,4 +217,14 @@ void CloudSyncer::RetainCurrentTaskInfo(TaskId taskId)
         resumeTaskInfos_.clear();
     }
 }
+
+void CloudSyncer::SetCurrentTmpError(int errCode)
+{
+    std::lock_guard<std::mutex> guard(dataLock_);
+    if (cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
+        return;
+    }
+    cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+    cloudTaskInfos_[currentContext_.currentTaskId].tempErrCode = errCode;
+}
 } // namespace DistributedDB

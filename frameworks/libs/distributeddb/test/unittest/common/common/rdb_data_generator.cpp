@@ -143,6 +143,7 @@ Asset RDBDataGenerator::GenerateAsset(int64_t index, const DistributedDB::Field 
     Asset asset;
     asset.name = field.colName + "_" + std::to_string(index);
     asset.hash = "default_hash";
+    asset.status = AssetStatus::INSERT;
     return asset;
 }
 
