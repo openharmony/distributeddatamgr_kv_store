@@ -18,8 +18,8 @@
 #include "log_print.h"
 #include "store_util.h"
 namespace OHOS::DistributedKv {
-StoreResultSet::StoreResultSet(DBResultSet *impl, std::shared_ptr<DBStore> dbStore, const Convertor &convert)
-    : impl_(impl), dbStore_(std::move(dbStore)), convert_(convert)
+StoreResultSet::StoreResultSet(DBResultSet *impl, std::shared_ptr<DBStore> dbStore, const Convertor &convert,
+    bool isSchemaStore) : impl_(impl), dbStore_(std::move(dbStore)), convert_(convert), isSchemaStore_(isSchemaStore)
 {
 }
 
@@ -195,5 +195,10 @@ Status StoreResultSet::Close()
         dbStore_ = nullptr;
     }
     return status;
+}
+
+bool StoreResultSet::IsSchemaStore()
+{
+    return isSchemaStore_;
 }
 } // namespace OHOS::DistributedKv

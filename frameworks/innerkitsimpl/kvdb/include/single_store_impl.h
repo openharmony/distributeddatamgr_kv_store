@@ -154,7 +154,7 @@ private:
     uint32_t roleType_ = 0;
     uint64_t taskId_ = 0;
     bool isCheckIntegrity_ = false;
-
+    bool isSchemaStore_ = false;
     bool syncable_ = false;
     bool encrypt_ = false;
     bool autoBackup_ = false;

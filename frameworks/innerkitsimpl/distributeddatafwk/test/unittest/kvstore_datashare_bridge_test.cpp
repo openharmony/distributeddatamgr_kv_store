@@ -35,29 +35,22 @@ public:
     int Write(uint32_t column, double value) override;
     int Write(uint32_t column, const uint8_t *value, size_t size) override;
     int Write(uint32_t column, const char *value, size_t size) override;
-    void SetAllocRowStatue(int status);
-    Key GetKey() const;
-    Key GetValue() const;
+    void SetAllocRowStatus(int status);
+    void SetWriteStatus(int status);
 
 private:
     int allocStatus_ = E_OK;
-    std::vector<uint8_t> key_;
-    std::vector<uint8_t> value_;
+    int writeStatus_ = E_OK;
 };
 
-void BridgeWriter::SetAllocRowStatue(int status)
+void BridgeWriter::SetAllocRowStatus(int status)
 {
     allocStatus_ = status;
 }
 
-Key BridgeWriter::GetKey() const
+void BridgeWriter::SetWriteStatus(int status)
 {
-    return key_;
-}
-
-Value BridgeWriter::GetValue() const
-{
-    return value_;
+    writeStatus_ = status;
 }
 
 int BridgeWriter::AllocRow()
@@ -67,41 +60,32 @@ int BridgeWriter::AllocRow()
 
 int BridgeWriter::FreeLastRow()
 {
-    return E_OK;
+    return writeStatus_;
 }
 
 int BridgeWriter::Write(uint32_t column)
 {
-    return E_OK;
+    return writeStatus_;
 }
 
 int BridgeWriter::Write(uint32_t column, int64_t value)
 {
-    return E_OK;
+    return writeStatus_;
 }
 
 int BridgeWriter::Write(uint32_t column, double value)
 {
-    return E_OK;
+    return writeStatus_;
 }
 
 int BridgeWriter::Write(uint32_t column, const uint8_t *value, size_t size)
 {
-    return E_OK;
+    return writeStatus_;
 }
 
 int BridgeWriter::Write(uint32_t column, const char *value, size_t size)
 {
-    if (column < 0 || column > 1 || value == nullptr) {
-        return E_ERROR;
-    }
-    auto vec = std::vector<uint8_t>(value, value + size - 1);
-    if (column == 0) {
-        key_.insert(key_.end(), vec.begin(), vec.end());
-    } else {
-        value_.insert(value_.end(), vec.begin(), vec.end());
-    }
-    return E_OK;
+    return writeStatus_;
 }
 
 class KvstoreDatashareBridgeTest : public testing::Test {
@@ -114,40 +98,55 @@ public:
 protected:
     static DistributedKvDataManager manager;
     static std::shared_ptr<SingleKvStore> singleKvStore;
+    static std::shared_ptr<SingleKvStore> schemaSingleKvStore;
 };
+
 std::shared_ptr<SingleKvStore> KvstoreDatashareBridgeTest::singleKvStore = nullptr;
+std::shared_ptr<SingleKvStore> KvstoreDatashareBridgeTest::schemaSingleKvStore = nullptr;
 DistributedKvDataManager KvstoreDatashareBridgeTest::manager;
 static constexpr int32_t INVALID_COUNT = -1;
-static constexpr const char *VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
-                                                           "\"SCHEMA_MODE\":\"STRICT\","
-                                                           "\"SCHEMA_SKIPSIZE\":0,"
-                                                           "\"SCHEMA_DEFINE\":{"
-                                                           "\"age\":\"INTEGER, NOT NULL\""
-                                                           "},"
-                                                           "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 
 void KvstoreDatashareBridgeTest::SetUpTestCase(void)
 {
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = false,
-                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+        .kvStoreType = KvStoreType::SINGLE_VERSION };
     options.area = EL1;
     options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
     AppId appId = { "KvstoreDatashareBridgeTest" };
-    StoreId storeId = { "test_single" };
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+
+    StoreId storeId = { "test_single" };
     manager.DeleteKvStore(appId, storeId, options.baseDir);
     manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
     EXPECT_NE(singleKvStore, nullptr);
-    singleKvStore->Put("test_key_1", "{\"age\":1}");
-    singleKvStore->Put("test_key_2", "{\"age\":2}");
-    singleKvStore->Put("test_key_3", "{\"age\":3}");
-    singleKvStore->Put("data_share", "{\"age\":4}");
+    std::vector<uint8_t> value = { 0x00, 0x74, 0x65, 0x73, 0x74 };
+    singleKvStore->Put("test_string", value);
+    value = { 0x03, 0x01, 0x02 };
+    singleKvStore->Put("test_blob", value);
+    value = { 0x04, 0x01 };
+    singleKvStore->Put("test_boolean", value);
+    value = { 0x05, 0x40, 0x50, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    singleKvStore->Put("test_double", value);
+    value = { 0x06, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    singleKvStore->Put("test_int64", value);
+
+    options.schema = "{\"SCHEMA_VERSION\":\"1.0\", \"SCHEMA_MODE\":\"STRICT\", \"SCHEMA_SKIPSIZE\":0,"
+        "\"SCHEMA_DEFINE\":{ \"age\":\"INTEGER, NOT NULL\"}, \"SCHEMA_INDEXES\":[\"$.age\"] }";
+    storeId = { "test_single_schema" };
+    manager.DeleteKvStore(appId, storeId, options.baseDir);
+    manager.GetSingleKvStore(options, appId, storeId, schemaSingleKvStore);
+    EXPECT_NE(schemaSingleKvStore, nullptr);
+    schemaSingleKvStore->Put("test_key_1", "{\"age\":1}");
+    schemaSingleKvStore->Put("test_key_2", "{\"age\":2}");
+    schemaSingleKvStore->Put("test_key_3", "{\"age\":3}");
 }
 
 void KvstoreDatashareBridgeTest::TearDownTestCase(void)
 {
     manager.DeleteKvStore({"KvstoreDatashareBridgeTest"}, {"test_single"},
+        "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
+    manager.DeleteKvStore({"KvstoreDatashareBridgeTest"}, {"test_single_schema"},
         "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
     (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/key");
     (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/kvdb");
@@ -155,11 +154,9 @@ void KvstoreDatashareBridgeTest::TearDownTestCase(void)
 }
 
 /**
-* @tc.name:ToDataShareResult
+* @tc.name: GetRowCountByInvalidBridge
 * @tc.desc: get row count, the kvStore resultSet is nullptr
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
 */
 HWTEST_F(KvstoreDatashareBridgeTest, GetRowCountByInvalidBridge, TestSize.Level0)
 {
@@ -175,11 +172,9 @@ HWTEST_F(KvstoreDatashareBridgeTest, GetRowCountByInvalidBridge, TestSize.Level0
 }
 
 /**
-* @tc.name:ToDataShareResultSet
+* @tc.name: KvStoreResultSetToDataShareResultSetAbnormal
 * @tc.desc: kvStore resultSet to dataShare resultSet, the former has invalid predicate
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
 */
 HWTEST_F(KvstoreDatashareBridgeTest, KvStoreResultSetToDataShareResultSetAbnormal, TestSize.Level0)
 {
@@ -196,11 +191,9 @@ HWTEST_F(KvstoreDatashareBridgeTest, KvStoreResultSetToDataShareResultSetAbnorma
 }
 
 /**
-* @tc.name:ToDataShareResultSet
+* @tc.name: KvStoreResultSetToDataShareResultSetNormal
 * @tc.desc: kvStore resultSet to dataShare resultSet, the former has valid predicate
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
 */
 HWTEST_F(KvstoreDatashareBridgeTest, KvStoreResultSetToDataShareResultSetNormal, TestSize.Level0)
 {
@@ -213,18 +206,16 @@ HWTEST_F(KvstoreDatashareBridgeTest, KvStoreResultSetToDataShareResultSetNormal,
     int32_t count;
     auto result = bridge->GetRowCount(count);
     EXPECT_EQ(result, E_OK);
-    EXPECT_EQ(count, 3);
+    EXPECT_EQ(count, 5);
     count = -1;
     bridge->GetRowCount(count);
-    EXPECT_EQ(count, 3);
+    EXPECT_EQ(count, 5);
 }
 
 /**
-* @tc.name:BridgeOnGo
+* @tc.name: BridgeOnGoAbnormal
 * @tc.desc: bridge on go, the input parameter is invalid
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
 */
 HWTEST_F(KvstoreDatashareBridgeTest, BridgeOnGoAbnormal, TestSize.Level0)
 {
@@ -238,60 +229,81 @@ HWTEST_F(KvstoreDatashareBridgeTest, BridgeOnGoAbnormal, TestSize.Level0)
     int32_t target = 0;
     BridgeWriter writer;
     EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
-    EXPECT_TRUE(writer.GetKey().Empty());
-    EXPECT_TRUE(writer.GetValue().Empty());
     start = 0;
     target = -1;
     EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
-    EXPECT_TRUE(writer.GetKey().Empty());
-    EXPECT_TRUE(writer.GetValue().Empty());
     start = 1;
     target = 0;
     EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
-    EXPECT_TRUE(writer.GetKey().Empty());
-    EXPECT_TRUE(writer.GetValue().Empty());
-    start = 1;
-    target = 3;
-    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
-    EXPECT_TRUE(writer.GetKey().Empty());
-    EXPECT_TRUE(writer.GetValue().Empty());
 }
 
 /**
-* @tc.name:BridgeOnGo
+* @tc.name: BridgeOnGoNormal
 * @tc.desc: bridge on go, the input parameter is valid
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
 */
 HWTEST_F(KvstoreDatashareBridgeTest, BridgeOnGoNormal, TestSize.Level0)
 {
     DataQuery query;
     query.KeyPrefix("test");
     std::shared_ptr<KvStoreResultSet> resultSet = nullptr;
+
     singleKvStore->GetResultSet(query, resultSet);
     EXPECT_NE(resultSet, nullptr);
     auto bridge = KvUtils::ToResultSetBridge(resultSet);
     int start = 0;
-    int target = 2;
+    int target = 4;
     BridgeWriter writer;
-    writer.SetAllocRowStatue(E_ERROR);
+
+    writer.SetAllocRowStatus(E_ERROR);
     EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
-    EXPECT_TRUE(writer.GetKey().Empty());
-    EXPECT_TRUE(writer.GetValue().Empty());
-    writer.SetAllocRowStatue(E_OK);
+
+    writer.SetAllocRowStatus(E_OK);
+    writer.SetWriteStatus(E_ERROR);
+    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
+
+    writer.SetWriteStatus(E_OK);
     EXPECT_EQ(bridge->OnGo(start, target, writer), target);
-    size_t  keySize = 0;
-    size_t  valueSize = 0;
-    for (auto i = start; i <= target; i++) {
-        resultSet->MoveToPosition(i);
-        Entry entry;
-        resultSet->GetEntry(entry);
-        keySize += entry.key.Size();
-        valueSize += entry.value.Size();
-    }
-    EXPECT_EQ(writer.GetKey().Size(), keySize);
-    EXPECT_EQ(writer.GetValue().Size(), valueSize);
+
+    schemaSingleKvStore->GetResultSet(query, resultSet);
+    ASSERT_NE(resultSet, nullptr);
+    bridge = KvUtils::ToResultSetBridge(resultSet);
+    EXPECT_EQ(bridge->OnGo(0, 2, writer), 2);
+}
+
+/**
+* @tc.name: BridgeOnGoWithInvalidValue
+* @tc.desc: bridge on go, the input parameter is valid
+* @tc.type: FUNC
+*/
+HWTEST_F(KvstoreDatashareBridgeTest, BridgeOnGoWithInvalidValue, TestSize.Level0)
+{
+    DataQuery query;
+    query.KeyPrefix("test");
+    std::shared_ptr<KvStoreResultSet> resultSet = nullptr;
+    BridgeWriter writer;
+    writer.SetAllocRowStatus(E_OK);
+    writer.SetWriteStatus(E_OK);
+
+    std::vector<uint8_t> value = { 0x05, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    singleKvStore->Put("test_invalid_value", value);
+    singleKvStore->GetResultSet(query, resultSet);
+    EXPECT_NE(resultSet, nullptr);
+    auto bridge = KvUtils::ToResultSetBridge(resultSet);
+    EXPECT_NE(bridge->OnGo(0, 5, writer), 5);
+
+    value = { 0x06, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    singleKvStore->Put("test_invalid_value", value);
+    singleKvStore->GetResultSet(query, resultSet);
+    EXPECT_NE(resultSet, nullptr);
+    bridge = KvUtils::ToResultSetBridge(resultSet);
+    EXPECT_NE(bridge->OnGo(0, 5, writer), 5);
+
+    value = { 0x07, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    singleKvStore->Put("test_invalid_value", value);
+    singleKvStore->GetResultSet(query, resultSet);
+    EXPECT_NE(resultSet, nullptr);
+    bridge = KvUtils::ToResultSetBridge(resultSet);
+    EXPECT_NE(bridge->OnGo(0, 5, writer), 5);
 }
 } // namespace
- 

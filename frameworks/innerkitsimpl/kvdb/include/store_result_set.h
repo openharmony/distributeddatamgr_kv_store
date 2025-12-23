@@ -26,7 +26,8 @@ public:
     using DBResultSet = DistributedDB::KvStoreResultSet;
     using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBEntry = DistributedDB::Entry;
-    StoreResultSet(DBResultSet *impl, std::shared_ptr<DBStore> dbStore, const Convertor &convert);
+    StoreResultSet(DBResultSet *impl, std::shared_ptr<DBStore> dbStore, const Convertor &convert,
+        bool isSchemaStore = false);
     ~StoreResultSet();
     int GetCount() const override;
     int GetPosition() const override;
@@ -42,12 +43,14 @@ public:
     bool IsAfterLast() const override;
     Status GetEntry(Entry &entry) const override;
     Status Close() override;
+    bool IsSchemaStore() override;
 
 private:
     mutable std::shared_mutex mutex_;
     DBResultSet *impl_;
     std::shared_ptr<DBStore> dbStore_;
     const Convertor &convert_;
+    bool isSchemaStore_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_RESULT_SET_H
