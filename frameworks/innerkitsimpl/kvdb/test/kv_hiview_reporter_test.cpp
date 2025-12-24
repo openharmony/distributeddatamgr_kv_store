@@ -138,11 +138,10 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest001, TestSize.Level1)
     std::stringstream oss;
     oss << reportInfo.appId << reportInfo.storeId << reportInfo.functionName << reportInfo.errorCode;
     std::string faultFlag = oss.str();
-    bool ret = false;
-    if (KVDBFaultHiViewReporter::storeFaults_.find(faultFlag) != KVDBFaultHiViewReporter::storeFaults_.end()) {
-        ret  = true;
-    }
-    ASSERT_TRUE(ret);
+    bool isDuplicate = KVDBFaultHiViewReporter::storeFaults_.find(faultFlag)
+        != KVDBFaultHiViewReporter::storeFaults_.end();
+    ASSERT_TRUE(isDuplicate);
+    ZLOGI("ReportInvalidArgumentTest001 end.");
 }
 
 /**
@@ -162,11 +161,10 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest002, TestSize.Level1)
     std::stringstream oss;
     oss << reportInfo.appId << reportInfo.storeId << reportInfo.functionName << reportInfo.errorCode;
     std::string faultFlag = oss.str();
-    bool ret = false;
-    if (KVDBFaultHiViewReporter::storeFaults_.find(faultFlag) != KVDBFaultHiViewReporter::storeFaults_.end()) {
-        ret  = true;
-    }
-    ASSERT_TRUE(ret);
+    bool isDuplicate = KVDBFaultHiViewReporter::storeFaults_.find(faultFlag)
+        != KVDBFaultHiViewReporter::storeFaults_.end();
+    ASSERT_TRUE(isDuplicate);
+    ZLOGI("ReportInvalidArgumentTest002 end.");
 }
 
 /**
@@ -174,9 +172,9 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest002, TestSize.Level1)
  * @tc.desc: Report data corruption and database recovery testing on the encryption database.
  * @tc.type: FUNC
  */
-HWTEST_F(KvHiviewReporterTest, DataCorruptedandRebuildTest001, TestSize.Level1)
+HWTEST_F(KvHiviewReporterTest, DataCorruptedAndRebuildTest001, TestSize.Level1)
 {
-    ZLOGI("DataCorruptedandRebuildTest001 ReportKVFaultEvent begin.");
+    ZLOGI("DataCorruptedAndRebuildTest001 ReportKVFaultEvent begin.");
     Status status = Status::DATA_CORRUPTED;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
@@ -188,7 +186,7 @@ HWTEST_F(KvHiviewReporterTest, DataCorruptedandRebuildTest001, TestSize.Level1)
     auto ret = access(flagFilename.c_str(), F_OK);
     ASSERT_EQ(ret, 0);
 
-    ZLOGI("DataCorruptedandRebuildTest001 ReportKVRebuildEvent begin.");
+    ZLOGI("DataCorruptedAndRebuildTest001 ReportKVRebuildEvent begin.");
     status = Status::SUCCESS;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     reportInfo = { .options = encryptOptions, .errorCode = status, .systemErrorNo = errno,
@@ -199,13 +197,13 @@ HWTEST_F(KvHiviewReporterTest, DataCorruptedandRebuildTest001, TestSize.Level1)
 }
 
 /**
- * @tc.name: DataCorruptedandRebuildTest002
+ * @tc.name: DataCorruptedAndRebuildTest002
  * @tc.desc: Report data corruption and database recovery testing on the unencryption database.
  * @tc.type: FUNC
  */
-HWTEST_F(KvHiviewReporterTest, DataCorruptedandRebuildTest002, TestSize.Level1)
+HWTEST_F(KvHiviewReporterTest, DataCorruptedAndRebuildTest002, TestSize.Level1)
 {
-    ZLOGI("DataCorruptedandRebuildTest002 ReportKVFaultEvent begin.");
+    ZLOGI("DataCorruptedAndRebuildTest002 ReportKVFaultEvent begin.");
     Status status = Status::DATA_CORRUPTED;
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
@@ -218,7 +216,7 @@ HWTEST_F(KvHiviewReporterTest, DataCorruptedandRebuildTest002, TestSize.Level1)
     auto ret = access(flagFilename.c_str(), F_OK);
     ASSERT_EQ(ret, 0);
 
-    ZLOGI("DataCorruptedandRebuildTest001 ReportKVRebuildEvent begin.");
+    ZLOGI("DataCorruptedAndRebuildTest001 ReportKVRebuildEvent begin.");
     status = Status::SUCCESS;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
