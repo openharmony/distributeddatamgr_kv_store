@@ -222,8 +222,8 @@ Status SingleStoreImpl::StartTransaction()
         ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
-
-    auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
+    auto sharedThis = shared_from_this();
+    auto status = RetryWithCheckPoint([sharedThis]() { return dbStore_->StartTransaction(); });
     if (status != SUCCESS) {
         ReportDBFaultEvent(status, std::string(__FUNCTION__));
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
@@ -1045,7 +1045,8 @@ void SingleStoreImpl::OnRemoteDied()
         }
         return false;
     });
-    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
+    auto sharedThis = shared_from_this();
+    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [sharedThis]() {
         Register();
     });
 }
@@ -1065,7 +1066,8 @@ void SingleStoreImpl::Register()
         return false;
     });
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
+        auto sharedThis = shared_from_this();
+        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [sharedThis]() {
             Register();
         });
     } else {
