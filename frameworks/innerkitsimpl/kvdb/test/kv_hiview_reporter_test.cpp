@@ -133,7 +133,7 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest001, TestSize.Level1)
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     ReportInfo reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
-                .appId = appId.appId, .storeId = unencryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
+        .appId = appId.appId, .storeId = unencryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
     std::stringstream oss;
     oss << reportInfo.appId << reportInfo.storeId << reportInfo.functionName << reportInfo.errorCode;
@@ -156,7 +156,7 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest002, TestSize.Level1)
     HiSysEventMock mock;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     ReportInfo reportInfo = { .options = encryptOptions, .errorCode = status, .systemErrorNo = errno,
-                .appId = appId.appId, .storeId = encryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
+        .appId = appId.appId, .storeId = encryptStoreId.storeId, .functionName = std::string(__FUNCTION__) };
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
     std::stringstream oss;
     oss << reportInfo.appId << reportInfo.storeId << reportInfo.functionName << reportInfo.errorCode;
