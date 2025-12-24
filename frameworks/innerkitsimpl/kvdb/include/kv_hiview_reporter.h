@@ -49,9 +49,9 @@ public:
 
     static void ReportKVRebuildEvent(const ReportInfo &reportInfo);
 private:
-    static void ReportFaultEvent(KVDBFaultEvent eventInfo);
+    static void ReportFaultEvent(const KVDBFaultEvent &eventInfo);
 
-    static void ReportCorruptedEvent(KVDBFaultEvent eventInfo);
+    static void ReportCorruptedEvent(const KVDBFaultEvent &eventInfo);
 
     static void ReportCommonFault(const KVDBFaultEvent &eventInfo);
 
