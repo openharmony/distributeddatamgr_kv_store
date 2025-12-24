@@ -15,7 +15,6 @@
 
 #define LOG_TAG "KvHiviewReporterTest"
 #include <gtest/gtest.h>
-#include <sstream>
 
 #include "include/hisysevent_mock.h"
 #include "kv_hiview_reporter.h"
