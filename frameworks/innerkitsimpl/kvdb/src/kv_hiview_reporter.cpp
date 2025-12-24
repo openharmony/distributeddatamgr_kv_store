@@ -141,7 +141,7 @@ void KVDBFaultHiViewReporter::ReportKVRebuildEvent(const ReportInfo &reportInfo)
     }
 }
 
-void KVDBFaultHiViewReporter::ReportFaultEvent(const KVDBFaultEvent &eventInfo)
+void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
 {
     eventInfo.businessType = BUSINESS_TYPE[BusinessType::SQLITE];
     eventInfo.appendix = GenerateAppendix(eventInfo);
@@ -166,7 +166,7 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(const KVDBFaultEvent &eventInfo)
                         HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
 
-void KVDBFaultHiViewReporter::ReportCorruptedEvent(const KVDBFaultEvent &eventInfo)
+void KVDBFaultHiViewReporter::ReportCorruptedEvent(KVDBFaultEvent eventInfo)
 {
     if (eventInfo.dbPath.empty() || eventInfo.storeName.empty()) {
         ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s",
