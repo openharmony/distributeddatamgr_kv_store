@@ -215,7 +215,7 @@ HWTEST_F(KvHiviewReporterTest, DataCorruptedAndRebuildTest002, TestSize.Level1)
     auto ret = access(flagFilename.c_str(), F_OK);
     ASSERT_EQ(ret, 0);
 
-    ZLOGI("DataCorruptedAndRebuildTest001 ReportKVRebuildEvent begin.");
+    ZLOGI("DataCorruptedAndRebuildTest002 ReportKVRebuildEvent begin.");
     status = Status::SUCCESS;
     EXPECT_CALL(mock, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(1);
     reportInfo = { .options = unencryptOptions, .errorCode = status, .systemErrorNo = errno,
