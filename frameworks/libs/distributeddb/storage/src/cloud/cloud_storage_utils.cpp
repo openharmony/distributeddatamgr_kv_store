@@ -773,7 +773,7 @@ int CloudStorageUtils::FillAssetForAbnormal(Asset &asset, Asset &dbAsset,
 {
     dbAsset.assetId = asset.assetId;
     dbAsset.status = AssetStatus::ABNORMAL;
-    LOGW("Asset %s not found locally, status set ABNPRMAL", asset.assetId.c_str());
+    LOGW("Asset %s not found locally, status set to ABNORMAL", DBCommon::StringMiddleMasking(asset.assetId).c_str());
     return E_OK;
 }
 
