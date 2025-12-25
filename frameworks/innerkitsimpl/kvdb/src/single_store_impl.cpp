@@ -222,8 +222,7 @@ Status SingleStoreImpl::StartTransaction()
         ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
-    auto sharedThis = shared_from_this();
-    auto status = RetryWithCheckPoint([sharedThis]() { return sharedThis->dbStore_->StartTransaction(); });
+    auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
     if (status != SUCCESS) {
         ReportDBFaultEvent(status, std::string(__FUNCTION__));
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
