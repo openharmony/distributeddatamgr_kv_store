@@ -45,7 +45,7 @@ struct ReportInfo {
 struct KVDBFaultEvent {
     std::string bundleName;
     std::string moduleName;
-    std::string storeType;
+    std::string storeType = "KVDB";
     std::string storeName;
     uint32_t securityLevel;
     uint32_t pathArea;
@@ -61,7 +61,7 @@ struct KVDBFaultEvent {
     std::string dbPath;
     std::string keyPath;
 
-    explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
+    explicit KVDBFaultEvent(const Options &options)
     {
         moduleName = options.hapName;
         securityLevel = static_cast<uint32_t>(options.securityLevel);
