@@ -152,7 +152,7 @@ private:
     int32_t ref_ = 1;
     int32_t dataType_ = DataType::TYPE_DYNAMICAL;
     uint32_t roleType_ = 0;
-    std::atomic<uint64_t> taskId_{0};
+    uint64_t taskId_ = 0;
     bool isCheckIntegrity_ = false;
 
     bool syncable_ = false;
