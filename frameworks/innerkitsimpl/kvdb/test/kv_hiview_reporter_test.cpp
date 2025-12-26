@@ -51,7 +51,6 @@ public:
     static StoreId unencryptStoreId;
     static Options encryptOptions;
     static Options unencryptOptions;
-
 };
 
 std::shared_ptr<SingleKvStore> KvHiviewReporterTest::encryptKvStore_;
