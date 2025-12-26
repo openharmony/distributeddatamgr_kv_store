@@ -61,34 +61,6 @@ static constexpr const char *BUSINESS_TYPE[] = {
 
 static ConcurrentMap<std::string, std::set<std::string>> stores_;
 
-struct KVDBFaultEvent {
-    std::string bundleName;
-    std::string moduleName;
-    std::string storeType;
-    std::string storeName;
-    uint32_t securityLevel;
-    uint32_t pathArea;
-    uint32_t encryptStatus;
-    uint32_t integrityCheck = 0;
-    uint32_t errorCode = 0;
-    int32_t systemErrorNo = 0;
-    std::string appendix;
-    std::string errorOccurTime;
-    std::string faultType = "common";
-    std::string businessType;
-    std::string functionName;
-    std::string dbPath;
-    std::string keyPath;
-
-    explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
-    {
-        moduleName = options.hapName;
-        securityLevel = static_cast<uint32_t>(options.securityLevel);
-        pathArea = static_cast<uint32_t>(options.area);
-        encryptStatus = static_cast<uint32_t>(options.encrypt);
-    }
-};
-
 void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
 {
     KVDBFaultEvent eventInfo(reportInfo.options);
@@ -108,7 +80,7 @@ void KVDBFaultHiViewReporter::ReportKVFaultEvent(const ReportInfo &reportInfo)
         ReportFaultEvent(eventInfo);
     }
     if (eventInfo.errorCode == DATA_CORRUPTED) {
-        ReportCorruptedEvent(eventInfo);
+        ReportCorruptEvent(eventInfo);
     }
 }
 
@@ -166,7 +138,7 @@ void KVDBFaultHiViewReporter::ReportFaultEvent(KVDBFaultEvent eventInfo)
                         HISYSEVENT_FAULT, params, sizeof(params) / sizeof(params[0]));
 }
 
-void KVDBFaultHiViewReporter::ReportCorruptedEvent(KVDBFaultEvent eventInfo)
+void KVDBFaultHiViewReporter::ReportCorruptEvent(KVDBFaultEvent eventInfo)
 {
     if (eventInfo.dbPath.empty() || eventInfo.storeName.empty()) {
         ZLOGW("The dbPath or storeId is empty, dbPath:%{public}s, storeId:%{public}s",
@@ -339,6 +311,6 @@ std::string KVDBFaultHiViewReporter::GenerateAppendix(const KVDBFaultEvent &even
     fileInfo += std::string(WAL_NAME) + ":" + GetFileStatInfo(eventInfo.dbPath + WAL_PATH) + "\n";
     fileInfo += std::string(KEY_NAME) + ":" + GetFileStatInfo(eventInfo.keyPath);
     return FUNCTION + eventInfo.functionName + "\n" + DBPATH +
-           StoreUtil::Anonymous(eventInfo.dbPath).c_str() + "\n" + FILEINFO + fileInfo;
+        StoreUtil::Anonymous(eventInfo.dbPath).c_str() + "\n" + FILEINFO + fileInfo;
 }
 } // namespace OHOS::DistributedKv
