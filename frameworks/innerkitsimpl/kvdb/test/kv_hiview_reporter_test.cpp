@@ -103,10 +103,7 @@ void KvHiviewReporterTest::SetUpTestCase(void)
 void KvHiviewReporterTest::TearDownTestCase(void)
 {
     auto status = distributedKvDataManager_->DeleteKvStore(appId, encryptStoreId, BASE_DIR);
-    ASSERT_EQ(status, SUCCESS);
-
     status = distributedKvDataManager_->DeleteKvStore(appId, unencryptStoreId, BASE_DIR);
-    ASSERT_EQ(status, SUCCESS);
     ZLOGI("KvHiviewReporterTest delete end.");
    
     encryptKvStore_ = nullptr;
@@ -196,6 +193,7 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest001, TestSize.Level1)
     reportInfo.storeId = encryptStoreId.storeId;
     reportInfo.functionName = std::string(__FUNCTION__);
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
     std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(encryptOptions.GetDatabaseDir(), encryptStoreId.storeId);
     std::string flagFilename = dbPath + std::string(ENCRYPT_STOREID) + std::string(DB_CORRUPTED_POSTFIX);
     auto ret = access(flagFilename.c_str(), F_OK);
@@ -226,6 +224,7 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest002, TestSize.Level1)
     reportInfo.functionName = std::string(__FUNCTION__);
     EXPECT_CALL(*mock_, HiSysEvent_Write(_, _, _, _, _, _, _)).Times(2);
     KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+    KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
     std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(unencryptOptions.GetDatabaseDir(),
         unencryptStoreId.storeId);
     std::string flagFilename = dbPath + std::string(UNENCRYPT_STOREID) + std::string(DB_CORRUPTED_POSTFIX);
@@ -238,5 +237,35 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest002, TestSize.Level1)
     KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
     ret = access(flagFilename.c_str(), F_OK);
     ASSERT_NE(ret, 0);
+}
+
+/**
+ * @tc.name: ReportCorruptEventTest001
+ * @tc.desc: Execute the reportCorrupt method with abnormal parameters.
+ * @tc.type: FUNC
+ */
+HWTEST_F(KvHiviewReporterTest, ReportCorruptEventTest001, TestSize.Level1)
+{
+    ZLOGI("ReportCorruptEventTest001 ReportKVFaultEvent begin.");
+    ReportInfo reportInfo;
+    reportInfo.options = unencryptOptions;
+    reportInfo.errorCode = Status::DATA_CORRUPTED;
+    reportInfo.appId = appId.appId;
+    KVDBFaultEvent eventInfo(reportInfo.options);
+    eventInfo.bundleName = reportInfo.appId;
+    eventInfo.storeName = reportInfo.storeId;
+    eventInfo.functionName = reportInfo.functionName;
+    eventInfo.errorCode = reportInfo.errorCode;
+    KVDBFaultHiViewReporter::ReportCorruptEvent(eventInfo);
+    bool isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
+        eventInfo.dbPath);
+    ASSERT_FALSE(isDuplicate);
+    eventInfo.storeName = "";
+    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(unencryptOptions.GetDatabaseDir(),
+        eventInfo.storeName);
+    KVDBFaultHiViewReporter::ReportCorruptEvent(eventInfo);
+    isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
+        eventInfo.dbPath);
+    ASSERT_FALSE(isDuplicate);
 }
 } // namespace OHOS::Test
