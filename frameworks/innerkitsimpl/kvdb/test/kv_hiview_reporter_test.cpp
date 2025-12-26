@@ -256,14 +256,17 @@ HWTEST_F(KvHiviewReporterTest, ReportCorruptEventTest001, TestSize.Level1)
     bool isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
         eventInfo.dbPath);
     ASSERT_FALSE(isDuplicate);
+
     eventInfo.storeName = "";
     KVDBFaultHiViewReporter::ReportCorruptEvent(eventInfo);
     isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
         eventInfo.dbPath);
     ASSERT_FALSE(isDuplicate);
+
+    eventInfo.dbPath = FULL_KVDB_PATH;
     KVDBFaultHiViewReporter::ReportCorruptEvent(eventInfo);
     isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
-        FULL_KVDB_PATH);
+        eventInfo.dbPath);
     ASSERT_FALSE(isDuplicate);
 }
 } // namespace OHOS::Test
