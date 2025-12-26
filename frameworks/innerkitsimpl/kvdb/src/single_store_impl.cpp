@@ -1045,7 +1045,7 @@ void SingleStoreImpl::OnRemoteDied()
         return false;
     });
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
-        singleStore = shared_from_this() {
+        [singleStore = shared_from_this()] {
         singleStore->Register();
     });
 }
@@ -1066,7 +1066,7 @@ void SingleStoreImpl::Register()
     });
     if (status != SUCCESS) {
         taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
-            singleStore = shared_from_this() {
+            [singleStore = shared_from_this()] {
             singleStore->Register();
         });
     } else {
