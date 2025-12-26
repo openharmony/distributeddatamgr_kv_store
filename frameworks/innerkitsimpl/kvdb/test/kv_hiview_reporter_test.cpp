@@ -237,7 +237,7 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest002, TestSize.Level1)
 
 /**
  * @tc.name: ReportCorruptEventTest001
- * @tc.desc: Execute the eportCorrupt method with abnormal parameters.
+ * @tc.desc: Execute the reportCorruptEvent method with abnormal parameters.
  * @tc.type: FUNC
  */
 HWTEST_F(KvHiviewReporterTest, ReportCorruptEventTest001, TestSize.Level1)
