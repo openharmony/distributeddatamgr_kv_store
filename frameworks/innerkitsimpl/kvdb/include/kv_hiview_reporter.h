@@ -42,7 +42,33 @@ struct ReportInfo {
     std::string functionName;
 };
 
-struct KVDBFaultEvent;
+struct KVDBFaultEvent {
+    std::string bundleName;
+    std::string moduleName;
+    std::string storeType;
+    std::string storeName;
+    uint32_t securityLevel;
+    uint32_t pathArea;
+    uint32_t encryptStatus;
+    uint32_t integrityCheck = 0;
+    uint32_t errorCode = 0;
+    int32_t systemErrorNo = 0;
+    std::string appendix;
+    std::string errorOccurTime;
+    std::string faultType = "common";
+    std::string businessType;
+    std::string functionName;
+    std::string dbPath;
+    std::string keyPath;
+
+    explicit KVDBFaultEvent(const Options &options) : storeType("KVDB")
+    {
+        moduleName = options.hapName;
+        securityLevel = static_cast<uint32_t>(options.securityLevel);
+        pathArea = static_cast<uint32_t>(options.area);
+        encryptStatus = static_cast<uint32_t>(options.encrypt);
+    }
+};
 class KVDBFaultHiViewReporter {
 public:
     static void ReportKVFaultEvent(const ReportInfo &reportInfo);
@@ -51,7 +77,7 @@ public:
 private:
     static void ReportFaultEvent(KVDBFaultEvent eventInfo);
 
-    static void ReportCorruptedEvent(KVDBFaultEvent eventInfo);
+    static void ReportCorruptEvent(KVDBFaultEvent eventInfo);
 
     static void ReportCommonFault(const KVDBFaultEvent &eventInfo);
 
