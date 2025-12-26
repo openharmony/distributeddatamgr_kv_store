@@ -86,10 +86,10 @@ void KvHiviewReporterTest::SetUpTestCase(void)
     encryptOptions.baseDir = BASE_DIR;
    
     unencryptOptions.kvStoreType = SINGLE_VERSION,
-    unencryptOptions.securityLevel = S1,
-    unencryptOptions.encrypt = false,
-    unencryptOptions.area = EL1,
-    unencryptOptions.backup = false,
+    unencryptOptions.securityLevel = S1;
+    unencryptOptions.encrypt = false;
+    unencryptOptions.area = EL1;
+    unencryptOptions.backup = false;
     unencryptOptions.baseDir = BASE_DIR;
 
     auto status = distributedKvDataManager_->GetSingleKvStore(encryptOptions, appId, encryptStoreId, encryptKvStore_);
@@ -131,7 +131,6 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest001, TestSize.Level1)
     ReportInfo reportInfo;
     reportInfo.options = unencryptOptions;
     reportInfo.errorCode = Status::INVALID_ARGUMENT;
-    reportInfo.systemErrorNo = errno;
     reportInfo.appId = appId.appId;
     reportInfo.storeId = unencryptStoreId.storeId;
     reportInfo.functionName = std::string(__FUNCTION__);
@@ -159,7 +158,6 @@ HWTEST_F(KvHiviewReporterTest, ReportInvalidArgumentTest002, TestSize.Level1)
     ReportInfo reportInfo;
     reportInfo.options = encryptOptions;
     reportInfo.errorCode = Status::INVALID_ARGUMENT;
-    reportInfo.systemErrorNo = errno;
     reportInfo.appId = appId.appId;
     reportInfo.storeId = encryptStoreId.storeId;
     reportInfo.functionName = std::string(__FUNCTION__);
@@ -188,7 +186,6 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest001, TestSize.Level1)
     ReportInfo reportInfo;
     reportInfo.options = encryptOptions;
     reportInfo.errorCode = Status::DATA_CORRUPTED;
-    reportInfo.systemErrorNo = errno;
     reportInfo.appId = appId.appId;
     reportInfo.storeId = encryptStoreId.storeId;
     reportInfo.functionName = std::string(__FUNCTION__);
@@ -218,7 +215,6 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest002, TestSize.Level1)
     ReportInfo reportInfo;
     reportInfo.options = unencryptOptions;
     reportInfo.errorCode = Status::DATA_CORRUPTED;
-    reportInfo.systemErrorNo = errno;
     reportInfo.appId = appId.appId;
     reportInfo.storeId = unencryptStoreId.storeId;
     reportInfo.functionName = std::string(__FUNCTION__);
@@ -241,7 +237,7 @@ HWTEST_F(KvHiviewReporterTest, StoreCorruptedAndRebuildTest002, TestSize.Level1)
 
 /**
  * @tc.name: ReportCorruptEventTest001
- * @tc.desc: Execute the reportCorrupt method with abnormal parameters.
+ * @tc.desc: Execute the eportCorrupt method with abnormal parameters.
  * @tc.type: FUNC
  */
 HWTEST_F(KvHiviewReporterTest, ReportCorruptEventTest001, TestSize.Level1)
@@ -261,11 +257,13 @@ HWTEST_F(KvHiviewReporterTest, ReportCorruptEventTest001, TestSize.Level1)
         eventInfo.dbPath);
     ASSERT_FALSE(isDuplicate);
     eventInfo.storeName = "";
-    std::string dbPath = KVDBFaultHiViewReporter::GetDBPath(unencryptOptions.GetDatabaseDir(),
-        eventInfo.storeName);
     KVDBFaultHiViewReporter::ReportCorruptEvent(eventInfo);
     isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
         eventInfo.dbPath);
+    ASSERT_FALSE(isDuplicate);
+    KVDBFaultHiViewReporter::ReportCorruptEvent(eventInfo);
+    isDuplicate = KVDBFaultHiViewReporter::IsReportedCorruptedFault(eventInfo.bundleName, eventInfo.storeName,
+        FULL_KVDB_PATH);
     ASSERT_FALSE(isDuplicate);
 }
 } // namespace OHOS::Test
