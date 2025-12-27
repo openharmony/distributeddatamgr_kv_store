@@ -1073,7 +1073,7 @@ void SingleStoreImpl::Register()
             [singleKvStore = weak_from_this()]() {
             auto store = singleKvStore.lock();
             if (store == nullptr) {
-               return;
+                return;
             }
             store->Register();
         });
