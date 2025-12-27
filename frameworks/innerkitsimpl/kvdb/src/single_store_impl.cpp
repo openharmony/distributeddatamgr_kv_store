@@ -1050,7 +1050,7 @@ void SingleStoreImpl::OnRemoteDied()
         if (thisStore != nullptr) {
             thisStore->Register();
         } else {
-            ZLOGE("weak self lock failed");
+            ZLOGW("weak self lock failed");
         }
     });
 }
@@ -1076,7 +1076,7 @@ void SingleStoreImpl::Register()
             if (thisStore != nullptr) {
                 thisStore->Register();
             } else {
-                ZLOGE("weak self lock failed");
+                ZLOGW("weak self lock failed");
             }
         });
     } else {
