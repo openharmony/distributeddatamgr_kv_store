@@ -227,10 +227,9 @@ int CloudSyncer::BackFillAfterBatchUpload(CloudSyncData &uploadData, bool isInse
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidAndLogIfSuccess(opType, uploadData);
         CloudSyncBatch &data = isInsert ? uploadData.insData : uploadData.updData;
-        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(data.extend);
+        bool isSkip = CloudSyncUtils::IsSkipErrAssetsRecord(data.extend);
         if (isSkip) {
-            LOGI("[CloudSyncer][BackFillAfterBatchUpload] Skip FillCloudLogAndAsset: %d",
-                errCode);
+            LOGI("[CloudSyncer][BackFillAfterBatchUpload] Skip errCode %d", errCode);
             return E_OK;
         } else {
             return errCode;

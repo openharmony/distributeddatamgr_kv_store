@@ -439,13 +439,13 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
     param.withoutRowIdData.assetInsertData.clear();
 }
 
-bool CloudSyncUtils::IsSkipAssetsMissingRecord(const std::vector<VBucket> &extend)
+bool CloudSyncUtils::IsSkipErrAssetsRecord(const std::vector<VBucket> &extend)
 {
     if (extend.empty()) {
         return false;
     }
     for (size_t i = 0; i < extend.size(); ++i) {
-        if (DBCommon::IsIntTypeRecordError(extend[i]) && !DBCommon::IsRecordAssetsMissing(extend[i])) {
+        if (DBCommon::IsIntTypeRecordError(extend[i]) && !IsIgnoreFailAssetErr(extend[i])) {
             return false;
         }
     }
