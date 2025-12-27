@@ -512,13 +512,11 @@ ohos_unittest("KvHiviewReporterTest") {
     "../../kvdb/src/kv_hiview_reporter.cpp",
     "./mock/src/hisysevent_mock.cpp",
     "kv_hiview_reporter_test.cpp",
-    "../src/store_util.cpp",
   ]
   configs = [ ":module_private_config" ]
   deps = [
+    ":kvdb_src_file",
     "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
-    "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
-    "${kv_store_base_path}/databaseutils:database_utils",
   ]
 
   external_deps = [
@@ -527,6 +525,9 @@ ohos_unittest("KvHiviewReporterTest") {
     "hisysevent:libhisysevent",
     "googletest:gmock_main",
     "googletest:gtest_main",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
   ]
 
   defines = [
