@@ -1045,8 +1045,13 @@ void SingleStoreImpl::OnRemoteDied()
         return false;
     });
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
-        [singleStore = shared_from_this()]() {
-        singleStore->Register();
+        [singleKvStore = weak_from_this()]() {
+        auto thisStore = singleKvStore.lock();
+        if (thisStore != nullptr) {
+            thisStore->Register();
+        } else {
+            ZLOGE("weak self lock failed");
+        }
     });
 }
 
@@ -1066,7 +1071,13 @@ void SingleStoreImpl::Register()
     });
     if (status != SUCCESS) {
         taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
-            [singleStore = shared_from_this()]() {
+            [singleKvStore = weak_from_this()]() {
+            auto thisStore = singleKvStore.lock();
+            if (thisStore != nullptr) {
+                thisStore->Register();
+            } else {
+                ZLOGE("weak self lock failed");
+            }
             singleStore->Register();
         });
     } else {
