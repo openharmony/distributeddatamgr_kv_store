@@ -1046,12 +1046,11 @@ void SingleStoreImpl::OnRemoteDied()
     });
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
         [singleKvStore = weak_from_this()]() {
-        auto thisStore = singleKvStore.lock();
-        if (thisStore != nullptr) {
-            thisStore->Register();
-        } else {
-            ZLOGW("weak self lock failed");
+        auto store = singleKvStore.lock();
+        if (store == nullptr) {
+            return;
         }
+        store->Register();
     });
 }
 
@@ -1072,12 +1071,11 @@ void SingleStoreImpl::Register()
     if (status != SUCCESS) {
         taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
             [singleKvStore = weak_from_this()]() {
-            auto thisStore = singleKvStore.lock();
-            if (thisStore != nullptr) {
-                thisStore->Register();
-            } else {
-                ZLOGW("weak self lock failed");
+            auto store = singleKvStore.lock();
+            if (store == nullptr) {
+               return;
             }
+            store->Register();
         });
     } else {
         taskId_ = 0;
