@@ -85,7 +85,7 @@ void KvHiviewReporterTest::SetUpTestCase(void)
     encryptOptions.backup = false;
     encryptOptions.baseDir = BASE_DIR;
    
-    unencryptOptions.kvStoreType = SINGLE_VERSION,
+    unencryptOptions.kvStoreType = SINGLE_VERSION;
     unencryptOptions.securityLevel = S1;
     unencryptOptions.encrypt = false;
     unencryptOptions.area = EL1;
