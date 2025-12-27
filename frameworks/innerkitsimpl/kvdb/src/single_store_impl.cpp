@@ -1078,7 +1078,6 @@ void SingleStoreImpl::Register()
             } else {
                 ZLOGE("weak self lock failed");
             }
-            singleStore->Register();
         });
     } else {
         taskId_ = 0;
