@@ -97,8 +97,7 @@ enum DBStatus {
     LOW_VERSION_TARGET, // The target device is a low version device
     NEED_CORRECT_TARGET_USER, // The target user ID is incorrect and needs to be re-obtained
     CLOUD_ASSET_NOT_FOUND, // The cloud download asset return 404 error
-    FILE_NOT_FOUND, // local asset file abnormality
-    TASK_INTERRUPTED, // Task(cloud sync, generate log) interrupted
+    TASK_INTERRUPTED, // Task(cloud sync) interrupted
     BUTT_STATUS = 27394048 // end of status
 };
 

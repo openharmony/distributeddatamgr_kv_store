@@ -675,6 +675,9 @@ void CloudSyncUtils::CheckQueryCloudData(std::string &traceId, DownloadData &dow
         bool isVersionExist = data.count(CloudDbConstant::VERSION_FIELD) != 0;
         bool isContainAllPk = true;
         for (auto &pkColName : pkColNames) {
+            if (pkColName == DBConstant::ROWID) {
+                continue;
+            }
             if (data.count(pkColName) == 0) {
                 isContainAllPk = false;
                 break;

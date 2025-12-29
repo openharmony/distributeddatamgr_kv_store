@@ -83,6 +83,17 @@ public:
     void InvalidSendTask(const std::string &target);
     void SetDeviceCommErrCode(const std::string &target, int deviceCommErrCode);
 
+    int32_t GetRetryCount(const std::string &dev, bool isRetryTask) const;
+
+    bool IsRetryOutOfLimit(const std::string &target, bool isRetryTask);
+
+    void ResetRetryCount(const std::string &dev, bool isRetryTask);
+
+    void ResetRetryCount(const std::string &dev);
+
+    void ResetRetryCount();
+
+    void IncreaseRetryCountIfNeed(const std::string &dev, bool isRetryTask);
 private:
     int ScheduleDelayTask(SendTask &outTask, SendTaskInfo &outTaskInfo);
     int ScheduleNoDelayTask(SendTask &outTask, SendTaskInfo &outTaskInfo);
@@ -107,6 +118,8 @@ private:
     Priority lastSchedulePriority_ = Priority::LOW;
 
     std::map<std::string, int> deviceCommErrCodeMap_;
+
+    std::map<std::string, std::map<bool, int32_t>> retryCount_; // dev, isRetryTask, count
 };
 }
 

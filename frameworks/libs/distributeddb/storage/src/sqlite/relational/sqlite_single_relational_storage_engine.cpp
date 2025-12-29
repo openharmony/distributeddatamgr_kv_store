@@ -318,6 +318,12 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const CreateDist
         LOGE("[CreateDistributedTable] not support async create distributed table on tracker table");
         return -E_NOT_SUPPORT;
     }
+    if (!table.GetTrackerTable().IsEmpty() && param.syncType == TableSyncType::DEVICE_COOPERATION &&
+        GetRelationalProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE) {
+        LOGE("not support create distributed table with split mode on tracker table.");
+        (void)handle->Rollback();
+        return -E_NOT_SUPPORT;
+    }
     errCode = CreateDistributedTable(handle, isUpgraded, param, table, schema);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);

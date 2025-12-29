@@ -260,6 +260,16 @@ int RuntimeContextImpl::ScheduleTask(const TaskAction &task)
     return ThreadPoolStub::GetInstance().ScheduleTask(task, taskId);
 }
 
+int RuntimeContextImpl::ScheduleTask(const TaskAction &task, std::function<void(void)> &postProcess)
+{
+    TaskId taskId = 0L;
+    int ret = ThreadPoolStub::GetInstance().ScheduleTask(task, taskId);
+    if (ret != E_OK) {
+        postProcess();
+    }
+    return ret;
+}
+
 int RuntimeContextImpl::ScheduleTask(const TaskAction &task, TaskId &taskId)
 {
     return ThreadPoolStub::GetInstance().ScheduleTask(task, taskId);

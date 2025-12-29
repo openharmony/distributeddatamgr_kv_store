@@ -1265,16 +1265,16 @@ void CloudSyncer::InitCloudSyncStateMachine()
 {
     CloudSyncStateMachine::Initialize();
     cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_DOWNLOAD, [this]() {
-        return SyncMachineDoDownload();
+        return static_cast<uint8_t>(SyncMachineDoDownload());
     });
     cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_UPLOAD, [this]() {
-        return SyncMachineDoUpload();
+        return static_cast<uint8_t>(SyncMachineDoUpload());
     });
     cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_FINISHED, [this]() {
-        return SyncMachineDoFinished();
+        return static_cast<uint8_t>(SyncMachineDoFinished());
     });
     cloudSyncStateMachine_.RegisterFunc(CloudSyncState::DO_REPEAT_CHECK, [this]() {
-        return SyncMachineDoRepeatCheck();
+        return static_cast<uint8_t>(SyncMachineDoRepeatCheck());
     });
 }
 

@@ -77,6 +77,7 @@ DistributedTableMode RelationalDBProperties::GetDistributedTableMode() const
     return static_cast<DistributedTableMode>(GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE, defaultMode));
 }
 
+
 RelationalDBProperties::RelationalDBProperties(const RelationalDBProperties &other)
     : DBProperties(other)
 {

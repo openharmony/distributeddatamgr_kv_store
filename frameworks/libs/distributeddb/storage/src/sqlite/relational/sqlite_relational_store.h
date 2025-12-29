@@ -93,7 +93,7 @@ public:
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
 
-    std::function<int(void)> CleanWaterMark(const std::set<std::string> clearWaterMarkTables);
+    std::function<int(void)> CleanWaterMark(const std::set<std::string> &clearWaterMarkTables);
 
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 

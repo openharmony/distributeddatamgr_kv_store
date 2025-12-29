@@ -160,7 +160,7 @@ protected:
     ISyncTaskContext *GetSyncTaskContext(const DeviceSyncTarget &target, int &errCode);
     void NotifyRemotePullStart(const std::string &dev);
     ExtendInfo GetExtendInfo() const;
-    
+
     mutable std::mutex storageMutex_;
     ISyncInterface *syncInterface_;
     // Used to store all send sync task infos (such as pull sync response, and push sync request)

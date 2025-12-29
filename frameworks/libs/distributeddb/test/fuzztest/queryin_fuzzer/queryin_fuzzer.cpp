@@ -34,7 +34,7 @@ void FuzzIn(FuzzedDataProvider &provider)
     int maxSize = 512;
     int size = provider.ConsumeIntegralInRange<int>(0, maxSize);
     for (int i = 0; i < size; i++) {
-        values.push_back(rawString);
+        values.emplace_back(rawString);
     }
     Query query = Query::Select().In(TEST_FIELD_NAME, values);
 }
@@ -47,7 +47,7 @@ void FuzzNotIn(FuzzedDataProvider &provider)
     int maxSize = 512;
     int size = provider.ConsumeIntegralInRange<int>(0, maxSize);
     for (int i = 0; i < size; i++) {
-        values.push_back(rawString);
+        values.emplace_back(rawString);
     }
     Query query = Query::Select().NotIn(TEST_FIELD_NAME, values);
 }
@@ -69,13 +69,14 @@ void FuzzAssetsOnly(FuzzedDataProvider &provider)
     size_t maxSize = 512;
     size_t size = provider.ConsumeIntegralInRange<size_t>(0, maxSize);
     for (size_t i = 1; i <= size; i++) {
-        set.insert(provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, i)));
+        set.emplace(provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, i)));
     }
     assets[provider.ConsumeRandomLengthString(provider.ConsumeIntegralInRange<size_t>(0, lenMod))] = set;
     Query query = Query::Select().From(tableName)
                       .BeginGroup()
                       .EqualTo(fieldName, provider.ConsumeIntegral<int>())
                       .And()
+                      .Or()
                       .AssetsOnly(assets)
                       .EndGroup();
 }

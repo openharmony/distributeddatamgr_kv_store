@@ -773,7 +773,7 @@ int CloudStorageUtils::FillAssetForAbnormal(Asset &asset, Asset &dbAsset,
 {
     dbAsset.assetId = asset.assetId;
     dbAsset.status = AssetStatus::ABNORMAL;
-    LOGW("Asset %s not found locally, status set ABNORMAL", asset.assetId.c_str());
+    LOGW("Asset %s not found locally, status set to ABNORMAL", DBCommon::StringMiddleMasking(asset.assetId).c_str());
     return E_OK;
 }
 
@@ -1436,7 +1436,7 @@ int CloudStorageUtils::HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationa
     std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(
         param.tableName, DBCommon::IsRecordIgnored(record), logInfo, record, param.type);
     if (DBCommon::IsRecordAssetsMissing(record)) {
-        LOGI("[CloudStorageUtils][UpdateRecordFlagAfterUpload] Record assets missing, update flag.");
+        LOGI("[CloudStorageUtils][UpdateRecordFlagAfterUpload] Record assets missing, skip update.");
         int errCode = handle->UpdateRecordFlag(param.tableName, sql, logInfo);
         if (errCode != E_OK) {
             LOGE("[CloudStorageUtils] Update record flag failed");

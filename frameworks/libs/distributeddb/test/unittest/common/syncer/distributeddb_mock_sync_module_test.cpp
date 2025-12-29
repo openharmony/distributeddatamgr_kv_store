@@ -31,6 +31,7 @@
 #include "mock_single_ver_data_sync.h"
 #include "mock_single_ver_kv_syncer.h"
 #include "mock_single_ver_state_machine.h"
+#include "mock_single_ver_sync_engine.h"
 #include "mock_sync_engine.h"
 #include "mock_sync_task_context.h"
 #include "mock_time_sync.h"
@@ -41,6 +42,7 @@
 #include "virtual_communicator_aggregator.h"
 #include "virtual_relational_ver_sync_db_interface.h"
 #include "virtual_single_ver_sync_db_Interface.h"
+#include "virtual_unknow_sync_interface.h"
 
 using namespace testing::ext;
 using namespace testing;
@@ -381,7 +383,7 @@ void TimeSync001()
 
     EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillRepeatedly(Return(DB_ERROR));
     const int loopCount = 100;
-    const int timeDriverMs = 100;
+    const int timeDriverMs = 200;
     for (int i = 0; i < loopCount; ++i) {
         MockTimeSync timeSync;
         EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A", ""), E_OK);
@@ -419,6 +421,7 @@ void DistributedDBMockSyncModuleTest::SetUp(void)
 
 void DistributedDBMockSyncModuleTest::TearDown(void)
 {
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**
@@ -1610,6 +1613,36 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest007, TestSize.Level0)
 }
 
 /**
+ * @tc.name: SyncEngineTest008
+ * @tc.desc: Test SyncEngine handles default case by returning null context.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest008, TestSize.Level0)
+{
+    std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
+        .WillRepeatedly(Return(nullptr));
+    
+    auto virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    VirtualUnKnowSyncInterface unknowSyncInterface;
+    unknowSyncInterface.SetIdentifier(identifier);
+    std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    metaData->Initialize(&unknowSyncInterface);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    enginePtr->Initialize(&unknowSyncInterface, metaData, param);
+    
+    auto *context = enginePtr->CreateSyncTaskContext(unknowSyncInterface);
+    EXPECT_EQ(context, nullptr);
+    enginePtr->Close();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+/**
 * @tc.name: remote query packet 001
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization And DeSerialization
 * @tc.type: FUNC
@@ -1894,7 +1927,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery003, TestSize.Level1)
     DistributedDB::Message *message = nullptr;
     EXPECT_EQ(BuildRemoteQueryMsg(message), E_OK);
     message->SetMessageType(TYPE_RESPONSE);
-    message->SetErrorNo(NEED_CORRECT_TARGET_USER);
+    message->SetErrorNo(E_NEED_CORRECT_TARGET_USER);
     message->SetSessionId(executor->GetLastSessionId());
     executor->ReceiveMessage(deviceName, message);
     std::this_thread::sleep_for(std::chrono::seconds(1)); // mock one msg execute 1 s

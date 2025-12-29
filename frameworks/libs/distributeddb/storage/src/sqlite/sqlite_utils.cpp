@@ -386,7 +386,7 @@ int SQLiteUtils::CreateMetaDatabase(const std::string &metaDbPath)
     OpenDbProperties metaProperties {metaDbPath, true, false};
     sqlite3 *db = nullptr;
     int errCode = SQLiteUtils::OpenDatabase(metaProperties, db);
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
+    if (errCode != E_OK) {
         LOGE("[CreateMetaDatabase] Failed to create the meta database[%d]", errCode);
     }
     if (db != nullptr) { // LCOV_EXCL_BR_LINE
@@ -604,7 +604,7 @@ int SQLiteUtils::GetJournalMode(sqlite3 *db, std::string &mode)
 
 int SQLiteUtils::SetUserVer(const OpenDbProperties &properties, int version)
 {
-    if (properties.uri.empty()) { // LCOV_EXCL_BR_LINE
+    if (properties.uri.empty()) {
         return -E_INVALID_ARGS;
     }
 

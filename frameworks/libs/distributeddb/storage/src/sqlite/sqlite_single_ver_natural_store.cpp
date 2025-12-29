@@ -188,22 +188,6 @@ SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
     ReleaseResources();
 }
 
-int SQLiteSingleVerNaturalStore::SetUserVer(const KvDBProperties &kvDBProp, int version)
-{
-    OpenDbProperties properties;
-    properties.uri = GetDatabasePath(kvDBProp);
-    bool isEncryptedDb = kvDBProp.GetBoolProp(KvDBProperties::ENCRYPTED_MODE, false);
-    if (isEncryptedDb) { // LCOV_EXCL_BR_LINE
-        kvDBProp.GetPassword(properties.cipherType, properties.passwd);
-    }
-
-    int errCode = SQLiteUtils::SetUserVer(properties, version);
-    if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
-        LOGE("Recover for open db failed in single version:%d", errCode);
-    }
-    return errCode;
-}
-
 int SQLiteSingleVerNaturalStore::InitDatabaseContext(const KvDBProperties &kvDBProp, bool isNeedUpdateSecOpt)
 {
     int errCode = InitStorageEngine(kvDBProp, isNeedUpdateSecOpt);
@@ -264,12 +248,12 @@ int SQLiteSingleVerNaturalStore::SetAutoLifeCycleTime(uint32_t time)
 int SQLiteSingleVerNaturalStore::GetSecurityOption(SecurityOption &option) const
 {
     bool isMemDb = GetDbProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    if (isMemDb) { // LCOV_EXCL_BR_LINE
+    if (isMemDb) {
         LOGI("[GetSecurityOption] MemDb, no need to get security option");
         option = SecurityOption();
         return -E_NOT_SUPPORT;
     }
-    if (!RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) { // LCOV_EXCL_BR_LINE
+    if (!RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
         LOGI("[GetSecurityOption] Not set api adapter");
         return -E_NOT_SUPPORT;
     }
@@ -375,7 +359,7 @@ int SQLiteSingleVerNaturalStore::CheckDatabaseRecovery(const KvDBProperties &kvD
     const std::string identifierDir = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
     bool isCreate = kvDBProp.GetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     bool isMemoryDb = kvDBProp.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    if (!isMemoryDb) { // LCOV_EXCL_BR_LINE
+    if (!isMemoryDb) {
         errCode = DBCommon::CreateStoreDirectory(dataDir, identifierDir, DBConstant::SINGLE_SUB_DIR, isCreate);
         if (errCode != E_OK) {
             LOGE("Create single version natural store directory failed:%d", errCode);
@@ -411,7 +395,7 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
 int SQLiteSingleVerNaturalStore::Open(const KvDBProperties &kvDBProp)
 {
     std::lock_guard<std::mutex> lock(initialMutex_);
-    if (isInitialized_) { // LCOV_EXCL_BR_LINE
+    if (isInitialized_) {
         return E_OK; // avoid the reopen operation.
     }
 
@@ -1606,7 +1590,7 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) { // LCOV_EXCL_BR_LINE
+    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
         return -E_NOT_SUPPORT;
     }
 
@@ -1651,7 +1635,7 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) { // LCOV_EXCL_BR_LINE
+    if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
         return -E_NOT_SUPPORT;
     }
 

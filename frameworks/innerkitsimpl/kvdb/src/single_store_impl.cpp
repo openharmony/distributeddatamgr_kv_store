@@ -222,7 +222,6 @@ Status SingleStoreImpl::StartTransaction()
         ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
-
     auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
     if (status != SUCCESS) {
         ReportDBFaultEvent(status, std::string(__FUNCTION__));
@@ -1045,8 +1044,12 @@ void SingleStoreImpl::OnRemoteDied()
         }
         return false;
     });
-    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
-        Register();
+    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
+        [singleKvStore = weak_from_this()]() {
+        auto store = singleKvStore.lock();
+        if (store != nullptr) {
+            store->Register();
+        }
     });
 }
 
@@ -1065,8 +1068,12 @@ void SingleStoreImpl::Register()
         return false;
     });
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
-            Register();
+        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
+            [singleKvStore = weak_from_this()]() {
+            auto store = singleKvStore.lock();
+            if (store != nullptr) {
+                store->Register();
+            }
         });
     } else {
         taskId_ = 0;

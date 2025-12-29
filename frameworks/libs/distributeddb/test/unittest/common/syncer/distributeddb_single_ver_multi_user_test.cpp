@@ -503,6 +503,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_KV);
     CloseStore();
     observer = nullptr;
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**

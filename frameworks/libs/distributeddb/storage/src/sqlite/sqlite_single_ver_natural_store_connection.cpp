@@ -1568,9 +1568,11 @@ int SQLiteSingleVerNaturalStoreConnection::PublishInner(SingleVerNaturalStoreCom
             return errCode;
         }
     } else {
-        if (!writeHandle_->CheckIfKeyExisted(localRecord.key, true, localRecord.value, localRecord.timestamp)) {
-            LOGE("Record not found.");
-            return -E_NOT_FOUND;
+        auto ret = writeHandle_->CheckIfKeyExisted(localRecord.key, true, localRecord.value,
+            localRecord.timestamp);
+        if (ret != E_OK) {
+            LOGE("CheckIfKeyExisted failed %d.", ret);
+            return ret;
         }
     }
 
@@ -1687,7 +1689,17 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishInner(std::pair<Key, Key> &k
     SingleVerRecord localRecord;
 
     innerErrCode = -E_LOCAL_DEFEAT;
-    if (writeHandle_->CheckIfKeyExisted(syncRecord.key, true, localRecord.value, localRecord.timestamp)) {
+    auto ret = writeHandle_->CheckIfKeyExisted(syncRecord.key, true, localRecord.value,
+        localRecord.timestamp);
+    bool isExisted = true;
+    if (ret == -E_NOT_FOUND) {
+        isExisted = false;
+        ret = E_OK;
+    }
+    if (ret != E_OK) {
+        return ret;
+    }
+    if (isExisted) {
         if ((syncRecord.flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG) {
             if (updateTimestamp || localRecord.timestamp <= syncRecord.writeTimestamp) { // sync win
                 innerErrCode = -E_LOCAL_DELETED;

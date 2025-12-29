@@ -16,6 +16,10 @@
 #ifndef KNOWLEDGE_SOURCE_UTILS_H
 #define KNOWLEDGE_SOURCE_UTILS_H
 
+#include <cstdlib>
+#include <string>
+#include <utility>
+
 #include "relational_schema_object.h"
 #include "relational_store_client.h"
 

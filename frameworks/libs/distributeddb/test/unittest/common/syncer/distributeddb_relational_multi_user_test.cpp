@@ -538,6 +538,7 @@ void DistributedDBRelationalMultiUserTest::TearDown(void)
     SyncActivationCheckCallback callback = nullptr;
     RuntimeConfig::SetSyncActivationCheckCallback(callback);
     RuntimeContext::GetInstance()->ClearAllDeviceTimeInfo();
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**

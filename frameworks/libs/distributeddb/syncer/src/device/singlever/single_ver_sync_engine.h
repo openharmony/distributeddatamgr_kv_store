@@ -20,7 +20,7 @@
 #include "sync_engine.h"
 
 namespace DistributedDB {
-class SingleVerSyncEngine final : public SyncEngine {
+class SingleVerSyncEngine : public SyncEngine {
 public:
     SingleVerSyncEngine() : needClearRemoteStaleData_(false) {};
 

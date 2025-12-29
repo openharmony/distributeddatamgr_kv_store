@@ -26,7 +26,6 @@
 
 namespace DistributedDB {
 namespace {
-constexpr int MAX_SEND_RETRY = 2;
 constexpr int RETRY_TIME_SPLIT = 4;
 inline std::string GetThreadId()
 {
@@ -338,7 +337,7 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         return errCode;
     }
     TriggerSendData();
-    LOGI("[CommAggr][Create] Exit ok, dev=%.3s, frameId=%u, isRetry=%d", dstTarget.c_str(), info.frameId,
+    LOGI("[CommAggr][Create] Exit ok, dev=%.3s, frameId=%u, comm retry=%d", dstTarget.c_str(), info.frameId,
         task.isRetryTask);
     return E_OK;
 }
@@ -1114,8 +1113,6 @@ void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target, uint
     if (IsRetryOutOfLimit(target, isRetryTask)) {
         LOGI("[CommAggr] Retry send task is out of limit! target is %.3s", target.c_str());
         scheduler_.InvalidSendTask(target);
-        std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-        retryCount_[target][isRetryTask] = 0;
     } else {
         RetrySendTask(target, sendSequenceId, isRetryTask);
         if (sendSequenceId != GetSendSequenceId(target)) {
@@ -1130,9 +1127,8 @@ void CommunicatorAggregator::RetrySendTask(const std::string &target, uint64_t s
 {
     int32_t currentRetryCount = 0;
     {
-        std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-        retryCount_[target][isRetryTask]++;
-        currentRetryCount = retryCount_[target][isRetryTask];
+        scheduler_.IncreaseRetryCountIfNeed(target, isRetryTask);
+        currentRetryCount = scheduler_.GetRetryCount(target, isRetryTask);
         LOGI("[CommAggr] Target %.3s retry count is %" PRId32, target.c_str(), currentRetryCount);
     }
     TimerId timerId = 0u;
@@ -1151,8 +1147,7 @@ void CommunicatorAggregator::RetrySendTask(const std::string &target, uint64_t s
 
 bool CommunicatorAggregator::IsRetryOutOfLimit(const std::string &target, bool isRetryTask)
 {
-    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    return retryCount_[target][isRetryTask] >= MAX_SEND_RETRY;
+    return scheduler_.IsRetryOutOfLimit(target, isRetryTask);
 }
 
 int32_t CommunicatorAggregator::GetNextRetryInterval(const std::string &target, int32_t currentRetryCount)
@@ -1229,28 +1224,17 @@ int CommunicatorAggregator::ReTryDeliverAppLayerFrameOnCommunicatorNotFound(cons
 
 void CommunicatorAggregator::ResetRetryCount()
 {
-    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    retryCount_.clear();
+    scheduler_.ResetRetryCount();
 }
 
 void CommunicatorAggregator::ResetRetryCount(const std::string &dev)
 {
-    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    retryCount_[dev].clear();
+    scheduler_.ResetRetryCount(dev);
 }
 
 int32_t CommunicatorAggregator::GetRetryCount(const std::string &dev, bool isRetryTask) const
 {
-    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    auto iter = retryCount_.find(dev);
-    if (iter == retryCount_.end()) {
-        return 0;
-    }
-    auto countIter = iter->second.find(isRetryTask);
-    if (countIter == iter->second.end()) {
-        return 0;
-    }
-    return countIter->second;
+    return scheduler_.GetRetryCount(dev, isRetryTask);
 }
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB

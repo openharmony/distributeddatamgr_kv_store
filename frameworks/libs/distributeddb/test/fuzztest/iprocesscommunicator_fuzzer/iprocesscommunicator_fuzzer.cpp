@@ -163,6 +163,7 @@ void CommunicatorFuzzer(FuzzedDataProvider &provider)
     KvStoreDelegateManager::SetProcessCommunicator(communicator);
     RuntimeConfig::SetProcessCommunicator(communicator);
     auto adapter = std::make_shared<ProcessSystemApiAdapterFuzzTest>();
+    KvStoreDelegateManager::SetProcessSystemAPIAdapter(adapter);
     RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
     auto handleTest = std::make_shared<DBInfoHandleFuzzTest>();
     RuntimeConfig::SetDBInfoHandle(handleTest);

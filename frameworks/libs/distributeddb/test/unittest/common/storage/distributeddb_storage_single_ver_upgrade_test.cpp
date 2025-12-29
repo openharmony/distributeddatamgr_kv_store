@@ -300,6 +300,7 @@ void DistributedDBStorageSingleVerUpgradeTest::SetUpTestCase(void)
 
 void DistributedDBStorageSingleVerUpgradeTest::TearDownTestCase(void)
 {
+    RuntimeContext::GetInstance()->StopTaskPool();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 

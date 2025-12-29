@@ -211,12 +211,12 @@ public:
     static int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
         const CloudSyncParam &param, const CloudSyncBatch &updateData, CloudUploadRecorder &recorder,
         bool isLock = false);
+    
+    static int HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationalStorageExecutor *handle,
+        const VBucket &record, const LogInfo &logInfo, const CloudSyncParam &param);
 
     static int FillCloudQueryToExtend(QuerySyncObject &obj, VBucket &extend);
 
-    static int HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationalStorageExecutor *handle,
-        const VBucket &record, const LogInfo &logInfo, const CloudSyncParam &param);
-        
     static void SaveChangedDataByType(const DataValue &dataValue, Type &value);
 
     static int ConvertLogToLocal(sqlite3 *dbHandle,
