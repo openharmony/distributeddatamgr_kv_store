@@ -1047,10 +1047,9 @@ void SingleStoreImpl::OnRemoteDied()
     taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
         [singleKvStore = weak_from_this()]() {
         auto store = singleKvStore.lock();
-        if (store == nullptr) {
-            return;
+        if (store != nullptr) {
+            store->Register();
         }
-        store->Register();
     });
 }
 
@@ -1072,10 +1071,9 @@ void SingleStoreImpl::Register()
         taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL),
             [singleKvStore = weak_from_this()]() {
             auto store = singleKvStore.lock();
-            if (store == nullptr) {
-                return;
+            if (store != nullptr) {
+                store->Register();
             }
-            store->Register();
         });
     } else {
         taskId_ = 0;
