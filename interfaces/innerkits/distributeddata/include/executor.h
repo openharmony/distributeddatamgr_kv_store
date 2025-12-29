@@ -18,6 +18,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <thread>
 #include "priority_queue.h"
 
