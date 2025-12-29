@@ -82,7 +82,6 @@ public:
             return false;
         }
         std::shared_ptr<Node> node = GetNode(key, true);
-        // 冗余判断，实际不会为空
         if (node == nullptr) {
             return false;
         }
@@ -126,13 +125,12 @@ private:
         Node(_Tp &&value) : value_(std::move(value)) {}
         bool DoAction(std::function<bool(mapped_type &value, bool isValid)> action)
         {
-            // 冗余判断，实际不会为空
             if (action == nullptr) {
                 return false;
             }
             std::lock_guard<decltype(mutex_)> lock(mutex_);
             isValid_ = action(value_, isValid_);
-            // 如果不需要保留，则清空数据
+            // If no retention is required, clear the data
             if (!isValid_) {
                 value_ = _Tp();
             }
@@ -152,7 +150,6 @@ private:
 
     std::shared_ptr<Node> Convert2AutoNode(std::shared_ptr<Node> node, const _Key &key)
     {
-        // 这个node只会在map的方法中使用，所以可以捕获this。TODD:减少key的拷贝
         return std::shared_ptr<Node>(node.get(), [holder = node, this, key](auto *p) {
             if (holder->IsValid() || holder.use_count() > 2) {
                 return;
