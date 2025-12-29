@@ -15,9 +15,10 @@
 
 #define LOG_TAG "ConcurrentStripedMap"
 
-#include <thread>
-#include <future>
 #include "concurrent_striped_map.h"
+
+#include <future>
+#include <thread>
 
 #include "gtest/gtest.h"
 using namespace testing::ext;
@@ -310,9 +311,10 @@ struct TestObject {
     std::string name;
 
     TestObject() : id(0), name("") {}
-    TestObject(int i, const std::string& n) : id(i), name(n) {}
+    TestObject(int i, const std::string &n) : id(i), name(n) {}
 
-    bool operator==(const TestObject& other) const {
+    bool operator==(const TestObject &other) const
+    {
         return id == other.id && name == other.name;
     }
 };
@@ -389,7 +391,7 @@ HWTEST_F(ConcurrentStripedMapTest, VectorValueTest, TestSize.Level0)
 
     // Add vector value
     bool ret = map.Compute(1, [](int key, std::vector<int> &value) {
-        value = {1, 2, 3, 4, 5};
+        value = { 1, 2, 3, 4, 5 };
         return true;
     });
     EXPECT_TRUE(ret);
@@ -448,6 +450,7 @@ HWTEST_F(ConcurrentStripedMapTest, PairValueTest, TestSize.Level0)
 HWTEST_F(ConcurrentStripedMapTest, ConcurrentEraseIfTest, TestSize.Level0)
 {
     const uint32_t mapSize = 100;
+    const uint32_t numThreads = 4;
     ConcurrentStripedMap<int32_t, int32_t> map;
     // Add multiple elements
     for (int i = 0; i < mapSize; ++i) {
@@ -456,26 +459,29 @@ HWTEST_F(ConcurrentStripedMapTest, ConcurrentEraseIfTest, TestSize.Level0)
             return true;
         });
     }
-    EXPECT_EQ(map.Size(), 100);
+    EXPECT_EQ(map.Size(), mapSize);
 
     // Create multiple threads that will erase different ranges with overlapping conditions
     std::vector<std::thread> threads;
     std::atomic_uint32_t totalErased = 0;
-    for (size_t i = 0; i < 4; ++i) {
+    auto eraseAction = [&map, &totalErased](size_t i) mutable {
+        map.EraseIf([i, &totalErased](const int32_t &key, int32_t &value) {
+            if (key >= 20 * i && key <= 20 * i + 40) {
+                totalErased++;
+                return true;
+            }
+            return false;
+        });
+    };
+    for (size_t i = 0; i < numThreads; ++i) {
         // Thread i: Remove elements with keys in range [20 * i, 20 * i + 40]
-        threads.emplace_back([&map, &totalErased, i]() {
-            map.EraseIf([i, &totalErased](const int32_t &key, int32_t &value) {
-                if (key >= 20 * i && key <= 20 * i + 40) {
-                    totalErased++;
-                    return true;
-                }
-                return false;
-            });
+        threads.emplace_back([&eraseAction, i]() {
+            eraseAction(i);
         });
     }
 
     // Wait for all threads to complete
-    for (auto& thread : threads) {
+    for (auto &thread : threads) {
         thread.join();
     }
 
@@ -496,20 +502,23 @@ HWTEST_F(ConcurrentStripedMapTest, ConcurrentComputeSameKeyTest, TestSize.Level2
     const uint32_t opsPerThread = 100;
     std::atomic<uint32_t> operationCount = 0;
     std::vector<std::thread> threads;
+    auto operation = [&map, &operationCount]() {
+        for (uint32_t i = 0; i < opsPerThread; ++i) {
+            map.Compute(1, [&operationCount](auto k, int32_t &value) {
+                operationCount++;
+                return true;
+            });
+        }
+    };
     // Create multiple threads that will modify the same key concurrently
     for (uint32_t t = 0; t < numThreads; ++t) {
-        threads.emplace_back([&map, &operationCount]() {
-            for (uint32_t i = 0; i < opsPerThread; ++i) {
-                map.Compute(1, [&operationCount](auto k, int32_t &value) {
-                    operationCount++;
-                    return true;
-                });
-            }
+        threads.emplace_back([&operation]() {
+            operation();
         });
     }
 
     // Wait for all threads to complete
-    for (auto& thread : threads) {
+    for (auto &thread : threads) {
         thread.join();
     }
     EXPECT_EQ(operationCount.load(), numThreads * opsPerThread);

@@ -121,8 +121,8 @@ public:
 private:
     struct Node {
     public:
-        Node(const _Tp &value) : value_(value) {}
-        Node(_Tp &&value) : value_(std::move(value)) {}
+        Node(const _Tp &value) noexcept : value_(value)  {}
+        Node(_Tp &&value) noexcept : value_(std::move(value)) {}
         bool DoAction(std::function<bool(mapped_type &value, bool isValid)> action)
         {
             if (action == nullptr) {
@@ -151,10 +151,14 @@ private:
     std::shared_ptr<Node> Convert2AutoNode(std::shared_ptr<Node> node, const _Key &key)
     {
         return std::shared_ptr<Node>(node.get(), [holder = node, this, key](auto *p) {
+            // If it exceeds 2, it means that there are other threads holding it and the node cannot be deleted
+            // 2 main this holder and 1 map holder
             if (holder->IsValid() || holder.use_count() > 2) {
                 return;
             }
             std::lock_guard<decltype(mutex_)> lock(mutex_);
+            // If it exceeds 2, it means that there are other threads holding it and the node cannot be deleted
+            // 2 main this holder and 1 map holder
             if (holder->IsValid() || holder.use_count() > 2) {
                 return;
             }
