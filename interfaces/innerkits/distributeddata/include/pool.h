@@ -16,6 +16,7 @@
 #ifndef OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_POOL_H
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_POOL_H
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 namespace OHOS {
