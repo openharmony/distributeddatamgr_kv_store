@@ -533,6 +533,7 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
     EXPECT_EQ(entry.value, VALUE_1);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: SingleVerNaturalStoreTest
   * @tc.desc: Test SingleVerNaturalStore interfaces with invalid db.
@@ -558,11 +559,9 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVerNaturalStor
     Timestamp stamp = 0;
     storeObj.GetMaxTimestamp(stamp);
     CloudSyncConfig config;
-#ifdef USE_DISTRIBUTEDDB_CLOUD
     EXPECT_EQ(storeObj.SetCloudSyncConfig(config), -E_INTERNAL_ERROR);
     std::map<std::string, std::string> versionMap;
     EXPECT_EQ(storeObj.GetCloudVersion("", versionMap), -E_INTERNAL_ERROR);
-#endif
     std::shared_ptr<KvStoreObserver> observer;
     EXPECT_EQ(storeObj.UnRegisterObserverAction(observer), -E_INTERNAL_ERROR);
     ObserverAction action;
@@ -576,3 +575,4 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVerNaturalStor
     storeObj.SetConnectionFlag(true);
     EXPECT_EQ(storeObj.IsDataMigrating(), false);
 }
+#endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "rdb_general_ut.h"
 #include "relational_store_delegate_impl.h"
 #include "single_ver_relational_syncer.h"
@@ -399,3 +400,4 @@ HWTEST_F(DistributedDBRDBCompressTest, VerifyInvalidGetDeviceSyncTaskCount001, T
     EXPECT_EQ(syncer.GetTaskCount(), 0);
 }
 }
+#endif

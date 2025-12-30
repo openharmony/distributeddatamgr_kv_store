@@ -343,7 +343,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const Tabl
         return errCode;
     }
     newTableInfo.SetCloudTable(localTableInfo.GetCloudTable());
-    if (CheckTableConstraint(newTableInfo, mode, syncType)) {
+    if (CheckTableConstraint(newTableInfo, mode, syncType) != E_OK) {
         LOGE("[UpgradeDistributedTable] Not support create distributed table when violate constraints.");
         return -E_NOT_SUPPORT;
     }

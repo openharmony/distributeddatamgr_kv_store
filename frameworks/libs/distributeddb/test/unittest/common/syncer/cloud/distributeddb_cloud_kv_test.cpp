@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 
@@ -2683,3 +2684,4 @@ HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest004, TestSize.Level1)
 }
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD
+#endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "rdb_general_ut.h"
 
 namespace DistributedDB {
@@ -603,3 +604,4 @@ HWTEST_F(DistributedDBRDBDataStatusTest, TimeCheck001, TestSize.Level0)
     EXPECT_GE(t2, t1);
 }
 }
+#endif

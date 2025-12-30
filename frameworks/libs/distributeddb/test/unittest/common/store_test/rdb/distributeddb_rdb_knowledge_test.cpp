@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "rdb_general_ut.h"
 #include "relational_store_client.h"
 
@@ -248,3 +249,4 @@ HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge005, TestSize.Level0)
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_ERROR);
 }
 }
+#endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 
 namespace DistributedDB {
@@ -309,3 +310,4 @@ HWTEST_F(DistributedDBBasicKVTest, LocalPut004, TestSize.Level0)
     EXPECT_EQ(v1, actualValue);
 }
 } // namespace DistributedDB
+#endif

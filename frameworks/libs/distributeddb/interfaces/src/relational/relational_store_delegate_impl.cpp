@@ -48,7 +48,11 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         return INVALID_ARGS;
     }
     if (mode == DEFAULT) {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
         return RemoveDeviceData(device, "");
+#else
+        return OK;
+#endif
     }
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");
@@ -61,8 +65,10 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
-#endif
     return OK;
+#else
+    return OK;
+#endif
 }
 
 DBStatus RelationalStoreDelegateImpl::RemoveDeviceTableDataInner(const ClearDeviceDataOption &option)
@@ -111,6 +117,18 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
         return NOT_SUPPORT;
     }
 
+    if (type == DEVICE_COOPERATION) {
+#ifndef USE_DISTRIBUTEDDB_DEVICE
+        return OK;
+#endif
+    }
+
+    if (type == CLOUD_COOPERATION) {
+#ifndef USE_DISTRIBUTEDDB_CLOUD
+        return OK;
+#endif
+    }
+
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");
         return DB_ERROR;
@@ -130,6 +148,7 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
     return OK;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode,
     const Query &query, const SyncStatusCallback &onComplete, bool wait)
 {
@@ -180,6 +199,38 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData(const std::string &device
     return OK;
 }
 
+DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
+{
+    if (conn_ == nullptr) {
+        LOGE("Invalid connection for operation!");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->RemoveDeviceData();
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] remove device data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::RemoteQuery(const std::string &device, const RemoteCondition &condition,
+    uint64_t timeout, std::shared_ptr<ResultSet> &result)
+{
+    if (conn_ == nullptr) {
+        LOGE("Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->RemoteQuery(device, condition, timeout, result);
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] remote query failed:%d", errCode);
+        result = nullptr;
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+#endif
+
 DBStatus RelationalStoreDelegateImpl::Close()
 {
     if (conn_ == nullptr) {
@@ -221,37 +272,6 @@ void RelationalStoreDelegateImpl::OnSyncComplete(const std::map<std::string, std
     if (onComplete) {
         onComplete(res);
     }
-}
-
-DBStatus RelationalStoreDelegateImpl::RemoteQuery(const std::string &device, const RemoteCondition &condition,
-    uint64_t timeout, std::shared_ptr<ResultSet> &result)
-{
-    if (conn_ == nullptr) {
-        LOGE("Invalid connection for operation!");
-        return DB_ERROR;
-    }
-    int errCode = conn_->RemoteQuery(device, condition, timeout, result);
-    if (errCode != E_OK) {
-        LOGW("[RelationalStore Delegate] remote query failed:%d", errCode);
-        result = nullptr;
-        return TransferDBErrno(errCode);
-    }
-    return OK;
-}
-
-DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
-{
-    if (conn_ == nullptr) {
-        LOGE("Invalid connection for operation!");
-        return DB_ERROR;
-    }
-
-    int errCode = conn_->RemoveDeviceData();
-    if (errCode != E_OK) {
-        LOGW("[RelationalStore Delegate] remove device data failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    return OK;
 }
 
 DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
@@ -365,6 +385,7 @@ DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, 
     return OK;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 DBStatus RelationalStoreDelegateImpl::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
 {
     if (conn_ == nullptr) {
@@ -386,6 +407,23 @@ DBStatus RelationalStoreDelegateImpl::SetReference(const std::vector<TableRefere
     LOGI("[RelationalStore Delegate] SetReference success");
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
+    RecordStatus status)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->UpsertData(status, tableName, records);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Upsert data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    LOGI("[RelationalStore Delegate] Upsert data success");
+    return OK;
+}
+#endif
 
 DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableName, int64_t cursor)
 {
@@ -418,63 +456,6 @@ DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaDa
     }
     LOGI("[RelationalStore Delegate] Pragma success");
     return OK;
-}
-
-DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
-    RecordStatus status)
-{
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
-        return DB_ERROR;
-    }
-    int errCode = conn_->UpsertData(status, tableName, records);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] Upsert data failed:%d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    LOGI("[RelationalStore Delegate] Upsert data success");
-    return OK;
-}
-
-DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
-{
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for setting db schema!");
-        return DB_ERROR;
-    }
-
-    if (ParamCheckUtils::IsSchemaTablesEmpty(schema)) {
-        LOGE("[RelationalStore Delegate] Schema tables are empty when setting db schema!");
-        return SCHEMA_MISMATCH;
-    }
-
-    std::string userId;
-    std::string appId;
-    std::string storeId;
-    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
-    if (errCode != E_OK) {
-        LOGW("[RelationalStore Delegate] Get storeInfo failed %d", errCode);
-        return TransferDBErrno(errCode);
-    }
-    errCode = conn_->SetDistributedDbSchema(schema, isForceUpgrade);
-    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d, force upgrade: %d",
-        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode,
-        isForceUpgrade);
-    return TransferDBErrno(errCode);
-}
-
-std::pair<DBStatus, int32_t> RelationalStoreDelegateImpl::GetDownloadingAssetsCount()
-{
-    if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for sync!");
-        return {DB_ERROR, 0};
-    }
-    int32_t count = 0;
-    int errCode = conn_->GetDownloadingAssetsCount(count);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] get downloading assets count failed:%d", errCode);
-    }
-    return {TransferDBErrno(errCode), count};
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
@@ -564,6 +545,7 @@ SyncProcess RelationalStoreDelegateImpl::GetCloudTaskStatus(uint64_t taskId)
     }
     return conn_->GetCloudTaskStatus(taskId);
 }
+
 int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
 {
     if (conn_ == nullptr) {
@@ -630,8 +612,23 @@ DBStatus RelationalStoreDelegateImpl::SetCloudConflictHandler(const std::shared_
         errCode);
     return TransferDBErrno(errCode);
 }
+
+std::pair<DBStatus, int32_t> RelationalStoreDelegateImpl::GetDownloadingAssetsCount()
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for sync!");
+        return {DB_ERROR, 0};
+    }
+    int32_t count = 0;
+    int errCode = conn_->GetDownloadingAssetsCount(count);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] get downloading assets count failed:%d", errCode);
+    }
+    return {TransferDBErrno(errCode), count};
+}
 #endif
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 DBStatus RelationalStoreDelegateImpl::SetStoreConfig(const StoreConfig &config)
 {
     if (!config.tableMode.has_value()) {
@@ -683,6 +680,35 @@ DBStatus RelationalStoreDelegateImpl::SetProperty(const Property &property)
     return TransferDBErrno(conn_->SetProperty(property));
 }
 
+DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for setting db schema!");
+        return DB_ERROR;
+    }
+
+    if (ParamCheckUtils::IsSchemaTablesEmpty(schema)) {
+        LOGE("[RelationalStore Delegate] Schema tables are empty when setting db schema!");
+        return SCHEMA_MISMATCH;
+    }
+
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] Get storeInfo failed %d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    errCode = conn_->SetDistributedDbSchema(schema, isForceUpgrade);
+    LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d, force upgrade: %d",
+        DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode,
+        isForceUpgrade);
+    return TransferDBErrno(errCode);
+}
+#endif
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 DBStatus RelationalStoreDelegateImpl::StopTask(TaskType type)
 {
     LOGW("[RelationalStore Delegate] Stop task by user, type: %u", type);
@@ -692,5 +718,6 @@ DBStatus RelationalStoreDelegateImpl::StopTask(TaskType type)
     }
     return TransferDBErrno(conn_->StopTask(type));
 }
+#endif
 } // namespace DistributedDB
 #endif

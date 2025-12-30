@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 #include <variant>
 
@@ -2895,3 +2897,5 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync006, TestSize.Level0)
     }
 }
 }
+#endif
+#endif

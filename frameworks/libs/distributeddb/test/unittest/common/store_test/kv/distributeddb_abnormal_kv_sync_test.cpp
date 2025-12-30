@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 
 namespace DistributedDB {
@@ -66,3 +67,4 @@ HWTEST_F(DistributedDBAbnormalKVSyncTest, SyncWithInvalidSoftwareVersionTest001,
     EXPECT_GT(msgCount, 0);
 }
 }
+#endif

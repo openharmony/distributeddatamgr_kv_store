@@ -38,6 +38,7 @@ config("module_private_config") {
     "USE_SQLITE_SYMBOLS",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "USE_DISTRIBUTEDDB_CLOUD",
+    "USE_DISTRIBUTEDDB_DEVICE",
   ]
 }
 

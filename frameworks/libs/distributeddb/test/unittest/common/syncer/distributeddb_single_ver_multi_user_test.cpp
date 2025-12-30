@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <condition_variable>
 #include <gtest/gtest.h>
 #include <thread>
@@ -979,3 +980,4 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser015, TestSize.Level1)
     ASSERT_TRUE(status == OK);
     observer = nullptr;
 }
+#endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 
 #include "db_constant.h"
@@ -1513,3 +1514,4 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, DeleteTest001, TestSize.Level1)
     g_currentStatus = 0;
     CloseStore();
 }
+#endif

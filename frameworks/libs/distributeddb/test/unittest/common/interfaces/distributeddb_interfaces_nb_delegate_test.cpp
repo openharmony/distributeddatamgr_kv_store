@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -1061,6 +1062,7 @@ static void PreparePutBatch004(vector<Entry> &entrys1, vector<Entry> &entrys2, v
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SingleVerPutBatch004
   * @tc.desc: Check interface data insertion and update functions.
@@ -1150,6 +1152,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch004, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutBatch_004"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 static void CreatEntrys(int recordSize, vector<Key> &keys, vector<Value> &values, vector<Entry> &entries)
 {
@@ -1355,6 +1358,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch008, TestSize.L
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SingleVerPutBatch009
   * @tc.desc: Check for illegal parameters
@@ -1428,6 +1432,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch009, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutBatch_001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 #endif // LOW_LEVEL_MEM_DEV
 
 /**
@@ -1855,6 +1860,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, Te
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SingleVerPutBatchObserver002
   * @tc.desc: Test the observer function of PutBatch() for invalid input.
@@ -1928,6 +1934,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver002, Te
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutBatchObserver_002"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 /**
   * @tc.name: SingleVerPutBatchObserver003
@@ -2997,3 +3004,4 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SetAndGetHandleTest002, TestSize
     }
 }
 }
+#endif

@@ -884,6 +884,7 @@ namespace {
         EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
     }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     /**
      * @tc.name: FuncExceptionTest001
      * @tc.desc: Test the interception expection of the delegate interface when the conn is empty.
@@ -915,4 +916,5 @@ namespace {
         iDelegate->SetReleaseFlag(false);
         iDelegate = nullptr;
     }
+#endif
 }

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <queue>
 #include <random>
@@ -164,7 +165,9 @@ void DistributedDBInterfacesRelationalTest::SetUp(void)
         const std::string &deviceId, uint8_t flag) -> bool {
         return true;
     };
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(permissionCheckCallback), OK);
+#endif
 }
 
 void DistributedDBInterfacesRelationalTest::TearDown(void)
@@ -174,8 +177,10 @@ void DistributedDBInterfacesRelationalTest::TearDown(void)
         delete g_deviceB;
         g_deviceB = nullptr;
     }
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     PermissionCheckCallbackV2 nullCallback;
     EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(nullCallback), OK);
+#endif
     if (g_communicatorAggregator != nullptr) {
         g_communicatorAggregator->RegOnDispatch(nullptr);
     }
@@ -388,6 +393,8 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
     EXPECT_EQ(status, OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: RelationalStoreTest004
   * @tc.desc: Test create distributed table with over limit for DEVICE_COOPERATION type
@@ -2113,6 +2120,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest007, T
     DBStatus status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }
+#endif
+#endif
 
 /**
   * @tc.name: StoreId001
@@ -2189,3 +2198,4 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, GetDbHandleConcurrentlyTest001, 
     EXPECT_EQ(status, OK);
 }
 }
+#endif

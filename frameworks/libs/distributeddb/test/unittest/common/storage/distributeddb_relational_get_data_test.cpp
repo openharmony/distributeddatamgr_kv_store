@@ -320,6 +320,7 @@ void DistributedDBRelationalGetDataTest::TearDown(void)
     return;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: LogTbl1
  * @tc.desc: When put sync data to relational store, trigger generate log.
@@ -1734,6 +1735,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, ReleaseContinueTokenTest001, TestSi
     std::this_thread::sleep_for(std::chrono::seconds(1));
     RefObject::DecObjRef(syncInterface);
 }
+#endif
 
 /**
  * @tc.name: StopSync001

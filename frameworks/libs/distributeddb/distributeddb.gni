@@ -16,6 +16,7 @@ distributeddb_path =
 
 declare_args() {
   kv_store_cloud = true
+  kv_store_device = true
 }
 
 distributeddb_src = [

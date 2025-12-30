@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <condition_variable>
 #include <gtest/gtest.h>
 #include <thread>
@@ -814,3 +815,4 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck010, TestSi
     PermissionCheckCallbackV2 nullCallback = nullptr;
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(nullCallback), OK);
 }
+#endif

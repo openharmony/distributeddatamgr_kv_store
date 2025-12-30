@@ -69,6 +69,9 @@ config("distrdb_config") {
   if (kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
   }
+  if (kv_store_device) {
+    defines += [ "USE_DISTRIBUTEDDB_DEVICE" ]
+  }
 }
 
 config("distrdb_public_config") {
@@ -243,6 +246,9 @@ config("distributeddb_client_config") {
   }
   if (kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
+  }
+  if (kv_store_device) {
+    defines += [ "USE_DISTRIBUTEDDB_DEVICE" ]
   }
 }
 

@@ -180,8 +180,13 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
 {
     if (mode == ClearMode::DEFAULT) {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
         return CloudExcuteRemoveOrUpdate(REMOVE_ALL_DEV_SYNC_DATA_SQL, "", "");
+#else
+        return E_OK;
+#endif
     }
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
         return errCode;
@@ -199,13 +204,22 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
         }
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_ALL_DEV_DATA_SQL, "", "");
+#else
+        return E_OK;
+#endif
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &deviceName, ClearMode mode)
 {
     if (mode == ClearMode::DEFAULT) {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
         return CloudExcuteRemoveOrUpdate(REMOVE_DEV_SYNC_DATA_BY_DEV_ID_SQL, deviceName, "");
+#else
+        return E_OK;
+#endif
     }
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
         return errCode;
@@ -223,6 +237,9 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &dev
         }
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL, deviceName, "");
+#else
+        return E_OK;
+#endif
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceDataWithUserInner(const std::string &user, ClearMode mode)
@@ -296,9 +313,15 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
     ClearMode mode)
 {
     if (mode == ClearMode::DEFAULT) {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
         return CheckCorruptedStatus(deviceName.empty() ?
             RemoveDeviceDataInner(mode) : RemoveDeviceDataInner(deviceName, mode));
+#else
+        return E_OK;
+#endif
     }
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int errCode = E_OK;
     bool isDataExist = false;
     if (deviceName.empty()) {
@@ -313,6 +336,9 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
         return CheckCorruptedStatus(errCode);
     }
     return CheckCorruptedStatus(RemoveDeviceDataWithUserInner(deviceName, user, mode));
+#else
+    return E_OK;
+#endif
 }
 
 int SQLiteSingleVerStorageExecutor::GetEntries(const std::string &device, std::vector<Entry> &entries) const

@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
 #include <fcntl.h>
@@ -1481,3 +1483,4 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel002, Test
     g_junkFilesList.push_back(singleFileName);
 }
 #endif // OMIT_ENCRYPT
+#endif

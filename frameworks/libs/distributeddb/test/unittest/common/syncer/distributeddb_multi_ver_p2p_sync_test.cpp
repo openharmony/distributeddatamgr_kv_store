@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 #include <thread>
@@ -1648,3 +1650,4 @@ HWTEST_F(DistributedDBMultiVerP2PSyncTest, PermissionCheck002, TestSize.Level2)
 }
 #endif
 #endif // OMIT_MULTI_VER
+#endif

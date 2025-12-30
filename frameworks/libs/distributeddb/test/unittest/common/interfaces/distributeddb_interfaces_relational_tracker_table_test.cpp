@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 #include <queue>
 #include <random>
@@ -3047,3 +3049,5 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest041,
     CloseStore();
 }
 }
+#endif
+#endif

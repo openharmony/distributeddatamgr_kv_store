@@ -180,9 +180,10 @@ public:
 static std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter;
 void DistributedDBStorageSubscribeQueryTest::SetUpTestCase(void)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     g_mgr.SetProcessLabel("DistributedDBStorageSubscribeQueryTest", "test");
     g_mgr.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>()); // export and import get devID
-
+#endif
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     ASSERT_EQ(DistributedDBToolsUnitTest::GetResourceDir(g_resourceDir), E_OK);
     LOGD("Test dir is %s", g_testDir.c_str());

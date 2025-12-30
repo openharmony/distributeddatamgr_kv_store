@@ -524,6 +524,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck003, Tes
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID2), OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SingleVerRekeyCheck004
   * @tc.desc: Test rekey and removeDeviceData
@@ -571,4 +572,5 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck004, Tes
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID2), OK);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
+#endif
 #endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <condition_variable>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -457,3 +458,4 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SingleVerUtilsTest002, TestSize.Level0)
     SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(inData, 100, 100, isUpdate);
     delete kvEnv;
 }
+#endif

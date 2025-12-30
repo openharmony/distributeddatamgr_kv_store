@@ -103,6 +103,7 @@ ohos_fuzztest("RelationalstoredelegateGetFuzzTest") {
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
     "USE_DISTRIBUTEDDB_CLOUD",
+    "USE_DISTRIBUTEDDB_DEVICE",
   ]
 
   deps = [ "../../../../distributeddb:distributeddb" ]

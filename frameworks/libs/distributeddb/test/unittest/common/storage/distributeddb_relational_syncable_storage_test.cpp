@@ -178,6 +178,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
     conn = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: FuncExceptionTest002
  * @tc.desc: Test the interception expection of the delegate interface when the store is empty.
@@ -222,4 +223,5 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest002, TestS
     int32_t localCount = 0;
     EXPECT_EQ(executor->GetFlagIsLocalCount("tableName", localCount), -E_INVALID_DB);
 }
+#endif
 #endif // RELATIONAL_STORE

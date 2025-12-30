@@ -172,7 +172,9 @@ std::string RelationalStoreManager::GetDistributedTableName(const std::string &d
 
 void RelationalStoreManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBTypeInner::DB_RELATION);
+#endif
 }
 
 std::string RelationalStoreManager::GetRelationalStoreIdentifier(const std::string &userId, const std::string &appId,

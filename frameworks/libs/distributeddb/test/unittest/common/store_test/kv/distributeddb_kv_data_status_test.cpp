@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 
 namespace DistributedDB {
@@ -440,3 +441,4 @@ HWTEST_F(DistributedDBKVDataStatusTest, CloudOperateDataStatus003, TestSize.Leve
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD
 } // namespace DistributedDB
+#endif

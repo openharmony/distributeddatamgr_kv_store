@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -1492,3 +1493,4 @@ HWTEST_F(DistributedDBCommunicatorTest, GetRemoteCommunicatorVersionTest001, Tes
     EXPECT_EQ(aggregator->GetRemoteCommunicatorVersion("notExistTarget", outVersion), -E_NOT_FOUND);
 }
 }
+#endif

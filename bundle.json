@@ -40,7 +40,8 @@
       "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
     ],
     "features": [
-      "kv_store_cloud"
+      "kv_store_cloud",
+      "kv_store_device"
     ],
     "adapted_system_type": [
       "standard"

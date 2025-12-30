@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <condition_variable>
 #include <gtest/gtest.h>
 #include <thread>
@@ -1833,3 +1834,4 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, QuerySyncRetry001, TestSize.Le
     g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
 }
 }
+#endif

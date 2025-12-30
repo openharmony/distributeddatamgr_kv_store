@@ -34,6 +34,7 @@ std::shared_ptr<IProcessCommunicator> RuntimeConfig::processCommunicator_ = null
 // Used to set the process userid and appId
 DBStatus RuntimeConfig::SetProcessLabel(const std::string &appId, const std::string &userId)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     if (appId.size() > DBConstant::MAX_APP_ID_LENGTH || appId.empty() ||
         userId.size() > DBConstant::MAX_USER_ID_LENGTH || userId.empty()) {
         LOGE("Invalid app or user info[%zu]-[%zu]", appId.length(), userId.length());
@@ -46,11 +47,15 @@ DBStatus RuntimeConfig::SetProcessLabel(const std::string &appId, const std::str
         return DB_ERROR;
     }
     return OK;
+#else
+    return OK;
+#endif
 }
 
 // Set process communicator.
 DBStatus RuntimeConfig::SetProcessCommunicator(const std::shared_ptr<IProcessCommunicator> &inCommunicator)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> lock(communicatorMutex_);
     if (processCommunicator_ != nullptr) {
         LOGE("processCommunicator_ is not null!");
@@ -76,21 +81,36 @@ DBStatus RuntimeConfig::SetProcessCommunicator(const std::shared_ptr<IProcessCom
     }
     KvDBManager::RestoreSyncableKvStore();
     return OK;
+#else
+    return OK;
+#endif
 }
 
 DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallbackV2 &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallbackV3 &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 DBStatus RuntimeConfig::SetProcessSystemAPIAdapter(const std::shared_ptr<IProcessSystemApiAdapter> &adapter)
@@ -105,8 +125,12 @@ void RuntimeConfig::Dump(int fd, const std::vector<std::u16string> &args)
 
 DBStatus RuntimeConfig::SetSyncActivationCheckCallback(const SyncActivationCheckCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> lock(multiUserMutex_);
     return TransferDBErrno(RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 DBStatus RuntimeConfig::NotifyUserChanged()
@@ -122,32 +146,47 @@ bool RuntimeConfig::IsProcessSystemApiAdapterValid()
 
 DBStatus RuntimeConfig::SetSyncActivationCheckCallback(const SyncActivationCheckCallbackV2 &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> lock(multiUserMutex_);
     return TransferDBErrno(RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 DBStatus RuntimeConfig::SetPermissionConditionCallback(const PermissionConditionCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionConditionCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 void RuntimeConfig::SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->SetDBInfoHandle(handle);
+#endif
 }
 
 void RuntimeConfig::NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->NotifyDBInfos(devInfos, dbInfos);
+#endif
 }
 
 void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::TranslateToDeviceIdCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->SetTranslateToDeviceIdCallback(callback);
+#endif
 }
 
 void RuntimeConfig::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     DBTypeInner innerType = DBTypeInner::DB_INVALID;
     if (type == DBType::DB_KV) {
         innerType = DBTypeInner::DB_KV;
@@ -155,6 +194,7 @@ void RuntimeConfig::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback
         innerType = DBTypeInner::DB_RELATION;
     }
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, innerType);
+#endif
 }
 
 std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const std::string &appId,
@@ -176,17 +216,21 @@ std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const s
 void RuntimeConfig::ReleaseAutoLaunch(const std::string &userId, const std::string &appId, const std::string &storeId,
     DBType type)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     ReleaseAutoLaunch(userId, "", appId, storeId, type);
+#endif
 }
 
 void RuntimeConfig::ReleaseAutoLaunch(const std::string &userId, const std::string &subUserId,
     const std::string &appId, const std::string &storeId, DBType type)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     DBProperties properties;
     properties.SetIdentifier(userId, appId, storeId, subUserId);
 
     DBTypeInner innerType = (type == DBType::DB_KV ? DBTypeInner::DB_KV : DBTypeInner::DB_RELATION);
     RuntimeContext::GetInstance()->CloseAutoLaunchConnection(innerType, properties);
+#endif
 }
 
 void RuntimeConfig::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool)
@@ -207,7 +251,11 @@ DBStatus RuntimeConfig::SetAsyncDownloadAssetsConfig(const AsyncDownloadAssetsCo
 
 DBStatus RuntimeConfig::SetDataFlowCheckCallback(const DataFlowCheckCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return TransferDBErrno(RuntimeContext::GetInstance()->SetDataFlowCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 } // namespace DistributedDB
 #endif

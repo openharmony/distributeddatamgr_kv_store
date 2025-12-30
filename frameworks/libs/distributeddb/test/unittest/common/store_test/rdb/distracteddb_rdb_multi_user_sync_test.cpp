@@ -79,6 +79,7 @@ void DistributedDBRDBMultiUserSyncTest::SetTargetUserId(const std::string &devic
     communicator->SetTargetUserId(userId);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 HWTEST_F(DistributedDBRDBMultiUserSyncTest, NormalSyncTest001, TestSize.Level0)
 {
     /**
@@ -138,4 +139,5 @@ HWTEST_F(DistributedDBRDBMultiUserSyncTest, NormalSyncTest001, TestSize.Level0)
     EXPECT_EQ(actualCount, 1);
     ASSERT_EQ(RDBGeneralUt::CloseDelegate(deviceBStore), OK);
 }
+#endif
 }

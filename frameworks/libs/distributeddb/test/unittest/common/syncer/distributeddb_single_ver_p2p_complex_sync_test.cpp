@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <condition_variable>
 #include <gtest/gtest.h>
 #include <thread>
@@ -2355,3 +2356,4 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, TestErrCodePassthrough002, Te
     g_communicatorAggregator->MockCommErrCode(E_OK);
     g_communicatorAggregator->MockDirectEndFlag(true);
 }
+#endif

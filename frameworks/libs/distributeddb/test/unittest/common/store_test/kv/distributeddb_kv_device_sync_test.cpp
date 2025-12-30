@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 #include "kv_store_nb_delegate_impl.h"
 
@@ -184,3 +185,4 @@ HWTEST_F(DistributedDBKvDeviceSyncTest, AbnormalKvSyncTest001, TestSize.Level1)
     EXPECT_EQ(store2->Get(key, actualValue), NOT_FOUND);
 }
 }
+#endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <condition_variable>
 #include <gtest/gtest.h>
 #include <thread>
@@ -856,3 +857,4 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync002, Te
 }
 
 } // namespace
+#endif

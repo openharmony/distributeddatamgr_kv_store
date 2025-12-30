@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -1171,3 +1172,4 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest003, Te
 }
 #endif
 }
+#endif

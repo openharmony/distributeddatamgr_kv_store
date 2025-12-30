@@ -858,6 +858,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, CompressionRate2, TestSize
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), NOT_FOUND);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, DataInterceptor1, TestSize.Level1)
 {
     /**
@@ -882,3 +883,4 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, DataInterceptor1, TestSize
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
 }
+#endif

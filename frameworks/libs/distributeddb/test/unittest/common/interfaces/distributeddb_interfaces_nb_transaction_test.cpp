@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 
 #include "db_common.h"
@@ -1097,3 +1098,4 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback008, TestSize.Level1)
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_transaction_rollback008"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif

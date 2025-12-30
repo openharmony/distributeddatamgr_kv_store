@@ -137,13 +137,22 @@ public:
     //                       synced data changes from remote devices,
     //                       local changes of local kv store.
     DB_API virtual DBStatus RegisterObserver(const Key &key, unsigned int mode,
-        std::shared_ptr<KvStoreObserver> observer) = 0;
+        std::shared_ptr<KvStoreObserver> observer)
+    {
+        return OK;
+    }
 
     // UnRegister the registered observer.
-    DB_API virtual DBStatus UnRegisterObserver(std::shared_ptr<KvStoreObserver> observer) = 0;
+    DB_API virtual DBStatus UnRegisterObserver(std::shared_ptr<KvStoreObserver> observer)
+    {
+        return OK;
+    }
 
     // Remove the device data synced from remote.
-    DB_API virtual DBStatus RemoveDeviceData(const std::string &device) = 0;
+    DB_API virtual DBStatus RemoveDeviceData(const std::string &device)
+    {
+        return OK;
+    }
 
     // Other interfaces
     DB_API virtual std::string GetStoreId() const = 0;
@@ -151,10 +160,16 @@ public:
     // Sync function interface, if wait set true, this function will be blocked until sync finished
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        bool wait = false) = 0;
+        bool wait = false)
+    {
+        return OK;
+    }
 
     // Special pragma interface, see PragmaCmd and PragmaData,
-    DB_API virtual DBStatus Pragma(PragmaCmd cmd, PragmaData &paramData) = 0;
+    DB_API virtual DBStatus Pragma(PragmaCmd cmd, PragmaData &paramData)
+    {
+        return OK;
+    }
 
     // Set the conflict notifier for getting the specified type conflict data.
     DB_API virtual DBStatus SetConflictNotifier(int conflictType,
@@ -194,7 +209,10 @@ public:
     // Set a notify callback, it will be called when remote push or push_pull finished.
     // If Repeat set, subject to the last time.
     // If set nullptr, means unregister the notify.
-    DB_API virtual DBStatus SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier) = 0;
+    DB_API virtual DBStatus SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier)
+    {
+        return OK;
+    }
 
     // Sync function interface, if wait set true, this function will be blocked until sync finished.
     // Param query used to filter the records to be synchronized.
@@ -203,7 +221,10 @@ public:
     // the synchronization will still take the full amount.
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        const Query &query, bool wait) = 0;
+        const Query &query, bool wait)
+    {
+        return OK;
+    }
 
     DB_API virtual DBStatus Sync(const DeviceSyncOption &option,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete)
@@ -228,25 +249,40 @@ public:
 
     // Set an equal identifier for this database, After this called, send msg to the target will use this identifier
     DB_API virtual DBStatus SetEqualIdentifier(const std::string &identifier,
-        const std::vector<std::string> &targets) = 0;
+        const std::vector<std::string> &targets)
+    {
+        return OK;
+    }
 
     // This API is not recommended. Before using this API, you need to understand the API usage rules.
     // Set pushdatainterceptor. The interceptor works when send data.
-    DB_API virtual DBStatus SetPushDataInterceptor(const PushDataInterceptor &interceptor) = 0;
+    DB_API virtual DBStatus SetPushDataInterceptor(const PushDataInterceptor &interceptor)
+    {
+        return OK;
+    }
 
     // Register a subscriber query on peer devices. The data in the peer device meets the subscriber query condition
     // will automatically push to the local device when it's changed.
     DB_API virtual DBStatus SubscribeRemoteQuery(const std::vector<std::string> &devices,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        const Query &query, bool wait) = 0;
+        const Query &query, bool wait)
+    {
+        return OK;
+    }
 
     // Unregister a subscriber query on peer devices.
     DB_API virtual DBStatus UnSubscribeRemoteQuery(const std::vector<std::string> &devices,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        const Query &query, bool wait) = 0;
+        const Query &query, bool wait)
+    {
+        return OK;
+    }
 
     // Remove all other device data synced from other remote devices.
-    DB_API virtual DBStatus RemoveDeviceData() = 0;
+    DB_API virtual DBStatus RemoveDeviceData()
+    {
+        return OK;
+    }
 
     // Get keys from the public zone of this store by key prefix.
     // If 'keyPrefix' is empty, It would return all the keys in the zone.
@@ -254,14 +290,20 @@ public:
 
     // calculate full sync sync data size after Serialize;
     // return 1M while sync data size is larger than 1M, otherwise return actualy size
-    DB_API virtual size_t GetSyncDataSize(const std::string &device) const = 0;
+    DB_API virtual size_t GetSyncDataSize(const std::string &device) const
+    {
+        return OK;
+    }
 
     // update all key in sync_data which is not deleted data
     DB_API virtual DBStatus UpdateKey(const UpdateKeyCallback &callback) = 0;
 
     // get full watermark by device which is not contain query watermark
     // this api get watermark from cache which reload in get kv store
-    DB_API virtual std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) = 0;
+    DB_API virtual std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device)
+    {
+        return {OK, WatermarkInfo()};
+    }
 
     // sync with cloud
     DB_API virtual DBStatus Sync([[gnu::unused]] const CloudSyncOption &option,
@@ -284,13 +326,22 @@ public:
     }
 
     // remove device data for cloud
-    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) = 0;
+    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, ClearMode mode)
+    {
+        return OK;
+    }
 
     // remove device data for cloud and user
-    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) = 0;
+    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode)
+    {
+        return OK;
+    }
 
     // get all sync task count
-    DB_API virtual int32_t GetTaskCount() = 0;
+    DB_API virtual int32_t GetTaskCount()
+    {
+        return OK;
+    }
 
     // set generate cloud version callback
     DB_API virtual void SetGenCloudVersionCallback([[gnu::unused]] const GenerateCloudVersionCallback &callback)
@@ -307,7 +358,10 @@ public:
 
     // This API is not recommended. Before using this API, you need to understand the API usage rules.
     // The interceptor works when receive data.
-    DB_API virtual DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) = 0;
+    DB_API virtual DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+    {
+        return OK;
+    }
 
     // set the config for cloud sync task
     DB_API virtual DBStatus SetCloudSyncConfig([[gnu::unused]] const CloudSyncConfig &config)

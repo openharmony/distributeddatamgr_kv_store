@@ -1220,6 +1220,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExec
     EXPECT_EQ(ret, -E_INVALID_ARGS);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: AbnormalSqlExecutorTest002
   * @tc.desc: Check SQLiteSingleVerStorageExecutor interfaces abnormal scene.
@@ -1259,6 +1261,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, AbnormalSqlExec
     ret = g_nullHandle->CreateCloudLogTable();
     EXPECT_EQ(ret, -E_INVALID_DB);
 }
+#endif
+#endif
 
 /**
   * @tc.name: AbnormalSqlExecutorTest003

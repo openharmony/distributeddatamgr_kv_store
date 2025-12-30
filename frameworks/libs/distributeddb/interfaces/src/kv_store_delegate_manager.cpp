@@ -440,6 +440,7 @@ DBStatus KvStoreDelegateManager::DeleteKvStore(const std::string &storeId)
 
 DBStatus KvStoreDelegateManager::SetProcessLabel(const std::string &appId, const std::string &userId)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     if (appId.size() > DBConstant::MAX_APP_ID_LENGTH || appId.empty() ||
         userId.size() > DBConstant::MAX_USER_ID_LENGTH || userId.empty()) {
         LOGE("Invalid app or user info[%zu]-[%zu]", appId.length(), userId.length());
@@ -452,10 +453,14 @@ DBStatus KvStoreDelegateManager::SetProcessLabel(const std::string &appId, const
         return DB_ERROR;
     }
     return OK;
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::SetProcessCommunicator(const std::shared_ptr<IProcessCommunicator> &inCommunicator)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> lock(communicatorMutex_);
     if (processCommunicator_ != nullptr) {
         LOGE("processCommunicator_ is not null!");
@@ -481,6 +486,9 @@ DBStatus KvStoreDelegateManager::SetProcessCommunicator(const std::shared_ptr<IP
     }
     KvDBManager::RestoreSyncableKvStore();
     return OK;
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::GetKvStoreDiskSize(const std::string &storeId, uint64_t &size)
@@ -559,30 +567,47 @@ const std::string &KvStoreDelegateManager::GetKvStorePath() const
 
 DBStatus KvStoreDelegateManager::SetPermissionCheckCallback(const PermissionCheckCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     int errCode = RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback);
     return TransferDBErrno(errCode);
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::SetPermissionCheckCallback(const PermissionCheckCallbackV2 &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     int errCode = RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback);
     return TransferDBErrno(errCode);
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::SetPermissionCheckCallback(const PermissionCheckCallbackV4 &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &userId, const std::string &appId,
     const std::string &storeId, const AutoLaunchOption &option, const AutoLaunchNotifier &notifier)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     AutoLaunchParam param{ userId, appId, storeId, option, notifier, {}, "" };
     return EnableKvStoreAutoLaunch(param);
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const AutoLaunchParam &param)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     if (RuntimeContext::GetInstance() == nullptr) {
         return DB_ERROR;
     }
@@ -600,17 +625,25 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const AutoLaunchParam &
     }
     LOGI("[KvStoreManager] Enable auto launch");
     return OK;
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(
     const std::string &userId, const std::string &appId, const std::string &storeId)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return DisableKvStoreAutoLaunch(userId, "", appId, storeId);
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(const std::string &userId, const std::string &subUser,
     const std::string &appId, const std::string &storeId)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     if (RuntimeContext::GetInstance() == nullptr) {
         return DB_ERROR;
     }
@@ -625,11 +658,16 @@ DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(const std::string &use
     }
     LOGI("[KvStoreManager] Disable auto launch");
     return OK;
+#else
+    return OK;
+#endif
 }
 
 void KvStoreDelegateManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBTypeInner::DB_KV);
+#endif
 }
 
 std::string KvStoreDelegateManager::GetKvStoreIdentifier(
@@ -645,26 +683,38 @@ DBStatus KvStoreDelegateManager::SetProcessSystemAPIAdapter(const std::shared_pt
 
 void KvStoreDelegateManager::SetStoreStatusNotifier(const StoreStatusNotifier &notifier)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->SetStoreStatusNotifier(notifier);
+#endif
 }
 
 void KvStoreDelegateManager::SetStoreStatusNotifier(const StoreStatusNotifierV2 &notifier)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeContext::GetInstance()->SetStoreStatusNotifier(notifier);
+#endif
 }
 
 DBStatus KvStoreDelegateManager::SetSyncActivationCheckCallback(const SyncActivationCheckCallback &callback)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> lock(multiUserMutex_);
     int errCode = RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback);
     return TransferDBErrno(errCode);
+#else
+    return OK;
+#endif
 }
 
 DBStatus KvStoreDelegateManager::NotifyUserChanged()
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> lock(multiUserMutex_);
     int errCode = RuntimeContext::GetInstance()->NotifyUserChanged();
     return TransferDBErrno(errCode);
+#else
+    return OK;
+#endif
 }
 
 bool KvStoreDelegateManager::IsProcessSystemApiAdapterValid()

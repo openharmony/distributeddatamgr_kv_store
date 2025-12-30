@@ -178,6 +178,7 @@ void DistributedDBInterfacesNBDelegateRdTest::TearDown(void)
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name:
   * @tc.desc:
@@ -251,6 +252,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test_rd"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 /**
   * @tc.name: SingleVerGetLocalEntries001
@@ -1854,6 +1856,7 @@ void PutRangeDataIntoDB()
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: RdRangeQuery001
   * @tc.desc: Test GetEntries and the out of the parameter is entries.
@@ -2086,6 +2089,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Leve
     EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery003"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 void ChkRangeResultSetMoveFuc(KvStoreResultSet *resultSet, int beginNum, int endNum)
 {
@@ -2279,6 +2283,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery006, TestSize.Leve
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: RdGetWaterMarkInfo001
   * @tc.desc:Test get watermark info func with rd.
@@ -2311,6 +2316,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdGetWaterMarkInfo001, TestSiz
     EXPECT_EQ(g_mgr.DeleteKvStore("RdGetWaterMarkInfo001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 /**

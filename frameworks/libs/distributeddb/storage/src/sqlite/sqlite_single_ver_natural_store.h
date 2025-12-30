@@ -241,17 +241,15 @@ public:
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
     CloudSyncConfig GetCloudSyncConfig() const override;
+
+    int ClearCloudWatermark();
+    std::function<int(void)> ClearCloudWatermarkInner();
 #endif
 
     int OperateDataStatus(uint32_t dataOperator);
 
     static int OperateDataStatus(SQLiteSingleVerStorageExecutor *handle, const std::string &currentVirtualTime,
         const std::string &currentTime, uint32_t dataOperator);
-
-#ifdef USE_DISTRIBUTEDDB_CLOUD
-    int ClearCloudWatermark();
-    std::function<int(void)> ClearCloudWatermarkInner();
-#endif
 protected:
     void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
