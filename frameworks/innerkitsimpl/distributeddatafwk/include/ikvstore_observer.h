@@ -44,10 +44,10 @@ protected:
 
 class KvStoreObserverStub : public IRemoteStub<IKvStoreObserver> {
 public:
-    int OnRemoteRequest(uint32_t code, MessageParcel &data,
-                        MessageParcel &reply, MessageOption &option) override;
+    int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override;
+private:
+    int32_t OnRemoteChange(MessageParcel &data, MessageParcel &reply);
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
-
 #endif  // I_KVSTORE_OBSERVER_H
