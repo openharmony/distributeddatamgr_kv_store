@@ -346,7 +346,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample006, TestSize.Level0)
 const std::string TEST_TABLE = "entity_test_table";
 
 // 辅助函数：准备SQL语句
-sqlite3_stmt* PrepareStatement(sqlite3* db, const std::string& sql) {
+sqlite3_stmt* PrepareStatement(sqlite3* db, const std::string& sql)
+{
     sqlite3_stmt* stmt = nullptr;
     int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
     if (rc != SQLITE_OK) {
@@ -391,12 +392,12 @@ namespace TestEntities {
     })";
     
     // 实体类型2: 活动任务待办
-    const std::string ACTIVITY_TASK = R"({
+    const std::string ACTIVITY_ASSIGNMENT = R"({
         "activity_name": "篮球比赛",
         "activity_date": 1633027200,
         "location": "学校体育馆",
         "teacher_name": "王老师",
-        "activity_description": "班级篮球比赛",
+        "activity_description": "班级篮球赛事",
         "issue_date": 1632940800
     })";
     
@@ -480,7 +481,7 @@ namespace TestEntities {
  * @tc.desc: 基础功能测试 - 完全相同的实体应该返回重复
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate001, TestSize.Level0)
 {
@@ -496,7 +497,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate001, TestSize.Level0)
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
     // 创建包含content_type和page_content的表
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -512,7 +513,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate001, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -526,7 +527,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate001, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
@@ -540,7 +541,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate001, TestSize.Level0)
  * @tc.desc: 基础功能测试 - 完全不同的实体应该返回不重复
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate002, TestSize.Level0)
 {
@@ -555,7 +556,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate002, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -571,7 +572,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate002, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -585,7 +586,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate002, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::CHINESE_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::CHINESE_HOMEWORK.c_str(),
                       TestEntities::CHINESE_HOMEWORK.length(), SQLITE_TRANSIENT);
     
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
@@ -599,7 +600,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate002, TestSize.Level0)
  * @tc.desc: 基础功能测试 - 部分字段相同应该返回不重复
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
 {
@@ -614,7 +615,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -630,7 +631,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -644,7 +645,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK_DIFFERENT_DATE.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK_DIFFERENT_DATE.c_str(),
                       TestEntities::MATH_HOMEWORK_DIFFERENT_DATE.length(), SQLITE_TRANSIENT);
     
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
@@ -658,7 +659,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
  * @tc.desc: 边界条件测试 - 空值输入处理
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate004, TestSize.Level0)
 {
@@ -673,7 +674,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate004, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -695,7 +696,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate004, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
@@ -710,7 +711,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate004, TestSize.Level0)
     stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -733,7 +734,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate004, TestSize.Level0)
  * @tc.desc: Schema符合性测试 - 缺少必选字段
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate005, TestSize.Level0)
 {
@@ -748,7 +749,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate005, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -764,7 +765,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate005, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -777,7 +778,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate005, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MISSING_REQUIRED_FIELD.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MISSING_REQUIRED_FIELD.c_str(),
                       TestEntities::MISSING_REQUIRED_FIELD.length(), SQLITE_TRANSIENT);
     
     // 这里期望函数抛出错误
@@ -790,7 +791,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate005, TestSize.Level0)
  * @tc.desc: Schema符合性测试 - 字段类型不匹配
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate006, TestSize.Level0)
 {
@@ -805,7 +806,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate006, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -821,7 +822,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate006, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -834,7 +835,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate006, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::WRONG_TYPE_FIELD.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::WRONG_TYPE_FIELD.c_str(),
                       TestEntities::WRONG_TYPE_FIELD.length(), SQLITE_TRANSIENT);
     
     // 这里期望函数抛出错误
@@ -847,7 +848,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate006, TestSize.Level0)
  * @tc.desc: 跨实体类型比较测试
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate007, TestSize.Level0)
 {
@@ -862,7 +863,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate007, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -877,7 +878,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate007, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -890,8 +891,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate007, TestSize.Level0)
     stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::ACTIVITY_TASK.c_str(), 
-                      TestEntities::ACTIVITY_TASK.length(), SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 1, TestEntities::ACTIVITY_ASSIGNMENT.c_str(),
+                      TestEntities::ACTIVITY_ASSIGNMENT.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
     
@@ -903,8 +904,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate007, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::ACTIVITY_TASK.c_str(), 
-                      TestEntities::ACTIVITY_TASK.length(), SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 1, TestEntities::ACTIVITY_ASSIGNMENT.c_str(),
+                      TestEntities::ACTIVITY_ASSIGNMENT.length(), SQLITE_TRANSIENT);
     
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
     int result = sqlite3_column_int(stmt, 0);
@@ -917,7 +918,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate007, TestSize.Level0)
  * @tc.desc: JSON格式验证 - 无效JSON格式
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate008, TestSize.Level0)
 {
@@ -932,7 +933,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate008, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -948,7 +949,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate008, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -961,7 +962,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate008, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::INVALID_JSON.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::INVALID_JSON.c_str(),
                       TestEntities::INVALID_JSON.length(), SQLITE_TRANSIENT);
     
     // 这里期望函数抛出错误
@@ -974,7 +975,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate008, TestSize.Level0)
  * @tc.desc: SQL查询集成 - WHERE子句使用
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate009, TestSize.Level0)
 {
@@ -989,7 +990,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate009, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT, created_time INTEGER)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1002,21 +1003,23 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate009, TestSize.Level0)
      */
     std::vector<std::pair<int, std::string>> testData = {
         {1, TestEntities::MATH_HOMEWORK},
-        {2, TestEntities::CHINESE_HOMEWORK},
-        {3, TestEntities::MATH_HOMEWORK},  // 重复数据
-        {4, TestEntities::ACTIVITY_TASK}
+        {2, TestEntities::CHINESE_HOMEWORK},        // 2 means second
+        {3, TestEntities::MATH_HOMEWORK},  // 重复数据, 3 means the third
+        {4, TestEntities::ACTIVITY_ASSIGNMENT}  // 4 means the fourth
     };
     
     for (size_t i = 0; i < testData.size(); i++) {
-        std::string insertSql = "INSERT INTO " + TEST_TABLE + 
+        std::string insertSql = "INSERT INTO " + TEST_TABLE +
             " (id, content_type, page_content, created_time) VALUES (?, ?, ?, ?)";
         sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
         ASSERT_NE(stmt, nullptr);
         
         sqlite3_bind_int(stmt, 1, i + 1);
-        sqlite3_bind_int(stmt, 2, 1);  // content_type为1（作业待办）
-        sqlite3_bind_text(stmt, 3, testData[i].second.c_str(), 
+        sqlite3_bind_int(stmt, 2, 1);  // content_type为1, // 2 means second
+        // 3 means the third
+        sqlite3_bind_text(stmt, 3, testData[i].second.c_str(),
                           testData[i].second.length(), SQLITE_TRANSIENT);
+        // // 4 means the fourth, 1633027200 is a data
         sqlite3_bind_int64(stmt, 4, 1633027200 + i);
         EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
         sqlite3_finalize(stmt);
@@ -1026,12 +1029,12 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate009, TestSize.Level0)
      * @tc.steps: step3. 使用WHERE子句查询重复实体
      * @tc.expected: step3. 返回id为1和3的记录
      */
-    std::string querySql = "SELECT id FROM " + TEST_TABLE + 
+    std::string querySql = "SELECT id FROM " + TEST_TABLE +
         " WHERE is_entity_duplicate(page_content, ?) = 1 ORDER BY id";
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     
     std::vector<int> resultIds;
@@ -1052,7 +1055,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate009, TestSize.Level0)
  * @tc.desc: SQL查询集成 - 复杂查询组合
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate010, TestSize.Level0)
 {
@@ -1067,7 +1070,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate010, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT, created_time INTEGER)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1082,18 +1085,18 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate010, TestSize.Level0)
         {1, 1, TestEntities::MATH_HOMEWORK, 1633027200},  // 较早时间
         {2, 1, TestEntities::MATH_HOMEWORK, 1633027300},  // 较晚时间，重复
         {3, 1, TestEntities::CHINESE_HOMEWORK, 1633027400},  // 不同实体
-        {4, 2, TestEntities::ACTIVITY_TASK, 1633027500}   // 不同实体类型
+        {4, 2, TestEntities::ACTIVITY_ASSIGNMENT, 1633027500}   // 不同实体类型
     };
     
     for (const auto& data : testData) {
-        std::string insertSql = "INSERT INTO " + TEST_TABLE + 
+        std::string insertSql = "INSERT INTO " + TEST_TABLE +
             " (id, content_type, page_content, created_time) VALUES (?, ?, ?, ?)";
         sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
         ASSERT_NE(stmt, nullptr);
         
         sqlite3_bind_int(stmt, 1, std::get<0>(data));
         sqlite3_bind_int(stmt, 2, std::get<1>(data));
-        sqlite3_bind_text(stmt, 3, std::get<2>(data).c_str(), 
+        sqlite3_bind_text(stmt, 3, std::get<2>(data).c_str(),
                           std::get<2>(data).length(), SQLITE_TRANSIENT);
         sqlite3_bind_int64(stmt, 4, std::get<3>(data));
         EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
@@ -1104,12 +1107,12 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate010, TestSize.Level0)
      * @tc.steps: step3. 使用复杂查询组合
      * @tc.expected: step3. 返回id为2的记录（重复且created_time > 1633027200）
      */
-    std::string querySql = "SELECT id FROM " + TEST_TABLE + 
+    std::string querySql = "SELECT id FROM " + TEST_TABLE +
         " WHERE is_entity_duplicate(page_content, ?) = 1 AND created_time > ? ORDER BY id";
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     sqlite3_bind_int64(stmt, 2, 1633027200);
     
@@ -1130,7 +1133,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate010, TestSize.Level0)
  * @tc.desc: 所有实体类型遍历测试
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate011, TestSize.Level0)
 {
@@ -1145,7 +1148,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate011, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1158,20 +1161,20 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate011, TestSize.Level0)
      */
     std::vector<std::pair<int, std::string>> testData = {
         {1, TestEntities::MATH_HOMEWORK},        // 实体类型1
-        {2, TestEntities::ACTIVITY_TASK},        // 实体类型2
+        {2, TestEntities::ACTIVITY_ASSIGNMENT},        // 实体类型2
         {3, TestEntities::MEAL_PICKUP},          // 实体类型3
         {4, TestEntities::HOSPITAL_APPOINTMENT}  // 实体类型4
     };
     
     for (size_t i = 0; i < testData.size(); i++) {
-        std::string insertSql = "INSERT INTO " + TEST_TABLE + 
+        std::string insertSql = "INSERT INTO " + TEST_TABLE +
             " (id, content_type, page_content) VALUES (?, ?, ?)";
         sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
         ASSERT_NE(stmt, nullptr);
         
         sqlite3_bind_int(stmt, 1, i + 1);
         sqlite3_bind_int(stmt, 2, i + 1);  // content_type从1到4
-        sqlite3_bind_text(stmt, 3, testData[i].second.c_str(), 
+        sqlite3_bind_text(stmt, 3, testData[i].second.c_str(),
                           testData[i].second.length(), SQLITE_TRANSIENT);
         EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
         sqlite3_finalize(stmt);
@@ -1182,12 +1185,12 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate011, TestSize.Level0)
      * @tc.expected: step3. 所有实体类型都能正常工作
      */
     for (size_t i = 0; i < testData.size(); i++) {
-        std::string querySql = "SELECT is_entity_duplicate(page_content, ?) FROM " + 
+        std::string querySql = "SELECT is_entity_duplicate(page_content, ?) FROM " +
             TEST_TABLE + " WHERE id = ?";
         sqlite3_stmt* stmt = PrepareStatement(db, querySql);
         ASSERT_NE(stmt, nullptr);
         
-        sqlite3_bind_text(stmt, 1, testData[i].second.c_str(), 
+        sqlite3_bind_text(stmt, 1, testData[i].second.c_str(),
                           testData[i].second.length(), SQLITE_TRANSIENT);
         sqlite3_bind_int(stmt, 2, i + 1);
         
@@ -1203,7 +1206,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate011, TestSize.Level0)
  * @tc.desc: 错误处理测试 - 错误信息明确性
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
 {
@@ -1218,7 +1221,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1233,7 +1236,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
                       TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
     sqlite3_finalize(stmt);
@@ -1248,7 +1251,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::MISSING_REQUIRED_FIELD.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::MISSING_REQUIRED_FIELD.c_str(),
                       TestEntities::MISSING_REQUIRED_FIELD.length(), SQLITE_TRANSIENT);
     
     int stepResult = sqlite3_step(stmt);
@@ -1260,7 +1263,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::INVALID_JSON.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::INVALID_JSON.c_str(),
                       TestEntities::INVALID_JSON.length(), SQLITE_TRANSIENT);
     
     stepResult = sqlite3_step(stmt);
@@ -1272,7 +1275,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::WRONG_TYPE_FIELD.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::WRONG_TYPE_FIELD.c_str(),
                       TestEntities::WRONG_TYPE_FIELD.length(), SQLITE_TRANSIENT);
     
     stepResult = sqlite3_step(stmt);
@@ -1285,7 +1288,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate012, TestSize.Level0)
  * @tc.desc: 错误传播测试 - 复杂查询中的错误传播
  * @tc.type: FUNC
  * @tc.require:
- * @tc.author: 
+ * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate013, TestSize.Level0)
 {
@@ -1300,7 +1303,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate013, TestSize.Level0)
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT, value INTEGER)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1318,16 +1321,16 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate013, TestSize.Level0)
     };
     
     for (const auto& data : testData) {
-        std::string insertSql = "INSERT INTO " + TEST_TABLE + 
+        std::string insertSql = "INSERT INTO " + TEST_TABLE +
             " (id, content_type, page_content, value) VALUES (?, ?, ?, ?)";
         sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
         ASSERT_NE(stmt, nullptr);
         
         sqlite3_bind_int(stmt, 1, std::get<0>(data));
-        sqlite3_bind_int(stmt, 2, 1);
-        sqlite3_bind_text(stmt, 3, std::get<1>(data).c_str(), 
-                          std::get<1>(data).length(), SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 4, std::get<2>(data));
+        sqlite3_bind_int(stmt, 2, 1);   // 2 means second
+        sqlite3_bind_text(stmt, 3, std::get<1>(data).c_str(),
+                          std::get<1>(data).length(), SQLITE_TRANSIENT);    // 3 means third
+        sqlite3_bind_int(stmt, 4, std::get<2>(data));   // 4 means fourth
         EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
         sqlite3_finalize(stmt);
     }
@@ -1338,12 +1341,12 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate013, TestSize.Level0)
      */
     
     // 测试1: 在WHERE子句中使用无效JSON
-    std::string querySql = "SELECT SUM(value) FROM " + TEST_TABLE + 
+    std::string querySql = "SELECT SUM(value) FROM " + TEST_TABLE +
         " WHERE is_entity_duplicate(page_content, ?) = 1";
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
     
-    sqlite3_bind_text(stmt, 1, TestEntities::INVALID_JSON.c_str(), 
+    sqlite3_bind_text(stmt, 1, TestEntities::INVALID_JSON.c_str(),
                       TestEntities::INVALID_JSON.length(), SQLITE_TRANSIENT);
     
     int stepResult = sqlite3_step(stmt);
@@ -1354,13 +1357,13 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate013, TestSize.Level0)
      * @tc.steps: step4. 在子查询中触发UDF错误
      * @tc.expected: step4. 整个查询失败，错误正确传播
      */
-    querySql = "SELECT * FROM " + TEST_TABLE + 
-        " WHERE id IN (SELECT id FROM " + TEST_TABLE + 
+    querySql = "SELECT * FROM " + TEST_TABLE +
+        " WHERE id IN (SELECT id FROM " + TEST_TABLE +
         " WHERE is_entity_duplicate(page_content, ?) = 1)";
     stmt = PrepareStatement(db, querySql);
     ASSERT_NE(stmt, nullptr);
-    
-    sqlite3_bind_text(stmt, 1, TestEntities::WRONG_TYPE_FIELD.c_str(), 
+
+    sqlite3_bind_text(stmt, 1, TestEntities::WRONG_TYPE_FIELD.c_str(),
                       TestEntities::WRONG_TYPE_FIELD.length(), SQLITE_TRANSIENT);
     
     stepResult = sqlite3_step(stmt);
@@ -1369,28 +1372,34 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate013, TestSize.Level0)
 }
 
 // 辅助函数：插入实体数据
-void InsertEntityData(sqlite3* db, int id, int contentType, const std::string& entityJson) {
-    std::string insertSql = "INSERT INTO " + TEST_TABLE + 
+void InsertEntityData(sqlite3* db, int id, int contentType, const std::string& entityJson)
+{
+    std::string insertSql = "INSERT INTO " + TEST_TABLE +
         " (id, content_type, page_content) VALUES (?, ?, ?)";
     sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
-    if (!stmt) return;
+    if (!stmt) {
+        return;
+    }
     
     sqlite3_bind_int(stmt, 1, id);
-    sqlite3_bind_int(stmt, 2, contentType);
-    sqlite3_bind_text(stmt, 3, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, contentType); // 2 means second
+    sqlite3_bind_text(stmt, 3, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);  // 3 means the third param
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 }
 
 // 辅助函数：查询是否重复
-int QueryIsDuplicate(sqlite3* db, int id, const std::string& entityJson) {
-    std::string querySql = "SELECT is_entity_duplicate(page_content, ?) FROM " + 
+int QueryIsDuplicate(sqlite3* db, int id, const std::string& entityJson)
+{
+    std::string querySql = "SELECT is_entity_duplicate(page_content, ?) FROM " +
         TEST_TABLE + " WHERE id = ?";
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
-    if (!stmt) return -1;
+    if (!stmt) {
+        return -1;
+    }
     
     sqlite3_bind_text(stmt, 1, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2, id);
+    sqlite3_bind_int(stmt, 2, id);  // 2 means second
     
     int result = -1;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -1401,16 +1410,17 @@ int QueryIsDuplicate(sqlite3* db, int id, const std::string& entityJson) {
 }
 
 // 辅助函数：查询重复实体ID
-std::vector<int> QueryDuplicateEntities(sqlite3* db, const std::string& entityJson, int contentType) {
+std::vector<int> QueryDuplicateEntities(sqlite3* db, const std::string& entityJson, int contentType)
+{
     std::vector<int> resultIds;
-    std::string querySql = "SELECT id FROM " + TEST_TABLE + 
+    std::string querySql = "SELECT id FROM " + TEST_TABLE +
         " WHERE content_type = ? AND is_entity_duplicate(page_content, ?) = 1 ORDER BY id";
     
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
     if (!stmt) return resultIds;
     
     sqlite3_bind_int(stmt, 1, contentType);
-    sqlite3_bind_text(stmt, 2, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);  // 2 means second
     
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         resultIds.push_back(sqlite3_column_int(stmt, 0));
@@ -1420,16 +1430,17 @@ std::vector<int> QueryDuplicateEntities(sqlite3* db, const std::string& entityJs
 }
 
 // 辅助函数：查询不重复实体ID
-std::vector<int> QueryNonDuplicateEntities(sqlite3* db, const std::string& entityJson, int contentType) {
+std::vector<int> QueryNonDuplicateEntities(sqlite3* db, const std::string& entityJson, int contentType)
+{
     std::vector<int> resultIds;
-    std::string querySql = "SELECT id FROM " + TEST_TABLE + 
+    std::string querySql = "SELECT id FROM " + TEST_TABLE +
         " WHERE content_type = ? AND is_entity_duplicate(page_content, ?) = 0 ORDER BY id";
     
     sqlite3_stmt* stmt = PrepareStatement(db, querySql);
     if (!stmt) return resultIds;
     
     sqlite3_bind_int(stmt, 1, contentType);
-    sqlite3_bind_text(stmt, 2, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, entityJson.c_str(), entityJson.length(), SQLITE_TRANSIENT);  // 2 means second
     
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         resultIds.push_back(sqlite3_column_int(stmt, 0));
@@ -1439,7 +1450,8 @@ std::vector<int> QueryNonDuplicateEntities(sqlite3* db, const std::string& entit
 }
 
 // 辅助函数：检查是否包含
-bool Contains(const std::vector<int>& vec, int value) {
+bool Contains(const std::vector<int>& vec, int value)
+{
     return std::find(vec.begin(), vec.end(), value) != vec.end();
 }
 
@@ -1459,7 +1471,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicateBarrier001, TestSize.Lev
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1501,7 +1513,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicateBarrier002, TestSize.Lev
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1546,7 +1558,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicateBarrier003, TestSize.Lev
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
@@ -1590,7 +1602,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicateBarrier004, TestSize.Lev
     auto info1 = GetStoreInfo1();
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE + 
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
         " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
     
