@@ -30,6 +30,7 @@
 #include "knowledge_source_utils.h"
 #include "kv_store_errno.h"
 #include "param_check_utils.h"
+#include "preprocess_entity_ext.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
 #include "thread_pool_stub.h"
@@ -1114,6 +1115,13 @@ int RegisterDataChangeObserver(sqlite3 *db)
     return RegisterFunction(db, "data_change", 4, db, func); // 4 is param counts
 }
 
+int RegisterIsEntityDuplicate(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &IsEntityDuplicateImpl;
+    return RegisterFunction(db, "is_entity_duplicate", 2, nullptr, func); // 2 is params count
+}
+
 void RegisterCommitAndRollbackHook(sqlite3 *db)
 {
     sqlite3_trace_v2(db, SQLITE_TRACE_PROFILE, TraceCallback, (void*)db);
@@ -1643,6 +1651,7 @@ void PostHandle(bool isExists, sqlite3 *db)
     RegisterGetRawSysTime(db);
     RegisterCloudDataChangeObserver(db);
     RegisterDataChangeObserver(db);
+    RegisterIsEntityDuplicate(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";
