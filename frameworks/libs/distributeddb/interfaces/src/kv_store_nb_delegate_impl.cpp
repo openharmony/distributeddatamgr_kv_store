@@ -514,7 +514,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(std::shared_ptr<KvStoreObserv
         LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
-    DBStatus cloudRet = OK;
+    DBStatus cloudRet = NOT_SUPPORT;
     DBStatus devRet = OK;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     cloudRet = UnRegisterCloudObserver(observer);
