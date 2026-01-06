@@ -374,7 +374,6 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync004, TestSize.Level1
     Key key2 = {'2'};
     Value value2 = {'2'};
     g_deviceC->PutData(key2, value2, 0, 0);
-    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step3. deviceA call pull sync
