@@ -31,8 +31,10 @@ constexpr int DEVICEID_WIDTH = 4;
 static std::string GetDeviceKey(const std::string& deviceId, const std::string& key)
 {
     std::ostringstream oss;
-    oss << std::setfill('0') << std::setw(DEVICEID_WIDTH) << deviceId.length();
-    oss << deviceId << key;
+    if (!deviceId.empty()) {
+        oss << std::setfill('0') << std::setw(DEVICEID_WIDTH) << deviceId.length() << deviceId;
+    }
+    oss << key;
     return oss.str();
 }
 
