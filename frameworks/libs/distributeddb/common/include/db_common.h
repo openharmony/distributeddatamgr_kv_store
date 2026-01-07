@@ -131,6 +131,8 @@ public:
 
     static bool IsRecordAssetsMissing(const VBucket &record);
 
+    static bool IsRecordAssetsSpaceInsufficient(const VBucket &record);
+
     static bool IsRecordDelete(const VBucket &record);
 
     static bool IsCloudRecordNotFound(const VBucket &record);

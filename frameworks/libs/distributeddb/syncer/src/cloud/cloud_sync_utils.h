@@ -83,7 +83,7 @@ public:
 
     static void ClearWithoutData(ICloudSyncer::SyncParam &param);
 
-    static bool IsSkipAssetsMissingRecord(const std::vector<VBucket> &extend);
+    static bool IsSkipErrAssetsRecord(const std::vector<VBucket> &extend);
 
     static int FillAssetIdToAssets(CloudSyncBatch &data, int errorCode, const CloudWaterType &type);
 
@@ -152,12 +152,24 @@ public:
     
     static bool CanStartAsyncDownload(int scheduleCount);
 
-    static bool IsAssetsMissing(const std::vector<VBucket> &extend);
-
     static bool NotNeedToCompensated(int errCode);
+
+    static bool IsCloudErrorWithoutAbort(int errCode);
+
+    static bool IsAssetsSpaceInsufficient(const std::vector<VBucket> &extend);
+
+    // if exist error but not abort sync task, return it errCode
+    static int GetNoAbortErrorCode(bool isInsert, const CloudSyncData &uploadData);
+
+    static bool IsIgnoreFailAction(const VBucket &extend, const CloudWaterType &type);
+
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);
+
+    static bool IsIgnoreFailAssetErr(const VBucket &extend);
+
+    static bool IsAssetsMissing(const std::vector<VBucket> &extend);
 };
 }
 #endif // CLOUD_SYNC_UTILS_H

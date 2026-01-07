@@ -98,6 +98,7 @@ enum DBStatus {
     NEED_CORRECT_TARGET_USER, // The target user ID is incorrect and needs to be re-obtained
     CLOUD_ASSET_NOT_FOUND, // The cloud download asset return 404 error
     TASK_INTERRUPTED, // Task(cloud sync) interrupted
+    SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT, // Whitelist for contact, skip when cloud space insufficient
     BUTT_STATUS = 27394048 // end of status
 };
 

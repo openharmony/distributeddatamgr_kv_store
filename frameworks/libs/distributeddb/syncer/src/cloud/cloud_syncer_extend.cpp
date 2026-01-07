@@ -190,13 +190,9 @@ int CloudSyncer::BatchInsertOrUpdate(Info &uploadInfo, CloudSyncData &uploadData
     }
     innerProcessInfo.upLoadInfo.successCount += uploadInfo.successCount;
     innerProcessInfo.upLoadInfo.failCount += uploadInfo.failCount;
-    bool isLocalAssetNotFound = isInsert ? CloudSyncUtils::IsAssetsMissing(uploadData.insData.extend):
-        CloudSyncUtils::IsAssetsMissing(uploadData.updData.extend);
-    if (errCode == E_OK && isLocalAssetNotFound) {
-        TaskId currentTaskId = GetCurrentTaskId();
-        std::lock_guard<std::mutex> guard(dataLock_);
-        cloudTaskInfos_[currentTaskId].errCode = -E_LOCAL_ASSET_NOT_FOUND;
-        cloudTaskInfos_[currentTaskId].tempErrCode = -E_LOCAL_ASSET_NOT_FOUND;
+    int noAbortErrCode = CloudSyncUtils::GetNoAbortErrorCode(isInsert, uploadData);
+    if (noAbortErrCode != E_OK) {
+        SetCurrentTmpError(noAbortErrCode);
     }
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         ProcessVersionConflictInfo(innerProcessInfo, retryCount);
@@ -231,13 +227,11 @@ int CloudSyncer::BackFillAfterBatchUpload(CloudSyncData &uploadData, bool isInse
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidAndLogIfSuccess(opType, uploadData);
         CloudSyncBatch &data = isInsert ? uploadData.insData : uploadData.updData;
-        bool isSkip = CloudSyncUtils::IsSkipAssetsMissingRecord(data.extend);
+        bool isSkip = CloudSyncUtils::IsSkipErrAssetsRecord(data.extend);
         if (isSkip) {
-            LOGI("[CloudSyncer][BackFillAfterBatchUpload] Try to FillCloudLogAndAsset when assets missing: %d",
-                errCode);
+            LOGI("[CloudSyncer][BackFillAfterBatchUpload] Skip errCode %d", errCode);
             return E_OK;
         } else {
-            LOGE("[CloudSyncer][BackFillAfterBatchUpload] errCode: %d, can not skip assets missing record.", errCode);
             return errCode;
         }
     }

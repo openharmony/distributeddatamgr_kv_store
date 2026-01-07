@@ -91,11 +91,8 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
         if (conflictInUpload_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
         }
-        if (localAssetNotFound_) {
-            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
-        }
-        if (cloudSpaceInsufficient_) {
-            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
+        if (uploadRecordStatus_ != DBStatus::OK) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(uploadRecordStatus_);
         }
         extend[i][g_gidField] = std::to_string(currentGid_++);
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
@@ -112,7 +109,7 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
         cloudData_[tableName].push_back(cloudData);
         auto gid = std::get<std::string>(extend[i][g_gidField]);
     }
-    return res;
+    return res == OK ? uploadRecordStatus_ : res;
 }
 
 DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::vector<VBucket> &&record,
@@ -188,14 +185,15 @@ DBStatus VirtualCloudDb::BatchDelete(const std::string &tableName, std::vector<V
     return InnerUpdate(tableName, std::move(record), extend, true);
 }
 
-void VirtualCloudDb::SetLocalAssetNotFound(bool isLocalFileNotFound)
+void VirtualCloudDb::SetLocalAssetNotFound(bool isLocalAssetNotFound)
 {
-    localAssetNotFound_ = isLocalFileNotFound;
+    uploadRecordStatus_ = isLocalAssetNotFound ? DBStatus::LOCAL_ASSET_NOT_FOUND : DBStatus::OK;
 }
 
 void VirtualCloudDb::SetCloudAssetSpaceInsufficient(bool isInsufficient)
 {
     cloudSpaceInsufficient_ = isInsufficient;
+    uploadRecordStatus_ = isInsufficient ? DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT : DBStatus::OK;
 }
 
 DBStatus VirtualCloudDb::HeartBeat()
@@ -459,7 +457,7 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
     if (cloudSpaceInsufficient_) {
         return CLOUD_ASSET_SPACE_INSUFFICIENT;
     }
-    return OK;
+    return uploadRecordStatus_;
 }
 
 DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, std::vector<VBucket> &&record,
@@ -481,11 +479,8 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
         if (conflictInUpload_) {
             extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
         }
-        if (localAssetNotFound_) {
-            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
-        }
-        if (cloudSpaceInsufficient_) {
-            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
+        if (uploadRecordStatus_ != DBStatus::OK) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(uploadRecordStatus_);
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         AddAssetIdForExtend(record[i], extend[i]);
@@ -682,7 +677,9 @@ void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
     for (auto &recordData : record) {
         if (recordData.second.index() == TYPE_INDEX<Asset>) {
             auto &asset = std::get<Asset>(recordData.second);
-            if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
+            if (uploadRecordStatus_ == DBStatus::SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT) {
+                asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
+            } else if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
                 asset.assetId = "10";
             }
             extend[recordData.first] = asset;
@@ -698,7 +695,9 @@ void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
 void VirtualCloudDb::AddAssetsIdInner(Assets &assets)
 {
     for (auto &asset : assets) {
-        if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
+        if (uploadRecordStatus_ == DBStatus::SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT) {
+            asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
+        } else if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
             asset.assetId = "10";
         }
     }
@@ -718,5 +717,10 @@ void VirtualCloudDb::ForkInsertConflict(const std::function<DBStatus(const std::
 void VirtualCloudDb::ForkAfterQueryResult(const std::function<DBStatus(VBucket &, std::vector<VBucket> &)> &func)
 {
     forkAfterQueryResult_ = func;
+}
+
+void VirtualCloudDb::SetUploadRecordStatus(DBStatus status)
+{
+    uploadRecordStatus_ = status;
 }
 }

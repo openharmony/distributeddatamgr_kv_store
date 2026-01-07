@@ -15,6 +15,7 @@
 #include "cloud_db_proxy.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
+#include "cloud/cloud_sync_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "kv_store_errno.h"
@@ -503,6 +504,8 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
             return -E_CLOUD_DISABLED;
         case CLOUD_ASSET_NOT_FOUND:
             return -E_CLOUD_ASSET_NOT_FOUND;
+        case SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT:
+            return -E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT;
         default:
             return -E_CLOUD_ERROR;
     }
@@ -636,8 +639,7 @@ bool CloudDBProxy::CloudActionContext::IsEmptyAssetId(const Assets &assets)
 bool CloudDBProxy::CloudActionContext::IsRecordActionFail(const VBucket &extend, const CloudWaterType &type,
     DBStatus status)
 {
-    if (DBCommon::IsRecordAssetsMissing(extend) || DBCommon::IsRecordIgnoredForReliability(extend, type) ||
-        DBCommon::IsRecordIgnored(extend)) {
+    if (CloudSyncUtils::IsIgnoreFailAction(extend, type)) {
         return false;
     }
     if (extend.count(CloudDbConstant::GID_FIELD) == 0 || DBCommon::IsRecordFailed(extend, status)) {

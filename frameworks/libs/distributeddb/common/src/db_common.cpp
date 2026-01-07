@@ -24,6 +24,7 @@
 #endif
 #include <mutex>
 #include <queue>
+#include <unordered_set>
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
@@ -481,11 +482,15 @@ bool DBCommon::IsRecordError(const VBucket &record)
     if (record.at(CloudDbConstant::ERROR_FIELD).index() != TYPE_INDEX<int64_t>) {
         return false;
     }
+    static std::unordered_set<int64_t> ignoreErrCodes = {
+        static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT),
+        static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED),
+        static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND),
+        static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND),
+        static_cast<int64_t>(DBStatus::SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT),
+    };
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
-    return status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT) &&
-           status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_ALREADY_EXISTED) &&
-           status != static_cast<int64_t>(DBStatus::CLOUD_RECORD_NOT_FOUND) &&
-           status != static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+    return ignoreErrCodes.find(status) == ignoreErrCodes.end();
 }
 
 bool DBCommon::IsIntTypeRecordError(const VBucket &record)
@@ -539,6 +544,18 @@ bool DBCommon::IsRecordAssetsMissing(const VBucket &record)
     }
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
     return status == static_cast<int64_t>(DBStatus::LOCAL_ASSET_NOT_FOUND);
+}
+
+bool DBCommon::IsRecordAssetsSpaceInsufficient(const VBucket &record)
+{
+    if (record.find(CloudDbConstant::ERROR_FIELD) == record.end()) {
+        return false;
+    }
+    if (record.at(CloudDbConstant::ERROR_FIELD).index() != TYPE_INDEX<int64_t>) {
+        return false;
+    }
+    auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
+    return status == static_cast<int64_t>(DBStatus::SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT);
 }
 
 bool DBCommon::IsRecordDelete(const VBucket &record)

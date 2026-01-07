@@ -773,7 +773,7 @@ int CloudStorageUtils::FillAssetForAbnormal(Asset &asset, Asset &dbAsset,
 {
     dbAsset.assetId = asset.assetId;
     dbAsset.status = AssetStatus::ABNORMAL;
-    LOGW("Asset %s not found locally, status set to ABNORMAL", DBCommon::StringMiddleMasking(asset.assetId).c_str());
+    LOGW("Asset %s status set to ABNORMAL", DBCommon::StringMiddleMasking(asset.assetId).c_str());
     return E_OK;
 }
 
@@ -987,7 +987,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &t
     if (isNeedCompensated && !(isDeleted && gidEmpty)) {
         sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? OR " +
             "flag & 0x01 = 0 THEN flag | " + compensatedBit + " ELSE flag";
-    } else if (DBCommon::IsRecordAssetsMissing(uploadExtend)) {
+    } else if (IsNeedMarkUploadFinishedWithErr(uploadExtend)) {
         sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN " +
             "(flag & ~" + compensatedBit + " & ~" + inconsistencyBit + ") | " + uploadFinishBit +
             " ELSE (flag & ~" + compensatedBit + ") | " + uploadFinishBit;
@@ -1435,8 +1435,8 @@ int CloudStorageUtils::HandleRecordErrorOrAssetsMissing(SQLiteSingleVerRelationa
 {
     std::string sql = CloudStorageUtils::GetUpdateRecordFlagSqlUpload(
         param.tableName, DBCommon::IsRecordIgnored(record), logInfo, record, param.type);
-    if (DBCommon::IsRecordAssetsMissing(record)) {
-        LOGI("[CloudStorageUtils][UpdateRecordFlagAfterUpload] Record assets missing, skip update.");
+    if (IsNeedMarkUploadFinishedWithErr(record)) {
+        LOGI("[CloudStorageUtils] Record need update flag.");
         int errCode = handle->UpdateRecordFlag(param.tableName, sql, logInfo);
         if (errCode != E_OK) {
             LOGE("[CloudStorageUtils] Update record flag failed");
@@ -1470,7 +1470,7 @@ int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStor
         logInfo.timestamp = updateData.timestamp[i];
         logInfo.dataKey = updateData.rowid[i];
         logInfo.hashKey = updateData.hashKey[i];
-        if (DBCommon::IsRecordError(record) || DBCommon::IsRecordAssetsMissing(record) ||
+        if (DBCommon::IsRecordError(record) || IsNeedMarkUploadFinishedWithErr(record) ||
             DBCommon::IsRecordVersionConflict(record) || isLock) {
             errCode = CloudStorageUtils::HandleRecordErrorOrAssetsMissing(handle, record, logInfo, param);
             if (errCode != E_OK) {
@@ -1601,5 +1601,10 @@ int CloudStorageUtils::ConvertLogToLocal(sqlite3 *dbHandle, const std::string &t
     auto count = sqlite3_changes64(dbHandle);
     LOGI("[CloudStorageUtils][ConvertLogToLocal] cnt:%zu, %" PRIu64, gids.size(), count);
     return E_OK;
+}
+
+bool CloudStorageUtils::IsNeedMarkUploadFinishedWithErr(const VBucket &record)
+{
+    return DBCommon::IsRecordAssetsMissing(record) || DBCommon::IsRecordAssetsSpaceInsufficient(record);
 }
 }
