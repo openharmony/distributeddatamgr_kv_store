@@ -117,6 +117,12 @@ public:
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status Close() = 0;
+
+    /**
+     * @brief Is schema store.
+     * @return Return true for schema store, false for others.
+    */
+    virtual bool IsSchemaStore() = 0;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

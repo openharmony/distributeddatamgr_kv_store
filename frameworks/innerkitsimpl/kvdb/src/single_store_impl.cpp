@@ -56,6 +56,7 @@ SingleStoreImpl::SingleStoreImpl(
     subUser_ = options.subUser;
     syncable_ = options.syncable;
     autoBackup_ = options.backup;
+    isSchemaStore_ = !options.schema.empty();
     uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
     if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
         isApplication_ = true;
@@ -901,7 +902,7 @@ Status SingleStoreImpl::GetResultSet(const DBQuery &query, std::shared_ptr<Resul
         }
         return status;
     }
-    resultSet = std::make_shared<StoreResultSet>(dbResultSet, dbStore_, convertor_);
+    resultSet = std::make_shared<StoreResultSet>(dbResultSet, dbStore_, convertor_, isSchemaStore_);
     return SUCCESS;
 }
 

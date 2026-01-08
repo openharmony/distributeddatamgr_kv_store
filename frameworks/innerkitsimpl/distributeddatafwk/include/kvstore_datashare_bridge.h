@@ -25,25 +25,35 @@ namespace OHOS {
 namespace DistributedKv {
 class KvStoreDataShareBridge : public DataShare::ResultSetBridge {
 public:
-    KvStoreDataShareBridge(std::shared_ptr<KvStoreResultSet> kvResultSet);
+    /**
+     * @brief kv store value type.
+     */
+    enum ValueType : int32_t {
+        STRING = 0,
+        INT = 1,
+        FLOAT = 2,
+        BYTE_ARRAY = 3,
+        BOOLEAN = 4,
+        DOUBLE = 5,
+        INT64 = 6
+    };
 
+    KvStoreDataShareBridge(std::shared_ptr<KvStoreResultSet> kvResultSet);
     ~KvStoreDataShareBridge() = default;
 
     int GetRowCount(int32_t &count) override;
-
     int GetAllColumnNames(std::vector<std::string> &columnNames) override;
-
     int OnGo(int32_t startRowIndex, int32_t targetRowIndex, DataShare::ResultSetBridge::Writer &writer) override;
 
 private:
     int Count();
-
     bool FillBlock(int startRowIndex, DataShare::ResultSetBridge::Writer &writer) __attribute__((no_sanitize("cfi")));
+    int WriteValue(std::vector<uint8_t> &input, Writer &writer, KvStoreDataShareBridge::ValueType type);
+    std::pair<bool, int64_t> VectorToInt64(const std::vector<uint8_t> &input);
+    std::pair<bool, double> VectorToDouble(const std::vector<uint8_t> &input);
 
     static constexpr int32_t INVALID_COUNT = -1;
-
     int32_t resultRowCount {INVALID_COUNT};
-
     std::shared_ptr<KvStoreResultSet> kvResultSet_;
 };
 } // namespace DistributedKv
