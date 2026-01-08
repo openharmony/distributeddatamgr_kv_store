@@ -24,8 +24,10 @@ class MockTimeSync : public TimeSync {
 public:
     void ModifyTimer(int milliSeconds)
     {
-        std::lock_guard<std::mutex> lock(timeDriverLock_);
-        RuntimeContext::GetInstance()->ModifyTimer(driverTimerId_, milliSeconds);
+        if (!CallIsClosed()) {
+            std::lock_guard<std::mutex> lock(timeDriverLock_);
+            RuntimeContext::GetInstance()->ModifyTimer(driverTimerId_, milliSeconds);
+        }
     }
 
     void CallResetTimer()

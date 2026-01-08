@@ -353,7 +353,6 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync003, TestSize.Level1
  */
 HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync004, TestSize.Level1)
 {
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     devices.push_back(g_deviceC->GetDeviceId());
@@ -380,6 +379,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync004, TestSize.Level1
      * @tc.expected: step3. sync should return OK.
      */
     std::map<std::string, DBStatus> result;
+    DBStatus status = OK;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
     ASSERT_TRUE(status == OK);
     CheckWatermark(g_deviceB->GetDeviceId(), g_kvDelegatePtr, info, true, false);
