@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "KvStoreObserverProxy"
+#define LOG_TAG "KvStoreObserverStub"
 
 #include "ikvstore_observer.h"
 
@@ -43,30 +43,7 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
     }
     switch (code) {
         case ONCHANGE: {
-            if (data.ReadInt32() < SWITCH_RAW_DATA_SIZE) {
-                ChangeNotification notification({}, {}, {}, "", false);
-                if (!ITypesUtil::Unmarshal(data, notification)) {
-                    ZLOGE("ChangeNotification is nullptr");
-                    return errorResult;
-                }
-                OnChange(notification);
-            } else {
-                std::string deviceId;
-                uint32_t clear = 0;
-                std::vector<Entry> inserts;
-                std::vector<Entry> updates;
-                std::vector<Entry> deletes;
-                if (!ITypesUtil::Unmarshal(data, deviceId, clear) || !ITypesUtil::UnmarshalFromBuffer(data, inserts) ||
-                    !ITypesUtil::UnmarshalFromBuffer(data, updates) ||
-                    !ITypesUtil::UnmarshalFromBuffer(data, deletes)) {
-                    ZLOGE("WriteChangeList to Parcel by buffer failed");
-                    return errorResult;
-                }
-                ChangeNotification change(std::move(inserts), std::move(updates), std::move(deletes), deviceId,
-                    clear != 0);
-                OnChange(change);
-            }
-            return 0;
+            return OnRemoteChange(data, reply);
         }
         case CLOUD_ONCHANGE: {
             std::string store;
@@ -81,6 +58,53 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
         default:
             return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
     }
+}
+
+int32_t KvStoreObserverStub::OnRemoteChange(MessageParcel &data, MessageParcel &reply)
+{
+    int64_t totalSize = 0;
+    if (!ITypesUtil::Unmarshal(data, totalSize)) {
+        ZLOGE("unmarshall totalSize fail, totalSize:%{public}" PRIu64, totalSize);
+        return -1;
+    }
+    if (totalSize < SWITCH_RAW_DATA_SIZE) {
+        ChangeNotification notification({}, {}, {}, "", false);
+        if (!ITypesUtil::Unmarshal(data, notification)) {
+            ZLOGE("unmarshall ChangeNotification fail");
+            return -1;
+        }
+        OnChange(notification);
+    } else {
+        std::string deviceId;
+        bool isClear = false;
+        uint64_t insertSize = 0;
+        uint64_t updateSize = 0;
+        uint64_t deleteSize = 0;
+        if (!ITypesUtil::Unmarshal(data, deviceId, isClear, insertSize, updateSize, deleteSize)) {
+            ZLOGE("unmarshall fail, I:%{public}" PRIu64 "U:%{public}" PRIu64 "D:%{public}" PRIu64,
+                insertSize, updateSize, deleteSize);
+            return -1;
+        }
+        std::vector<Entry> totalEntries;
+        if (!ITypesUtil::UnmarshalFromBuffer(data, totalEntries)) {
+            ZLOGE("unmarshall entries fail, size:%{public}zu", totalEntries.size());
+            return -1;
+        }
+        ZLOGI("I:%{public}" PRIu64 "U:%{public}" PRIu64 "D:%{public}" PRIu64 "T:%{public}zu", insertSize, updateSize,
+            deleteSize, totalEntries.size());
+        if ((insertSize + updateSize + deleteSize) != static_cast<uint64_t>(totalEntries.size())) {
+            return -1;
+        }
+        std::vector<Entry> insertEntries = std::vector<Entry>(totalEntries.begin(), totalEntries.begin() + insertSize);
+        std::vector<Entry> updateEntries = std::vector<Entry>(totalEntries.begin() + insertSize,
+            totalEntries.begin() + insertSize + updateSize);
+        std::vector<Entry> deleteEntries = std::vector<Entry>(totalEntries.begin() + insertSize + updateSize,
+            totalEntries.end());
+        ChangeNotification notification(std::move(insertEntries), std::move(updateEntries), std::move(deleteEntries),
+            deviceId, isClear);
+        OnChange(notification);
+    }
+    return 0;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS
