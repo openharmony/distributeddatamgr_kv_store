@@ -72,6 +72,7 @@ namespace {
 const std::string DISTRIBUTED_TABLE_MODE = "distributed_table_mode";
 static std::mutex g_binlogInitMutex;
 static int g_binlogInit = -1;
+constexpr const char *BINLOG_EXCLUDELIST[] = {"calendardata.db"};
 constexpr const char *COMPRESS_WHITELIST[] = {"calendardata_slave.db", "advisor_slave.db", "DeviceControl_slave.db",
     "iotConnect_slave.db", "OhTips_slave.db", "Clock_slave.db", "quick-game-engine_slave.db",
     "dual_write_binlog_test_slave.db", "RdbTestNO_slave.db", "media_library.db"};
@@ -1819,10 +1820,15 @@ SQLITE_API int sqlite3_is_support_binlog_relational(const char *filename)
             g_binlogInit = static_cast<int>(IsBinlogSupported());
         }
     }
-    if (g_binlogInit == static_cast<int>(true)) {
-        return SQLITE_OK;
+    if (g_binlogInit != static_cast<int>(true)) {
+        return SQLITE_ERROR;
     }
-    return SQLITE_ERROR;
+    for (const auto &excludeItem : BINLOG_EXCLUDELIST) {
+        if (strcmp(excludeItem, filename) == 0) {
+            return SQLITE_ERROR;
+        }
+    }
+    return SQLITE_OK;
 }
 
 DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientObserver &clientObserver)
