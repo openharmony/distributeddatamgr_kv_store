@@ -177,6 +177,7 @@ ohos_source_set("src_file") {
     "zlib:libz",
   ]
   part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
 }
 
 template("distributeddb_unittest") {
