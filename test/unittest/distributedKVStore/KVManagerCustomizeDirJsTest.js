@@ -156,10 +156,9 @@ describe('KVManagerCustomizeDirTest', function () {
             await kvStore.backupEx(backupConfig).then(() => {
                 expect(true).assertTrue();
             }).catch((err) => {
-                console.error('KVManagerCustomizeDirBrdExPromiseSucTest deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('KVManagerCustomizeDirBrdExPromiseSucTest backupEx err ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, options);
 
             await kvStore.restoreEx(backupConfig).then(() => {
                 expect(true).assertTrue();
@@ -167,6 +166,7 @@ describe('KVManagerCustomizeDirTest', function () {
                 console.error('KVManagerCustomizeDirBrdExPromiseSucTest restoreEx err ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, options);
 
             await kvStore.deleteBackupEx(backupConfig).then(() => {
                 expect(true).assertTrue();

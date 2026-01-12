@@ -555,13 +555,12 @@ napi_value JsSingleKVStore::SetSyncRange(napi_env env, napi_callback_info info)
 napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
 {
     struct BackupContext : public ContextBase {
-        std::string file;
         BackupConfig backupConfig;
         bool isCustomizeDir = false;
     };
     auto ctxt = std::make_shared<BackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <file>
+        // required 1 arguments :: <file or backupConfig>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
             "Parameter error:Mandatory parameters are left unspecified");
         napi_valuetype type = napi_undefined;
@@ -569,14 +568,15 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, (type == napi_string) || (type == napi_object), Status::INVALID_ARGUMENT,
             "invalid arg[0], type error!");
         if (type == napi_string) {
-            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
+            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig.fileName);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "Parameter error:param file type must be string");
-            ASSERT_BUSINESS_ERR(ctxt, (ctxt->file.size() != 0 && ctxt->file != AUTO_BACKUP_NAME),
+            ASSERT_BUSINESS_ERR(ctxt, (ctxt->backupConfig.fileName.size() != 0
+                && ctxt->backupConfig.fileName != AUTO_BACKUP_NAME),
                 Status::INVALID_ARGUMENT, "Parameter error:empty file and filename not allow autoBackup");
         } else if (type == napi_object) {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_PARAMTER,
                 "Parameter error:backupConfig");
             ctxt->isCustomizeDir = true;
         }
@@ -588,7 +588,6 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
         if (ctxt->isCustomizeDir == false) {
             ctxt->backupConfig.filePath = jsKvStore->param_->baseDir;
-            ctxt->backupConfig.fileName = ctxt->file;
         }
         Status status = jsKvStore->kvStore_->Backup(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath);
         ZLOGD("kvStore->Backup return %{public}d", status);
@@ -609,7 +608,6 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
 napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
 {
     struct RestoreContext : public ContextBase {
-        std::string file;
         BackupConfig backupConfig;
         bool isCustomizeDir = false;
     };
@@ -623,12 +621,12 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, (type == napi_string) || (type == napi_object), Status::INVALID_ARGUMENT,
             "invalid arg[0], type error!");
         if (type == napi_string) {
-            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
+            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig.fileName);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "Parameter error:get file failed. params type must be string");
         } else {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_PARAMTER,
                 "Parameter error:backupConfig");
             ctxt->isCustomizeDir = true;
         }
@@ -640,7 +638,6 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
         if (ctxt->isCustomizeDir == false) {
             ctxt->backupConfig.filePath = jsKvStore->param_->baseDir;
-            ctxt->backupConfig.fileName = ctxt->file;
         }
         Status status = jsKvStore->kvStore_->Restore(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath);
         ZLOGD("kvStore->Restore return %{public}d", status);
@@ -698,28 +695,28 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
 napi_value JsSingleKVStore::DeleteBackupEx(napi_env env, napi_callback_info info)
 {
     struct DeleteBackupContext : public ContextBase {
-        std::vector<std::string> files;
-        std::map<std::string, DistributedKv::Status> results;
         BackupConfig backupConfig;
     };
     auto ctxt = std::make_shared<DeleteBackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: backupConfig
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_PARAMTER,
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_PARAMTER,
                 "Parameter error:backupConfig");
     };
     ctxt->GetCbInfo(env, info, input);
-    ASSERT_NULL(!ctxt->isThrowError, "DeleteBackup exit");
+    ASSERT_NULL(!ctxt->isThrowError, "DeleteBackupEx exit");
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
-        ctxt->files.emplace_back(ctxt->backupConfig.fileName);
-        Status status = jsKvStore->kvStore_->DeleteBackup(ctxt->files,
-            ctxt->backupConfig.filePath, ctxt->results);
-        ZLOGD("kvStore->DeleteBackup return %{public}d", status);
+        std::vector<std::string> files;
+        std::map<std::string, DistributedKv::Status> results;
+        files.emplace_back(ctxt->backupConfig.fileName);
+        Status status = jsKvStore->kvStore_->DeleteBackup(files,
+            ctxt->backupConfig.filePath, results);
+        ZLOGD("kvStore->DeleteBackupEx return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
     };

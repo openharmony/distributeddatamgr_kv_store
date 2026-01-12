@@ -249,7 +249,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         if (argc >= 3 && argv[2] != nullptr) {
             napi_valuetype type = napi_undefined;
             ctxt->status = napi_typeof(env, argv[2], &type);
-            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok), Status::INVALID_ARGUMENT, "napi_typeof failed");
+            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok), Status::INVALID_PARAMTER, "napi_typeof failed");
             if (type == napi_object) {
                 ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->options);
             }

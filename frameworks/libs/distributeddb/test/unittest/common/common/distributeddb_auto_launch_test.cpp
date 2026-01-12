@@ -145,6 +145,9 @@ static void GetProperty(KvDBProperties &prop, std::string &identifier, std::stri
     prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     prop.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     prop.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
+    std::string dataDirIdentifier = hashDataDir + identifier;
+    prop.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
 }
 
 void DistributedDBAutoLaunchUnitTest::SetUp(void)

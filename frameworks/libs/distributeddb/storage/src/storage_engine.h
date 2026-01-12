@@ -99,6 +99,9 @@ public:
 
     void SetUri(const std::string &uri);
 
+    const std::string GetDataDirIdentifier() const;
+
+    void SetDataDirIdentifier(const std::string &dataDirIdentifier);
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
 
@@ -122,6 +125,8 @@ protected:
     std::atomic<bool> isMigrating_;
     std::string identifier_;
     std::string hashIdentifier_;
+    mutable std::mutex dataDirIdMutex_;
+    std::string dataDirIdentifier_;
 
     // Mutex for commitNotifyFunc_.
     mutable std::shared_mutex notifyMutex_;
