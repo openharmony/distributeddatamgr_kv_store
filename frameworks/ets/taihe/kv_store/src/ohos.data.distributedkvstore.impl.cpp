@@ -691,7 +691,7 @@ public:
         ZLOGI("SingleKVStoreImpl constructor");
         nativeStore_ = kvStore;
     }
-    ~SingleKVStoreImpl()
+    virtual ~SingleKVStoreImpl()
     {
         ZLOGI("SingleKVStoreImpl ~");
         UnRegisterAll();
