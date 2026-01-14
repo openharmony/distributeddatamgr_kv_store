@@ -77,6 +77,9 @@ public:
     void Stop(bool wait = false) noexcept
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
+        if (running_ == STOPPED) {
+            return;
+        }
         running_ = IS_STOPPING;
         condition_.notify_one();
         cond_.wait(lock, [this, wait]() { return !wait || running_ == STOPPED; });
