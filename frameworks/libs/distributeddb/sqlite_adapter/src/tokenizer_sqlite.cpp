@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include "tokenizer_api.h"
 #include "tokenizer_export_type.h"
@@ -38,20 +39,20 @@ static uint32_t g_refCount = 0;
 constexpr int FTS5_MAX_VERSION = 2;
 constexpr int MAGIC_CODE = 0x12345678;
 constexpr const char *CUT_SCENE_PARAM_NAME = "cut_mode";
-constexpr const char *CUT_SCENE_SHORT_WORDS = "short_words";
-constexpr const char *CUT_SCENE_DEFAULT = "default";
 constexpr const char *CUT_CASE_SENSITIVE = "case_sensitive";
+static std::unordered_map<std::string, GRD_CutScene> g_cutModeMap = {
+    {"default", DEFAULT},
+    {"short_words", SEARCH},
+    {"multi_words", MULTI_WORDS}
+};
 
 int AnalyzeCutMode(std::string &value, Fts5TokenizerParamT *para)
 {
-    if (value == CUT_SCENE_SHORT_WORDS) {
-        para->cutScene = SEARCH;
-    } else if (value == CUT_SCENE_DEFAULT) {
-        para->cutScene = DEFAULT;
-    } else {
+    if (g_cutModeMap.find(value) == g_cutModeMap.end()) {
         sqlite3_log(SQLITE_ERROR, "invalid arg value of cut scene");
         return SQLITE_ERROR;
     }
+    para->cutScene = g_cutModeMap[value];
     return SQLITE_OK;
 }
 
@@ -151,6 +152,34 @@ static char *CpyStr(const char *pText, int nText)
     return ptr;
 }
 
+static int IterateCutResults(void *pCtx, int nText, XTokenFn xToken, GRD_CutScene cutScene, GRD_WordEntryListT *list)
+{
+    GRD_WordEntryT entry;
+    int start = 0;  // word's start pos in sentence
+    int end = 0;    // word's end pos in sentence
+    int startBefore = -1;
+    int ret = GRD_OK;
+    while ((ret = GRD_TokenizerNext(list, &entry)) == GRD_OK) {
+        start = static_cast<int>(entry.offset);
+        end = start + static_cast<int>(entry.length);
+        if (end > nText || start < 0) {
+            sqlite3_log(SQLITE_ERROR, "|fts5 custom tokenizer xTokenize| offset wrong");
+            return SQLITE_ERROR;
+        }
+        int tokenFlag = 0;
+        if (start == startBefore && cutScene == MULTI_WORDS) {
+            tokenFlag = FTS5_TOKEN_COLOCATED;
+        }
+        startBefore = start;
+        ret = xToken(pCtx, tokenFlag, entry.word, entry.length, start, end);
+        if (ret != SQLITE_OK) {
+            sqlite3_log(ret, "xToken wrong");
+            return ret;
+        }
+    }
+    return ret;
+}
+
 int fts5_customtokenizer_xTokenize(
     Fts5Tokenizer *tokenizer_ptr, void *pCtx, int flags, const char *pText, int nText, XTokenFn xToken)
 {
@@ -175,26 +204,11 @@ int fts5_customtokenizer_xTokenize(
         free(ptr);
         return ret;
     }
-    GRD_WordEntryT entry;
-    int start = 0;  // 词在句子中的起始位置
-    int end = 0;    // 词在句子中的结束位置
-    while ((ret = GRD_TokenizerNext(entryList, &entry)) == GRD_OK) {
-        start = static_cast<int>(entry.offset);
-        end = start + static_cast<int>(entry.length);
-        if (end > nText || start < 0) {
-            ret = SQLITE_ERROR;
-            sqlite3_log(SQLITE_ERROR, "|fts5 custom tokenizer xTokenize| offset wrong");
-            break;
-        }
-        ret = xToken(pCtx, 0, entry.word, entry.length, start, end);
-        if (ret != SQLITE_OK) {
-            sqlite3_log(ret, "xToken wrong");
-            break;
-        }
-    }
+    ret = IterateCutResults(pCtx, nText, xToken, pFts5TokenizerParam->cutScene, entryList);
     GRD_TokenizerFreeWordEntryList(entryList);
     free(ptr);
     if (ret != GRD_OK && ret != GRD_NO_DATA) {
+        sqlite3_log(ret, "Iterate Cut Results wrong");
         return ret;
     }
     return SQLITE_OK;
