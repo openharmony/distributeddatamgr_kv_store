@@ -493,7 +493,7 @@ int SQLiteSingleVerStorageEngine::ExecuteMigrate()
     }
 
     LOGD("[SqlSingleVerEngine] Current engineState [%u] executorState [%u], begin to executing singleVer db migrate!",
-        static_cast<unsigned>(preState), static_cast<unsigned>(executorState_));
+        static_cast<unsigned>(preState), static_cast<unsigned>(executorState_.load()));
     // has been attached, Mark start of migration and it can migrate data
     errCode = MigrateLocalData(handle);
     if (errCode != E_OK) {
