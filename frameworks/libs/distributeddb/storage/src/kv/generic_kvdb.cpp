@@ -310,7 +310,11 @@ int GenericKvDB::RegisterFunction(RegisterFuncType type)
             return -E_OUT_OF_MEMORY;
         }
     }
-    registerFunctionCount_[static_cast<int>(type)]++;
+    if (static_cast<size_t>(type) >= registerFunctionCount_.size()) {
+        LOGE("[GenericKvDB][RegisterFunction] invalid type: %zu", static_cast<size_t>(type));
+        return -E_INVALID_ARGS;
+    }
+    registerFunctionCount_[static_cast<size_t>(type)]++;
     return E_OK;
 }
 
@@ -320,11 +324,15 @@ int GenericKvDB::UnregisterFunction(RegisterFuncType type)
         return -E_NOT_SUPPORT;
     }
     std::lock_guard<std::mutex> lock(regFuncCountMutex_);
+    if (static_cast<size_t>(type) >= registerFunctionCount_.size()) {
+        LOGE("[GenericKvDB][UnregisterFunction] invalid type: %zu", static_cast<size_t>(type));
+        return -E_INVALID_ARGS;
+    }
     if (registerFunctionCount_.size() != static_cast<size_t>(RegisterFuncType::REGISTER_FUNC_TYPE_MAX) ||
         registerFunctionCount_[static_cast<int>(type)] == 0) {
         return -E_UNEXPECTED_DATA;
     }
-    registerFunctionCount_[static_cast<int>(type)]--;
+    registerFunctionCount_[static_cast<size_t>(type)]--;
     return E_OK;
 }
 
@@ -335,7 +343,11 @@ uint32_t GenericKvDB::GetRegisterFunctionCount(RegisterFuncType type) const
         registerFunctionCount_.size() != static_cast<size_t>(RegisterFuncType::REGISTER_FUNC_TYPE_MAX)) {
         return 0;
     }
-    return registerFunctionCount_[static_cast<int>(type)];
+    if (static_cast<size_t>(type) >= registerFunctionCount_.size()) {
+        LOGE("[GenericKvDB][GetRegisterFunctionCount] invalid type: %zu", static_cast<size_t>(type));
+        return 0;
+    }
+    return registerFunctionCount_[static_cast<size_t>(type)];
 }
 
 int GenericKvDB::TransObserverTypeToRegisterFunctionType(int observerType, RegisterFuncType &type) const

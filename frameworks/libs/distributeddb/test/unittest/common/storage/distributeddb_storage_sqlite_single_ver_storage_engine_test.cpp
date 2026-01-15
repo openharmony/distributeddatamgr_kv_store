@@ -631,3 +631,27 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, ReleaseStorageEng
 {
     EXPECT_EQ(StorageEngineManager::ReleaseStorageEngine(nullptr), -E_INVALID_ARGS);
 }
+
+/**
+  * @tc.name: StorageRegisterFunctionTest001
+  * @tc.desc: Test RegisterFunction, UnregisterFunction and GetRegisterFunctionCount func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: liaoyonghuang
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerStorageEngineTest, StorageRegisterFunctionTest001, TestSize.Level0)
+{
+    ASSERT_NE(g_store, nullptr);
+
+    EXPECT_EQ(g_store->RegisterFunction(RegisterFuncType::REGISTER_FUNC_TYPE_MAX), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_store->RegisterFunction(static_cast<RegisterFuncType>(-1)), -E_INVALID_ARGS);
+    EXPECT_EQ(g_store->RegisterFunction(RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_PUT_EVENT), E_OK);
+
+    EXPECT_EQ(g_store->GetRegisterFunctionCount(RegisterFuncType::REGISTER_FUNC_TYPE_MAX), 0);
+    EXPECT_EQ(g_store->GetRegisterFunctionCount(static_cast<RegisterFuncType>(-1)), 0);
+    EXPECT_EQ(g_store->GetRegisterFunctionCount(RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_PUT_EVENT), 1);
+
+    EXPECT_EQ(g_store->UnregisterFunction(RegisterFuncType::REGISTER_FUNC_TYPE_MAX), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_store->UnregisterFunction(static_cast<RegisterFuncType>(-1)), -E_INVALID_ARGS);
+    EXPECT_EQ(g_store->UnregisterFunction(RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_PUT_EVENT), E_OK);
+}
