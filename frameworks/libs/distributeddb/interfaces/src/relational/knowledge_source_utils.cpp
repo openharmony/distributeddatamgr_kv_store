@@ -52,6 +52,7 @@ TrackerSchema GetTrackerSchema(const KnowledgeSourceSchema &schema)
 }
 
 constexpr const char *PROCESS_SEQ_KEY = "processSequence";
+constexpr const char *FIELDS_NEED_EXIST_KEY = "fieldsNeedExist";
 constexpr const char *KNOWLEDGE_CURSOR_PREFIX = "knowledge_cursor_";
 
 int KnowledgeSourceUtils::CheckProcessSequence(sqlite3 *db, const std::string &tableName,
@@ -96,6 +97,56 @@ int KnowledgeSourceUtils::CheckProcessSequence(sqlite3 *db, const std::string &t
     }
     bool isCheckSuccess = (sqlite3_column_int(stmt, 0) == 1);
     return isCheckSuccess ? E_OK : -E_INVALID_ARGS;
+}
+
+int KnowledgeSourceUtils::CheckColumnExists(sqlite3 *db, const std::string &tableName,
+    const std::set<std::string> &columnNames)
+{
+    // empty column name is ok
+    if (columnNames.empty()) {
+        return E_OK;
+    }
+    if (db == nullptr) {
+        return -E_INVALID_DB;
+    }
+    std::string checkColumnSql = "SELECT COUNT(1) FROM pragma_table_info('" + tableName + "')" +
+        " WHERE name IN (";
+    for (size_t i = 0; i < columnNames.size(); i++) {
+        checkColumnSql += "?,";
+    }
+    checkColumnSql.pop_back();
+    checkColumnSql += ");";
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, checkColumnSql, stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("Get check column statement failed. err=%d", errCode);
+        return errCode;
+    }
+
+    int bindIndex = 1;
+    for (const auto &columnName : columnNames) {
+        errCode = SQLiteUtils::BindTextToStatement(stmt, bindIndex++, columnName);
+        if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+            LOGE("Bind column name to statement failed, column = %s, err=%d",
+                DBCommon::StringMiddleMaskingWithLen(columnName).c_str(), errCode);
+            return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
+        }
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    // should always return a row of data
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("Check column type failed. err=%d", errCode);
+        return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
+    }
+    errCode = E_OK;
+    size_t columnNums = static_cast<size_t>(sqlite3_column_int(stmt, 0));
+    if (columnNums != columnNames.size()) {
+        LOGE("Check %zu columns, but found %zu columns", columnNames.size(), columnNums);
+        errCode = -E_INVALID_ARGS;
+    }
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 int KnowledgeSourceUtils::SetKnowledgeSourceSchema(sqlite3 *db, const KnowledgeSourceSchema &schema)
@@ -150,7 +201,16 @@ int KnowledgeSourceUtils::CheckSchemaFields(sqlite3 *db, const KnowledgeSourceSc
         return -E_INVALID_ARGS;
     }
 
-    auto it = schema.columnsToVerify.find(PROCESS_SEQ_KEY);
+    auto it = schema.columnsToVerify.find(FIELDS_NEED_EXIST_KEY);
+    if (it != schema.columnsToVerify.end()) {
+        errCode = CheckColumnExists(db, schema.tableName, it->second);
+        if (errCode != E_OK) {
+            LOGE("Check column exists failed: %d", errCode);
+            return errCode;
+        }
+    }
+
+    it = schema.columnsToVerify.find(PROCESS_SEQ_KEY);
     if (it == schema.columnsToVerify.end()) {
         return E_OK;
     }

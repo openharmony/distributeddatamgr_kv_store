@@ -500,4 +500,55 @@ HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge006, TestSize.Level0)
 
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
+
+/**
+ * @tc.name: SetKnowledge007
+ * @tc.desc: Test set knowledge schema with column need check.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBRDBKnowledgeClientTest, SetKnowledge007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Set knowledge source schema.
+     * @tc.expected: step1. Ok
+     */
+    UtTableSchemaInfo tableInfo = GetTableSchema(KNOWLEDGE_TABLE);
+
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    RDBDataGenerator::InitTableWithSchemaInfo(tableInfo, *db);
+    KnowledgeSourceSchema schema;
+    schema.tableName = KNOWLEDGE_TABLE;
+    schema.columnsToVerify = {};
+    schema.extendColNames.insert("id");
+    schema.knowledgeColNames.insert("int_field1");
+    schema.knowledgeColNames.insert("int_field2");
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    /**
+     * @tc.steps: step2. Set knowledge source schema when column exist.
+     * @tc.expected: step2. OK
+     */
+    schema.columnsToVerify = {{"fieldsNeedExist", {"int_field1"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+    schema.columnsToVerify = {{"fieldsNeedExist", {"int_field1", "int_field1"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), OK);
+
+    /**
+     * @tc.steps: step3. Set knowledge source schema when column not exist.
+     * @tc.expected: step3. INVALID_ARGS
+     */
+    schema.columnsToVerify = {{"fieldsNeedExist", {"none_exist_column"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+    schema.columnsToVerify = {{"fieldsNeedExist", {"int_field1", "none_exist_column"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+    schema.columnsToVerify = {{"fieldsNeedExist", {"none_exist_column", "int_field1", "int_field1"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+    schema.columnsToVerify = {{"fieldsNeedExist", {"none_exist_column1", "int_field1", "none_exist_column2"}}};
+    EXPECT_EQ(SetKnowledgeSourceSchema(db, schema), INVALID_ARGS);
+
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
 }

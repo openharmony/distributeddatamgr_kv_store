@@ -34,6 +34,8 @@ public:
 protected:
     static int CheckProcessSequence(sqlite3 *db, const std::string &tableName, const std::string &columnName);
 
+    static int CheckColumnExists(sqlite3 *db, const std::string &tableName, const std::set<std::string> &columnNames);
+
     static int CheckSchemaFields(sqlite3 *db, const KnowledgeSourceSchema &schema);
 
     static int SetKnowledgeSourceSchemaInner(sqlite3 *db, const KnowledgeSourceSchema &schema);
