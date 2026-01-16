@@ -77,7 +77,7 @@ protected:
 
     int GetCacheDbHandle(sqlite3 *&db, OpenDbProperties &option);
 
-    ExecutorState executorState_;
+    std::atomic<ExecutorState> executorState_;
 
 private:
     // For executor.
