@@ -912,9 +912,79 @@ void StorageProxy::FilterDownloadRecordNoneSchemaField(const std::string &tableN
 int StorageProxy::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) const
 {
     if (store_ == nullptr) {
-        LOGW("[WaitAsyncGenLogTaskFinished] store is null");
+        LOGE("[WaitAsyncGenLogTaskFinished] store is null");
         return -E_INVALID_DB;
     }
     return store_->WaitAsyncGenLogTaskFinished(tables);
+}
+
+int StorageProxy::PutCloudGid(const std::string &tableName, std::vector<VBucket> &data)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[PutCloudGid] store is null");
+        return -E_INVALID_DB;
+    }
+    return store_->PutCloudGid(tableName, data);
+}
+
+int StorageProxy::GetCloudGidCursor(const std::string &tableName, std::string &cursor)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGE("[GetCloudGidCursor] meta is null");
+        return -E_INVALID_DB;
+    }
+    return cloudMetaData_->GetCloudGidCursor(tableName, cursor);
+}
+
+int StorageProxy::PutCloudGidCursor(const std::string &tableName, const std::string &cursor)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGE("[PutCloudGidCursor] meta is null");
+        return -E_INVALID_DB;
+    }
+    return cloudMetaData_->PutCloudGidCursor(tableName, cursor);
+}
+
+int StorageProxy::GetBackupCloudCursor(const std::string &tableName, std::string &cursor)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGE("[GetBackupCloudCursor] meta is null");
+        return -E_INVALID_DB;
+    }
+    return cloudMetaData_->GetBackupCloudCursor(tableName, cursor);
+}
+
+int StorageProxy::PutBackupCloudCursor(const std::string &tableName, const std::string &cursor)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGE("[PutBackupCloudCursor] meta is null");
+        return -E_INVALID_DB;
+    }
+    return cloudMetaData_->PutBackupCloudCursor(tableName, cursor);
+}
+
+int StorageProxy::CleanCloudInfo(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGE("[CleanCloudInfo] meta is null");
+        return -E_INVALID_DB;
+    }
+    return cloudMetaData_->CleanCloudInfo(tableName);
+}
+
+int StorageProxy::DeleteCloudNoneExistRecord(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[DeleteCloudNoneExistRecord] store is null");
+        return -E_INVALID_DB;
+    }
+    return store_->DeleteCloudNoneExistRecord(tableName);
 }
 }

@@ -1677,5 +1677,38 @@ std::pair<int, TableInfo> SQLiteSingleRelationalStorageEngine::AnalyzeTable(cons
     });
     return handle->AnalyzeTable(tableName);
 }
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+int SQLiteSingleRelationalStorageEngine::PutCloudGid(const std::string &tableName, std::vector<VBucket> &data)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([this, handle]() {
+        auto releaseHandle = handle;
+        ReleaseExecutor(releaseHandle);
+    });
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = handle->PutCloudGid(tableName, data);
+    if (errCode == E_OK) {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("[RDBEngine] Commit transaction failed[%d] when put cloud gid", errCode);
+        }
+    } else {
+        int ret = handle->Rollback();
+        if (ret != E_OK) {
+            LOGW("[RDBEngine] Rollback transaction failed[%d] when put cloud gid", ret);
+        }
+    }
+    return errCode;
+}
+#endif
 }
 #endif

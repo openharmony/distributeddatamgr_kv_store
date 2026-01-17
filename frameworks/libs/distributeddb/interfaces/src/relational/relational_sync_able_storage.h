@@ -281,6 +281,12 @@ public:
     int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) override;
 
     int ResetGenLogTaskStatus();
+
+    int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) override;
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int DeleteCloudNoneExistRecord(const std::string &tableName) override;
+#endif
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -358,6 +364,14 @@ private:
     int RollbackForAsyncDownload();
 
     int StartTransactionForAsyncDownload(TransactType type);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int GetOneBatchCloudNoneExistRecord(const std::string &tableName, const std::string &dataPk,
+        std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records);
+
+    int DeleteOneBatchCloudNoneExistRecord(const std::string &tableName, ChangedData &changedData,
+        const std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records);
+#endif
 
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;

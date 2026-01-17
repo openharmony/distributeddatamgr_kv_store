@@ -723,5 +723,151 @@ int RelationalSyncAbleStorage::ResetGenLogTaskStatus()
     storageEngine_->ResetGenLogTaskStatus();
     return E_OK;
 }
+
+int RelationalSyncAbleStorage::PutCloudGid(const std::string &tableName, std::vector<VBucket> &data)
+{
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] Storage is null when put cloud gid");
+        return -E_INVALID_DB;
+    }
+    return storageEngine_->PutCloudGid(tableName, data);
+#else
+    return -E_NOT_SUPPORT;
+#endif
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+int RelationalSyncAbleStorage::DeleteCloudNoneExistRecord(const std::string &tableName)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[DeleteCloudNoneExistRecord] Storage is null");
+        return -E_INVALID_DB;
+    }
+    TableInfo tableInfo = storageEngine_->GetSchema().GetTable(tableName);
+    bool isUseRowid = tableInfo.IsNoPkTable() || tableInfo.IsMultiPkTable();
+    std::string dataPk = isUseRowid ? DBConstant::ROWID : tableInfo.GetPrimaryKey().at(0);
+
+    int errCode = E_OK;
+    uint16_t loopTime = 0;
+    do {
+        loopTime++;
+        std::vector<SQLiteRelationalUtils::CloudNotExistRecord> records;
+        ChangedData changedData;
+        changedData.type = ChangedDataType::DATA;
+        changedData.tableName = tableName;
+        changedData.field.push_back(dataPk);
+        errCode = GetOneBatchCloudNoneExistRecord(tableName, dataPk, records);
+        if (errCode != E_OK) {
+            LOGE("[DeleteCloudNoneExistRecord] get one batch cloud none exist record failed.%d, tableName:%s", errCode,
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            return errCode;
+        }
+        LOGW("[DeleteCloudNoneExistRecord] match count is %zu", records.size());
+        errCode = DeleteOneBatchCloudNoneExistRecord(tableName, changedData, records);
+        if (errCode == -E_FINISHED) {
+            break;
+        }
+        if (errCode != E_OK) {
+            LOGE("[DeleteCloudNoneExistRecord] delete one batch cloud none exist record failed.%d, tableName:%s",
+                errCode, DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            return errCode;
+        }
+        TriggerObserverAction("CLOUD", std::move(changedData), true);
+        if (loopTime >= UINT16_MAX) {
+            LOGW("[DeleteCloudNoneExistRecord] there is too much data that not exist in the cloud, about to exit");
+            break;
+        }
+        std::this_thread::sleep_for(CloudDbConstant::LONG_TRANSACTION_INTERVAL);
+    } while (true);
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::GetOneBatchCloudNoneExistRecord(const std::string &tableName, const std::string &dataPk,
+    std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records)
+{
+    int errCode = E_OK;
+    auto *readHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(false, OperatePerm::NORMAL_PERM, errCode));
+    if (readHandle == nullptr) {
+        return errCode;
+    }
+    errCode = readHandle->StartTransaction(TransactType::DEFERRED);
+    if (errCode != E_OK) {
+        ReleaseHandle(readHandle);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    errCode = readHandle->GetDbHandle(db);
+    if (errCode != E_OK) {
+        readHandle->Rollback();
+        ReleaseHandle(readHandle);
+        return errCode;
+    }
+    errCode = SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(tableName, db, records, dataPk);
+    if (errCode != E_OK) {
+        LOGE("[GetOneBatchCloudNoneExistRecord] get cloud none exist record failed.%d, tableName:%s", errCode,
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        readHandle->Rollback();
+        ReleaseHandle(readHandle);
+        return errCode;
+    }
+    readHandle->Commit();
+    ReleaseHandle(readHandle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::DeleteOneBatchCloudNoneExistRecord(const std::string &tableName,
+    ChangedData &changedData, const std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records)
+{
+    auto start = std::chrono::steady_clock::now();
+    int errCode = E_OK;
+    auto *writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
+    if (writeHandle == nullptr) {
+        return errCode;
+    }
+    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    ResFinalizer finalizer([this, errCode, writeHandle] {
+        auto handle = writeHandle;
+        (errCode != E_OK && errCode != -E_FINISHED) ? handle->Rollback() : handle->Commit();
+        ReleaseHandle(handle);
+    });
+    sqlite3 *db = nullptr;
+    errCode = writeHandle->GetDbHandle(db);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (records.empty()) {
+        errCode = SQLiteRelationalUtils::DropTempTable(tableName, db);
+        if (errCode != E_OK) {
+            LOGE("[DeleteOneBatchCloudNoneExistRecord] drop temp table failed:%d, tableName:%s", errCode,
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        }
+        return errCode == E_OK ? -E_FINISHED : errCode;
+    }
+    std::vector<Type> dataVec;
+    for (auto &record : records) {
+        errCode = SQLiteRelationalUtils::DeleteOneRecord(tableName, db, record, logicDelete_, dataVec);
+        if (errCode != E_OK) {
+            LOGE("[DeleteOneBatchCloudNoneExistRecord] delete cloud not exist record failed.%d, tableName:%s", errCode,
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            return errCode;
+        }
+        auto duration = std::chrono::steady_clock::now() - start;
+        if (duration > CloudDbConstant::LONG_TIME_TRANSACTION) {
+            LOGI("[DeleteOneBatchCloudNoneExistRecord] delete one batch cloud not exist record cost %" PRId64 "ms.",
+                duration.count());
+            break;
+        }
+    }
+    changedData.primaryData[ChangeType::OP_DELETE].push_back(dataVec);
+    return E_OK;
+}
+#endif
 }
 #endif

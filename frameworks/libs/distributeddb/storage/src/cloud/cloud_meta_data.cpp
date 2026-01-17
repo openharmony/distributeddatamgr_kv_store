@@ -277,4 +277,143 @@ void CloudMetaData::CleanWaterMarkInMemory(const TableName &tableName)
     cloudMetaVals_[tableName] = {};
     LOGD("[Meta] clean cloud water mark in memory");
 }
+
+int CloudMetaData::GetCloudGidCursor(const std::string &tableName, std::string &cursor) const
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    CloudInfoValue info;
+    auto errCode = GetCloudInfo(tableName, info);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    cursor = info.gidCloudMark;
+    LOGI("[Meta] Get table[%s] gid cursor[%s]", DBCommon::StringMiddleMasking(tableName).c_str(), cursor.c_str());
+    return E_OK;
+}
+
+int CloudMetaData::PutCloudGidCursor(const std::string &tableName, const std::string &cursor) const
+{
+    LOGI("[Meta] Put table[%s] gid cursor[%s]", DBCommon::StringMiddleMasking(tableName).c_str(), cursor.c_str());
+    return PutCursorInner(tableName, cursor, true);
+}
+
+int CloudMetaData::GetBackupCloudCursor(const std::string &tableName, std::string &cursor) const
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    CloudInfoValue info;
+    auto errCode = GetCloudInfo(tableName, info);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    cursor = info.backupCloudCursor;
+    LOGI("[Meta] Get table[%s] backup cursor[%s]", DBCommon::StringMiddleMasking(tableName).c_str(), cursor.c_str());
+    return E_OK;
+}
+
+int CloudMetaData::PutBackupCloudCursor(const std::string &tableName, const std::string &cursor) const
+{
+    LOGI("[Meta] Put table[%s] backup cursor[%s]", DBCommon::StringMiddleMasking(tableName).c_str(), cursor.c_str());
+    return PutCursorInner(tableName, cursor, false);
+}
+
+int CloudMetaData::PutCursorInner(const std::string &tableName, const std::string &cursor, bool isGidCursor) const
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    CloudInfoValue info;
+    auto errCode = GetCloudInfo(tableName, info);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (isGidCursor) {
+        info.gidCloudMark = cursor;
+    } else {
+        info.backupCloudCursor = cursor;
+    }
+    Value blobMetaVal;
+    errCode = SerializeCloudInfo(info, blobMetaVal);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return store_->PutMetaData(GetCloudInfoKey(tableName), blobMetaVal);
+}
+
+int CloudMetaData::CleanCloudInfo(const std::string &tableName) const
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    LOGI("[Meta] Clean table[%s] cloudInfo", DBCommon::StringMiddleMasking(tableName).c_str());
+    return store_->DeleteMetaData({GetCloudInfoKey(tableName)});
+}
+
+int CloudMetaData::GetCloudInfo(const std::string &tableName, CloudInfoValue &info) const
+{
+    Value blobMetaVal;
+    int ret = store_->GetMetaData(GetCloudInfoKey(tableName), blobMetaVal);
+    if (ret != -E_NOT_FOUND && ret != E_OK) {
+        return ret;
+    }
+    if (ret == -E_NOT_FOUND) {
+        return E_OK;
+    }
+    return DeserializeCloudInfo(blobMetaVal, info);
+}
+
+int CloudMetaData::DeserializeCloudInfo(Value &blobMark, CloudInfoValue &info)
+{
+    if (blobMark.empty()) {
+        info.version = 0;
+        info.gidCloudMark = "";
+        return E_OK;
+    }
+    Parcel parcel(blobMark.data(), blobMark.size());
+    info.version = 0;
+    parcel.ReadUInt64(info.version);
+    parcel.ReadString(info.gidCloudMark);
+    parcel.ReadString(info.backupCloudCursor);
+    if (parcel.IsError()) {
+        LOGE("[CloudMetaData] Parse error cloud info version[%" PRIu32 "]", info.version);
+        return -E_PARSE_FAIL;
+    }
+    return E_OK;
+}
+
+int CloudMetaData::SerializeCloudInfo(const CloudInfoValue &info, Value &blobMark)
+{
+    uint64_t length = GetParcelCurrentLength(info);
+    blobMark.resize(length);
+    Parcel parcel(blobMark.data(), blobMark.size());
+    parcel.WriteUInt64(info.version);
+    parcel.WriteString(info.gidCloudMark);
+    parcel.WriteString(info.backupCloudCursor);
+    if (parcel.IsError()) {
+        LOGE("[CloudMetaData] Parcel error while serializing cloud info.");
+        return -E_PARSE_FAIL;
+    }
+    return E_OK;
+}
+
+uint64_t CloudMetaData::GetParcelCurrentLength(const CloudInfoValue &info)
+{
+    // cloudMark len less than INT32_MAX
+    return Parcel::GetUInt64Len() + Parcel::GetStringLen(info.gidCloudMark) +
+        Parcel::GetStringLen(info.backupCloudCursor);
+}
+
+Key CloudMetaData::GetCloudInfoKey(const std::string &tableName)
+{
+    Key key;
+    DBCommon::StringToVector(CloudDbConstant::CLOUD_INFO_META_PREFIX + tableName, key);
+    return key;
+}
 } // namespace DistributedDB

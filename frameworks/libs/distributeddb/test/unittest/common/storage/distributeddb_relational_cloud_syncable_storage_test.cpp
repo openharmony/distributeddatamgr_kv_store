@@ -1745,5 +1745,69 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ContainAssetsTable001,
     InitUserDataForAssetTest(insCount, photoSize, g_localAsset);
     EXPECT_TRUE(g_storageProxy->IsExistTableContainAssets());
 }
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+/**
+ * @tc.name: ExpireCursor001
+ * @tc.desc: Test rdb sync storage in expire cursor
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor001, TestSize.Level1)
+{
+    auto storage = new(std::nothrow) RelationalSyncAbleStorage(nullptr);
+    ASSERT_NE(storage, nullptr);
+    std::vector<VBucket> data;
+    EXPECT_EQ(storage->PutCloudGid("", data), -E_INVALID_DB);
+    EXPECT_EQ(storage->DeleteCloudNoneExistRecord(""), -E_INVALID_DB);
+    RefObject::KillAndDecObjRef(storage);
+    CreateAndInitUserTable(0, 0, {});
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName, CLOUD_COOPERATION), OK);
+    EXPECT_EQ(g_cloudStore->DeleteCloudNoneExistRecord(g_tableName), -1);
+}
+
+/**
+ * @tc.name: ExpireCursor002
+ * @tc.desc: Test rdb sync storage in expire cursor
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor002, TestSize.Level1)
+{
+    RelationalDBProperties properties;
+    auto engine = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
+    ASSERT_NE(engine, nullptr);
+    engine->SetEngineState(EngineState::ENGINE_BUSY);
+    std::vector<VBucket> data;
+    EXPECT_EQ(engine->PutCloudGid(g_tableName, data), -E_BUSY);
+    auto storage = new(std::nothrow) RelationalSyncAbleStorage(engine);
+    ASSERT_NE(storage, nullptr);
+    RelationalSchemaObject obj;
+    TableInfo table;
+    std::map<int, FieldName> key;
+    key[0] = "pk";
+    table.SetPrimaryKey(key);
+    obj.AddRelationalTable(table);
+    engine->SetSchema(obj);
+    EXPECT_EQ(storage->DeleteCloudNoneExistRecord(""), -E_BUSY);
+}
+
+/**
+ * @tc.name: ExpireCursor003
+ * @tc.desc: Test rdb executor in expire cursor
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor003, TestSize.Level1)
+{
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    // db close by executor finalize
+    SQLiteSingleVerRelationalStorageExecutor executor(db, true, DistributedTableMode::COLLABORATION);
+    std::vector<Asset> assets;
+    std::vector<std::string> notify;
+    EXPECT_EQ(executor.DoCleanInner(ClearMode::BUTT, {"table"}, {}, assets, notify), -1);
+}
+#endif
 }
 #endif // RELATIONAL_STORE

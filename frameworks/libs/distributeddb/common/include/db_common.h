@@ -37,6 +37,11 @@ public:
         return DBConstant::RELATIONAL_PREFIX + tableName + DBConstant::LOG_POSTFIX;
     }
 
+    static inline std::string GetTmpLogTableName(const std::string &tableName)
+    {
+        return DBConstant::RELATIONAL_PREFIX + tableName + DBConstant::LOG_POSTFIX + DBConstant::TMP_POSTFIX;
+    }
+
     static inline const std::vector<CloudWaterType> GetWaterTypeVec()
     {
         return {CloudWaterType::DELETE, CloudWaterType::UPDATE, CloudWaterType::INSERT};

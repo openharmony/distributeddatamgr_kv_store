@@ -52,6 +52,10 @@ public:
     {
         return this->prepareTraceId;
     }
+    virtual DBStatus QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
+    {
+        return NOT_SUPPORT;
+    }
 private:
     std::string prepareTraceId;
 };

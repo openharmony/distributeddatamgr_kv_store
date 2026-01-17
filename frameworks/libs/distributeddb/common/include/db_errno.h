@@ -196,6 +196,7 @@ constexpr const int E_NEED_CORRECT_TARGET_USER = (E_BASE + 209);
 constexpr const int E_CLOUD_ASSET_NOT_FOUND = (E_BASE + 210); // Cloud download asset return 404 error
 constexpr const int E_TASK_INTERRUPTED = (E_BASE + 211); // Task(cloud sync, generate log) interrupted
 constexpr const int E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT = (E_BASE + 212); // Upload failed by cloud space insufficient
+constexpr const int E_EXPIRED_CURSOR = (E_BASE + 213); // Cursor invalid in cloud
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H

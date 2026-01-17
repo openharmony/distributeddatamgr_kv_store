@@ -106,6 +106,10 @@ public:
         std::vector<std::pair<int, std::string>> &tasks);
 
     std::pair<int, TableInfo> AnalyzeTable(const std::string &tableName);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
+#endif
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;

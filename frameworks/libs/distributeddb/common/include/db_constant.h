@@ -162,6 +162,7 @@ public:
     static constexpr size_t RELATIONAL_PREFIX_SIZE = 20;
     static constexpr const char *TIMESTAMP_ALIAS = "naturalbase_rdb_aux_timestamp";
     static constexpr const char *LOG_POSTFIX = "_log";
+    static constexpr const char *TMP_POSTFIX = "_tmp";
     static constexpr const char *META_TABLE_POSTFIX = "metadata";
     static constexpr const char *KNOWLEDGE_TABLE_TYPE = "knowledge";
 

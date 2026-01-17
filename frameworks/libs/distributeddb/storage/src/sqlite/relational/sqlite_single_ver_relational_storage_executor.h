@@ -284,6 +284,10 @@ public:
     int GetLocalDataByRowid(const TableInfo &table, const TableSchema &tableSchema, DataInfoWithLog &dataInfoWithLog);
 
     std::pair<int, TableInfo> AnalyzeTable(const std::string &tableName) const;
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) const;
+#endif
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
@@ -543,6 +547,8 @@ private:
         const std::set<std::string> &extendColNames, const std::string &sql);
 
     std::vector<Field> GetInsertFields(const VBucket &vBucket, const TableSchema &tableSchema);
+
+    int CleanTableTmpMsg(const std::vector<std::string> &tableNameList);
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";

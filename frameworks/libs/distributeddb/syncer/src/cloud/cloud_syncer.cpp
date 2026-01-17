@@ -1139,22 +1139,6 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
     return errCode;
 }
 
-int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload)
-{
-    // Query data by batch until reaching end and not more data need to be download
-    int ret = PreCheck(taskId, param.info.tableName);
-    if (ret != E_OK) {
-        return ret;
-    }
-    do {
-        ret = DownloadOneBatch(taskId, param, isFirstDownload);
-        if (ret != E_OK) {
-            return ret;
-        }
-    } while (!param.isLastBatch);
-    return E_OK;
-}
-
 void CloudSyncer::NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcessInfo &info)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -1654,7 +1638,12 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
         LOGD("[CloudSyncer] Start clean cloud water mark. table index: %d.", index);
         int ret = storageProxy_->CleanWaterMark(tableName);
         if (ret != E_OK) {
-        LOGE("[CloudSyncer] failed to put cloud water mark after clean cloud data, %d.", ret);
+            LOGE("[CloudSyncer] failed to put cloud water mark after clean cloud data, %d.", ret);
+            return ret;
+        }
+        ret = storageProxy_->CleanCloudInfo(tableName);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] failed to clean cloud info after clean cloud data, %d.", ret);
             return ret;
         }
         index++;
@@ -2109,9 +2098,11 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isF
         // Won't break here since downloadData may not be null
         param.isLastBatch = true;
     } else if (ret != E_OK) {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        param.info.tableStatus = ProcessStatus::FINISHED;
-        currentContext_.notifier->UpdateProcess(param.info);
+        if (ret != -E_EXPIRED_CURSOR) {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            param.info.tableStatus = ProcessStatus::FINISHED;
+            currentContext_.notifier->UpdateProcess(param.info);
+        }
         return ret;
     }
 

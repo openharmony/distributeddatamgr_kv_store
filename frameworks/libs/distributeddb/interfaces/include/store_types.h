@@ -99,6 +99,7 @@ enum DBStatus {
     CLOUD_ASSET_NOT_FOUND, // The cloud download asset return 404 error
     TASK_INTERRUPTED, // Task(cloud sync) interrupted
     SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT, // Whitelist for contact, skip when cloud space insufficient
+    EXPIRED_CURSOR, // Cursor is out of date in cloud
     BUTT_STATUS = 27394048 // end of status
 };
 

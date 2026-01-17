@@ -329,6 +329,21 @@ public:
     }
 
     virtual int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) = 0;
+
+    virtual int PutCloudGid([[gnu::unused]] const std::string &tableName, [[gnu::unused]] std::vector<VBucket> &data)
+    {
+        return E_OK;
+    }
+
+    virtual int DeleteCloudNoneExistRecord([[gnu::unused]] const std::string &tableName)
+    {
+        return E_OK;
+    }
+
+    virtual int DeleteMetaData([[gnu::unused]] const std::vector<Key> &keys)
+    {
+        return E_OK;
+    }
 };
 }
 

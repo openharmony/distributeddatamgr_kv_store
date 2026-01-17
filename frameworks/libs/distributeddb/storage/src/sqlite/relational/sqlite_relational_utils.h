@@ -150,6 +150,25 @@ public:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         ICloudSyncer::CloudTaskInfo &info);
+
+    static int PutCloudGid(sqlite3 *db, const std::string &tableName, std::vector<VBucket> &data);
+
+    struct CloudNotExistRecord {
+        int64_t logRowid = 0;
+        int64_t dataRowid = 0;
+        int32_t flag = 0;
+        Type pkValue;
+    };
+
+    static int GetOneBatchCloudNotExistRecord(const std::string &tableName, sqlite3 *db,
+        std::vector<CloudNotExistRecord> &records, const std::string &dataPk);
+
+    static int DeleteOneRecord(const std::string &tableName, sqlite3 *db, const CloudNotExistRecord &record,
+        bool isLogicDelete, std::vector<Type> &changePk);
+
+    static int DropTempTable(const std::string &tableName, sqlite3 *db);
+
+    static int PutCloudGidInner(sqlite3_stmt *stmt, std::vector<VBucket> &data);
 #endif
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);

@@ -723,4 +723,25 @@ void VirtualCloudDb::SetUploadRecordStatus(DBStatus status)
 {
     uploadRecordStatus_ = status;
 }
+
+DBStatus VirtualCloudDb::QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
+{
+    if (forkQueryAllGid_) {
+        return forkQueryAllGid_(tableName, extend, data);
+    }
+    VBucket copyExtend = extend;
+    std::string cursor = std::get<std::string>(copyExtend[g_cursorField]);
+    bool isIncreCursor = (cursor.substr(0, increPrefix_.size()) == increPrefix_);
+    LOGD("extend size: %zu type: %zu  expect: %zu, cursor: %s", extend.size(), copyExtend[g_cursorField].index(),
+         TYPE_INDEX<std::string>, cursor.c_str());
+    cursor = cursor.empty() ? "0" : cursor;
+    GetCloudData(cursor, isIncreCursor, cloudData_[tableName], data, copyExtend);
+    return (data.empty() || data.size() < static_cast<size_t>(queryLimit_)) ? QUERY_END : OK;
+}
+
+void VirtualCloudDb::ForkQueryAllGid(
+    const std::function<DBStatus(const std::string &, VBucket &, std::vector<VBucket> &)> &func)
+{
+    forkQueryAllGid_ = func;
+}
 }

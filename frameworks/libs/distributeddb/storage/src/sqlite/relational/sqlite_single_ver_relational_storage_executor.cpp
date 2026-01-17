@@ -2003,5 +2003,13 @@ std::pair<int, TableInfo> SQLiteSingleVerRelationalStorageExecutor::AnalyzeTable
 {
     return SQLiteRelationalUtils::AnalyzeTable(dbHandle_, tableName);
 }
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+int SQLiteSingleVerRelationalStorageExecutor::PutCloudGid(const std::string &tableName,
+    std::vector<VBucket> &data) const
+{
+    return SQLiteRelationalUtils::PutCloudGid(dbHandle_, tableName, data);
+}
+#endif
 } // namespace DistributedDB
 #endif

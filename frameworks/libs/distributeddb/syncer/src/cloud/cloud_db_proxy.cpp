@@ -482,33 +482,27 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
     if (status < DB_ERROR || status >= BUTT_STATUS) {
         return static_cast<int>(status);
     }
-    switch (status) {
-        case OK:
-        case LOCAL_ASSET_NOT_FOUND:
-            return E_OK;
-        case CLOUD_NETWORK_ERROR:
-            return -E_CLOUD_NETWORK_ERROR;
-        case CLOUD_SYNC_UNSET:
-            return -E_CLOUD_SYNC_UNSET;
-        case CLOUD_FULL_RECORDS:
-            return -E_CLOUD_FULL_RECORDS;
-        case CLOUD_LOCK_ERROR:
-            return -E_CLOUD_LOCK_ERROR;
-        case CLOUD_ASSET_SPACE_INSUFFICIENT:
-            return -E_CLOUD_ASSET_SPACE_INSUFFICIENT;
-        case CLOUD_VERSION_CONFLICT:
-            return -E_CLOUD_VERSION_CONFLICT;
-        case CLOUD_RECORD_EXIST_CONFLICT:
-            return -E_CLOUD_RECORD_EXIST_CONFLICT;
-        case CLOUD_DISABLED:
-            return -E_CLOUD_DISABLED;
-        case CLOUD_ASSET_NOT_FOUND:
-            return -E_CLOUD_ASSET_NOT_FOUND;
-        case SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT:
-            return -E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT;
-        default:
-            return -E_CLOUD_ERROR;
+    static const std::map<DBStatus, int> CLOUD_ERROR = {
+        {OK, E_OK},
+        {LOCAL_ASSET_NOT_FOUND, E_OK},
+        {CLOUD_NETWORK_ERROR, -E_CLOUD_NETWORK_ERROR},
+        {CLOUD_SYNC_UNSET, -E_CLOUD_SYNC_UNSET},
+        {CLOUD_FULL_RECORDS, -E_CLOUD_FULL_RECORDS},
+        {CLOUD_LOCK_ERROR, -E_CLOUD_LOCK_ERROR},
+        {CLOUD_ASSET_SPACE_INSUFFICIENT, -E_CLOUD_ASSET_SPACE_INSUFFICIENT},
+        {CLOUD_VERSION_CONFLICT, -E_CLOUD_VERSION_CONFLICT},
+        {CLOUD_RECORD_EXIST_CONFLICT, -E_CLOUD_RECORD_EXIST_CONFLICT},
+        {CLOUD_DISABLED, -E_CLOUD_DISABLED},
+        {CLOUD_ASSET_NOT_FOUND, -E_CLOUD_ASSET_NOT_FOUND},
+        {SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT, -E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT},
+        {EXPIRED_CURSOR, -E_EXPIRED_CURSOR},
+        {QUERY_END, -E_QUERY_END},
+    };
+    auto iter = CLOUD_ERROR.find(status);
+    if (iter != CLOUD_ERROR.end()) {
+        return iter->second;
     }
+    return -E_CLOUD_ERROR;
 }
 
 DBStatus CloudDBProxy::QueryAction(const std::shared_ptr<CloudActionContext> &context,
@@ -856,5 +850,18 @@ std::weak_ptr<ICloudConflictHandler> CloudDBProxy::GetCloudConflictHandler()
 {
     std::shared_lock<std::shared_mutex> writeLock(handlerMutex_);
     return std::weak_ptr<ICloudConflictHandler>(conflictHandler_);
+}
+
+int CloudDBProxy::QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
+{
+    std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
+    if (iCloudDb_ == nullptr) {
+        return -E_CLOUD_ERROR;
+    }
+    auto ret = iCloudDb_->QueryAllGid(tableName, extend, data);
+    if (ret != DBStatus::OK && ret != DBStatus::QUERY_END) {
+        LOGE("[CloudDBProxy] QueryAllGid failed[%d]", ret);
+    }
+    return GetInnerErrorCode(ret);
 }
 }

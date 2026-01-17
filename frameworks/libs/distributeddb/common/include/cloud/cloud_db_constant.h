@@ -23,6 +23,7 @@ namespace DistributedDB {
 class CloudDbConstant {
 public:
     static constexpr const char *CLOUD_META_TABLE_PREFIX = "naturalbase_cloud_meta_";
+    static constexpr const char *CLOUD_INFO_META_PREFIX = "naturalbase_cloud_info_meta_";
     static constexpr const char *GID_FIELD = "#_gid";
     static constexpr const char *CREATE_FIELD = "#_createTime";
     static constexpr const char *MODIFY_FIELD = "#_modifyTime";
@@ -106,6 +107,7 @@ public:
 
     static constexpr std::chrono::milliseconds ASYNC_GEN_LOG_INTERVAL = std::chrono::milliseconds(20);
     static constexpr std::chrono::milliseconds LONG_TIME_TRANSACTION = std::chrono::milliseconds(1000);
+    static constexpr std::chrono::milliseconds LONG_TRANSACTION_INTERVAL = std::chrono::milliseconds(50);
 
     // change local flag to :keep async download asset[0x1000]
     //                       mark local last write[0x02]
