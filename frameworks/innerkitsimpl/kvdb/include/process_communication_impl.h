@@ -16,9 +16,9 @@
 #ifndef PROCESS_COMMUNICATION_IMPL_H
 #define PROCESS_COMMUNICATION_IMPL_H
 
-#include "end_point.h"
 #include "iprocess_communicator.h"
 #include "types.h"
+#include "end_point.h"
 
 namespace OHOS {
 namespace DistributedKv {

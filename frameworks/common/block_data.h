@@ -25,6 +25,7 @@ public:
 
     ~BlockData() {}
 
+public:
     void SetValue(const T &data)
     {
         std::lock_guard<std::mutex> lock(mutex_);
