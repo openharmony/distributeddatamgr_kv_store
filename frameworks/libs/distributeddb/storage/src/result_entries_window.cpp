@@ -18,6 +18,7 @@
 #include <limits>
 #include "db_constant.h"
 #include "db_errno.h"
+#include "log_print.h"
 
 using std::vector;
 using std::move;
@@ -118,6 +119,11 @@ int ResultEntriesWindow::GetEntry(Entry &entry) const
         if (errCode != E_OK) {
             return errCode;
         }
+    }
+    if (currentPosition_ < begin_ || static_cast<size_t>(currentPosition_ - begin_) >= buffer_.size()) {
+        LOGE("[ResultEntriesWindow][GetEntry] invalid current position: %d, or invalid begin position: %d",
+            currentPosition_, begin_);
+        return -E_INVALID_ARGS;
     }
     entry = buffer_[currentPosition_ - begin_];
     return E_OK;
