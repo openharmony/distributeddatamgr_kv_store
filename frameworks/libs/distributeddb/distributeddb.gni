@@ -342,6 +342,8 @@ distributeddb_base_src = [
 ]
 
 distributeddb_client_src = [
+  "${distributeddb_path}/interfaces/src/relational/gspd_api_manager.cpp",
+  "${distributeddb_path}/interfaces/src/relational/gspd_process_api.cpp",
   "${distributeddb_path}/interfaces/src/relational/knowledge_source_utils.cpp",
   "${distributeddb_path}/interfaces/src/relational/preprocess_entity_ext.cpp",
   "${distributeddb_path}/interfaces/src/relational/relational_store_sqlite_ext.cpp",
