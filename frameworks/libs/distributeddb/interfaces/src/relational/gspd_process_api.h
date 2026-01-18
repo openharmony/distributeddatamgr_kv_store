@@ -12,21 +12,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef PREPROCESS_ENTITY_EXT_H
-#define PREPROCESS_ENTITY_EXT_H
+#ifndef GSPD_PREPROCESS_API_H
+#define GSPD_PREPROCESS_API_H
 
-#include <string>
-// using the "sqlite3sym.h" in OHOS
-#ifndef USE_SQLITE_SYMBOLS
-#include "sqlite3.h"
-#else
-#include "sqlite3sym.h"
+#include <cstdint>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 namespace DistributedDB {
 
-void IsEntityDuplicateImpl(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+int32_t GSPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *isDuplicate);
 
 } // namespace DistributedDB
 
-#endif // PREPROCESS_ENTITY_EXT_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif // GSPD_PREPROCESS_API_H
