@@ -47,6 +47,12 @@ public:
 
     void CleanWaterMarkInMemory(const TableName &tableName);
 
+    int GetCloudGidCursor(const std::string &tableName, std::string &cursor) const;
+    int PutCloudGidCursor(const std::string &tableName, const std::string &cursor) const;
+    int GetBackupCloudCursor(const std::string &tableName, std::string &cursor) const;
+    int PutBackupCloudCursor(const std::string &tableName, const std::string &cursor) const;
+    int CleanCloudInfo(const std::string &tableName) const;
+
 private:
     typedef struct CloudMetaValue {
         Timestamp localMark = 0u;
@@ -56,12 +62,27 @@ private:
         std::string cloudMark;
     } CloudMetaValue;
 
+    typedef struct CloudInfoValue {
+        uint64_t version = 0u;
+        std::string gidCloudMark;
+        // when query all gid finished, use it as query watermark
+        std::string backupCloudCursor;
+    } CloudInfoValue;
+
     int ReadMarkFromMeta(const TableName &tableName);
     int WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark);
     int WriteTypeMarkToMeta(const TableName &tableName, CloudMetaValue &cloudMetaValue);
     int SerializeWaterMark(CloudMetaValue &cloudMetaValue, Value &blobMetaVal);
     int DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue);
     uint64_t GetParcelCurrentLength(CloudMetaValue &cloudMetaValue);
+
+    int GetCloudInfo(const std::string &tableName, CloudInfoValue &info) const ;
+    int PutCursorInner(const std::string &tableName, const std::string &cursor, bool isGidCursor) const;
+    static int DeserializeCloudInfo(Value &blobMark, CloudInfoValue &info);
+    static int SerializeCloudInfo(const CloudInfoValue &info, Value &blobMark);
+
+    static uint64_t GetParcelCurrentLength(const CloudInfoValue &info);
+    static Key GetCloudInfoKey(const std::string &tableName);
 
     mutable std::mutex cloudMetaMutex_;
     std::unordered_map<TableName, CloudMetaValue> cloudMetaVals_;

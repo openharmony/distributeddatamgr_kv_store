@@ -32,6 +32,11 @@
 #include "version.h"
 
 namespace DistributedDB {
+namespace {
+    constexpr const int MAX_EXPIRED_CURSOR_COUNT = 1;
+    constexpr const uint64_t MAX_DOWNLOAD_LOOP_TIMES = 10000;
+    constexpr const uint64_t WARNING_DOWNLOAD_PERIOD = 100;
+}
 int CloudSyncer::HandleDownloadResultForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
@@ -226,5 +231,165 @@ void CloudSyncer::SetCurrentTmpError(int errCode)
     }
     cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
     cloudTaskInfos_[currentContext_.currentTaskId].tempErrCode = errCode;
+}
+
+int CloudSyncer::DoDownloadInner(TaskId taskId, SyncParam &param, bool isFirstDownload)
+{
+    // Query data by batch until reaching end and not more data need to be download
+    int ret = PreCheck(taskId, param.info.tableName);
+    if (ret != E_OK) {
+        return ret;
+    }
+    int expiredCursorCount = 0;
+    uint64_t loopCount = 0;
+    do {
+        ret = DownloadOneBatch(taskId, param, isFirstDownload);
+        if (ret == -E_EXPIRED_CURSOR) {
+            expiredCursorCount++;
+            if (expiredCursorCount > MAX_EXPIRED_CURSOR_COUNT) {
+                LOGE("[CloudSyncer] Table[%s] too much expired cursor count[%d]",
+                    DBCommon::StringMiddleMasking(param.info.tableName).c_str(), expiredCursorCount);
+                return ret;
+            }
+            param.isLastBatch = false;
+            ret = DoUpdateExpiredCursor(taskId, param.info.tableName, param.cloudWaterMark);
+        }
+        if (ret != E_OK) {
+            return ret;
+        }
+        loopCount++;
+        if (loopCount > MAX_DOWNLOAD_LOOP_TIMES && (loopCount % WARNING_DOWNLOAD_PERIOD == 0)) {
+            LOGW("[CloudSyncer] Table[%s] download too much times, current[%" PRIu64 "]",
+                DBCommon::StringMiddleMasking(param.info.tableName).c_str(), loopCount);
+        }
+    } while (!param.isLastBatch);
+    return E_OK;
+}
+
+int CloudSyncer::DoUpdateExpiredCursor(TaskId taskId, const std::string &table, std::string &newCursor)
+{
+    LOGI("[CloudSyncer] Update expired cursor now, table[%s]", DBCommon::StringMiddleMasking(table).c_str());
+    if (storageProxy_ == nullptr) {
+        LOGE("[CloudSyncer] storage is nullptr when update expired cursor");
+        return -E_INTERNAL_ERROR;
+    }
+    SyncParam param;
+    param.tableName = table;
+    auto errCode = storageProxy_->GetCloudGidCursor(param.tableName, param.cloudWaterMark);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = DoUpdatePotentialCursorIfNeed(param.tableName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int retryCount = 0;
+    do {
+        param.downloadData.data.clear();
+        int ret = DownloadOneBatchGID(taskId, param);
+        if (ret == -E_EXPIRED_CURSOR && retryCount < MAX_EXPIRED_CURSOR_COUNT) {
+            retryCount++;
+            param.cloudWaterMark = "";
+            continue;
+        }
+        if (ret != E_OK) {
+            return ret;
+        }
+    } while (!param.isLastBatch);
+    errCode = storageProxy_->DeleteCloudNoneExistRecord(param.tableName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return UpdateCloudMarkAndCleanExpiredCursor(param, newCursor);
+}
+
+int CloudSyncer::DoUpdatePotentialCursorIfNeed(const std::string &table)
+{
+    std::string backupCursor;
+    auto errCode = storageProxy_->GetBackupCloudCursor(table, backupCursor);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!backupCursor.empty()) {
+        LOGI("[CloudSyncer] Table[%s] already exist backup cursor", DBCommon::StringMiddleMasking(table).c_str());
+        return E_OK;
+    }
+    std::tie(errCode, backupCursor) = cloudDB_.GetEmptyCursor(table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return storageProxy_->PutBackupCloudCursor(table, backupCursor);
+}
+
+int CloudSyncer::DownloadOneBatchGID(TaskId taskId, SyncParam &param)
+{
+    int ret = CheckTaskIdValid(taskId);
+    if (ret != E_OK) {
+        return ret;
+    }
+    ret = DownloadGIDFromCloud(param);
+    if (ret != E_OK) {
+        return ret;
+    }
+    ret = SaveGIDRecord(param);
+    if (ret != E_OK) {
+        return ret;
+    }
+    return SaveGIDCursor(param);
+}
+
+int CloudSyncer::UpdateCloudMarkAndCleanExpiredCursor(SyncParam &param, std::string &newCursor)
+{
+    int errCode = storageProxy_->GetBackupCloudCursor(param.tableName, newCursor);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = storageProxy_->CleanCloudInfo(param.tableName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return storageProxy_->SetCloudWaterMark(param.tableName, newCursor);
+}
+
+int CloudSyncer::DownloadGIDFromCloud(SyncParam &param)
+{
+    VBucket extend;
+    extend[CloudDbConstant::CURSOR_FIELD] = param.cloudWaterMark;
+    int errCode = cloudDB_.QueryAllGid(param.tableName, extend, param.downloadData.data);
+    if (errCode == -E_QUERY_END) {
+        errCode = E_OK;
+        param.isLastBatch = true;
+    }
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] Query cloud gid failed[%d]", errCode);
+    } else if (!param.downloadData.data.empty()) {
+        const auto &record = param.downloadData.data[param.downloadData.data.size() - 1u];
+        auto iter = record.find(CloudDbConstant::CURSOR_FIELD);
+        if (iter == record.end()) {
+            LOGE("[CloudSyncer] Cloud gid record no exist cursor");
+            return -E_CLOUD_ERROR;
+        }
+        auto cursor = std::get_if<std::string>(&iter->second);
+        if (cursor == nullptr) {
+            LOGE("[CloudSyncer] Cloud gid record cursor is no str, type[%zu]", iter->second.index());
+            return -E_CLOUD_ERROR;
+        }
+        if (cursor->size() > static_cast<size_t>(INT32_MAX)) {
+            LOGE("[CloudSyncer] Cloud gid record cursor len over max limit, size[%zu]", cursor->size());
+            return -E_CLOUD_ERROR;
+        }
+        param.cloudWaterMark = *cursor;
+    }
+    return errCode;
+}
+
+int CloudSyncer::SaveGIDRecord(SyncParam &param)
+{
+    return storageProxy_->PutCloudGid(param.tableName, param.downloadData.data);
+}
+
+int CloudSyncer::SaveGIDCursor(SyncParam &param)
+{
+    return storageProxy_->PutCloudGidCursor(param.tableName, param.cloudWaterMark);
 }
 } // namespace DistributedDB

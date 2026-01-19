@@ -164,8 +164,8 @@ ohos_source_set("src_file") {
   public_configs = [ ":gaussdb_rd_public_config" ]
 
   external_deps = [
-    "c_utils:utils",
     "cJSON:cjson",
+    "c_utils:utils",
     "googletest:gmock_main",
     "googletest:gtest_main",
     "hilog:libhilog",
@@ -934,10 +934,14 @@ distributeddb_unittest("DistributedDBRDBComplexCloudTest") {
   ]
 }
 
-distributeddb_unittest("DistributedDBRDBKnowledgeClientTest") {
+distributeddb_unittest("DistributedDBRDBSqliteUtilsTest") {
   sources = [
-    "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_client_test.cpp",
+    "unittest/common/store_test/rdb/distributeddb_rdb_sqlite_utils_test.cpp",
   ]
+}
+
+distributeddb_unittest("DistributedDBRDBKnowledgeClientTest") {
+  sources = [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_client_test.cpp" ]
 
   if (is_ohos) {
     defines = [ "RDB_CLIENT" ]
@@ -945,9 +949,7 @@ distributeddb_unittest("DistributedDBRDBKnowledgeClientTest") {
 }
 
 distributeddb_unittest("DistributedDBCloudInterfacesRelationalExtClientTest") {
-  sources = [
-    "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_ext_client_test.cpp",
-  ]
+  sources = [ "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_ext_client_test.cpp" ]
 
   if (is_ohos) {
     defines = [ "RDB_CLIENT" ]
@@ -1105,6 +1107,7 @@ group("unittest") {
     ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRDBMultiUserSyncTest",
     ":DistributedDBRDBPermissionSyncTest",
+    ":DistributedDBRDBSqliteUtilsTest",
     ":DistributedDBRDBUpgradeTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",

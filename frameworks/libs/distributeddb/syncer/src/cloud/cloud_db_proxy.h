@@ -89,6 +89,8 @@ public:
 
     std::weak_ptr<ICloudConflictHandler> GetCloudConflictHandler();
 
+    int QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data);
+
     static int GetInnerErrorCode(DBStatus status);
 protected:
     class CloudActionContext {

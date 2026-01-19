@@ -199,6 +199,20 @@ public:
 
     int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) const;
 
+    // gid contain in data with key #_gid
+    int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
+
+    int GetCloudGidCursor(const std::string &tableName, std::string &cursor);
+
+    int PutCloudGidCursor(const std::string &tableName, const std::string &cursor);
+
+    int GetBackupCloudCursor(const std::string &tableName, std::string &cursor);
+
+    int PutBackupCloudCursor(const std::string &tableName, const std::string &cursor);
+
+    int CleanCloudInfo(const std::string &tableName);
+
+    int DeleteCloudNoneExistRecord(const std::string &tableName);
 protected:
     void Init();
 private:

@@ -53,6 +53,8 @@ public:
 
     DBStatus Close() override;
 
+    DBStatus QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data) override;
+
     void SetCloudError(bool cloudError);
 
     void SetBlockTime(int32_t blockTime);
@@ -108,6 +110,8 @@ public:
     void SetCloudAssetSpaceInsufficient(bool isInsufficient);
 
     void SetUploadRecordStatus(DBStatus status);
+
+    void ForkQueryAllGid(const std::function<DBStatus(const std::string &, VBucket &, std::vector<VBucket> &)> &func);
 private:
     DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend);
@@ -167,6 +171,7 @@ private:
     std::function<void(VBucket &)> insertCheckFunc_;
     std::function<DBStatus(VBucket &, std::vector<VBucket> &)> forkAfterQueryResult_;
     DBStatus uploadRecordStatus_ = OK;
+    std::function<DBStatus(const std::string &, VBucket &, std::vector<VBucket> &)> forkQueryAllGid_;
 };
 }
 #endif // VIRTUAL_CLOUD_DB_H

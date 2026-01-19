@@ -325,19 +325,14 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanInner(ClearMode mode,
         }
         notifyTableList = tableNameList;
     }
-    for (const auto &tableName: tableNameList) {
-        errCode = CleanDownloadingFlag(tableName);
-        if (errCode != E_OK) {
-            LOGE("Fail to clean downloading flag, %d, tableName:%s, length:%zu",
-                errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
-            return errCode;
-        }
+    errCode = CleanTableTmpMsg(tableNameList);
+    if (errCode != E_OK) {
+        return errCode;
     }
     errCode = SetLogTriggerStatus(true);
     if (errCode != E_OK) {
         LOGE("Fail to set log trigger on when clean cloud data, %d", errCode);
     }
-
     return errCode;
 }
 

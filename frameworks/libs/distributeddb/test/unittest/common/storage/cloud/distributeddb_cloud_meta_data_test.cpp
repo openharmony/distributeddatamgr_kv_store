@@ -240,6 +240,10 @@ namespace {
         EXPECT_EQ(proxyObj.GetLocalWaterMarkByMode(TABLE_NAME_1, CloudWaterType::INSERT, retLocalMark), -E_INVALID_DB);
         EXPECT_EQ(proxyObj.PutLocalWaterMark(TABLE_NAME_1, retLocalMark), -E_INVALID_DB);
         EXPECT_EQ(proxyObj.PutWaterMarkByMode(TABLE_NAME_1, CloudWaterType::INSERT, retLocalMark), -E_INVALID_DB);
+        std::string cursor;
+        EXPECT_EQ(proxyObj.GetCloudGidCursor(TABLE_NAME_1, cursor), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.PutCloudGidCursor(TABLE_NAME_1, cursor), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.CleanCloudInfo(TABLE_NAME_1), -E_INVALID_DB);
         proxyObj.ReleaseUploadRecord(TABLE_NAME_1, CloudWaterType::INSERT, retLocalMark);
         int64_t count = 0;
         EXPECT_EQ(proxyObj.GetUploadCount(TABLE_NAME_1, retLocalMark, true, count), -E_INVALID_DB);
@@ -325,6 +329,9 @@ namespace {
         EXPECT_EQ(proxyObj.IsTableExistReference(TABLE_NAME_1), false);
         EXPECT_EQ(proxyObj.ClearAllTempSyncTrigger(), -E_INVALID_DB);
         EXPECT_EQ(proxyObj.SetIAssetLoader(nullptr), -E_INVALID_DB);
+        std::vector<VBucket> extend;
+        EXPECT_EQ(proxyObj.PutCloudGid(TABLE_NAME_1, extend), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.DeleteCloudNoneExistRecord(TABLE_NAME_1), -E_INVALID_DB);
     }
 
     /**

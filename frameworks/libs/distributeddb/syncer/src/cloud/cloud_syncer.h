@@ -570,6 +570,20 @@ protected:
 
     void SetCurrentTmpError(int errCode);
 
+    int DoUpdateExpiredCursor(TaskId taskId, const std::string &table, std::string &newCursor);
+
+    int DoUpdatePotentialCursorIfNeed(const std::string &table);
+
+    int DownloadOneBatchGID(TaskId taskId, SyncParam &param);
+
+    int UpdateCloudMarkAndCleanExpiredCursor(SyncParam &param, std::string &newCursor);
+
+    int DownloadGIDFromCloud(SyncParam &param);
+
+    int SaveGIDRecord(SyncParam &param);
+
+    int SaveGIDCursor(SyncParam &param);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;

@@ -2034,5 +2034,26 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLocalDataByRowid(const TableInf
     }
     return SQLiteRelationalUtils::GetLocalDataByRowid(dbHandle_, table, tableSchema, dataInfoWithLog);
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanTableTmpMsg(const std::vector<std::string> &tableNameList)
+{
+    int errCode = E_OK;
+    for (const auto &tableName: tableNameList) {
+        errCode = CleanDownloadingFlag(tableName);
+        if (errCode != E_OK) {
+            LOGE("Fail to clean downloading flag, %d, tableName:%s, length:%zu",
+                errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+            return errCode;
+        }
+        std::string sql = "DROP TABLE IF EXISTS " + DBCommon::GetTmpLogTableName(tableName);
+        errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+        if (errCode != E_OK) {
+            LOGE("Fail to drop tmp table errCode[%d] tableName[%s]",
+                errCode, DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            return errCode;
+        }
+    }
+    return errCode;
+}
 } // namespace DistributedDB
 #endif

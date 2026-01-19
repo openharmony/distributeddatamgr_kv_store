@@ -1104,4 +1104,93 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest017, TestSize.Level0)
     EXPECT_EQ(cloudSyncer2->WaitAsyncGenLogTaskFinished(0u), -E_INVALID_DB);
     delete cloudSyncer2;
 }
+
+/**
+ * @tc.name: CloudDBProxyTest018
+ * @tc.desc: Test query all gid
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest018, TestSize.Level0)
+{
+    CloudDBProxy proxy;
+    VBucket extend;
+    std::vector<VBucket> data;
+    EXPECT_EQ(proxy.QueryAllGid("", extend, data), -E_CLOUD_ERROR);
+    proxy.SetCloudDB(virtualCloudDb_);
+    virtualCloudDb_->ForkQueryAllGid([](const std::string &, VBucket &, std::vector<VBucket> &) {
+        return DB_ERROR;
+    });
+    EXPECT_EQ(proxy.QueryAllGid("", extend, data), -E_CLOUD_ERROR);
+    virtualCloudDb_->ForkQueryAllGid(nullptr);
+}
+
+/**
+ * @tc.name: StorageProxy001
+ * @tc.desc: Test expired cursor in storage proxy
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, StorageProxy001, TestSize.Level0)
+{
+    StorageProxy proxy(nullptr);
+    std::vector<VBucket> data;
+    EXPECT_EQ(proxy.PutCloudGid("", data), -E_INVALID_DB);
+    std::string cursor;
+    EXPECT_EQ(proxy.GetCloudGidCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy.GetBackupCloudCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy.PutCloudGidCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy.PutBackupCloudCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy.CleanCloudInfo(""), -E_INVALID_DB);
+    EXPECT_EQ(proxy.DeleteCloudNoneExistRecord(""), -E_INVALID_DB);
+    CloudMetaData metaData(nullptr);
+    EXPECT_EQ(metaData.GetCloudGidCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(metaData.GetBackupCloudCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(metaData.PutCloudGidCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(metaData.PutBackupCloudCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(metaData.CleanCloudInfo(""), -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: StorageProxy002
+ * @tc.desc: Test expired cursor in storage proxy
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, StorageProxy002, TestSize.Level0)
+{
+    auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
+    ASSERT_NE(iCloud, nullptr);
+    auto proxy = StorageProxy::GetCloudDb(iCloud.get());
+    ASSERT_NE(proxy, nullptr);
+    EXPECT_CALL(*iCloud, GetMetaData).WillRepeatedly(testing::Return(-E_INVALID_DB));
+    std::string cursor;
+    EXPECT_EQ(proxy->GetCloudGidCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy->GetBackupCloudCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy->PutCloudGidCursor("", cursor), -E_INVALID_DB);
+    EXPECT_EQ(proxy->PutBackupCloudCursor("", cursor), -E_INVALID_DB);
+    EXPECT_CALL(*iCloud, GetMetaData).WillRepeatedly([](const Key &, Value &value) {
+        return E_OK;
+    });
+    EXPECT_EQ(proxy->GetCloudGidCursor("", cursor), E_OK);
+    EXPECT_EQ(proxy->GetBackupCloudCursor("", cursor), E_OK);
+    EXPECT_CALL(*iCloud, GetMetaData).WillRepeatedly([](const Key &, Value &value) {
+        value.push_back(0);
+        return E_OK;
+    });
+    EXPECT_EQ(proxy->GetCloudGidCursor("", cursor), -E_PARSE_FAIL);
+    EXPECT_EQ(proxy->GetBackupCloudCursor("", cursor), -E_PARSE_FAIL);
+    EXPECT_CALL(*iCloud, GetMetaData).WillRepeatedly([](const Key &, Value &value) {
+        uint64_t length = Parcel::GetUInt64Len() + Parcel::GetStringLen("") +
+                          Parcel::GetStringLen("");
+        value.resize(length);
+        Parcel parcel(value.data(), value.size());
+        parcel.WriteUInt64(0);
+        parcel.WriteString("");
+        parcel.WriteString("");
+        return E_OK;
+    });
+    EXPECT_EQ(proxy->GetCloudGidCursor("", cursor), E_OK);
+    EXPECT_EQ(proxy->GetBackupCloudCursor("", cursor), E_OK);
+}
 }
