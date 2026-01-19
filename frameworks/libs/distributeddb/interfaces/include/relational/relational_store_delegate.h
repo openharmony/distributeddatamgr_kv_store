@@ -202,6 +202,12 @@ public:
     {
         return OK;
     }
+
+    // tableMap: key is tableName, value is keepDevices
+    DB_API virtual DBStatus RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap)
+    {
+        return OK;
+    }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

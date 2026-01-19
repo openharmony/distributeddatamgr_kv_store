@@ -101,6 +101,8 @@ public:
     DBStatus SetStoreConfig(const StoreConfig &config) override;
 
     DBStatus SetProperty(const Property &property) override;
+
+    DBStatus RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap) override;
 #endif
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,

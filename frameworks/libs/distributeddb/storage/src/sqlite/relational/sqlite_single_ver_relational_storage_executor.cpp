@@ -1992,5 +1992,20 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudGid(const std::string &tab
     return SQLiteRelationalUtils::PutCloudGid(dbHandle_, tableName, data);
 }
 #endif
+
+int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedExceptDeviceTable(
+    const std::string &removedTable, const std::vector<std::string> &keepDevices) const
+{
+    return SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(dbHandle_, removedTable, keepDevices);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedExceptDeviceTableLog(const std::string &removedTable,
+    const std::vector<std::string> &keepDevices, const TrackerTable &trackerTable) const
+{
+    if (trackerTable.IsEmpty()) {
+        return SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(dbHandle_, removedTable, keepDevices);
+    }
+    return SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(dbHandle_, removedTable, keepDevices);
+}
 } // namespace DistributedDB
 #endif

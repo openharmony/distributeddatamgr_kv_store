@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "irelational_store.h"
+#include "res_finalizer.h"
 #include "sqlite_single_relational_storage_engine.h"
 #include "isyncer.h"
 #include "sync_able_engine.h"
@@ -131,6 +132,8 @@ public:
     int32_t GetDeviceSyncTaskCount() const;
 
     int SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
+
+    int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap);
 #endif
     int OperateDataStatus(uint32_t dataOperator);
 
@@ -227,6 +230,13 @@ protected:
     void TrackerRepairImpl(TrackerTable &trackerTable, const RelationalSchemaObject &obj);
 
     RelationalSchemaObject GetSchemaObj() const;
+
+    int CheckTableSyncType(const std::string &tableName, TableSyncType tableSyncType) const;
+
+    int GetTargetDevices(const std::vector<std::string> &keepDevices, std::vector<std::string> &targetDevices);
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    int RemoveExceptDeviceDataInner(const std::map<std::string, std::vector<std::string>> &tableMap);
+#endif
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

@@ -1256,4 +1256,68 @@ std::map<int32_t, std::string> SQLiteRelationalUtils::GetCloudFieldDataType()
     return cloudFieldTypeMap;
 }
 #endif
+
+int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
+    const std::vector<std::string> &keepDevices)
+{
+    std::string selectSql = "SELECT data_key FROM " + DBCommon::GetLogTableName(removedTable) +
+        " WHERE hex(ori_device) NOT IN (";
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        selectSql += ("hex('" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(keepDevices[i])) + "')");
+        if (i + 1 < keepDevices.size()) {
+            selectSql += ", ";
+        }
+    }
+    selectSql += ") AND data_key <> -1";
+    std::string deleteSql = "DELETE FROM " + removedTable + " WHERE _rowid_ in (" + selectSql + ");";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, deleteSql);
+    if (errCode != E_OK) {
+        LOGE("[DeleteDistributedExceptDeviceTable] delete table failed, %s, %d",
+            DBCommon::StringMiddleMaskingWithLen(removedTable).c_str(), errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(sqlite3 *db, const std::string &removedTable,
+    const std::vector<std::string> &keepDevices)
+{
+    std::string deleteSql = "DELETE FROM " + DBCommon::GetLogTableName(removedTable) +
+        " WHERE hex(ori_device) NOT IN (";
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        deleteSql += ("hex('" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(keepDevices[i])) + "')");
+        if (i + 1 < keepDevices.size()) {
+            deleteSql += ", ";
+        }
+    }
+    deleteSql += ");";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, deleteSql);
+    if (errCode != E_OK) {
+        LOGE("[DeleteDistributedExceptDeviceTableLog] delete log table failed, %s, %d",
+            DBCommon::StringMiddleMaskingWithLen(DBCommon::GetLogTableName(removedTable)).c_str(), errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::string &removedTable,
+    const std::vector<std::string> &keepDevices)
+{
+    std::string deleteSql = "UPDATE " + DBCommon::GetLogTableName(removedTable) +
+        " SET flag = 0x01 WHERE hex(ori_device) NOT IN (";
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        deleteSql += ("hex('" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(keepDevices[i])) + "')");
+        if (i + 1 < keepDevices.size()) {
+            deleteSql += ", ";
+        }
+    }
+    deleteSql += ") AND data_key <> -1;";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, deleteSql);
+    if (errCode != E_OK) {
+        LOGE("[UpdateTrackerTableSyncDelete] delete log table failed, %s, %d",
+            DBCommon::StringMiddleMaskingWithLen(DBCommon::GetLogTableName(removedTable)).c_str(), errCode);
+        return errCode;
+    }
+    return E_OK;
+}
 } // namespace DistributedDB
