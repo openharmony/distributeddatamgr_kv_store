@@ -23,12 +23,12 @@
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "ipc_skeleton.h"
-#include "kv_hiview_reporter.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_result_set.h"
 #include "store_util.h"
 #include "task_executor.h"
+#include "kv_hiview_reporter.h"
 
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
@@ -223,6 +223,7 @@ Status SingleStoreImpl::StartTransaction()
         ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
+
     auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
     if (status != SUCCESS) {
         ReportDBFaultEvent(status, std::string(__FUNCTION__));
@@ -1121,7 +1122,7 @@ void SingleStoreImpl::ReportDBFaultEvent(Status status, const std::string &funct
 void SingleStoreImpl::SetAcl(const std::string &storeId, const std::string &path)
 {
     std::string dbPath = "";
-    DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId_, dbPath);
+    DistributedDB::KvStoreDelegateManager::GetDatabaseDir(storeId, dbPath);
     std::string fullPath = path + "/kvdb/" +dbPath + "/single_ver/";
     if (!StoreUtil::SetDatabaseGid(fullPath)) {
         return;

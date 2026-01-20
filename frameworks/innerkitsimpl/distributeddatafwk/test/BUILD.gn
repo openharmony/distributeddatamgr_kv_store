@@ -168,9 +168,7 @@ ohos_unittest("DistributedKvDataManagerTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("DistributedKvDataManagerEncryptTest") {
@@ -191,9 +189,7 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("LocalSubscribeStoreTest") {
@@ -214,9 +210,7 @@ ohos_unittest("LocalSubscribeStoreTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("LocalSubscribeDeviceStoreTest") {
@@ -237,9 +231,7 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("SingleKvStoreClientQueryTest") {
@@ -260,9 +252,7 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("SingleKvStoreClientTest") {
@@ -283,9 +273,7 @@ ohos_unittest("SingleKvStoreClientTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("SingleKvStoreAsyncGetTest") {
@@ -306,9 +294,7 @@ ohos_unittest("SingleKvStoreAsyncGetTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("DeviceKvStoreTest") {
@@ -329,9 +315,7 @@ ohos_unittest("DeviceKvStoreTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("BlobTest") {
@@ -344,9 +328,7 @@ ohos_unittest("BlobTest") {
 
   configs = [ ":module_private_config" ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 
   external_deps = [
     "c_utils:utils",
@@ -366,9 +348,7 @@ ohos_unittest("TypesUtilTest") {
 
   configs = [ ":module_private_config" ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 
   external_deps = [
     "c_utils:utils",
@@ -388,15 +368,18 @@ ohos_unittest("KvUtilTest") {
 
   configs = [ ":module_private_config" ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
+  ]
+
+  defines = [
+    "private=public",
+    "protected=public",
   ]
 }
 
@@ -410,9 +393,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   configs = [ ":module_private_config" ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 
   external_deps = [
     "c_utils:utils",
@@ -443,9 +424,7 @@ ohos_unittest("DistributedDataMgrTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("EndPointTest") {
@@ -466,9 +445,7 @@ ohos_unittest("EndPointTest") {
     "samgr:samgr_proxy",
   ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ohos_unittest("SwitchObserverBridgeTest") {
@@ -489,13 +466,9 @@ ohos_unittest("SwitchObserverBridgeTest") {
     "samgr:samgr_proxy",
   ]
 
-  cflags = [
-    "-Dprivate=public",
-  ]
+  cflags = [ "-Dprivate=public" ]
 
-  deps = [
-    ":distributeddatafwk_src_file",
-  ]
+  deps = [ ":distributeddatafwk_src_file" ]
 }
 
 ###############################################################################
@@ -524,7 +497,7 @@ group("unittest") {
     deps += [
       ":DeviceKvStoreTest",
       ":DistributedKvDataManagerTest",
-      ":SingleKvStoreAsyncGetTest"
+      ":SingleKvStoreAsyncGetTest",
     ]
   }
 }
