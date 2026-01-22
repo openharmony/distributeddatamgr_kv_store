@@ -759,6 +759,9 @@ void CloudStorageUtils::FillAssetsForUploadFailed(Assets &assets, Assets &dbAsse
 int CloudStorageUtils::FillAssetForAbnormal(Asset &asset, Asset &dbAsset,
     AssetOperationUtils::AssetOpType assetOpType)
 {
+    if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+        return E_OK;
+    }
     dbAsset.assetId = asset.assetId;
     dbAsset.status = AssetStatus::ABNORMAL;
     LOGW("Asset %s status set to ABNORMAL", DBCommon::StringMiddleMasking(asset.assetId).c_str());
