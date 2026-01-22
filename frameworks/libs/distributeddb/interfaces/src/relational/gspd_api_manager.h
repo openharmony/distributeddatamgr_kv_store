@@ -29,6 +29,7 @@ struct GSPD_APIInfo {
 GSPD_APIInfo *GetApiInfo(void);
 void GetApiInfoInstance(void);
 void UnloadApiInfo(GSPD_APIInfo *gspdApiInfo);
+bool CheckGSPDApi(void);
 
 } // namespace DistributedDB
 

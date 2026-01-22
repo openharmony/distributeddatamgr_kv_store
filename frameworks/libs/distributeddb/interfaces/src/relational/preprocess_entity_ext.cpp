@@ -44,8 +44,14 @@ void IsEntityDuplicateImpl(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
     const char* dbEntityJson = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
     const char* inputEntityJson = reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
-    if (!dbEntityJson || !inputEntityJson) {
-        std::string errorMsg = "is_entity_duplicate expects not null value";
+    if (!inputEntityJson) {
+        LOGE("is_entity_duplicate expects not null value input");
+        sqlite3_result_error(ctx, "is_entity_duplicate expects not null value input", -1);
+        return;
+    }
+    if (!dbEntityJson) {
+        // db entity invalid, return false
+        sqlite3_result_int(ctx, 0);
         return;
     }
 

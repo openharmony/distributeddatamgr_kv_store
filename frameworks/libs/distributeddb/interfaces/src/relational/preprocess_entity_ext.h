@@ -15,7 +15,6 @@
 #ifndef PREPROCESS_ENTITY_EXT_H
 #define PREPROCESS_ENTITY_EXT_H
 
-#include <string>
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
 #include "sqlite3.h"
