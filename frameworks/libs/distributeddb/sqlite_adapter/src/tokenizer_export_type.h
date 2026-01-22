@@ -46,6 +46,7 @@ typedef enum GRD_CutMode {
 typedef enum GRD_CutScene {
     DEFAULT = 0,
     SEARCH = 1,
+    MULTI_WORDS = 2,
     SCENE_BUTT  // INVALID mode
 } GRD_CutSceneE;
 

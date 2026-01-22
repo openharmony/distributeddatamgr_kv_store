@@ -107,6 +107,33 @@ static void SQLTest(const char *sql)
     }
 }
 
+static int HighlightCallback(void *data, int argc, char **argv, char **colName)
+{
+    if (argc != 2) {  // expected num of col is 2
+        return SQLITE_ERROR;
+    }
+    string result = argv[1];
+    string expectResult = reinterpret_cast<char *>(data);
+    EXPECT_EQ(expectResult, result);
+    return SQLITE_OK;
+}
+
+static void HighlightTest(const char *sql, char *expectResult)
+{
+    if (g_needSkip) {
+        return;
+    }
+    int errCode = sqlite3_exec(g_sqliteDb, sql, HighlightCallback, reinterpret_cast<void*>(expectResult), &g_errMsg);
+    if (errCode != SQLITE_OK) {
+        if (g_errMsg != nullptr) {
+            LOGE("SQL error: %s\n", g_errMsg);
+            sqlite3_free(g_errMsg);
+            g_errMsg = nullptr;
+            ASSERT_TRUE(false);
+        }
+    }
+}
+
 /**
  * @tc.name: SqliteAdapterTest001
  * @tc.desc: Get blob size over limit
@@ -469,7 +496,8 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest009, TestSize.Level0)
  
     const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content "
                             "FROM example WHERE example MATCH '测试';";
-    SQLTest(SQLQUERY1);
+    char expectResult[] = "这是一个【测试】文档，用于【测试】中文文本的分词和索引。";
+    HighlightTest(SQLQUERY1, expectResult);
  
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
@@ -520,7 +548,8 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest010, TestSize.Level0)
  
     const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '测试';";
-    SQLTest(SQLQUERY1);
+    char expectResult[] = "这是一个【测试】文档，用于【测试】中文文本的分词和索引。";
+    HighlightTest(SQLQUERY1, expectResult);
  
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
@@ -565,15 +594,86 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest011, TestSize.Level0)
  
     const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"C++\"';";
-    SQLTest(SQLQUERY1);
+    char expectResult1[] = "\"C语言设计【c++】C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌【C++】卡拉ok卡拉OK\"";
+    HighlightTest(SQLQUERY1, expectResult1);
  
     const char *SQLQUERY2 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"卡拉OK\"';";
-    SQLTest(SQLQUERY2);
+    char expectResult2[] = "\"C语言设计c++C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌C++【卡拉ok卡拉OK】\"";
+    HighlightTest(SQLQUERY2, expectResult2);
  
     const char *SQLQUERY3 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"qq号\"';";
-    SQLTest(SQLQUERY3);
+    char expectResult3[] = "\"C语言设计c++C语言设计X射线哆啦A梦q【qq号】250G硬盘usb接口k歌C++卡拉ok卡拉OK\"";
+    HighlightTest(SQLQUERY3, expectResult3);
  
+    EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
+}
+
+/**
+ * @tc.name: SqliteAdapterTest012
+ * @tc.desc: Test cut_mode multi_words
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lxl
+ */
+HWTEST_F(SqliteAdapterTest, SqliteAdapterTest012, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare db
+     * @tc.expected: step1. OK.
+     */
+    // Save any error messages
+    char *zErrMsg = nullptr;
+
+    // Save the connection result
+    int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    HandleRc(g_sqliteDb, rc);
+
+    rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
+    HandleRc(g_sqliteDb, rc);
+
+    rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step2. create table
+     * @tc.expected: step2. OK.
+     */
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(content, tokenize = 'customtokenizer cut_mode multi_words')";
+    rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
+    HandleRc(g_sqliteDb, rc);
+    /**
+     * @tc.steps: step3. insert records
+     * @tc.expected: step3. OK.
+     */
+    std::vector<std::string> records = {
+        "传承认知心理学",
+        "中国社会科学院",
+        "123...321 hello--?+--world生物学家，是研究生物学的专家！HelLo wOrLD!!!"
+    };
+    for (const auto &record : records) {
+        std::string insertSql = "insert into example values('" + record + "');";
+        SQLTest(insertSql.c_str());
+    }
+    /**
+     * @tc.steps: step4. test cut for short words
+     * @tc.expected: step4. OK.
+     */
+    std::vector<std::pair<std::string, int>> expectResult = {
+        {"传承", 1}, {"认知", 1}, {"心理", 1}, {"心理学", 1}, {"认知心理学", 1}, {"传承认知心理学", 1}, {"承认", 0},
+        {"中国", 1}, {"社会", 1}, {"社会科学", 1}, {"社会科学院", 1}, {"科学", 1}, {"科学院", 1}, {"学院", 1},
+        {"中国社会科学院", 1}, {"生物", 1}, {"生物学", 1}, {"生物学家", 1}, {"专家", 1}
+    };
+    // 蓝区没有so导致失败，直接跳过测试
+    if (!g_needSkip) {
+        for (const auto &[word, expectMatchNum] : expectResult) {
+            std::string querySql = "SELECT count(*) FROM example WHERE content MATCH '" + word + "';";
+            EXPECT_EQ(sqlite3_exec(g_sqliteDb, querySql.c_str(), QueryCallback,
+                reinterpret_cast<void*>(expectMatchNum), nullptr), SQLITE_OK);
+        }
+    }
+
+    const char *SQLDROP = "DROP TABLE IF EXISTS example;";
+    SQLTest(SQLDROP);
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
