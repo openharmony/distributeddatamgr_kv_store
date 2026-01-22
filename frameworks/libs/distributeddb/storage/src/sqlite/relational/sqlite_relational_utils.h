@@ -169,6 +169,10 @@ public:
     static int DropTempTable(const std::string &tableName, sqlite3 *db);
 
     static int PutCloudGidInner(sqlite3_stmt *stmt, std::vector<VBucket> &data);
+
+    static int CheckUserCreateSharedTable(sqlite3 *db, const TableSchema &oriTable, const std::string &sharedTable);
+
+    static std::map<int32_t, std::string> GetCloudFieldDataType();
 #endif
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
@@ -182,6 +186,10 @@ private:
         const std::vector<FieldInfo> &targetFields);
 
     static std::string GetQueryLocalDataSQL(const TableInfo &table, int64_t dataKey);
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    static int CheckUserCreateSharedTableInner(const TableSchema &oriTable, const TableInfo &sharedTableInfo);
+#endif
 };
 } // namespace DistributedDB
 #endif // SQLITE_RELATIONAL_UTILS_H

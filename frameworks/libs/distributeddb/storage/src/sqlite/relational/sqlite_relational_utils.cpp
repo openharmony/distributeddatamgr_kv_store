@@ -1399,5 +1399,85 @@ int SQLiteRelationalUtils::DropTempTable(const std::string &tableName, sqlite3 *
     std::string sql = "DROP TABLE IF EXISTS " + DBCommon::GetTmpLogTableName(tableName);
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
+
+int SQLiteRelationalUtils::CheckUserCreateSharedTable(sqlite3 *db, const TableSchema &oriTable,
+    const std::string &sharedTable)
+{
+    auto [errCode, sharedTableInfo] = AnalyzeTable(db, sharedTable);
+    if (errCode == -E_NOT_FOUND) {
+        return E_OK;
+    }
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils] Check shared table[%s] failed[%d]",
+            DBCommon::StringMiddleMaskingWithLen(sharedTable).c_str(), errCode);
+        return errCode;
+    }
+    if (sharedTableInfo.IsView()) {
+        LOGE("[RDBUtils] Not support view for shared table[%s] ",
+            DBCommon::StringMiddleMaskingWithLen(sharedTable).c_str());
+        return -E_NOT_SUPPORT;
+    }
+    return CheckUserCreateSharedTableInner(oriTable, sharedTableInfo);
+}
+
+int SQLiteRelationalUtils::CheckUserCreateSharedTableInner(const TableSchema &oriTable,
+    const TableInfo &sharedTableInfo)
+{
+    if (!sharedTableInfo.IsFieldExist(CloudDbConstant::CLOUD_OWNER)) {
+        return -E_INVALID_ARGS;
+    }
+    if (!sharedTableInfo.IsFieldExist(CloudDbConstant::CLOUD_PRIVILEGE)) {
+        return -E_INVALID_ARGS;
+    }
+    auto sharedFields = sharedTableInfo.GetFieldInfos();
+    auto cloudFieldDataTypes = GetCloudFieldDataType();
+    std::map<std::string, std::pair<std::string, bool>> cloudFieldType;
+    for (const auto &field : oriTable.fields) {
+        auto iter = cloudFieldDataTypes.find(field.type);
+        if (iter == cloudFieldDataTypes.end()) {
+            LOGE("[RDBUtils] Check shared table[%s] failed by miss field[%s] type[%" PRId32 "]",
+                DBCommon::StringMiddleMaskingWithLen(sharedTableInfo.GetTableName()).c_str(),
+                DBCommon::StringMiddleMaskingWithLen(field.colName).c_str(),
+                field.type);
+            return -E_INVALID_ARGS;
+        }
+        cloudFieldType[field.colName] = {iter->second, field.nullable};
+    }
+    for (const auto &sharedField : sharedFields) {
+        if (sharedField.GetFieldName() == CloudDbConstant::CLOUD_OWNER ||
+            sharedField.GetFieldName() == CloudDbConstant::CLOUD_PRIVILEGE) {
+            continue;
+        }
+        auto oriField = cloudFieldType.find(sharedField.GetFieldName());
+        if (oriField == cloudFieldType.end()) {
+            LOGE("[RDBUtils] Check shared table[%s] failed by miss field[%s]",
+                DBCommon::StringMiddleMaskingWithLen(sharedTableInfo.GetTableName()).c_str(),
+                DBCommon::StringMiddleMaskingWithLen(sharedField.GetFieldName()).c_str());
+            return -E_INVALID_ARGS;
+        }
+        FieldInfo checkField = sharedField;
+        auto [dataType, nullable] = cloudFieldType[sharedField.GetFieldName()];
+        checkField.SetDataType(dataType);
+        checkField.SetNotNull(!nullable);
+        if (!sharedField.CompareWithField(checkField)) {
+            return -E_INVALID_ARGS;
+        }
+    }
+    return E_OK;
+}
+
+std::map<int32_t, std::string> SQLiteRelationalUtils::GetCloudFieldDataType()
+{
+    std::map<int32_t, std::string> cloudFieldTypeMap;
+    cloudFieldTypeMap[TYPE_INDEX<Nil>] = "NULL";
+    cloudFieldTypeMap[TYPE_INDEX<int64_t>] = "INT";
+    cloudFieldTypeMap[TYPE_INDEX<double>] = "REAL";
+    cloudFieldTypeMap[TYPE_INDEX<std::string>] = "TEXT";
+    cloudFieldTypeMap[TYPE_INDEX<bool>] = "BOOLEAN";
+    cloudFieldTypeMap[TYPE_INDEX<Bytes>] = "BLOB";
+    cloudFieldTypeMap[TYPE_INDEX<Asset>] = "ASSET";
+    cloudFieldTypeMap[TYPE_INDEX<Assets>] = "ASSETS";
+    return cloudFieldTypeMap;
+}
 #endif
 } // namespace DistributedDB

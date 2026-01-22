@@ -198,7 +198,9 @@ protected:
         std::map<std::string, std::vector<Field>> &updateTableNames,
         std::map<std::string, std::string> &alterTableNames);
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int ExecuteCreateSharedTable(const DataBaseSchema &schema);
+#endif
 
     int CheckParamForUpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 

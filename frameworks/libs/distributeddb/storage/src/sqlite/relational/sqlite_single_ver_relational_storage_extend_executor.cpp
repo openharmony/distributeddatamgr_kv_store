@@ -624,20 +624,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string
     return SQLiteRelationalUtils::CleanTrackerData(dbHandle_, tableName, cursor, isOnlyTrackTable);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const TableSchema &tableSchema)
 {
     LOGI("Create shared table[%s length[%u]]", DBCommon::StringMiddleMasking(tableSchema.name).c_str(),
         tableSchema.name.length());
-    std::map<int32_t, std::string> cloudFieldTypeMap;
-    cloudFieldTypeMap[TYPE_INDEX<Nil>] = "NULL";
-    cloudFieldTypeMap[TYPE_INDEX<int64_t>] = "INT";
-    cloudFieldTypeMap[TYPE_INDEX<double>] = "REAL";
-    cloudFieldTypeMap[TYPE_INDEX<std::string>] = "TEXT";
-    cloudFieldTypeMap[TYPE_INDEX<bool>] = "BOOLEAN";
-    cloudFieldTypeMap[TYPE_INDEX<Bytes>] = "BLOB";
-    cloudFieldTypeMap[TYPE_INDEX<Asset>] = "ASSET";
-    cloudFieldTypeMap[TYPE_INDEX<Assets>] = "ASSETS";
-
+    auto cloudFieldTypeMap = SQLiteRelationalUtils::GetCloudFieldDataType();
     std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableSchema.sharedTableName + "(";
     std::string primaryKey = ", PRIMARY KEY (";
     createTableSql += CloudDbConstant::CLOUD_OWNER;
@@ -665,6 +657,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const TableSchem
     }
     return errCode;
 }
+#endif
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteTable(const std::vector<std::string> &tableNames)
 {
@@ -1015,30 +1008,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::string &tableName)
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+int SQLiteSingleVerRelationalStorageExecutor::CheckUserCreateSharedTable(const TableSchema &oriTable,
+    const std::string &sharedTable)
 {
-    std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?";
-    sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
-    if (errCode != E_OK) {
-        LOGE("[RDBExecutor] Prepare the sql statement error: %d.", errCode);
-        return errCode;
-    }
-    errCode = SQLiteUtils::BindTextToStatement(statement, 1, tableName);
-    if (errCode != E_OK) {
-        LOGE("[RDBExecutor] Bind table name failed: %d.", errCode);
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, ret);
-        return errCode;
-    }
-    if (SQLiteUtils::StepWithRetry(statement) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        LOGE("[RDBExecutor] local exists user table which shared table name is same as.");
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return -E_INVALID_ARGS;
-    }
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    return E_OK;
+    return SQLiteRelationalUtils::CheckUserCreateSharedTable(dbHandle_, oriTable, sharedTable);
 }
+#endif
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &table, std::string &sql)
 {

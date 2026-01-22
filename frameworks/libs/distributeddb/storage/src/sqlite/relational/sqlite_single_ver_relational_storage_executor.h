@@ -170,7 +170,9 @@ public:
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
     int CleanTrackerData(const std::string &tableName, int64_t cursor, bool isOnlyTrackTable);
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int CreateSharedTable(const TableSchema &schema);
+#endif
     int DeleteTable(const std::vector<std::string> &tableNames);
     int UpdateSharedTable(const std::map<std::string, std::vector<Field>> &updateTableNames);
     int AlterTableName(const std::map<std::string, std::string> &tableNames);
@@ -180,7 +182,9 @@ public:
         const std::map<std::string, std::vector<TableReferenceProperty>> &tableReference,
         std::map<int64_t, Entries> &referenceGid);
 
-    int CheckIfExistUserTable(const std::string &tableName);
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    int CheckUserCreateSharedTable(const TableSchema &oriTable, const std::string &sharedTable);
+#endif
 
     void SetLogicDelete(bool isLogicDelete);
     int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
