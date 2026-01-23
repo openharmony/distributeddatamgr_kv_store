@@ -119,6 +119,9 @@ public:
 
     static constexpr const char *UPDATE_META_FUNC = "update_meta_within_trigger";
 
+    static constexpr const char *REGEXP_MATCH_FUNC = "REGEXP_MATCH";
+    static constexpr const char *IS_ENTITY_DUPLICATE_FUNC = "is_entity_duplicate";
+
     // Prefix Key in meta db
     static constexpr const char *DEVICEID_PREFIX_KEY = "deviceId";
     static constexpr const char *USERID_PREFIX_KEY = "userId";

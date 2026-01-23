@@ -109,6 +109,8 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/db_properties.cpp",
   "${distributeddb_path}/storage/src/default_factory.cpp",
   "${distributeddb_path}/storage/src/single_ver_utils.cpp",
+  "${distributeddb_path}/storage/src/gaussdb_rd/gspd_api_manager.cpp",
+  "${distributeddb_path}/storage/src/gaussdb_rd/gspd_process_api.cpp",
   "${distributeddb_path}/storage/src/gaussdb_rd/rd_single_ver_result_set.cpp",
   "${distributeddb_path}/storage/src/gaussdb_rd/rd_single_ver_natural_store_connection.cpp",
   "${distributeddb_path}/storage/src/gaussdb_rd/rd_single_ver_natural_store.cpp",
@@ -342,8 +344,6 @@ distributeddb_base_src = [
 ]
 
 distributeddb_client_src = [
-  "${distributeddb_path}/interfaces/src/relational/gspd_api_manager.cpp",
-  "${distributeddb_path}/interfaces/src/relational/gspd_process_api.cpp",
   "${distributeddb_path}/interfaces/src/relational/knowledge_source_utils.cpp",
   "${distributeddb_path}/interfaces/src/relational/preprocess_entity_ext.cpp",
   "${distributeddb_path}/interfaces/src/relational/relational_store_sqlite_ext.cpp",

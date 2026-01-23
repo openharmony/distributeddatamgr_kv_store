@@ -87,6 +87,16 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
         LOGE("[engine] register cloud server observer failed!");
     }
 
+    errCode = SQLiteUtils::RegisterRegexpMatchFunction(db);
+    if (errCode != E_OK) {
+        LOGE("[engine] register regexp match failed!");
+    }
+
+    errCode = SQLiteUtils::RegisterIsEntityDuplicateFunction(db);
+    if (errCode != E_OK) {
+        LOGE("[engine] register is_entity_duplicate match failed!");
+    }
+    
     return errCode;
 }
 

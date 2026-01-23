@@ -1283,4 +1283,27 @@ int SQLiteUtils::RegisterMetaDataUpdateFunction(sqlite3 *db)
     }
     return SQLiteUtils::MapSQLiteErrno(errCode);
 }
+
+int SQLiteUtils::RegisterRegexpMatchFunction(sqlite3 *db)
+{
+    int errCode = sqlite3_create_function_v2(db, DBConstant::REGEXP_MATCH_FUNC,
+        2, // 2: argc for register function
+        SQLITE_UTF8 | SQLITE_DETERMINISTIC, db, &SQLiteUtils::RegexpMatch, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("sqlite3_create_function_v2 about regexp match returned %d", errCode);
+    }
+    return SQLiteUtils::MapSQLiteErrno(errCode);
+}
+
+int SQLiteUtils::RegisterIsEntityDuplicateFunction(sqlite3 *db)
+{
+    int errCode = sqlite3_create_function_v2(db, DBConstant::IS_ENTITY_DUPLICATE_FUNC,
+        2, // 2: argc for register function
+        SQLITE_UTF8 | SQLITE_DETERMINISTIC, db, &SQLiteUtils::IsEntityDuplicate, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("sqlite3_create_function_v2 about Is Entity Duplicate match returned %d", errCode);
+    }
+    return SQLiteUtils::MapSQLiteErrno(errCode);
+}
+
 } // namespace DistributedDB

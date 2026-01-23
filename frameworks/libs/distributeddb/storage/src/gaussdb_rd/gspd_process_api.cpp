@@ -54,10 +54,6 @@ int32_t GSPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *
 {
     GetApiInfoInstance();
     if (g_gspdApiInfo->isEntityDuplicateApi == nullptr) {
-        const char *error = dlerror();
-        if (error != nullptr) {
-            LOGE("dlsym error: %s\n", error);
-        }
         return TransferGspdErrno(GSPD_DATAFLOW_INTERNAL_ERROR);
     }
     int32_t ret = g_gspdApiInfo->isEntityDuplicateApi(queryJson, dbJson, isDuplicate);

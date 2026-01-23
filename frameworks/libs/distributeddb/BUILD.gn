@@ -214,6 +214,7 @@ config("distributeddb_client_config") {
     "storage/src/kv",
     "syncer/src",
     "syncer/src/device",
+    "storage/src/gaussdb_rd",
     "storage/src/sqlite/relational",
     "storage/src/relational",
   ]
