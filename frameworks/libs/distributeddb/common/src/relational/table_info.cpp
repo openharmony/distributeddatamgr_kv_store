@@ -24,6 +24,7 @@ namespace DistributedDB {
 constexpr const char *ASSET_STR = "asset";
 constexpr const char *ASSETS_STR = "assets";
 constexpr const char *ROW_ID = "rowid";
+constexpr const char *TYPE_VIEW = "view";
 
 const std::string &FieldInfo::GetFieldName() const
 {
@@ -170,7 +171,26 @@ std::string FieldInfo::ToAttributeString() const
     return attrStr;
 }
 
-int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
+bool FieldInfo::CompareWithField(const DistributedDB::FieldInfo &inField, bool isLite) const
+{
+    bool res = CompareWithFieldInner(inField, isLite);
+    if (!res) {
+        LOGE("[FieldInfo] Field is diff, ori[%s][%d][%s][%d][%s] in[%s][%d][%s][%d][%s]",
+            DBCommon::StringMiddleMaskingWithLen(fieldName_).c_str(),
+            static_cast<int>(storageType_),
+            DBCommon::StringMiddleMaskingWithLen(dataType_).c_str(),
+            static_cast<int>(hasDefaultValue_),
+            DBCommon::StringMiddleMaskingWithLen(defaultValue_).c_str(),
+            DBCommon::StringMiddleMaskingWithLen(inField.GetFieldName()).c_str(),
+            static_cast<int>(inField.GetStorageType()),
+            DBCommon::StringMiddleMaskingWithLen(inField.GetDataType()).c_str(),
+            static_cast<int>(inField.HasDefaultValue()),
+            DBCommon::StringMiddleMaskingWithLen(inField.GetDefaultValue()).c_str());
+    }
+    return res;
+}
+
+bool FieldInfo::CompareWithFieldInner(const FieldInfo &inField, bool isLite) const
 {
     if (!DBCommon::CaseInsensitiveCompare(fieldName_, inField.GetFieldName()) || isNotNull_ != inField.IsNotNull()) {
         return false;
@@ -941,4 +961,14 @@ std::optional<TableSchema> TableInfo::GetCloudTable() const
 {
     return cloudTable_;
 }
-} // namespace DistributeDB
+
+void TableInfo::SetType(const std::string &type)
+{
+    type_ = type;
+}
+
+bool TableInfo::IsView() const
+{
+    return type_ == TYPE_VIEW;
+}
+} // namespace DistributedDB

@@ -54,7 +54,7 @@ public:
     // return field define string like ("fieldName": "MY INT(21), NOT NULL, DEFAULT 123")
     std::string ToAttributeString() const;
 
-    int CompareWithField(const FieldInfo &inField, bool isLite = false) const;
+    bool CompareWithField(const FieldInfo &inField, bool isLite = false) const;
 
     bool IsAssetType() const;
     bool IsAssetsType() const;
@@ -63,6 +63,7 @@ public:
     void SetCollateType(CollateType collateType);
 
 private:
+    bool CompareWithFieldInner(const FieldInfo &inField, bool isLite = false) const;
     std::string fieldName_;
     std::string dataType_; // Type may be null
     StorageType storageType_ = StorageType::STORAGE_TYPE_NONE;
@@ -154,6 +155,10 @@ public:
     std::vector<std::string> GetCloudSyncFields() const;
 
     std::optional<TableSchema> GetCloudTable() const;
+
+    void SetType(const std::string &type);
+
+    bool IsView() const;
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;
@@ -187,6 +192,7 @@ private:
     // d  e  f    ,table_info[a] = {b,c}  [b] = {d, e}  [c] = {f}
     std::vector<TableReferenceProperty> sourceTableReferenced_;
     std::optional<TableSchema> cloudTable_;
+    std::string type_;
 };
 } // namespace DistributedDB
 #endif // TABLE_INFO_H

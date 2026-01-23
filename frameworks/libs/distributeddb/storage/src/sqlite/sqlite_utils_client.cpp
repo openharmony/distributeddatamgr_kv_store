@@ -260,6 +260,7 @@ int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, Table
                 (void) SQLiteUtils::GetColumnTextValue(statement, 1, createTableSql); // 1 means create table sql
                 table.SetCreateTableSql(createTableSql);
             }
+            table.SetType(type);
         } else {
             LOGE("[AnalysisSchema] Step for the analysis create table sql and trigger failed:%d", err);
             errCode = err;
@@ -462,7 +463,8 @@ int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, Table
 
     int errCode = AnalysisSchemaSqlAndTrigger(db, tableName, table, caseSensitive);
     if (errCode != E_OK) {
-        LOGE("[AnalysisSchema] Analysis sql and trigger failed. errCode = [%d]", errCode);
+        LOGW("[AnalysisSchema] Analysis sql and trigger failed. table[%s] errCode[%d]",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
         return errCode;
     }
 

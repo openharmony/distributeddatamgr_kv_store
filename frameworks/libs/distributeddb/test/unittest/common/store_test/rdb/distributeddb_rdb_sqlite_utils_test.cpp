@@ -31,6 +31,8 @@ protected:
     void InitTables(const std::string &table = CLOUD_SYNC_TABLE_A);
     void InitSchema(const StoreInfo &info, const std::string &table = CLOUD_SYNC_TABLE_A);
     void InitDistributedTable(const std::vector<std::string> &tables = {CLOUD_SYNC_TABLE_A});
+    TableSchema GetTableSchema(const StoreInfo &info, const std::string &table) const;
+    std::vector<TableSchema> GetTableSchemaVectors() const;
 
     StoreInfo info1_ = {USER_ID, APP_ID, STORE_ID_1};
 };
@@ -67,7 +69,7 @@ void DistributedDBRDBSqliteUtilsTest::InitSchema(const StoreInfo &info, const st
     };
     UtDateBaseSchemaInfo schemaInfo = {
         .tablesInfo = {
-            {.name = table, .fieldInfo = filedInfo}
+            {.name = table, .sharedTableName = table + "_shared", .fieldInfo = filedInfo, }
         }
     };
     RDBGeneralUt::SetSchemaInfo(info, schemaInfo);
@@ -77,6 +79,19 @@ void DistributedDBRDBSqliteUtilsTest::InitDistributedTable(const std::vector<std
 {
     RDBGeneralUt::SetCloudDbConfig(info1_);
     ASSERT_EQ(SetDistributedTables(info1_, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
+}
+
+TableSchema DistributedDBRDBSqliteUtilsTest::GetTableSchema(const StoreInfo &info, const std::string &table) const
+{
+    auto dbSchema = GetSchema(info);
+    for (const auto &tableSchema : dbSchema.tables) {
+        if (tableSchema.name == table) {
+            return tableSchema;
+        }
+    }
+    TableSchema schema;
+    schema.name = table;
+    return schema;
 }
 
 /**
@@ -142,6 +157,134 @@ HWTEST_F(DistributedDBRDBSqliteUtilsTest, GetOneBatchCloudNotExistRecord001, Tes
     RuntimeContext::GetInstance()->SetCloudTranslate(nullptr);
     EXPECT_EQ(SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(CLOUD_SYNC_TABLE_A, db, record, "stringCol2"),
         -E_NOT_INIT);
+}
+
+/**
+ * @tc.name: SharedTable001
+ * @tc.desc: Test check shared table.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBSqliteUtilsTest, SharedTable001, TestSize.Level0)
+{
+    TableSchema oriTableA = GetTableSchema(info1_, CLOUD_SYNC_TABLE_A);
+    const std::string sharedTableA = std::string(CLOUD_SYNC_TABLE_A) + "_shared";
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(nullptr, oriTableA, sharedTableA), -E_INVALID_DB);
+    auto db = GetSqliteHandle(info1_);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, oriTableA, sharedTableA), E_OK);
+    const std::string sharedTableB = "CLOUD_SYNC_TABLE_B_shared";
+    // check not exist table and got ok
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, oriTableA, sharedTableB), E_OK);
+    TableSchema oriTableB;
+    oriTableB.name = "CLOUD_SYNC_TABLE_B";
+    // shared table exist but ori table not exist, got invalid args
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, oriTableB, sharedTableA), -E_INVALID_ARGS);
+    // check not support table name
+    std::string sql = "CREATE TABLE IF NOT EXISTS 'TABLE&'(ID integer primary key autoincrement)";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    const std::string sharedTableC = "TABLE&";
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, oriTableB, sharedTableC), -E_NOT_SUPPORT);
+}
+
+std::vector<TableSchema> DistributedDBRDBSqliteUtilsTest::GetTableSchemaVectors() const
+{
+    TableSchema schema1 = {
+        .name = "TABLE3",
+        .fields = {
+            {
+                .colName = std::string("UNKNOWN"),
+                .type = -1,
+                .nullable = true
+            }
+        }
+    };
+    TableSchema schema2 = {
+        .name = "TABLE3",
+        .fields = {
+            {
+                .colName = std::string("UNKNOWN"),
+                .type = TYPE_INDEX<int64_t>,
+                .nullable = true
+            }
+        }
+    };
+    TableSchema schema3 = {
+        .name = "TABLE3",
+        .fields = {
+            {
+                .colName = std::string("ID"),
+                .type = TYPE_INDEX<int64_t>,
+                .nullable = false
+            }
+        }
+    };
+    TableSchema schema4 = {
+        .name = "TABLE3",
+        .fields = {
+            {
+                .colName = std::string("ID"),
+                .type = TYPE_INDEX<int64_t>,
+                .nullable = true
+            }
+        }
+    };
+    std::vector<TableSchema> vecTables = {schema1, schema2, schema3, schema4};
+    return vecTables;
+}
+
+/**
+ * @tc.name: SharedTable002
+ * @tc.desc: Test check invalid shared table.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBSqliteUtilsTest, SharedTable002, TestSize.Level0)
+{
+    auto db = GetSqliteHandle(info1_);
+    ASSERT_NE(db, nullptr);
+    std::string sql = "CREATE TABLE IF NOT EXISTS TABLE1(ID INT primary key)";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    // check shared table without cloud_owner field, got invalid args
+    TableSchema oriTable = GetTableSchema(info1_, CLOUD_SYNC_TABLE_A);
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, oriTable, "TABLE1"), -E_INVALID_ARGS);
+    // check shared table without cloud_privilege field, got invalid args
+    sql = "CREATE TABLE IF NOT EXISTS TABLE2(ID INT primary key, cloud_owner TEXT)";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, oriTable, "TABLE2"), -E_INVALID_ARGS);
+    sql = "CREATE TABLE IF NOT EXISTS TABLE3(ID INT primary key, "
+          "cloud_owner TEXT, cloud_privilege TEXT)";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    std::vector<TableSchema> vecTables = GetTableSchemaVectors();
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, vecTables[0], "TABLE3"), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, vecTables[1], "TABLE3"), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, vecTables[2], "TABLE3"), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, vecTables[3], "TABLE3"), E_OK);
+}
+
+/**
+ * @tc.name: SharedTable003
+ * @tc.desc: Test check shared table with view.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBSqliteUtilsTest, SharedTable003, TestSize.Level0)
+{
+    auto db = GetSqliteHandle(info1_);
+    ASSERT_NE(db, nullptr);
+    std::string sql = "CREATE VIEW TEST AS SELECT * FROM sqlite_master";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    TableSchema table = {
+        .name = "TEST",
+        .fields = {
+            {
+                .colName = std::string("ID"),
+                .type = TYPE_INDEX<int64_t>,
+                .nullable = true
+            }
+        }
+    };
+    EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, table, "TEST"), -E_NOT_SUPPORT);
 }
 }
 #endif

@@ -715,6 +715,7 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     return errCode;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteSingleRelationalStorageEngine::UpgradeSharedTable(const DataBaseSchema &cloudSchema,
     const std::vector<std::string> &deleteTableNames, const std::map<std::string, std::vector<Field>> &updateTableNames,
     const std::map<std::string, std::string> &alterTableNames)
@@ -956,7 +957,7 @@ int SQLiteSingleRelationalStorageEngine::CheckIfExistUserTable(SQLiteSingleVerRe
         if (tableInfo.GetSharedTableMark()) {
             continue;
         }
-        int errCode = handle->CheckIfExistUserTable(tableSchema.sharedTableName);
+        int errCode = handle->CheckUserCreateSharedTable(tableSchema, tableSchema.sharedTableName);
         if (errCode != E_OK) {
             LOGE("[RelationalStorageEngine] local exists table. %d", errCode);
             return errCode;
@@ -964,6 +965,7 @@ int SQLiteSingleRelationalStorageEngine::CheckIfExistUserTable(SQLiteSingleVerRe
     }
     return E_OK;
 }
+#endif
 
 std::pair<std::vector<std::string>, int> SQLiteSingleRelationalStorageEngine::CalTableRef(
     const std::vector<std::string> &tableNames, const std::map<std::string, std::string> &sharedTableOriginNames)

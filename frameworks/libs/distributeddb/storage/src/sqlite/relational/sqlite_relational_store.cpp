@@ -1624,6 +1624,7 @@ int SQLiteRelationalStore::CleanTrackerData(const std::string &tableName, int64_
     return sqliteStorageEngine_->CleanTrackerData(tableName, cursor);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 int SQLiteRelationalStore::ExecuteCreateSharedTable(const DataBaseSchema &schema)
 {
     if (sqliteStorageEngine_ == nullptr) {
@@ -1647,6 +1648,7 @@ int SQLiteRelationalStore::ExecuteCreateSharedTable(const DataBaseSchema &schema
     }
     return errCode;
 }
+#endif
 
 int SQLiteRelationalStore::ReFillSyncInfoTable(const std::vector<std::string> &actualTable,
     CloudSyncer::CloudTaskInfo &info)

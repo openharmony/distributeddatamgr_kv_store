@@ -85,9 +85,11 @@ public:
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty,
         SQLiteSingleVerRelationalStorageExecutor *handle, std::set<std::string> &clearWaterMarkTables,
         RelationalSchemaObject &schema);
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int UpgradeSharedTable(const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,
         const std::map<std::string, std::vector<Field>> &updateTableNames,
         const std::map<std::string, std::string> &alterTableNames);
+#endif
     std::pair<std::vector<std::string>, int> CalTableRef(const std::vector<std::string> &tableNames,
         const std::map<std::string, std::string> &sharedTableOriginNames);
     int UpdateExtendField(const TrackerSchema &schema);
@@ -160,11 +162,11 @@ private:
     static std::map<std::string, int> GetTableWeightWithShared(const std::map<std::string, int> &tableWeight,
         const std::map<std::string, std::string> &tableToShared);
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
     int UpgradeSharedTableInner(SQLiteSingleVerRelationalStorageExecutor *&handle,
         const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,
         const std::map<std::string, std::vector<Field>> &updateTableNames,
         const std::map<std::string, std::string> &alterTableNames);
-
     int DoDeleteSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
         const std::vector<std::string> &deleteTableNames, RelationalSchemaObject &schema);
 
@@ -184,6 +186,7 @@ private:
 
     int CheckIfExistUserTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const DataBaseSchema &cloudSchema,
         const std::map<std::string, std::string> &alterTableNames, const RelationalSchemaObject &schema);
+#endif
 
     int SetDistributedSchemaInner(RelationalSchemaObject &schemaObj, const DistributedSchema &schema,
         const std::string &localIdentity, bool isForceUpgrade);
