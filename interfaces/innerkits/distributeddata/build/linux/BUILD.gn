@@ -1,0 +1,112 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+config("distributeddatafwk_config") {
+  visibility = [ ":*" ]
+
+  cflags = [ "-Wno-multichar" ]
+
+  cflags_cc = [ "-fvisibility=hidden" ]
+
+  include_dirs = [
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatamgr/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src",
+    "${kv_store_base_path}/frameworks/common",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src",
+  ]
+}
+
+config("distributeddatafwk_public_config") {
+  visibility = [ ":*" ]
+
+  include_dirs = [
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
+    "${kv_store_base_path}/frameworks/common",
+  ]
+}
+
+old_source_config = [
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/data_query.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/distributed_kv_data_manager.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_client_death_observer.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_observer.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvdb_notifier_client.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvdb_notifier_stub.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_client_death_observer.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_observer_client.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_service_death_notifier.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/switch_observer_bridge.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/sync_observer.cpp",
+  "${kv_store_base_path}/interfaces/innerkits/distributeddata/include/types.h",
+]
+
+kvdb_source_config = [
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/backup_manager.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/kvdb_service_client.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/observer_bridge.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/security_manager.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/single_store_impl.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_factory.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_manager.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_result_set.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/system_api.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/task_executor.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/task_executor_adapter.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/kv_hiview_reporter.cpp",
+]
+
+ohos_source_set("distributeddata_inner") {
+  sources = old_source_config + kvdb_source_config
+
+  sources += [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor_mock.cpp",
+  ]
+
+  configs = [ ":distributeddatafwk_config" ]
+  public_configs = [ ":distributeddatafwk_public_config" ]
+  cflags = [ "-Wno-c99-designator" ]
+
+  include_dirs = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
+    "${kv_store_base_path}/kvstoremock/nterfaces/mock/common",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",
+    "//commonlibrary/c_utils/base/include",
+    "//foundation/filemanagement/file_api/interfaces/kits/js/src/mod_securitylabel",
+    "//plugins/data/datasharepredicates/data_share",
+  ]
+
+  deps = [
+    "${kv_store_base_path}/databaseutils:database_utils",
+    "${kv_store_base_path}/frameworks/libs/distributeddb/build/linux:distributeddb",
+  ]
+
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}
