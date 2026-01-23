@@ -1,0 +1,102 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//build/ohos/ace/ace.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+base_output_path = get_label_info(":distributed_kvstore_js", "target_out_dir")
+distributed_data_js_obj_path = base_output_path + "/distributed_kvstore.o"
+gen_js_obj("distributed_kvstore_js") {
+  input = "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore/distributed_kvstore.js"
+  output = distributed_data_js_obj_path
+}
+
+ohos_source_set("data_distributedkvstore") {
+  cflags_cc = [
+    "-std=c++17",
+    "-stdlib=libc++",
+  ]
+
+  cflags = [
+    "-includemac_kv_store_compat.h",
+    "-fno-lto",
+  ]
+
+  cflags_objcc = [ "-fobjc-arc" ]
+
+  include_dirs = [
+    "${kv_store_base_path}/frameworks/common",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
+  ]
+  include_dirs += [
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/common",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/common/appfwk",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
+    "//base/global/resource_management/interfaces/inner_api/include",
+    "//commonlibrary/c_utils/base/include",
+    "//foundation/distributeddatamgr/kv_store",
+    "//plugins/data/datasharepredicates/data_share",
+    "//third_party/bounds_checking_function/include",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/include",
+  ]
+
+  sources = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_error_utils.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_field_node.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_kv_manager.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_kv_store_resultset.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_observer.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_query.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_schema.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_single_kv_store.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_util.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/napi_queue.cpp",
+    "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/uv_queue.cpp",
+  ]
+
+  sources -= [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+  ]
+  sources += [
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/common/hitracechain.cpp",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/common/hitraceid.cpp",
+  ]
+
+  configs = [ "//foundation/arkui/napi:ace_napi_config" ]
+
+  sources += [ "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/src/nlohmann_json.mm" ]
+
+  if (is_arkui_x) {
+    defines = [ "CROSSPLATFORM" ]
+  }
+
+  deps = [
+    "${kv_store_base_path}/frameworks/common:datamgr_common",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/build/mac:distributeddata_inner",
+    "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_ios",
+    "//foundation/arkui/ace_engine/adapter/ios/build:libarkui_ios",
+  ]
+
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}

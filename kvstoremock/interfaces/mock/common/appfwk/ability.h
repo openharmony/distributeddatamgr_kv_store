@@ -1,0 +1,84 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef DISTRIBUTED_KVSTORE_MOCK_ABILITY_H
+#define DISTRIBUTED_KVSTORE_MOCK_ABILITY_H
+
+#include <memory>
+#include <securec.h>
+
+constexpr mode_t MODE = 0755;
+constexpr int32_t API_VERSION = 9;
+
+class AbilityMock {
+public:
+    AbilityMock() = default;
+    ~AbilityMock() = default;
+
+    struct ModuleInfo {
+        std::string moduleName = "com.example.myapplication";
+    };
+
+    struct ApplicationInfo {
+        bool isSystemApp = true;
+        int32_t apiTargetVersion = API_VERSION;
+    };
+
+    class ContextMock {
+    public:
+        int GetArea()
+        {
+            return OHOS::DistributedKv::Area::EL1;
+        };
+
+        std::string GetDatabaseDir()
+        {
+            std::string baseDir = getenv("LOGNAME");
+            baseDir = "/Users/" + baseDir + "/Library/Caches";
+            baseDir = baseDir + "/HuaweiDevEcoStudioDatabases";
+            mkdir(baseDir.c_str(), MODE);
+            return baseDir;
+        }
+
+        std::shared_ptr<ModuleInfo> GetHapModuleInfo()
+        {
+            return std::make_shared<ModuleInfo>();
+        }
+
+        std::shared_ptr<ApplicationInfo> GetApplicationInfo()
+        {
+            return std::make_shared<ApplicationInfo>();
+        }
+    };
+
+    std::shared_ptr<ContextMock> GetAbilityContext()
+    {
+        return std::make_shared<ContextMock>();
+    }
+};
+
+namespace AbilityRuntime {
+    std::shared_ptr<AbilityMock> GetCurrentAbility(napi_env env)
+    {
+        return std::make_shared<AbilityMock>();
+    }
+
+    std::shared_ptr<AbilityMock::ContextMock> GetStageModeContext(napi_env env, napi_value value)
+    {
+        auto ability = std::make_shared<AbilityMock>();
+        return ability->GetAbilityContext();
+    }
+}
+
+#endif // DISTRIBUTED_KVSTORE_MOCK_ABILITY_H
