@@ -174,7 +174,7 @@ int CloudSyncUtils::CheckParamValid(const std::vector<DeviceID> &devices, SyncMo
         LOGE("[CloudSyncer] not support mode %d", static_cast<int>(mode));
         return -E_NOT_SUPPORT;
     }
-    if (mode < SyncMode::SYNC_MODE_PUSH_ONLY || mode > SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL) {
+    if (mode < SyncMode::SYNC_MODE_PUSH_ONLY || mode > SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
         LOGE("[CloudSyncer] invalid mode %d", static_cast<int>(mode));
         return -E_INVALID_ARGS;
     }

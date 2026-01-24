@@ -195,10 +195,6 @@ public:
 
     void FilterDownloadRecordNotFound(const std::string &tableName, DownloadData &downloadData);
 
-    void FilterDownloadRecordNoneSchemaField(const std::string &tableName, DownloadData &downloadData);
-
-    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) const;
-
     // gid contain in data with key #_gid
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
 

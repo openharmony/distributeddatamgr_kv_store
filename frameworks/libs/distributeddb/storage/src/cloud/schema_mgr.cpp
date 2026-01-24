@@ -22,8 +22,6 @@
 #include "cloud/cloud_store_types.h"
 #include "db_common.h"
 #include "db_errno.h"
-#include "sqlite_relational_utils.h"
-
 namespace DistributedDB {
 SchemaMgr::SchemaMgr()
 {
@@ -62,19 +60,31 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
     std::vector<Field> &cloudFields)
 {
     std::unordered_set<std::string> cloudColNames;
-    bool isContainDupCheckField = false;
     for (const Field &cloudField : cloudFields) {
-        int errCode = CheckCloudField(cloudField, localFields, primaryKeys);
-        if (errCode != E_OK) {
-            return errCode;
+        if (localFields.find(cloudField.colName) == localFields.end()) {
+            LOGE("Column name mismatch between local and cloud schema");
+            return -E_SCHEMA_MISMATCH;
         }
-        if (cloudField.dupCheckCol) {
-            isContainDupCheckField = true;
+        if (IsAssetPrimaryField(cloudField)) {
+            LOGE("Asset type can not be primary field");
+            return -E_SCHEMA_MISMATCH;
+        }
+        FieldInfo &localField = localFields[cloudField.colName];
+        if (!CompareType(localField, cloudField)) {
+            LOGE("Type mismatch between local and cloud schema");
+            return -E_SCHEMA_MISMATCH;
+        }
+        if (!CompareNullable(localField, cloudField)) {
+            LOGE("The nullable property is mismatched between local and cloud schema");
+            return -E_SCHEMA_MISMATCH;
+        }
+        if (!ComparePrimaryField(primaryKeys, cloudField)) {
+            LOGE("The primary key property is mismatched between local and cloud schema");
+            return -E_SCHEMA_MISMATCH;
         }
         cloudColNames.emplace(cloudField.colName);
     }
-    if (!isContainDupCheckField && !primaryKeys.empty() &&
-        !(primaryKeys.size() == 1 && primaryKeys[0] == DBConstant::ROWID)) {
+    if (!primaryKeys.empty() && !(primaryKeys.size() == 1 && primaryKeys[0] == DBConstant::ROWID)) {
         LOGE("Local schema contain extra primary key:%d", -E_SCHEMA_MISMATCH);
         return -E_SCHEMA_MISMATCH;
     }
@@ -85,33 +95,6 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
             LOGE("Column from local schema is not within cloud schema but doesn't have default value");
             return -E_SCHEMA_MISMATCH;
         }
-    }
-    return E_OK;
-}
-
-int SchemaMgr::CheckCloudField(const Field &cloudField, FieldInfoMap &localFields,
-    std::map<int, FieldName> &primaryKeys)
-{
-    if (localFields.find(cloudField.colName) == localFields.end()) {
-        LOGE("Column name mismatch between local and cloud schema");
-        return -E_SCHEMA_MISMATCH;
-    }
-    if (IsAssetPrimaryField(cloudField)) {
-        LOGE("Asset type can not be primary field");
-        return -E_SCHEMA_MISMATCH;
-    }
-    FieldInfo &localField = localFields[cloudField.colName];
-    if (!CompareType(localField, cloudField)) {
-        LOGE("Type mismatch between local and cloud schema");
-        return -E_SCHEMA_MISMATCH;
-    }
-    if (!CompareNullable(localField, cloudField)) {
-        LOGE("The nullable property is mismatched between local and cloud schema");
-        return -E_SCHEMA_MISMATCH;
-    }
-    if (!ComparePrimaryField(primaryKeys, cloudField)) {
-        LOGE("The primary key property is mismatched between local and cloud schema");
-        return -E_SCHEMA_MISMATCH;
     }
     return E_OK;
 }
@@ -152,10 +135,6 @@ bool SchemaMgr::CompareNullable(const FieldInfo &localField, const Field &cloudF
 
 bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField)
 {
-    if (cloudField.dupCheckCol) {
-        // dup check field ignored its primary
-        return true;
-    }
     // whether the corresponding field in local schema is primary key
     bool isLocalFieldPrimary = false;
     for (const auto &kvPair : localPrimaryKeys) {
@@ -181,7 +160,18 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema, RelationalSchemaO
             missingTables++;
             continue;
         }
-        SQLiteRelationalUtils::FilterTableSchema(tableInfo, table);
+        FieldInfoMap localFields = tableInfo.GetFields();
+
+        // remove the fields that are not found in local schema from cloud schema
+        for (auto it = table.fields.begin(); it != table.fields.end();) {
+            if (localFields.find((*it).colName) == localFields.end()) {
+                LOGW("Column mismatch, colName: %s, length: %zu", DBCommon::StringMiddleMasking((*it).colName).c_str(),
+                    (*it).colName.length());
+                it = table.fields.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
     if (missingTables > 0u) {
         LOGD("Local schema does not contain following %" PRIu32 " tables: %s", missingTables, msg.c_str());

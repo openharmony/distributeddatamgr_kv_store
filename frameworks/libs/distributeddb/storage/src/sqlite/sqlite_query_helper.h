@@ -123,8 +123,6 @@ public:
     std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush, const CloudWaterType mode,
         int64_t timeStamp, const std::string &user);
 
-    void SetAppendCondition(bool isAppendCondition);
-
     static std::string GetKvCloudQuerySql(bool countOnly, bool forcePush);
 
     static void AppendCloudQueryToGetDiffData(std::string &sql, const CloudWaterType mode, bool isKv = false);
@@ -182,7 +180,6 @@ private:
     bool hasPrefixKey_;
     bool isNeedOrderbyKey_;  // The tag field is used for prefix query filtering key sorting
     bool isRelationalQuery_;
-    bool isAppendCondition_;
     SortType sortType_ = SortType::NONE;
 };
 }

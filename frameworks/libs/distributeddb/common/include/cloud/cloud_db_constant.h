@@ -105,15 +105,8 @@ public:
 
     static constexpr std::chrono::milliseconds DFX_TIME_THRESHOLD = std::chrono::milliseconds(1000);
 
-    static constexpr std::chrono::milliseconds ASYNC_GEN_LOG_INTERVAL = std::chrono::milliseconds(20);
     static constexpr std::chrono::milliseconds LONG_TIME_TRANSACTION = std::chrono::milliseconds(1000);
     static constexpr std::chrono::milliseconds LONG_TRANSACTION_INTERVAL = std::chrono::milliseconds(50);
-
-    // change local flag to :keep async download asset[0x1000]
-    //                       mark local last write[0x02]
-    //                       mark device cloud inconsistency[0x20]
-    //                       mark not cloud update local[~0x4000]
-    static constexpr const char *LOCAL_UPDATE_FLAG = "((flag&0x1000)|0x02|0x20)&~0x4000";
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

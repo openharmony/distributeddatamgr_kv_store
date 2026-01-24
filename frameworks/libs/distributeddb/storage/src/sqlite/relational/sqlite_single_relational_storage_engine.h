@@ -24,34 +24,6 @@
 #include "tracker_table.h"
 
 namespace DistributedDB {
-enum class GenLogTaskStatus {
-    IDLE = 0,
-    RUNNING,
-    RUNNING_BEFORE_SYNC,
-    RUNNING_APPENDED,
-    INTERRUPTED,
-    DB_CLOSED,
-};
-
-// Once waiting time for log generation task before cloud sync
-constexpr std::chrono::milliseconds SYNC_WAIT_GEN_LOG_ONCE_TIME = std::chrono::milliseconds(10 * 1000);
-// Max waiting time for log generation task before cloud sync
-constexpr std::chrono::milliseconds SYNC_WAIT_GEN_LOG_MAX_TIME = std::chrono::milliseconds(20 * 60 * 1000);
-
-struct GenerateLogInfo {
-    std::string tableName;
-    std::string identity;
-};
-
-struct CreateDistributedTableParam {
-    bool isTrackerSchemaChanged = false;
-    TableSyncType syncType = TableSyncType::DEVICE_COOPERATION;
-    std::string tableName;
-    std::string identity;
-    std::optional<TableSchema> cloudTable;
-    bool isAsync = false;
-};
-
 class SQLiteSingleRelationalStorageEngine : public SQLiteStorageEngine {
 public:
     explicit SQLiteSingleRelationalStorageEngine(RelationalDBProperties properties);
@@ -64,7 +36,8 @@ public:
 
     RelationalSchemaObject GetSchema() const;
 
-    int CreateDistributedTable(const CreateDistributedTableParam &param, bool &schemaChanged);
+    int CreateDistributedTable(const std::string &tableName, const std::string &identity, bool &schemaChanged,
+        TableSyncType syncType, bool trackerSchemaChanged);
 
     int CleanDistributedDeviceTable(std::vector<std::string> &missingTables);
 
@@ -97,18 +70,6 @@ public:
     std::pair<int, bool> SetDistributedSchema(const DistributedSchema &schema, const std::string &localIdentity,
         bool isForceUpgrade);
 
-    void ResetGenLogTaskStatus();
-    void StopGenLogTask(bool isCloseDb = false);
-    int StopGenLogTaskWithTables(const std::vector<std::string> &tables);
-    bool IsNeedStopWaitGenLogTask(const std::vector<std::string> &tables,
-        std::vector<std::pair<int, std::string>> &asyncGenLogTasks, int &errCode);
-    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables, const std::string &identity);
-    int GetAsyncGenLogTasks(std::vector<std::pair<int, std::string>> &asyncGenLogTasks);
-    int GetAsyncGenLogTasksWithTables(const std::set<std::string> &tables,
-        std::vector<std::pair<int, std::string>> &tasks);
-
-    std::pair<int, TableInfo> AnalyzeTable(const std::string &tableName);
-
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
 #endif
@@ -123,13 +84,13 @@ private:
     // For db.
     int RegisterFunction(sqlite3 *db) const;
 
-    int UpgradeDistributedTable(const TableInfo &tableInfo, bool &schemaChanged, TableSyncType syncType);
+    int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged, TableSyncType syncType);
 
     int CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, bool isUpgraded,
-        const CreateDistributedTableParam &param, TableInfo &table, RelationalSchemaObject &schema);
+        const std::string &identity, TableInfo &table, RelationalSchemaObject &schema);
 
-    int CreateDistributedTable(const CreateDistributedTableParam &param, bool isUpgraded,
-        RelationalSchemaObject &schema);
+    int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
+        RelationalSchemaObject &schema, TableSyncType tableSyncType);
 
     int CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const std::string &tableName,
         const std::string &sharedTableName, TableSyncType syncType, RelationalSchemaObject &schema);
@@ -137,23 +98,7 @@ private:
     int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
         SQLiteSingleVerRelationalStorageExecutor *&handle);
 
-    void SetGenLogTaskStatus(GenLogTaskStatus status);
-    int GetAsyncGenLogTasks(const SQLiteSingleVerRelationalStorageExecutor *handle,
-        std::vector<std::pair<int, std::string>> &asyncGenLogTasks);
-    int AddAsyncGenLogTask(const SQLiteSingleVerRelationalStorageExecutor *handle,
-        const std::string &tableName);
-    int GenCloudLogInfo(const std::string &identity);
-    int GenCloudLogInfoWithTables(const std::string &identity,
-        const std::vector<std::pair<int, std::string>> &taskTables);
-    int GenCloudLogInfoIfNeeded(const std::string &tableName, const std::string &identity);
-    int GenLogInfoForUpgrade(const std::string &tableName, bool schemaChanged);
-    int GeneLogInfoForExistedDataInBatch(const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr);
-    int GeneLogInfoForExistedData(const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, uint32_t limitNum, int &changedCount);
-    int TriggerGenLogTask(const std::string &identity);
-    int RemoveAsyncGenLogTask(int taskId);
-    bool IsNeedStopGenLogTask();
+    int GenLogInfoForUpgrade(const std::string &tableName, RelationalSchemaObject &schema, bool schemaChanged);
 
     static std::map<std::string, std::map<std::string, bool>> GetReachableWithShared(
         const std::map<std::string, std::map<std::string, bool>> &reachableReference,
@@ -202,11 +147,6 @@ private:
     RelationalDBProperties properties_;
     std::mutex createDistributedTableMutex_;
     mutable std::mutex propertiesMutex_;
-
-    mutable std::mutex genLogTaskStatusMutex_;
-    GenLogTaskStatus genLogTaskStatus_ = GenLogTaskStatus::IDLE;
-    mutable std::mutex genLogTaskCvMutex_;
-    std::condition_variable genLogTaskCv_;
 };
 } // namespace DistributedDB
 #endif

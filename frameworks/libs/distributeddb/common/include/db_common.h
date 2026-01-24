@@ -177,8 +177,6 @@ public:
         bool allowStoreIdWithDot);
 
     static uint32_t TransfDbVersionToSoftwareVersion(uint16_t dbVersion);
-
-    static bool IsStringAllDigit(const std::string &originStr);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

@@ -184,17 +184,4 @@ bool DBCommon::CaseInsensitiveCompare(const std::string &first, const std::strin
 {
     return (strcasecmp(first.c_str(), second.c_str()) == 0);
 }
-
-bool DBCommon::IsStringAllDigit(const std::string &originStr)
-{
-    if (originStr.empty()) {
-        return false;
-    }
-    for (const auto &item : originStr) {
-        if (item < '0' || item > '9') {
-            return false;
-        }
-    }
-    return true;
-}
 } // namespace DistributedDB

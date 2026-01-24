@@ -50,8 +50,7 @@ public:
         std::vector<uint8_t> &value);
 
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
-    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
-    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName = false);
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
         bool sortByUpper = false);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);

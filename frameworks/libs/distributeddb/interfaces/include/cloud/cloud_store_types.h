@@ -120,12 +120,10 @@ struct Field {
     int32_t type; // get value from TYPE_INDEX;
     bool primary = false;
     bool nullable = true;
-    bool dupCheckCol = false; // use for calculate hash_key when it was true
     bool operator==(const Field &comparedField) const
     {
         return (colName == comparedField.colName) && (type == comparedField.type) &&
-            (primary == comparedField.primary) && (nullable == comparedField.nullable) &&
-            (dupCheckCol == comparedField.dupCheckCol);
+            (primary == comparedField.primary) && (nullable == comparedField.nullable);
     }
 };
 
@@ -174,7 +172,6 @@ enum class QueryNodeType : uint32_t {
     OR = 0x101,
     AND,
     EQUAL_TO = 0x201,
-    NOT_EQUAL_TO,
     BEGIN_GROUP = 0x301,
     END_GROUP
 };
@@ -214,11 +211,6 @@ struct CloudSyncConfig {
 struct AsyncDownloadAssetsConfig {
     uint32_t maxDownloadTask = 1; // valid range in [1, 12] max async download task in process
     uint32_t maxDownloadAssetsCount = 100; // valid range in [1, 2000] max async download assets count in one batch
-};
-
-enum class TaskType : uint32_t {
-    BACKGROUND_TASK = 0,
-    BUTT
 };
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

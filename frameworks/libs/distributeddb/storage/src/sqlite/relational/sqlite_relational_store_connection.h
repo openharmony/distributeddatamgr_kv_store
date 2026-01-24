@@ -36,7 +36,7 @@ public:
     int Close() override;
 
     std::string GetIdentifier() override;
-    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) override;
+    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
 
     int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) override;
@@ -75,8 +75,6 @@ public:
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) override;
 
     SyncProcess GetCloudTaskStatus(uint64_t taskId) override;
-
-    int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
 #endif
 
 #ifdef USE_DISTRIBUTEDDB_DEVICE
@@ -98,8 +96,6 @@ public:
     int OperateDataStatus(uint32_t dataOperator) override;
 
     int SetProperty(const Property &property) override;
-
-    int StopTask(TaskType type) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

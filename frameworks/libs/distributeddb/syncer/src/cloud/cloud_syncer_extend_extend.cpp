@@ -29,6 +29,7 @@
 #include "res_finalizer.h"
 #include "runtime_context.h"
 #include "store_types.h"
+#include "strategy_factory.h"
 #include "version.h"
 
 namespace DistributedDB {
@@ -169,58 +170,6 @@ void CloudSyncer::ExecuteHeartBeatTask(TaskId taskId)
         RemoveHeatbeatData(taskId);
     }
     DecObjRef(this);
-}
-
-void CloudSyncer::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
-{
-    cloudDB_.SetCloudConflictHandler(handler);
-}
-
-int CloudSyncer::WaitAsyncGenLogTaskFinished(TaskId triggerTaskId)
-{
-    if (storageProxy_ == nullptr) {
-        LOGE("[WaitAsyncGenLogTaskFinished] Invalid storage.");
-        return -E_INVALID_DB;
-    }
-    std::vector<std::string> tables;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (cloudTaskInfos_.find(triggerTaskId) == cloudTaskInfos_.end()) {
-            LOGW("[WaitAsyncGenLogTaskFinished] Abort wait because of invalid task id");
-            return -E_INVALID_DB;
-        }
-        tables = cloudTaskInfos_[triggerTaskId].table;
-    }
-    return storageProxy_->WaitAsyncGenLogTaskFinished(tables);
-}
-
-void CloudSyncer::RetainCurrentTaskInfo(TaskId taskId)
-{
-    std::multimap<int, TaskId, std::greater<int>> retainQueue;
-    for (const auto &kv : std::as_const(taskQueue_)) {
-        if (kv.second == taskId) {
-            retainQueue.emplace(kv.first, kv.second);
-            break;
-        }
-    }
-    taskQueue_ = std::move(retainQueue);
-    // clear info and retain current taskinfo
-    auto cloudTaskIter = cloudTaskInfos_.find(taskId);
-    if (cloudTaskIter != cloudTaskInfos_.end()) {
-        const CloudTaskInfo cloudTaskInfo = cloudTaskIter->second;
-        cloudTaskInfos_.clear();
-        cloudTaskInfos_.emplace(taskId, cloudTaskInfo);
-    } else {
-        cloudTaskInfos_.clear();
-    }
-    auto resumeTaskIter = resumeTaskInfos_.find(taskId);
-    if (resumeTaskIter != resumeTaskInfos_.end()) {
-        const ResumeTaskInfo resumeTaskInfo = resumeTaskIter->second;
-        resumeTaskInfos_.clear();
-        resumeTaskInfos_.emplace(taskId, resumeTaskInfo);
-    } else {
-        resumeTaskInfos_.clear();
-    }
 }
 
 void CloudSyncer::SetCurrentTmpError(int errCode)

@@ -1075,37 +1075,6 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncUtilsTest, TestSize.Level0)
 }
 
 /**
- * @tc.name: CloudDBProxyTest017
- * @tc.desc: Test WaitAsyncGenLogTaskFinished
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: liaoyonghuang
- */
-HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest017, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Wait async gen log task finished when storage proxy is nullptr
-     * @tc.expected: step1. -E_INVALID_DB.
-     */
-    auto cloudSyncer1 = new(std::nothrow) VirtualCloudSyncer(nullptr);
-    ASSERT_NE(cloudSyncer1, nullptr);
-    EXPECT_EQ(cloudSyncer1->WaitAsyncGenLogTaskFinished(0u), -E_INVALID_DB);
-    delete cloudSyncer1;
-    /**
-     * @tc.steps: step2. Wait async gen log task finished when task id is invalid
-     * @tc.expected: step2. -E_INVALID_DB.
-     */
-    auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
-    EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
-    EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
-    EXPECT_CALL(*iCloud, GetIdentify).WillRepeatedly(testing::Return("CloudSyncerTest001"));
-    auto cloudSyncer2 = new(std::nothrow) VirtualCloudSyncer(StorageProxy::GetCloudDb(iCloud.get()));
-    ASSERT_NE(cloudSyncer2, nullptr);
-    EXPECT_EQ(cloudSyncer2->WaitAsyncGenLogTaskFinished(0u), -E_INVALID_DB);
-    delete cloudSyncer2;
-}
-
-/**
  * @tc.name: CloudDBProxyTest018
  * @tc.desc: Test query all gid
  * @tc.type: FUNC

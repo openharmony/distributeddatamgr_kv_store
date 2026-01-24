@@ -926,42 +926,6 @@ const std::vector<CompositeFields> TableInfo::GetUniqueAndPkDefine() const
     return res;
 }
 
-void TableInfo::SetCloudTable(const std::optional<TableSchema> &table)
-{
-    cloudTable_ = table;
-}
-
-std::vector<std::string> TableInfo::GetCloudSyncDistributedPk() const
-{
-    std::vector<std::string> res;
-    if (!cloudTable_.has_value()) {
-        return res;
-    }
-    for (const auto &field : cloudTable_.value().fields) {
-        if (field.dupCheckCol) {
-            res.push_back(field.colName);
-        }
-    }
-    return res;
-}
-
-std::vector<std::string> TableInfo::GetCloudSyncFields() const
-{
-    std::vector<std::string> res;
-    if (!cloudTable_.has_value()) {
-        return res;
-    }
-    for (const auto &field : cloudTable_.value().fields) {
-        res.push_back(field.colName);
-    }
-    return res;
-}
-
-std::optional<TableSchema> TableInfo::GetCloudTable() const
-{
-    return cloudTable_;
-}
-
 void TableInfo::SetType(const std::string &type)
 {
     type_ = type;

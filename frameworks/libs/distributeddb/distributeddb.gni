@@ -176,7 +176,6 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/sqlite/relational/split_device_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_database_upgrader.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_store.cpp",
-  "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_store_extend.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_store_connection.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_utils.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/sqlite_relational_utils_client.cpp",
@@ -266,6 +265,10 @@ distributeddb_src = [
 ]
 
 distributeddb_cloud_src = [
+  "${distributeddb_path}/syncer/src/cloud/cloud_force_pull_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_force_push_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_merge_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_sync_strategy.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_db_proxy.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_locker.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_syncer.cpp",
@@ -276,14 +279,7 @@ distributeddb_cloud_src = [
   "${distributeddb_path}/syncer/src/cloud/cloud_sync_utils.cpp",
   "${distributeddb_path}/syncer/src/cloud/process_notifier.cpp",
   "${distributeddb_path}/syncer/src/cloud/process_recorder.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy_proxy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/strategy_factory.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/cloud_custom_pull_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/cloud_custom_push_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/cloud_force_pull_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/cloud_force_push_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/cloud_merge_strategy.cpp",
-  "${distributeddb_path}/syncer/src/cloud/strategy/cloud_sync_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/strategy_factory.cpp",
 ]
 
 distributeddb_src_rd = [

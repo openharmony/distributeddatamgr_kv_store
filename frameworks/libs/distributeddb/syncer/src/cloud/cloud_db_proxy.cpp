@@ -840,18 +840,6 @@ void CloudDBProxy::CancelDownload()
     }
 }
 
-void CloudDBProxy::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
-{
-    std::unique_lock<std::shared_mutex> writeLock(handlerMutex_);
-    conflictHandler_ = handler;
-}
-
-std::weak_ptr<ICloudConflictHandler> CloudDBProxy::GetCloudConflictHandler()
-{
-    std::shared_lock<std::shared_mutex> writeLock(handlerMutex_);
-    return std::weak_ptr<ICloudConflictHandler>(conflictHandler_);
-}
-
 int CloudDBProxy::QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);

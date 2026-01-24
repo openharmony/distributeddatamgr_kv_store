@@ -1026,184 +1026,6 @@ const std::string SQLiteRelationalUtils::GetTempUpdateLogCursorTriggerSql(const 
     return sql;
 }
 
-int SQLiteRelationalUtils::GetLocalDataByRowid(sqlite3 *db, const TableInfo &table, const TableSchema &tableSchema,
-    DataInfoWithLog &dataInfoWithLog)
-{
-    if (db == nullptr) {
-        LOGE("[RDBUtils] Get local data by rowid without db");
-        return -E_INVALID_ARGS;
-    }
-    if (!table.IsValid()) {
-        LOGE("[RDBUtils] Get local data by rowid without valid table");
-        return -E_INVALID_ARGS;
-    }
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, GetQueryLocalDataSQL(table, dataInfoWithLog.logInfo.dataKey), stmt);
-    if (errCode != E_OK) {
-        LOGE("[RDBUtils] Get statement failed %d when get local data", errCode);
-        return errCode;
-    }
-    ResFinalizer finalizer([stmt]() {
-        sqlite3_stmt *releaseStmt = stmt;
-        int errCode = E_OK;
-        SQLiteUtils::ResetStatement(releaseStmt, true, errCode);
-    });
-    errCode = SQLiteUtils::StepNext(stmt);
-    if (errCode != E_OK) {
-        LOGE("[RDBUtils] Step statement failed %d when get local data", errCode);
-        return errCode;
-    }
-    auto fieldInfos = MergeFieldFromSchema(tableSchema.fields, table.GetFieldInfos());
-    for (int i = 0; i < static_cast<int>(fieldInfos.size()); ++i) {
-        Type cloudValue;
-        errCode = GetCloudValueByType(stmt, fieldInfos[i].type, i, cloudValue);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        dataInfoWithLog.localData.insert({fieldInfos[i].colName, cloudValue});
-    }
-    dataInfoWithLog.localData.insert({CloudDbConstant::MODIFY_FIELD,
-        static_cast<int64_t>(dataInfoWithLog.logInfo.timestamp)});
-    dataInfoWithLog.localData.insert({CloudDbConstant::CREATE_FIELD,
-        static_cast<int64_t>(dataInfoWithLog.logInfo.wTimestamp)});
-    dataInfoWithLog.localData.insert({CloudDbConstant::VERSION_FIELD, dataInfoWithLog.logInfo.version});
-    return E_OK;
-}
-
-std::string SQLiteRelationalUtils::GetQueryLocalDataSQL(const TableInfo &table, int64_t dataKey)
-{
-    std::string sql = "SELECT ";
-    auto fieldInfos = table.GetFieldInfos();
-    for (size_t i = 0; i < fieldInfos.size(); ++i) {
-        if (i != 0) {
-            sql.append(",");
-        }
-        sql.append(fieldInfos[i].GetFieldName());
-    }
-    sql.append(" FROM ").append(table.GetTableName()).append(" WHERE _rowid_=")
-        .append(std::to_string(dataKey));
-    return sql;
-}
-
-int SQLiteRelationalUtils::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
-{
-    if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
-        Asset asset;
-        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        if (!CloudStorageUtils::CheckAssetStatus({asset})) {
-            return -E_CLOUD_ERROR;
-        }
-        vBucket.insert_or_assign(field.colName, asset);
-    } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
-        Assets assets;
-        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        if (CloudStorageUtils::IsAssetsContainDuplicateAsset(assets) || !CloudStorageUtils::CheckAssetStatus(assets)) {
-            return -E_CLOUD_ERROR;
-        }
-        vBucket.insert_or_assign(field.colName, assets);
-    } else {
-        vBucket.insert_or_assign(field.colName, cloudValue);
-    }
-    return E_OK;
-}
-
-std::vector<Field> SQLiteRelationalUtils::MergeFieldFromSchema(const std::vector<Field> &originFields,
-    const std::vector<FieldInfo> &targetFields)
-{
-    std::vector<Field> fields = originFields;
-    std::set<std::string> originFieldSet;
-    std::for_each(fields.begin(), fields.end(), [&originFieldSet](const Field &field) {
-        originFieldSet.insert(field.colName);
-    });
-    for (const auto &field : targetFields) {
-        if (originFieldSet.find(field.GetFieldName()) != originFieldSet.end()) {
-            continue;
-        }
-        fields.push_back(ConvertToField(field));
-    }
-    return fields;
-}
-
-Field SQLiteRelationalUtils::ConvertToField(const FieldInfo &fieldInfo)
-{
-    Field field;
-    field.colName = fieldInfo.GetFieldName();
-    field.nullable = !fieldInfo.IsNotNull();
-    field.type = ConvertToType(fieldInfo.GetStorageType());
-    return field;
-}
-
-int32_t SQLiteRelationalUtils::ConvertToType(StorageType storageType)
-{
-    switch (storageType) {
-        case StorageType::STORAGE_TYPE_TEXT:
-            return TYPE_INDEX<std::string>;
-        case StorageType::STORAGE_TYPE_INTEGER:
-            return TYPE_INDEX<int64_t>;
-        case StorageType::STORAGE_TYPE_REAL:
-            return TYPE_INDEX<double>;
-        case StorageType::STORAGE_TYPE_BLOB:
-            return TYPE_INDEX<Bytes>;
-        case StorageType::STORAGE_TYPE_NULL:
-        case StorageType::STORAGE_TYPE_NONE:
-        default:
-            return TYPE_INDEX<Nil>;
-    }
-}
-
-std::vector<Field> SQLiteRelationalUtils::GetUserUpdateField(const VBucket &vBucket, const TableSchema &tableSchema)
-{
-    std::vector<Field> fields;
-    std::set<std::string> useFields;
-    for (const auto &field : vBucket) {
-        if (field.first.empty() || field.first[0] == '#') {
-            continue;
-        }
-        useFields.insert(field.first);
-    }
-    for (const auto &field : tableSchema.fields) {
-        if (useFields.find(field.colName) == useFields.end()) {
-            continue;
-        }
-        fields.push_back(field);
-    }
-    return fields;
-}
-
-std::vector<Field> SQLiteRelationalUtils::GetSaveSyncField(const VBucket &vBucket, const TableSchema &tableSchema,
-    bool isContainDupCheck)
-{
-    std::vector<Field> fields;
-    std::map<std::string, Field, CaseInsensitiveComparator> colFields;
-    std::for_each(tableSchema.fields.begin(), tableSchema.fields.end(), [isContainDupCheck, &colFields, &fields]
-        (const Field &field) {
-        colFields.insert({field.colName, field});
-        if (isContainDupCheck || !field.dupCheckCol) {
-            fields.push_back(field);
-        }
-    });
-    for (const auto &[colName, val] : vBucket) {
-        if (colName.empty() || colName[0] == '#') {
-            continue;
-        }
-        auto iter = colFields.find(colName);
-        if (iter != colFields.end()) {
-            continue;
-        }
-        Field field;
-        field.colName = colName;
-        field.type = static_cast<int32_t>(val.index());
-        fields.push_back(field);
-    }
-    return fields;
-}
-
 std::pair<int, TableInfo> SQLiteRelationalUtils::AnalyzeTable(sqlite3 *db, const std::string &tableName)
 {
     std::pair<int, TableInfo> res;
@@ -1212,54 +1034,7 @@ std::pair<int, TableInfo> SQLiteRelationalUtils::AnalyzeTable(sqlite3 *db, const
     return res;
 }
 
-void SQLiteRelationalUtils::FilterTableSchema(const TableInfo &tableInfo, TableSchema &table)
-{
-    FieldInfoMap localFields = tableInfo.GetFields();
-    // remove the fields that are not found in local schema from cloud schema
-    for (auto it = table.fields.begin(); it != table.fields.end();) {
-        if (localFields.find((*it).colName) == localFields.end()) {
-            LOGW("Column mismatch, colName: %s, length: %zu", DBCommon::StringMiddleMasking((*it).colName).c_str(),
-                (*it).colName.length());
-            it = table.fields.erase(it);
-        } else {
-            ++it;
-        }
-    }
-}
-
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-void SQLiteRelationalUtils::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
-    ICloudSyncer::CloudTaskInfo &info)
-{
-    auto syncObject = QuerySyncObject::GetQuerySyncObject(option.query);
-    if (syncObject.empty()) {
-        QuerySyncObject querySyncObject(option.query);
-        info.table = querySyncObject.GetRelationTableNames();
-        for (const auto &item : info.table) {
-            QuerySyncObject object(Query::Select());
-            object.SetTableName(item);
-            info.queryList.push_back(object);
-        }
-    } else {
-        for (auto &item : syncObject) {
-            info.table.push_back(item.GetRelationTableName());
-            info.queryList.push_back(std::move(item));
-        }
-    }
-    info.devices = option.devices;
-    info.mode = option.mode;
-    info.callback = onProcess;
-    info.timeout = option.waitTime;
-    info.priorityTask = option.priorityTask;
-    info.compensatedTask = option.compensatedSyncOnly;
-    info.priorityLevel = option.priorityLevel;
-    info.users.emplace_back("");
-    info.lockAction = option.lockAction;
-    info.merge = option.merge;
-    info.prepareTraceId = option.prepareTraceId;
-    info.asyncDownloadAssets = option.asyncDownloadAssets;
-}
-
 int SQLiteRelationalUtils::PutCloudGid(sqlite3 *db, const std::string &tableName, std::vector<VBucket> &data)
 {
     // create tmp table if table not exists
@@ -1381,12 +1156,13 @@ int SQLiteRelationalUtils::DeleteOneRecord(const std::string &tableName, sqlite3
             return errCode;
         }
     }
+    uint32_t recordFlag = static_cast<uint32_t>(record.flag);
     int32_t newFlag = isLogicDelete ?
-        ((record.flag & (static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
+        ((recordFlag & (static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
             static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
             static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE))) &
             (~static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL))) :
-        ((record.flag & (static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
+        ((recordFlag & (static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
             static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE))) &
             (~static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)));
     sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET cloud_gid = '', version = '', flag = " +
