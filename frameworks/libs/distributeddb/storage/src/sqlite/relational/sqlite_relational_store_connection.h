@@ -34,17 +34,13 @@ public:
 
     // Close and release the connection.
     int Close() override;
-    int SyncToDevice(SyncInfo &info) override;
+
     std::string GetIdentifier() override;
     int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
-    int RemoveDeviceData() override;
-    int RemoveDeviceData(const std::string &device) override;
-    int RemoveDeviceData(const std::string &device, const std::string &tableName) override;
+
     int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) override;
     int UnRegisterObserverAction(const StoreObserver *observer) override;
-    int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
-        std::shared_ptr<ResultSet> &result) override;
 
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 
@@ -57,8 +53,6 @@ public:
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) override;
-
-    int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
 
     int GetDownloadingAssetsCount(int32_t &count) override;
 
@@ -85,9 +79,23 @@ public:
     int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
 #endif
 
-    int OperateDataStatus(uint32_t dataOperator) override;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    int SyncToDevice(SyncInfo &info) override;
+
+    int RemoveDeviceData() override;
+
+    int RemoveDeviceData(const std::string &device) override;
+
+    int RemoveDeviceData(const std::string &device, const std::string &tableName) override;
+
+    int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
+        std::shared_ptr<ResultSet> &result) override;
 
     int32_t GetDeviceSyncTaskCount() override;
+
+    int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
+#endif
+    int OperateDataStatus(uint32_t dataOperator) override;
 
     int SetProperty(const Property &property) override;
 

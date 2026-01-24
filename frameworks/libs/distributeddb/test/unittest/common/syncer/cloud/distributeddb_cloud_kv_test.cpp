@@ -769,6 +769,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync013, TestSize.Level1)
     CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: NormalSync014
  * @tc.desc: Test sync after user change.
@@ -812,6 +813,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync014, TestSize.Level1)
     CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
     g_mgr.SetSyncActivationCheckCallback(nullptr);
 }
+#endif
 
 /**
  * @tc.name: NormalSync015

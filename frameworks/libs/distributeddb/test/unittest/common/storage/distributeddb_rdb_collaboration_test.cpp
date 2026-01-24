@@ -187,6 +187,8 @@ void DistributedDBRDBCollaborationTest::CloseDb()
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: SetSchema001
  * @tc.desc: Test set distributed schema.
@@ -2894,4 +2896,6 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync006, TestSize.Level0)
         EXPECT_EQ(callStatus, NOT_SUPPORT);
     }
 }
+#endif
+#endif
 }

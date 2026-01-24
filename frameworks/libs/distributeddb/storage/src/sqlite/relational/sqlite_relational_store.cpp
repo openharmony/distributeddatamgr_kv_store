@@ -363,10 +363,12 @@ void SQLiteRelationalStore::ReleaseHandle(SQLiteSingleVerRelationalStorageExecut
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SQLiteRelationalStore::Sync(const ISyncer::SyncParam &syncParam, uint64_t connectionId)
 {
     return syncAbleEngine_->Sync(syncParam, connectionId);
 }
+#endif
 
 // Called when a connection released.
 void SQLiteRelationalStore::DecreaseConnectionCounter(uint64_t connectionId)
@@ -616,6 +618,7 @@ int SQLiteRelationalStore::ClearCloudWatermark(const std::set<std::string> &tabl
 }
 #endif
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SQLiteRelationalStore::RemoveDeviceData()
 {
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetRelationalProperties().GetIntProp(
@@ -712,6 +715,7 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     }
     return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
+#endif
 
 int SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
     const RelationalObserverAction &action)
@@ -870,37 +874,6 @@ void SQLiteRelationalStore::Dump(int fd)
     }
 }
 
-int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
-    uint64_t connectionId, std::shared_ptr<ResultSet> &result)
-{
-    if (sqliteStorageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    if (condition.sql.size() > DBConstant::REMOTE_QUERY_MAX_SQL_LEN) {
-        LOGE("remote query sql len is larger than %" PRIu32, DBConstant::REMOTE_QUERY_MAX_SQL_LEN);
-        return -E_MAX_LIMITS;
-    }
-
-    if (!sqliteStorageEngine_->GetSchema().IsSchemaValid()) {
-        LOGW("not a distributed relational store.");
-        return -E_NOT_SUPPORT;
-    }
-
-    // Check whether to be able to operate the db.
-    int errCode = E_OK;
-    auto *handle = GetHandle(false, errCode);
-    if (handle == nullptr) {
-        return errCode;
-    }
-    errCode = handle->CheckEncryptedOrCorrupted();
-    ReleaseHandle(handle);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    return syncAbleEngine_->RemoteQuery(device, condition, timeout, connectionId, result);
-}
-
 int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string> &tableNameList)
 {
     std::set<std::string> devices;
@@ -948,6 +921,7 @@ int SQLiteRelationalStore::GetHandleAndStartTransaction(SQLiteSingleVerRelationa
     return errCode;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
     const std::string &tableName, bool isNeedHash)
 {
@@ -1004,6 +978,38 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
     storageEngine_->NotifySchemaChanged();
     return errCode;
 }
+
+int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
+    uint64_t connectionId, std::shared_ptr<ResultSet> &result)
+{
+    if (sqliteStorageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (condition.sql.size() > DBConstant::REMOTE_QUERY_MAX_SQL_LEN) {
+        LOGE("remote query sql len is larger than %" PRIu32, DBConstant::REMOTE_QUERY_MAX_SQL_LEN);
+        return -E_MAX_LIMITS;
+    }
+
+    if (!sqliteStorageEngine_->GetSchema().IsSchemaValid()) {
+        LOGW("not a distributed relational store.");
+        return -E_NOT_SUPPORT;
+    }
+
+    // Check whether to be able to operate the db.
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->CheckEncryptedOrCorrupted();
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    return syncAbleEngine_->RemoteQuery(device, condition, timeout, connectionId, result);
+}
+#endif
 
 int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices) const
 {
@@ -1854,6 +1860,7 @@ int SQLiteRelationalStore::SetCloudConflictHandler(const std::shared_ptr<ICloudC
 }
 #endif
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade)
 {
     if (sqliteStorageEngine_ == nullptr || storageEngine_ == nullptr) {
@@ -1878,6 +1885,16 @@ int SQLiteRelationalStore::SetDistributedSchema(const DistributedSchema &schema,
     }
     return E_OK;
 }
+
+int32_t SQLiteRelationalStore::GetDeviceSyncTaskCount() const
+{
+    if (syncAbleEngine_ == nullptr) {
+        LOGW("[RelationalStore] syncAbleEngine was not initialized when get device sync task count");
+        return 0;
+    }
+    return syncAbleEngine_->GetDeviceSyncTaskCount();
+}
+#endif
 
 int SQLiteRelationalStore::GetDownloadingAssetsCount(int32_t &count)
 {
@@ -1994,15 +2011,6 @@ int SQLiteRelationalStore::OperateDataStatusInner(const std::vector<std::string>
     }
     ReleaseHandle(handle);
     return errCode;
-}
-
-int32_t SQLiteRelationalStore::GetDeviceSyncTaskCount() const
-{
-    if (syncAbleEngine_ == nullptr) {
-        LOGW("[RelationalStore] syncAbleEngine was not initialized when get device sync task count");
-        return 0;
-    }
-    return syncAbleEngine_->GetDeviceSyncTaskCount();
 }
 
 void SQLiteRelationalStore::CleanDirtyLogIfNeed(const std::string &tableName) const

@@ -93,6 +93,7 @@ HWTEST_F(DistributedDBBasicRDBTest, InitDelegateExample001, TestSize.Level0)
     EXPECT_EQ(actualTableInfo.fields.size(), filedInfo.size());
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: RdbSyncExample001
  * @tc.desc: Test insert data and sync from dev1 to dev2.
@@ -136,6 +137,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbSyncExample001, TestSize.Level0)
     ASSERT_NO_FATAL_FAILURE(BlockPush(info1, info2, g_defaultTable1));
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1, "name='update'"), 2);
 }
+#endif
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 /**

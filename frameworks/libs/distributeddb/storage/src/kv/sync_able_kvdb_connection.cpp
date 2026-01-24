@@ -54,12 +54,29 @@ void SyncAbleKvDBConnection::InitPragmaFunc()
         return;
     }
     pragmaFunc_ = {
-        {PRAGMA_SYNC_DEVICES, [this](void *parameter, int &errCode) {
-            errCode = PragmaSyncAction(static_cast<PragmaSync *>(parameter)); }},
-        {PRAGMA_CANCEL_SYNC_DEVICES, [this](void *parameter, int &errCode) {
-            errCode = CancelDeviceSync(*(static_cast<uint32_t *>(parameter))); }},
+#ifdef USE_DISTRIBUTEDDB_DEVICE
         {PRAGMA_AUTO_SYNC, [this](void *parameter, int &errCode) {
             errCode = EnableAutoSync(*(static_cast<bool *>(parameter))); }},
+        {PRAGMA_SYNC_DEVICES, [this](void *parameter, int &errCode) {
+            errCode = PragmaSyncAction(static_cast<PragmaSync *>(parameter)); }},
+        {PRAGMA_GET_QUEUED_SYNC_SIZE, [this](void *parameter, int &errCode) {
+            errCode = GetQueuedSyncSize(static_cast<int *>(parameter)); }},
+        {PRAGMA_SET_QUEUED_SYNC_LIMIT, [this](void *parameter, int &errCode) {
+            errCode = SetQueuedSyncLimit(static_cast<int *>(parameter)); }},
+        {PRAGMA_GET_QUEUED_SYNC_LIMIT, [this](void *parameter, int &errCode) {
+            errCode = GetQueuedSyncLimit(static_cast<int *>(parameter)); }},
+        {PRAGMA_SET_SYNC_RETRY, [this](void *parameter, int &errCode) {
+            errCode = SetSyncRetry(*(static_cast<bool *>(parameter))); }},
+        {PRAGMA_CANCEL_SYNC_DEVICES, [this](void *parameter, int &errCode) {
+            errCode = CancelDeviceSync(*(static_cast<uint32_t *>(parameter))); }},
+
+        {PRAGMA_REMOTE_PUSH_FINISHED_NOTIFY, [this](void *parameter, int &errCode) {
+            errCode = SetRemotePushFinishedNotify(static_cast<PragmaRemotePushNotify *>(parameter)); }},
+        {PRAGMA_INTERCEPT_SYNC_DATA, [this](void *parameter, int &errCode) {
+            errCode = SetPushDataInterceptor(*static_cast<PushDataInterceptor *>(parameter)); }},
+        {PRAGMA_SUBSCRIBE_QUERY, [this](void *parameter, int &errCode) {
+            errCode = PragmaSyncAction(static_cast<PragmaSync *>(parameter)); }},
+#endif
         {PRAGMA_PERFORMANCE_ANALYSIS_GET_REPORT, [](void *parameter, int &errCode) {
             *(static_cast<std::string *>(parameter)) = PerformanceAnalysis::GetInstance()->GetStatistics(); }},
         {PRAGMA_PERFORMANCE_ANALYSIS_OPEN, [](void *parameter, int &errCode) {
@@ -68,24 +85,10 @@ void SyncAbleKvDBConnection::InitPragmaFunc()
             PerformanceAnalysis::GetInstance()->ClosePerformanceAnalysis(); }},
         {PRAGMA_PERFORMANCE_ANALYSIS_SET_REPORTFILENAME,  [](void *parameter, int &errCode) {
             PerformanceAnalysis::GetInstance()->SetFileName(*(static_cast<std::string *>(parameter))); }},
-        {PRAGMA_GET_QUEUED_SYNC_SIZE, [this](void *parameter, int &errCode) {
-            errCode = GetQueuedSyncSize(static_cast<int *>(parameter)); }},
-        {PRAGMA_SET_QUEUED_SYNC_LIMIT, [this](void *parameter, int &errCode) {
-            errCode = SetQueuedSyncLimit(static_cast<int *>(parameter)); }},
-        {PRAGMA_GET_QUEUED_SYNC_LIMIT, [this](void *parameter, int &errCode) {
-            errCode = GetQueuedSyncLimit(static_cast<int *>(parameter)); }},
         {PRAGMA_SET_WIPE_POLICY, [this](void *parameter, int &errCode) {
             errCode = SetStaleDataWipePolicy(static_cast<WipePolicy *>(parameter)); }},
-        {PRAGMA_REMOTE_PUSH_FINISHED_NOTIFY, [this](void *parameter, int &errCode) {
-            errCode = SetRemotePushFinishedNotify(static_cast<PragmaRemotePushNotify *>(parameter)); }},
-        {PRAGMA_SET_SYNC_RETRY, [this](void *parameter, int &errCode) {
-            errCode = SetSyncRetry(*(static_cast<bool *>(parameter))); }},
         {PRAGMA_ADD_EQUAL_IDENTIFIER, [this](void *parameter, int &errCode) {
             errCode = SetEqualIdentifier(static_cast<PragmaSetEqualIdentifier *>(parameter)); }},
-        {PRAGMA_INTERCEPT_SYNC_DATA, [this](void *parameter, int &errCode) {
-            errCode = SetPushDataInterceptor(*static_cast<PushDataInterceptor *>(parameter)); }},
-        {PRAGMA_SUBSCRIBE_QUERY, [this](void *parameter, int &errCode) {
-            errCode = PragmaSyncAction(static_cast<PragmaSync *>(parameter)); }},
     };
 }
 
@@ -381,6 +384,7 @@ int SyncAbleKvDBConnection::SetPushDataInterceptor(const PushDataInterceptor &in
     return E_OK;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SyncAbleKvDBConnection::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
@@ -398,6 +402,7 @@ int SyncAbleKvDBConnection::GetWatermarkInfo(const std::string &device, Watermar
     }
     return kvDB->GetWatermarkInfo(device, info);
 }
+#endif
 
 int32_t SyncAbleKvDBConnection::GetTaskCount()
 {
@@ -448,6 +453,7 @@ void SyncAbleKvDBConnection::SetGenCloudVersionCallback(const GenerateCloudVersi
 }
 #endif
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SyncAbleKvDBConnection::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
 {
     auto *kvDB = GetDB<SyncAbleKvDB>();
@@ -466,4 +472,5 @@ int SyncAbleKvDBConnection::SetDeviceSyncNotify(DeviceSyncEvent event, const Dev
     }
     return kvDB->SetDeviceSyncNotify(event, notifier);
 }
+#endif
 }

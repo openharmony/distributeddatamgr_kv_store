@@ -93,11 +93,7 @@ public:
 
     void Dump(int fd) override;
 
-    int GetSyncDataSize(const std::string &device, size_t &size) const;
-
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
-
-    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info);
 
     int UpgradeSchemaVerInMeta();
 
@@ -121,6 +117,12 @@ public:
 #endif
 
     int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier);
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    int GetSyncDataSize(const std::string &device, size_t &size) const;
+
+    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info);
+#endif
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 
@@ -152,15 +154,13 @@ protected:
 
     CloudSyncer *GetAndIncCloudSyncer();
 
+    bool ExchangeClosePending(bool expected);
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual ICloudSyncStorageInterface *GetICloudSyncInterface() const;
 
     int CleanAllWaterMark();
-#endif
-protected:
-    bool ExchangeClosePending(bool expected);
 
-#ifdef USE_DISTRIBUTEDDB_CLOUD
     virtual std::map<std::string, DataBaseSchema> GetDataBaseSchemas();
 
     virtual bool CheckSchemaSupportForCloudSync() const;

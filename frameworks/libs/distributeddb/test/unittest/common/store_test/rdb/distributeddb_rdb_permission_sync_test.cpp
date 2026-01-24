@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "rdb_general_ut.h"
 #include "relational_store_delegate_impl.h"
 #include "runtime_config.h"
@@ -251,3 +252,4 @@ HWTEST_F(DistributedDBRDBPermissionSyncTest, InvalidArgs001, TestSize.Level0)
     EXPECT_EQ(connection.SetProperty({}), -E_INVALID_CONNECTION);
 }
 }
+#endif

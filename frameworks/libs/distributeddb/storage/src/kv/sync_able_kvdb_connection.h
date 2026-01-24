@@ -35,13 +35,7 @@ public:
     // Pragma interface.
     int Pragma(int cmd, void *parameter) override;
 
-    int GetSyncDataSize(const std::string &device, size_t &size) const override;
-
-    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
-
     int32_t GetTaskCount() override;
-
-    int SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
@@ -51,7 +45,15 @@ public:
     void SetGenCloudVersionCallback(const GenerateCloudVersionCallback &callback) override;
 #endif
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    int GetSyncDataSize(const std::string &device, size_t &size) const override;
+
+    int GetWatermarkInfo(const std::string &device, WatermarkInfo &info) override;
+
     int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
+
+    int SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
+#endif
 protected:
     int DisableManualSync();
 

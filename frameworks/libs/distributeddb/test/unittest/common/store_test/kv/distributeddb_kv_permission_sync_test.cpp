@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "distributeddb_tools_unit_test.h"
 #include "kv_general_ut.h"
 #include "kv_store_nb_delegate_impl.h"
@@ -326,3 +327,4 @@ HWTEST_F(DistributedDBKvPermissionSyncTest, InvalidArgs002, TestSize.Level0)
     EXPECT_EQ(connection.SetProperty({}), -E_INVALID_CONNECTION);
 }
 }
+#endif

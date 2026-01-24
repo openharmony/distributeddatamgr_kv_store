@@ -211,6 +211,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInS
     sqlite3_close(db);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: OpenEncryptedDBWithPasswdInSplitMode_001
  * @tc.desc: Open encrypted db with password in split mode.
@@ -268,6 +269,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithPasswdInSpli
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
 }
+#endif
 
 /**
  * @tc.name: OpenEncryptedDBWithInvalidParameters_001
@@ -313,6 +315,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithInvalidParam
     sqlite3_close(db);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: OpenEncryptedDBWithCustomizedIterTimes_001
  * @tc.desc: Open encrypted db with customized iterate times.
@@ -435,6 +438,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
 }
+#endif
 
 /**
  * @tc.name: OpenEncryptedDBWithDifferentPasswd_001

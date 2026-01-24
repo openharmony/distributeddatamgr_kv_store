@@ -262,10 +262,12 @@ void DistributedDBSingleVerMultiSubUserTest::TearDown(void)
         g_deviceB = nullptr;
     }
     PermissionCheckCallbackV3 nullCallback = nullptr;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     RuntimeConfig::SetPermissionCheckCallback(nullCallback);
     SyncActivationCheckCallbackV2 activeCallBack = nullptr;
     RuntimeConfig::SetSyncActivationCheckCallback(activeCallBack);
     RuntimeConfig::SetPermissionConditionCallback(nullptr);
+#endif
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(*g_testDir) != 0) {
         LOGE("rm test db files error.");
     }
@@ -433,6 +435,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, KvDelegateInvalidParamTest001, 
     CloseDelegate(delegatePtr3, mgr3, STORE_ID_1);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SubUserPermissionCheck
  * @tc.desc: permission check subuser
@@ -458,7 +461,6 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserPermissionCheck, TestSiz
         }
     };
     EXPECT_EQ(mgr1.SetPermissionCheckCallback(permissionCheckCallback), OK);
-
     /**
      * @tc.steps: step2. deviceB put {1,1}
      * @tc.expected: step2. put success
@@ -497,6 +499,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserPermissionCheck, TestSiz
     EXPECT_EQ(mgr1.SetPermissionCheckCallback(nullCallback), OK);
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
+#endif
 
 /**
  * @tc.name: RDBDelegateInvalidParamTest001
@@ -768,6 +771,7 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, SubUserDelegateCloudSyncTest002
 }
 #endif
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: MultiSubUserDelegateSync001
  * @tc.desc: Test subUser delegate sync function.
@@ -854,5 +858,5 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync002, Te
 
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
-
+#endif
 } // namespace

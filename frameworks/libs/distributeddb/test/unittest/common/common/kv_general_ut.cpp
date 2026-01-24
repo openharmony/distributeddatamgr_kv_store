@@ -52,9 +52,11 @@ int KVGeneralUt::InitDelegate(const StoreInfo &info)
         LOGE("[KVGeneralUt] Init delegate failed %d", static_cast<int>(status));
         return -E_INTERNAL_ERROR;
     }
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     if (processCommunicator_ != nullptr) {
         manager.SetProcessCommunicator(processCommunicator_);
     }
+#endif
     stores_[info] = store;
     LOGI("[KVGeneralUt] Init delegate app %s store %s user %s success", info.appId.c_str(),
          info.storeId.c_str(), info.userId.c_str());

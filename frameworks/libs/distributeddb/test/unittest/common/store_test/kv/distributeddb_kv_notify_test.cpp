@@ -60,6 +60,7 @@ void DistributedDBKVNotifyTest::NotifySyncTest(SyncMode mode, int expectCount)
     EXPECT_EQ(count, expectCount);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: NotifySync001
  * @tc.desc: Test notify when pull sync.
@@ -144,6 +145,7 @@ HWTEST_F(DistributedDBKVNotifyTest, NotifySync005, TestSize.Level0)
     ASSERT_EQ(syncer.SetDeviceSyncNotify(static_cast<DeviceSyncEvent>(1), nullptr), -E_INVALID_ARGS);
     ASSERT_EQ(syncer.SetDeviceSyncNotify(DeviceSyncEvent::REMOTE_PULL_STARTED, nullptr), -E_NOT_INIT);
 }
+#endif
 
 /**
  * @tc.name: GetExtendInfo001

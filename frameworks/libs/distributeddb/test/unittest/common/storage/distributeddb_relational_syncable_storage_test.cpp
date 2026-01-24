@@ -123,6 +123,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, SchemaRefTest001, TestSize.
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: FuncExceptionTest001
  * @tc.desc: Test the interception expection of the delegate interface when the store is empty.
@@ -177,6 +178,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
     EXPECT_EQ(conn->OperateDataStatus(0u), -E_INVALID_CONNECTION);
     conn = nullptr;
 }
+#endif
 
 /**
  * @tc.name: FuncExceptionTest002

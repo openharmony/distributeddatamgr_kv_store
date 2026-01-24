@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 
 namespace DistributedDB {
@@ -99,3 +100,4 @@ HWTEST_F(DistributedDBKVCompressTest, SyncTest001, TestSize.Level0)
     EXPECT_LE(size2 - size1, size4 - size3);
 }
 }
+#endif

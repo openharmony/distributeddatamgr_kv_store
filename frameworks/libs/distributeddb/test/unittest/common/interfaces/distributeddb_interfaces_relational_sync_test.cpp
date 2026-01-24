@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 
 #include "db_common.h"
@@ -1138,6 +1139,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncRangeTest001, 
     EXPECT_EQ(errCode, NOT_SUPPORT);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: RelationalSyncTest011
   * @tc.desc: Test sync with invalid parm
@@ -1197,3 +1199,5 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest011, TestS
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     delete observer;
 }
+#endif
+#endif

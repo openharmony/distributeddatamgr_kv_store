@@ -1304,6 +1304,7 @@ namespace {
         DeleteWithPkTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY);
     }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     /**
      * @tc.name: DropTableTest001
      * @tc.desc: Test drop table
@@ -1363,6 +1364,7 @@ namespace {
         EXPECT_EQ(count, 1);
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
+#endif
 
     /**
      * @tc.name: GetDataWithAsset001

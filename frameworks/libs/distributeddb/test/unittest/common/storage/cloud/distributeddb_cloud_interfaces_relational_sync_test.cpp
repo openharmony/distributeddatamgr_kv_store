@@ -2404,6 +2404,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize
     CloseDb();
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SchemaTest002
  * @tc.desc: Create table with DEVICE_COOPERATION mode and do sync
@@ -2426,6 +2427,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize
     callSync({g_tableName4}, SYNC_MODE_CLOUD_MERGE, DBStatus::NOT_SUPPORT);
     CloseDb();
 }
+#endif
 
 /**
  * @tc.name: CloudCursorTest001

@@ -327,6 +327,7 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
     DBDfxAdapter::FinishTracing();
     return errCode;
 }
+
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
     std::vector<Entry> &entries) const
 {

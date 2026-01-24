@@ -67,7 +67,10 @@ public:
     }
 
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
-        const Query &query, const SyncStatusCallback &onComplete, bool wait) = 0;
+        const Query &query, const SyncStatusCallback &onComplete, bool wait)
+    {
+        return OK;
+    }
 
     DB_API virtual int32_t GetCloudSyncTaskCount()
     {
@@ -84,7 +87,10 @@ public:
         return RemoveDeviceDataInner(device, mode);
     }
 
-    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
+    DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName)
+    {
+        return OK;
+    }
 
     DB_API virtual DBStatus RemoveDeviceData(const ClearDeviceDataOption &option)
     {
@@ -93,10 +99,16 @@ public:
     
     // timeout is in ms.
     DB_API virtual DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition,
-        uint64_t timeout, std::shared_ptr<ResultSet> &result) = 0;
+        uint64_t timeout, std::shared_ptr<ResultSet> &result)
+    {
+        return OK;
+    }
 
     // remove all device data
-    DB_API virtual DBStatus RemoveDeviceData() = 0;
+    DB_API virtual DBStatus RemoveDeviceData()
+    {
+        return OK;
+    }
 
     DB_API virtual DBStatus Sync([[gnu::unused]] const std::vector<std::string> &devices,
          [[gnu::unused]] SyncMode mode, [[gnu::unused]] const Query &query,
@@ -137,14 +149,20 @@ public:
 
     DB_API virtual DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
 
-    DB_API virtual DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) = 0;
+    DB_API virtual DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+    {
+        return OK;
+    }
 
     DB_API virtual DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
 
     DB_API virtual DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
 
     DB_API virtual DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
-        RecordStatus status = RecordStatus::WAIT_COMPENSATED_SYNC) = 0;
+        RecordStatus status = RecordStatus::WAIT_COMPENSATED_SYNC)
+    {
+        return OK;
+    }
 
     // set the config for cloud sync task
     DB_API virtual DBStatus SetCloudSyncConfig([[gnu::unused]] const CloudSyncConfig &config)

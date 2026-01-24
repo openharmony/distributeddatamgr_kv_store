@@ -387,7 +387,11 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
 
     uint64_t rawMode = DBCommon::EraseBit(mode, DBConstant::OBSERVER_CHANGES_MASK);
     if (rawMode == static_cast<uint64_t>(ObserverMode::OBSERVER_CHANGES_CLOUD)) {
+#ifdef USE_DISTRIBUTEDDB_CLOUD
         return RegisterCloudObserver(key, mode, observer);
+#else
+        return OK;
+#endif
     }
     return RegisterDeviceObserver(key, static_cast<unsigned int>(rawMode), observer);
 }
@@ -510,9 +514,12 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(std::shared_ptr<KvStoreObserv
         LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
-
-    DBStatus cloudRet = UnRegisterCloudObserver(observer);
-    DBStatus devRet = UnRegisterDeviceObserver(observer);
+    DBStatus cloudRet = NOT_SUPPORT;
+    DBStatus devRet = OK;
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    cloudRet = UnRegisterCloudObserver(observer);
+#endif
+    devRet = UnRegisterDeviceObserver(observer);
     if (cloudRet == OK || devRet == OK) {
         return OK;
     }
@@ -555,6 +562,12 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterCloudObserver(const std::shared_ptr<Kv
     return OK;
 }
 
+std::string KvStoreNbDelegateImpl::GetStoreId() const
+{
+    return storeId_;
+}
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device)
 {
     if (conn_ == nullptr) {
@@ -572,11 +585,6 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device)
         LOGI("[KvStoreNbDelegate][%.3s] Remove specific device data OK", storeId_.c_str());
     }
     return TransferDBErrno(errCode);
-}
-
-std::string KvStoreNbDelegateImpl::GetStoreId() const
-{
-    return storeId_;
 }
 
 DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode,
@@ -735,6 +743,7 @@ DBStatus KvStoreNbDelegateImpl::CancelSync(uint32_t syncId)
     }
     return OK;
 }
+#endif
 
 DBStatus KvStoreNbDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &paramData)
 {
@@ -964,21 +973,6 @@ DBStatus KvStoreNbDelegateImpl::GetSecurityOption(SecurityOption &option) const
     return TransferDBErrno(conn_->GetSecurityOption(option.securityLabel, option.securityFlag));
 }
 
-DBStatus KvStoreNbDelegateImpl::SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-
-    PragmaRemotePushNotify notify(notifier);
-    int errCode = conn_->Pragma(PRAGMA_REMOTE_PUSH_FINISHED_NOTIFY, reinterpret_cast<void *>(&notify));
-    if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] Set remote push finished notify failed : %d", errCode);
-    }
-    return TransferDBErrno(errCode);
-}
-
 DBStatus KvStoreNbDelegateImpl::GetInner(const IOption &option, const Key &key, Value &value) const
 {
     if (conn_ == nullptr) {
@@ -1066,6 +1060,22 @@ void KvStoreNbDelegateImpl::OnSyncComplete(const std::map<std::string, int> &sta
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+DBStatus KvStoreNbDelegateImpl::SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+
+    PragmaRemotePushNotify notify(notifier);
+    int errCode = conn_->Pragma(PRAGMA_REMOTE_PUSH_FINISHED_NOTIFY, reinterpret_cast<void *>(&notify));
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Set remote push finished notify failed : %d", errCode);
+    }
+    return TransferDBErrno(errCode);
+}
+
 DBStatus KvStoreNbDelegateImpl::SetEqualIdentifier(const std::string &identifier,
     const std::vector<std::string> &targets)
 {
@@ -1146,6 +1156,26 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
     return OK;
 }
 
+size_t KvStoreNbDelegateImpl::GetSyncDataSize(const std::string &device) const
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return 0;
+    }
+    if (device.empty()) {
+        LOGE("device len is invalid");
+        return 0;
+    }
+    size_t size = 0;
+    int errCode = conn_->GetSyncDataSize(device, size);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] calculate sync data size failed : %d", errCode);
+        return 0;
+    }
+    return size;
+}
+#endif
+
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
 {
     if (conn_ == nullptr) {
@@ -1180,25 +1210,6 @@ DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &
     return TransferDBErrno(errCode);
 }
 
-size_t KvStoreNbDelegateImpl::GetSyncDataSize(const std::string &device) const
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return 0;
-    }
-    if (device.empty()) {
-        LOGE("device len is invalid");
-        return 0;
-    }
-    size_t size = 0;
-    int errCode = conn_->GetSyncDataSize(device, size);
-    if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] calculate sync data size failed : %d", errCode);
-        return 0;
-    }
-    return size;
-}
-
 DBStatus KvStoreNbDelegateImpl::UpdateKey(const UpdateKeyCallback &callback)
 {
     if (conn_ == nullptr) {
@@ -1216,29 +1227,6 @@ DBStatus KvStoreNbDelegateImpl::UpdateKey(const UpdateKeyCallback &callback)
     }
     LOGE("[KvStoreNbDelegate] update keys failed:%d", errCode);
     return TransferDBErrno(errCode);
-}
-
-std::pair<DBStatus, WatermarkInfo> KvStoreNbDelegateImpl::GetWatermarkInfo(const std::string &device)
-{
-    std::pair<DBStatus, WatermarkInfo> res;
-    if (device.empty() || device.size() > DBConstant::MAX_DEV_LENGTH) {
-        LOGE("[KvStoreNbDelegate] device invalid length %zu", device.size());
-        res.first = INVALID_ARGS;
-        return res;
-    }
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        res.first = DB_ERROR;
-        return res;
-    }
-    int errCode = conn_->GetWatermarkInfo(device, res.second);
-    if (errCode == E_OK) {
-        LOGI("[KvStoreNbDelegate] get watermark info success");
-    } else {
-        LOGE("[KvStoreNbDelegate] get watermark info failed:%d", errCode);
-    }
-    res.first = TransferDBErrno(errCode);
-    return res;
 }
 
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device, ClearMode mode)
@@ -1284,20 +1272,6 @@ int32_t KvStoreNbDelegateImpl::GetTaskCount()
         return DB_ERROR;
     }
     return conn_->GetTaskCount();
-}
-
-DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
-{
-    if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION);
-        return DB_ERROR;
-    }
-    int errCode = conn_->SetReceiveDataInterceptor(interceptor);
-    if (errCode != E_OK) {
-        LOGE("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
-    }
-    LOGI("[KvStoreNbDelegate] Set receive data interceptor");
-    return TransferDBErrno(errCode);
 }
 
 DBStatus KvStoreNbDelegateImpl::GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const
@@ -1430,6 +1404,15 @@ DBStatus KvStoreNbDelegateImpl::ClearMetaData(ClearKvMetaDataOption option)
 }
 #endif
 
+void KvStoreNbDelegateImpl::SetHandle(void *handle)
+{
+#ifndef _WIN32
+    std::lock_guard<std::mutex> lock(libMutex_);
+    dlHandle_ = handle;
+#endif
+}
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 DBStatus KvStoreNbDelegateImpl::OperateDataStatus(uint32_t dataOperator)
 {
     if (conn_ == nullptr) {
@@ -1445,12 +1428,27 @@ DBStatus KvStoreNbDelegateImpl::OperateDataStatus(uint32_t dataOperator)
     return TransferDBErrno(errCode);
 }
 
-void KvStoreNbDelegateImpl::SetHandle(void *handle)
+std::pair<DBStatus, WatermarkInfo> KvStoreNbDelegateImpl::GetWatermarkInfo(const std::string &device)
 {
-#ifndef _WIN32
-    std::lock_guard<std::mutex> lock(libMutex_);
-    dlHandle_ = handle;
-#endif
+    std::pair<DBStatus, WatermarkInfo> res;
+    if (device.empty() || device.size() > DBConstant::MAX_DEV_LENGTH) {
+        LOGE("[KvStoreNbDelegate] device invalid length %zu", device.size());
+        res.first = INVALID_ARGS;
+        return res;
+    }
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        res.first = DB_ERROR;
+        return res;
+    }
+    int errCode = conn_->GetWatermarkInfo(device, res.second);
+    if (errCode == E_OK) {
+        LOGI("[KvStoreNbDelegate] get watermark info success");
+    } else {
+        LOGE("[KvStoreNbDelegate] get watermark info failed:%d", errCode);
+    }
+    res.first = TransferDBErrno(errCode);
+    return res;
 }
 
 DBStatus KvStoreNbDelegateImpl::SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier)
@@ -1462,6 +1460,20 @@ DBStatus KvStoreNbDelegateImpl::SetDeviceSyncNotify(DeviceSyncEvent event, const
     return TransferDBErrno(conn_->SetDeviceSyncNotify(event, notifier));
 }
 
+DBStatus KvStoreNbDelegateImpl::SetReceiveDataInterceptor(const DataInterceptor &interceptor)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    int errCode = conn_->SetReceiveDataInterceptor(interceptor);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Set receive data interceptor errCode:%d", errCode);
+    }
+    LOGI("[KvStoreNbDelegate] Set receive data interceptor");
+    return TransferDBErrno(errCode);
+}
+
 DBStatus KvStoreNbDelegateImpl::SetProperty(const Property &property)
 {
     if (conn_ == nullptr) {
@@ -1470,4 +1482,5 @@ DBStatus KvStoreNbDelegateImpl::SetProperty(const Property &property)
     }
     return TransferDBErrno(conn_->SetProperty(property));
 }
+#endif
 } // namespace DistributedDB

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 #include "process_communicator_test_stub.h"
 
@@ -376,3 +377,4 @@ HWTEST_F(DistributedDBKvMultiUserSyncTest, InvalidSync001, TestSize.Level0)
     ASSERT_EQ(KVGeneralUt::CloseDelegate(storeInfo2), E_OK);
 }
 }
+#endif

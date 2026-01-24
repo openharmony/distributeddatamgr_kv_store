@@ -2461,6 +2461,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize001, TestSize.Level2)
     EXPECT_TRUE(g_mgr.DeleteKvStore("MaxLogSize001") == OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: ForceCheckpoint002
  * @tc.desc: Test the checkpoint of the database.
@@ -2543,6 +2544,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize002, TestSize.Level2)
     EXPECT_EQ(g_mgr.DeleteKvStore("MaxLogSize002"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 /**
  * @tc.name: MaxLogCheckPoint001

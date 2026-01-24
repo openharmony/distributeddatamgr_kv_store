@@ -47,8 +47,6 @@ public:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode) const;
     void ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
 
-    int Sync(const ISyncer::SyncParam &syncParam, uint64_t connectionId);
-
     void ReleaseDBConnection(uint64_t connectionId, RelationalStoreConnection *connection);
 
     void WakeUpSyncer() override;
@@ -62,9 +60,6 @@ public:
     int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync,
         bool trackerSchemaChanged = false);
 
-    int RemoveDeviceData();
-    int RemoveDeviceData(const std::string &device, const std::string &tableName);
-
     int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
         const RelationalObserverAction &action);
     int UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer);
@@ -77,9 +72,6 @@ public:
     void StopSync(uint64_t connectionId);
 
     void Dump(int fd) override;
-
-    int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
-        uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
@@ -98,8 +90,6 @@ public:
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
-
-    int SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
 
     int GetDownloadingAssetsCount(int32_t &count);
 
@@ -130,9 +120,24 @@ public:
     int StopGenLogTask(const std::vector<std::string> &tableList);
 #endif
 
-    int OperateDataStatus(uint32_t dataOperator);
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    int Sync(const ISyncer::SyncParam &syncParam, uint64_t connectionId);
+
+    int RemoveDeviceData();
+
+    int RemoveDeviceData(const std::string &device, const std::string &tableName);
+
+    int RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
+        const std::string &tableName, bool isNeedHash);
+
+    int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
+        uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
     int32_t GetDeviceSyncTaskCount() const;
+
+    int SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
+#endif
+    int OperateDataStatus(uint32_t dataOperator);
 
     int SetProperty(const Property &property);
 
@@ -165,9 +170,6 @@ protected:
     std::string GetDevTableName(const std::string &device, const std::string &hashDev) const;
 
     int GetHandleAndStartTransaction(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
-
-    int RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
-        const std::string &tableName, bool isNeedHash);
 
     int GetExistDevices(std::set<std::string> &hashDevices) const;
 

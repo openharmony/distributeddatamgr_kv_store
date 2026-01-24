@@ -484,10 +484,12 @@ void SyncAbleKvDB::Dump(int fd)
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     return syncer_.GetSyncDataSize(device, size);
 }
+#endif
 
 bool SyncAbleKvDB::NeedStartSyncer() const
 {
@@ -511,6 +513,7 @@ int SyncAbleKvDB::GetHashDeviceId(const std::string &clientId, std::string &hash
     return syncer_.GetHashDeviceId(clientId, hashDevId);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int SyncAbleKvDB::GetWatermarkInfo(const std::string &device, WatermarkInfo &info)
 {
     if (NeedStartSyncer()) {
@@ -518,6 +521,7 @@ int SyncAbleKvDB::GetWatermarkInfo(const std::string &device, WatermarkInfo &inf
     }
     return syncer_.GetWatermarkInfo(device, info);
 }
+#endif
 
 int SyncAbleKvDB::UpgradeSchemaVerInMeta()
 {
@@ -581,7 +585,10 @@ int32_t SyncAbleKvDB::GetTaskCount()
         return taskCount;
     }
 #endif
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     taskCount += syncer_.GetTaskCount();
+#endif
     return taskCount;
 }
 

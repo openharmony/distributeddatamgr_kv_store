@@ -12,6 +12,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifdef RELATIONAL_STORE
 #include <gtest/gtest.h>
 
@@ -2880,5 +2882,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SyncTargetTest001, TestSize.Leve
     RefObject::KillAndDecObjRef(operation);
 }
 }
+#endif
 #endif
 #endif

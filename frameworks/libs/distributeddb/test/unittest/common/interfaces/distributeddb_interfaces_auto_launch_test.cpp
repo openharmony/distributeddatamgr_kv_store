@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <chrono>
 #include <gtest/gtest.h>
 #include <thread>
@@ -746,3 +747,4 @@ HWTEST_F(DistributedDBInterfacesAutoLaunchTest, AutoLaunchLifeCycle003, TestSize
      */
     DelayAutoLaunchCycle("test_10", false);
 }
+#endif

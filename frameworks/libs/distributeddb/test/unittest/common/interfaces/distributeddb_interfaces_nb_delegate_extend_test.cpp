@@ -61,8 +61,10 @@ namespace {
 #endif // OMIT_MULTI_VER
     const std::string DEVICE_B = "deviceB";
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     KvVirtualDevice *g_deviceB = nullptr;
     VirtualSingleVerSyncDBInterface *g_syncInterfaceB = nullptr;
+#endif
 
     // the type of g_kvNbDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
@@ -370,6 +372,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, ResultSetLimitTest001, Tes
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: LocalStore001
   * @tc.desc: Test get kv store with localOnly
@@ -417,6 +420,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, LocalStore001, TestSize.Le
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
     openDelegate = nullptr;
 }
+#endif
 
 /**
   * @tc.name: LocalStore002
@@ -880,6 +884,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, InvalidQueryTest002, TestS
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SyncRangeQuery001
   * @tc.desc: test sync query with range
@@ -913,6 +918,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, SyncRangeQuery001, TestSiz
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
+#endif
 
 /**
   * @tc.name: OptionValidCheck001
@@ -954,6 +960,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, OptionModeValidCheck001, T
     observer = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: AbnormalKvStoreTest001
   * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
@@ -1013,6 +1020,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest001, Te
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: AbnormalKvStoreTest002
   * @tc.desc: Test KvStoreNbDelegateImpl interface while conn is nullptr.
@@ -1067,6 +1075,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest002, Te
     EXPECT_EQ(g_mgr.DeleteKvStore("AbnormalKvStoreTest002"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
+#endif
 
 /**
   * @tc.name: AbnormalKvStoreResultSetTest

@@ -180,11 +180,13 @@ void DistributedDBSingleVerDLPTest::TearDown(void)
         delete g_deviceC;
         g_deviceC = nullptr;
     }
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     PermissionCheckCallbackV3 nullCallback = nullptr;
     RuntimeConfig::SetPermissionCheckCallback(nullCallback);
     SyncActivationCheckCallbackV2 activeCallBack = nullptr;
     RuntimeConfig::SetSyncActivationCheckCallback(activeCallBack);
     RuntimeConfig::SetPermissionConditionCallback(nullptr);
+#endif
 }
 
 /**
@@ -282,6 +284,7 @@ HWTEST_F(DistributedDBSingleVerDLPTest, DlpDelegateCRUDTest001, TestSize.Level1)
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SandboxDelegateSync001
  * @tc.desc: Test dlp delegate sync function.
@@ -311,7 +314,6 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync001, TestSize.Level1)
         res.emplace(KEY_INSTANCE_ID, std::to_string(INSTANCE_ID_1));
         return res;
     });
-
     KvStoreNbDelegate *delegatePtr1 = nullptr;
     EXPECT_EQ(OpenDelegate("/dlp1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
@@ -345,7 +347,6 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync002, TestSize.Level1)
         }
         return false;
     });
-
     KvStoreNbDelegate *delegatePtr1 = nullptr;
     EXPECT_EQ(OpenDelegate("/dlp1", delegatePtr1, mgr1, true), OK);
     ASSERT_NE(delegatePtr1, nullptr);
@@ -357,6 +358,7 @@ HWTEST_F(DistributedDBSingleVerDLPTest, SandboxDelegateSync002, TestSize.Level1)
 
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
+#endif
 
 /**
  * @tc.name: SingleVerUtilsTest001

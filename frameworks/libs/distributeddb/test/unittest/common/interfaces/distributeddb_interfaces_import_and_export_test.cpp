@@ -92,8 +92,10 @@ public:
 
 void DistributedDBInterfacesImportAndExportTest::SetUpTestCase(void)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     g_mgr.SetProcessLabel("6666", "8888");
     g_mgr.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>());
+#endif
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     g_config.dataDir = g_testDir;
     g_mgr.SetKvStoreConfig(g_config);

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #ifdef RELATIONAL_STORE
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 
 #include "db_common.h"
@@ -625,4 +626,5 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, RemoteQueryForNotDistributedDb,
     std::shared_ptr<ResultSet> result = nullptr;
     EXPECT_EQ(g_delegate->RemoteQuery("deviceA", RemoteCondition {}, 1000, result), DBStatus::NOT_SUPPORT);
 }
+#endif
 #endif

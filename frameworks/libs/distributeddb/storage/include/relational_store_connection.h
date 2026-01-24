@@ -49,18 +49,13 @@ public:
 
     // Close and release the connection.
     virtual int Close() = 0;
-    virtual int SyncToDevice(SyncInfo &info) = 0;
+
     virtual std::string GetIdentifier() = 0;
     virtual int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) = 0;
     virtual int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) = 0;
 
-    virtual int RemoveDeviceData() = 0;
-    virtual int RemoveDeviceData(const std::string &device) = 0;
-    virtual int RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
     virtual int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) = 0;
     virtual int UnRegisterObserverAction(const StoreObserver *observer) = 0;
-    virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
-        std::shared_ptr<ResultSet> &result) = 0;
 
     virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
 
@@ -75,8 +70,6 @@ public:
     virtual int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) = 0;
 
     virtual int GetDownloadingAssetsCount(int32_t &count) = 0;
-
-    virtual int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) = 0;
 
     virtual int SetTableMode(DistributedTableMode tableMode) = 0;
 
@@ -101,9 +94,24 @@ public:
 
     virtual int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) = 0;
 #endif
-    virtual int OperateDataStatus(uint32_t dataOperator) = 0;
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    virtual int SyncToDevice(SyncInfo &info) = 0;
+
+    virtual int RemoveDeviceData() = 0;
+
+    virtual int RemoveDeviceData(const std::string &device) = 0;
+
+    virtual int RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
+
+    virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
+        std::shared_ptr<ResultSet> &result) = 0;
 
     virtual int32_t GetDeviceSyncTaskCount() = 0;
+
+    virtual int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) = 0;
+#endif
+    virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 
     virtual int SetProperty(const Property &property) = 0;
 

@@ -144,6 +144,7 @@ HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge002, TestSize.Level0)
     EXPECT_EQ(CleanDeletedData(db, schema.tableName, 0u), OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SetKnowledge003
  * @tc.desc: Test set knowledge schema after create distributed table.
@@ -171,6 +172,7 @@ HWTEST_F(DistributedDBRDBKnowledgeTest, SetKnowledge003, TestSize.Level0)
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(SetKnowledgeSourceSchema(db, GetKnowledgeSchema()), INVALID_ARGS);
 }
+#endif
 
 /**
  * @tc.name: SetKnowledge004

@@ -310,6 +310,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
     InsertTriggerTest(DistributedDB::CLOUD_COOPERATION);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: InsertTriggerTest002
  * @tc.desc: Test insert trigger in sqlite in DEVICE_COOPERATION mode
@@ -321,6 +322,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest002, Te
 {
     InsertTriggerTest(DistributedDB::DEVICE_COOPERATION);
 }
+#endif
 
 /**
  * @tc.name: InsertTriggerTest003
@@ -1128,6 +1130,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestS
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: AbnormalDelegateTest001
  * @tc.desc: Test delegate interface after delegate is closed
@@ -1192,6 +1195,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateTest001,
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
 }
+#endif
 
 void InitDataStatus(const std::string &tableName, int count, sqlite3 *db)
 {
@@ -1783,6 +1787,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, RegisterStoreObserverTes
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: AbnormalDelegateImplTest001
  * @tc.desc: Test delegateImpl interface after delegate is closed
@@ -1840,6 +1845,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
 }
+#endif
 
 /**
  * @tc.name: AbnormalDelegateImplTest002

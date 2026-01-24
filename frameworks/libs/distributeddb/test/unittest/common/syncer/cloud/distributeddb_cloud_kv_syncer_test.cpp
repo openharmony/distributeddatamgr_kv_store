@@ -782,6 +782,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers003, TestSize.Leve
     EXPECT_EQ(actualValue2, value2);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SyncWithMultipleUsers004.
  * @tc.desc: Test sync data with same users.
@@ -828,6 +829,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithMultipleUsers004, TestSize.Leve
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
     EXPECT_EQ(actualValue, value);
 }
+#endif
 
 /**
  * @tc.name: AbnormalCloudKvExecutorTest001
@@ -1063,6 +1065,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, DeviceCollaborationTest003, TestSize.Le
     removeThread2.join();
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SyncWithKvAndCloud001.
  * @tc.desc: Test sync data with same key and different sync way.
@@ -1112,6 +1115,7 @@ HWTEST_F(DistributedDBCloudKvSyncerTest, SyncWithKvAndCloud001, TestSize.Level1)
     EXPECT_EQ(kvDelegatePtrS2_->Get(key, actualValue), OK);
     EXPECT_EQ(actualValue, value2);
 }
+#endif
 
 /**
  * @tc.name: ClearCloudWatermarkTest001.

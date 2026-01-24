@@ -700,6 +700,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest010,
     CloseStore();
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: TrackerTableTest011
   * @tc.desc: Test CreateDistributedTable after set tracker table
@@ -3046,4 +3048,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest041,
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     CloseStore();
 }
+#endif
+#endif
 }

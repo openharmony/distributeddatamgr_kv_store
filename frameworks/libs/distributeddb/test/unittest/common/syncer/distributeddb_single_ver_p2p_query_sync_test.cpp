@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -2081,3 +2082,4 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, PacketSerializationPacketIsNull
     errCode = VirtualSingleVerSerializeManager::CallAckPacketCalculateLen(&msg, length);
     EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }
+#endif

@@ -181,6 +181,7 @@ void DistributedDBRDBCompressTest::CompressTest(bool store1Compress, bool store2
     EXPECT_LE(size2 - size1, size4 - size3);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: RDBCompressSync001
  * @tc.desc: Test collaboration table push sync with compress.
@@ -248,6 +249,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBCompressSync006, TestSize.Level1)
 {
     ASSERT_NO_FATAL_FAILURE(CompressTest(true, false, 100, 100, SyncMode::SYNC_MODE_PULL_ONLY));
 }
+#endif
 
 /**
  * @tc.name: RDBInvalidCompress001
@@ -317,6 +319,7 @@ HWTEST_F(DistributedDBRDBCompressTest, RDBInvalidCompress002, TestSize.Level0)
     mgr.CloseStore(delegate);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: RDBGetDevTaskCount001
  * @tc.desc: Test get dev task count when sync.
@@ -398,4 +401,5 @@ HWTEST_F(DistributedDBRDBCompressTest, VerifyInvalidGetDeviceSyncTaskCount001, T
     SingleVerRelationalSyncer syncer;
     EXPECT_EQ(syncer.GetTaskCount(), 0);
 }
+#endif
 }

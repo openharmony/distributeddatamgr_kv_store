@@ -78,15 +78,8 @@ public:
 
     DBStatus UnRegisterObserver(std::shared_ptr<KvStoreObserver> observer) override;
 
-    DBStatus RemoveDeviceData(const std::string &device) override;
-
     // Other interfaces
     std::string GetStoreId() const override;
-
-    // Sync function interface, if wait set true, this function will be blocked until sync finished
-    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
-        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        bool wait) override;
 
     // Special pragma interface, see PragmaCmd and PragmaData,
     DBStatus Pragma(PragmaCmd cmd, PragmaData &paramData) override;
@@ -121,64 +114,24 @@ public:
     // Get the SecurityOption of this kvStore.
     DBStatus GetSecurityOption(SecurityOption &option) const override;
 
-    DBStatus SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier) override;
-
     void SetReleaseFlag(bool flag);
 
     DBStatus Close(bool isCloseImmediately = true);
 
-    // Sync function interface, if wait set true, this function will be blocked until sync finished.
-    // Param query used to filter the records to be synchronized.
-    // Now just support push mode and query by prefixKey.
-    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
-        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        const Query &query, bool wait) override;
-
-    // Sync with devices, provides sync count information
-    DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess) override;
-
-    DBStatus Sync(const DeviceSyncOption &option,
-        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) override;
-
-    // Cancel sync by syncId
-    DBStatus CancelSync(uint32_t syncId) override;
-
     DBStatus CheckIntegrity() const override;
-
-    // Set an equal identifier for this database, After this called, send msg to the target will use this identifier
-    DBStatus SetEqualIdentifier(const std::string &identifier, const std::vector<std::string> &targets) override;
-
-    DBStatus SetPushDataInterceptor(const PushDataInterceptor &interceptor) override;
-
-    // Register a subscriber query on peer devices. The data in the peer device meets the subscriber query condition
-    // will automatically push to the local device when it's changed.
-    DBStatus SubscribeRemoteQuery(const std::vector<std::string> &devices,
-        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        const Query &query, bool wait) override;
-
-    // Unregister a subscriber query on peer devices.
-    DBStatus UnSubscribeRemoteQuery(const std::vector<std::string> &devices,
-        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
-        const Query &query, bool wait) override;
 
     DBStatus RemoveDeviceData() override;
 
     DBStatus GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const override;
 
-    size_t GetSyncDataSize(const std::string &device) const override;
-
     // update all key in sync_data which is not deleted data
     DBStatus UpdateKey(const UpdateKeyCallback &callback) override;
-
-    std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;
 
     DBStatus RemoveDeviceData(const std::string &device, ClearMode mode) override;
 
     DBStatus RemoveDeviceData(const std::string &device, const std::string &user, ClearMode mode) override;
 
     int32_t GetTaskCount() override;
-
-    DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
 
     DBStatus GetDeviceEntries(const std::string &device, std::vector<Entry> &entries) const override;
 
@@ -200,13 +153,62 @@ public:
     DBStatus ClearMetaData(ClearKvMetaDataOption option) override;
 #endif
 
-    DBStatus OperateDataStatus(uint32_t dataOperator) override;
+    void SetHandle(void *handle);
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    // Sync function interface, if wait set true, this function will be blocked until sync finished
+    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
+        bool wait) override;
+
+    // Sync function interface, if wait set true, this function will be blocked until sync finished.
+    // Param query used to filter the records to be synchronized.
+    // Now just support push mode and query by prefixKey.
+    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
+        const Query &query, bool wait) override;
+
+    // Sync with devices, provides sync count information
+    DBStatus Sync(const DeviceSyncOption &option, const DeviceSyncProcessCallback &onProcess) override;
+
+    DBStatus Sync(const DeviceSyncOption &option,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) override;
+
+    DBStatus SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier) override;
+
+    // Cancel sync by syncId
+    DBStatus CancelSync(uint32_t syncId) override;
+
+    // Register a subscriber query on peer devices. The data in the peer device meets the subscriber query condition
+    // will automatically push to the local device when it's changed.
+    DBStatus SubscribeRemoteQuery(const std::vector<std::string> &devices,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
+        const Query &query, bool wait) override;
+
+    // Unregister a subscriber query on peer devices.
+    DBStatus UnSubscribeRemoteQuery(const std::vector<std::string> &devices,
+        const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
+        const Query &query, bool wait) override;
+    
+    size_t GetSyncDataSize(const std::string &device) const override;
+
+    std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;
+
+    DBStatus RemoveDeviceData(const std::string &device) override;
 
     DBStatus SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
 
-    void SetHandle(void *handle);
+    // Set an equal identifier for this database, After this called, send msg to the target will use this identifier
+    DBStatus SetEqualIdentifier(const std::string &identifier, const std::vector<std::string> &targets) override;
+
+    DBStatus SetPushDataInterceptor(const PushDataInterceptor &interceptor) override;
+
+    DBStatus SetReceiveDataInterceptor(const DataInterceptor &interceptor) override;
+
+    DBStatus OperateDataStatus(uint32_t dataOperator) override;
 
     DBStatus SetProperty(const Property &property) override;
+#endif
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);
@@ -215,10 +217,10 @@ private:
 
     void OnSyncComplete(const std::map<std::string, int> &statuses,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) const;
-    
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     void OnDeviceSyncProcess(const std::map<std::string, DeviceSyncProcess> &processMap,
         const DeviceSyncProcessCallback &onProcess) const;
-
+#endif
     DBStatus RegisterDeviceObserver(const Key &key, unsigned int mode,
         const std::shared_ptr<KvStoreObserver> &observer);
 

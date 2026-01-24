@@ -29,11 +29,6 @@ public:
 
     DISABLE_COPY_ASSIGN_MOVE(RelationalStoreDelegateImpl);
 
-    DBStatus SetStoreConfig(const StoreConfig &config) override;
-
-    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
-        const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
-
     DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
     
     DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option) override;
@@ -41,17 +36,10 @@ public:
     DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
         const CreateDistributedTableConfig &config) override;
 
-    DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
-
     // For connection
     DBStatus Close();
 
     void SetReleaseFlag(bool flag);
-
-    DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
-        std::shared_ptr<ResultSet> &result) override;
-
-    DBStatus RemoveDeviceData() override;
 
     DBStatus RegisterObserver(StoreObserver *observer) override;
 
@@ -63,24 +51,9 @@ public:
 
     DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
 
-    DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
-
     DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
     DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
-
-    DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
-        RecordStatus status) override;
-
-    DBStatus SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
-
-    std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
-
-    int32_t GetDeviceSyncTaskCount() override;
-
-    DBStatus SetProperty(const Property &property) override;
-
-    DBStatus StopTask([[gnu::unused]] TaskType type) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int32_t GetCloudSyncTaskCount() override;
 
@@ -104,6 +77,35 @@ public:
     DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
 
     DBStatus SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
+
+    std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
+
+    DBStatus StopTask([[gnu::unused]] TaskType type) override;
+
+    DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
+
+    DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
+        RecordStatus status) override;
+
+    DBStatus SetProperty(const Property &property) override;
+#endif
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
+        const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
+
+    DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
+
+    DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
+        std::shared_ptr<ResultSet> &result) override;
+
+    DBStatus RemoveDeviceData() override;
+
+    DBStatus SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
+
+    int32_t GetDeviceSyncTaskCount() override;
+
+    DBStatus SetStoreConfig(const StoreConfig &config) override;
 #endif
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
@@ -112,7 +114,9 @@ private:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     DBStatus ClearWatermark(const ClearMetaDataOption &option);
 #endif
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     DBStatus OperateDataStatus(uint32_t dataOperator) override;
+#endif
     RelationalStoreConnection *conn_ = nullptr;
     std::string storePath_;
     std::atomic<bool> releaseFlag_ = false;

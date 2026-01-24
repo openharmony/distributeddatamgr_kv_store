@@ -121,6 +121,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, SyncAfterDrop001, TestSize.Level0)
     BlockSync(info1_, info2_, DEVICE_SYNC_TABLE, SyncMode::SYNC_MODE_PUSH_ONLY, OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SyncAfterDrop002
  * @tc.desc: Test sync success after drop table.
@@ -166,6 +167,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, SyncAfterDrop002, TestSize.Level0)
     EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE), "hash_key='error_hash1'"), 0);
     EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE), "hash_key='error_hash2'"), 0);
 }
+#endif
 
 /**
  * @tc.name: SetTrackerAfterDrop001
@@ -216,6 +218,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, InvalidCleanTracker001, TestSize.Level0)
     store.CallCleanDirtyLogIfNeed(DEVICE_SYNC_TABLE);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: CleanDirtyLog001
  * @tc.desc: Test clean dirty log by utils.
@@ -278,6 +281,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, CleanDirtyLog001, TestSize.Level0)
     EXPECT_EQ(ExecuteSQL("DROP TABLE DEVICE_SYNC_TABLE", info1_), E_OK);
     EXPECT_EQ(SQLiteRelationalUtils::CleanDirtyLog(handle, DEVICE_SYNC_TABLE, obj), -1); // -1 is default error
 }
+#endif
 
 /**
  * @tc.name: SyncWithDirtyLog001
