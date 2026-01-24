@@ -1365,7 +1365,7 @@ int SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(const std::string &tab
 int SQLiteRelationalUtils::DeleteOneRecord(const std::string &tableName, sqlite3 *db, const CloudNotExistRecord &record,
     bool isLogicDelete, std::vector<Type> &changePk)
 {
-    if ((record.flag & static_cast<int32_t>(LogInfoFlag::FLAG_LOCAL)) != 0) {
+    if ((record.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL)) != 0) {
         std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
             " SET cloud_gid = '', version = '', flag=flag&" + UPLOAD_CLOUD_UNFINISHED + " where _rowid_ = " +
             std::to_string(record.logRowid) + ";";

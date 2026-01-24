@@ -156,7 +156,7 @@ public:
     struct CloudNotExistRecord {
         int64_t logRowid = 0;
         int64_t dataRowid = 0;
-        int32_t flag = 0;
+        uint32_t flag = 0;
         Type pkValue;
     };
 
