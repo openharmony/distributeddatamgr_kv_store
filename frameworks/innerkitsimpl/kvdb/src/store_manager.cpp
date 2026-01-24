@@ -125,6 +125,7 @@ Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId, co
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s", appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
     if (!appId.IsValid() || !storeId.IsValid() || path.empty()) {
+        ZLOGE("Invalid appId, storeId or path is empty.");
         return INVALID_ARGUMENT;
     }
 

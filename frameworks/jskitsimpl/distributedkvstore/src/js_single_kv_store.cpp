@@ -556,7 +556,7 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
 {
     struct BackupContext : public ContextBase {
         BackupConfig backupConfig;
-        bool isCustomizeDir = false;
+        bool isCustomDir = false;
     };
     auto ctxt = std::make_shared<BackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
@@ -578,7 +578,7 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_PARAMTER,
                 "Parameter error:backupConfig");
-            ctxt->isCustomizeDir = true;
+            ctxt->isCustomDir = true;
         }
     };
     ctxt->GetCbInfo(env, info, input);
@@ -586,7 +586,7 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
-        if (ctxt->isCustomizeDir == false) {
+        if (ctxt->isCustomDir == false) {
             ctxt->backupConfig.filePath = jsKvStore->param_->baseDir;
         }
         Status status = jsKvStore->kvStore_->Backup(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath);
@@ -609,7 +609,7 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
 {
     struct RestoreContext : public ContextBase {
         BackupConfig backupConfig;
-        bool isCustomizeDir = false;
+        bool isCustomDir = false;
     };
     auto ctxt = std::make_shared<RestoreContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
@@ -628,7 +628,7 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_PARAMTER,
                 "Parameter error:backupConfig");
-            ctxt->isCustomizeDir = true;
+            ctxt->isCustomDir = true;
         }
     };
     ctxt->GetCbInfo(env, info, input);
@@ -636,7 +636,7 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
-        if (ctxt->isCustomizeDir == false) {
+        if (ctxt->isCustomDir == false) {
             ctxt->backupConfig.filePath = jsKvStore->param_->baseDir;
         }
         Status status = jsKvStore->kvStore_->Restore(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath);

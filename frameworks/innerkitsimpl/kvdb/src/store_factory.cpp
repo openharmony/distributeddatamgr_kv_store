@@ -58,13 +58,13 @@ Status StoreFactory::SetDbConfig(std::shared_ptr<DBStore> dbStore)
     return StoreUtil::ConvertStatus(status);
 }
 
-std::string StoreFactory::GenerateKey(const std::string &keySuffix, const std::string &storeId) const
+std::string StoreFactory::GenerateKey(const std::string &keyPrefix, const std::string &storeId) const
 {
     std::string key = "";
-    if (storeId.empty() || keySuffix.empty()) {
+    if (storeId.empty() || keyPrefix.empty()) {
         return key;
     }
-    return key.append(keySuffix).append(KEY_SPLIT).append(storeId);
+    return key.append(keyPrefix).append(KEY_SPLIT).append(storeId);
 }
 
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
@@ -151,11 +151,11 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, const std
     return CloseInner(appId, storeId, baseDir, isForce);
 }
 
-Status StoreFactory::CloseInner(const AppId &appId, const StoreId &storeId, const std::string &keySuffix,
+Status StoreFactory::CloseInner(const AppId &appId, const StoreId &storeId, const std::string &keyPrefix,
     bool isForce)
 {
     Status status = STORE_NOT_OPEN;
-    auto key = GenerateKey(keySuffix, storeId.storeId);
+    auto key = GenerateKey(keyPrefix, storeId.storeId);
     stores_.ComputeIfPresent(appId, [&key, &status, isForce](auto &, auto &values) {
         for (auto it = values.begin(); it != values.end();) {
             if (!key.empty() && (it->first != key)) {

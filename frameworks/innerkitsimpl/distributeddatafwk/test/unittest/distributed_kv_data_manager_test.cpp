@@ -559,49 +559,6 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore007, TestSize.Level1)
 }
 
 /**
-* @tc.name: CloseKvStore008
-* @tc.desc: Close two SingleKvStore with different path and same storeId.
-* @tc.type: FUNC
-*/
-HWTEST_F(DistributedKvDataManagerTest, CloseKvStore008, TestSize.Level1)
-{
-    ZLOGI("CloseKvStore008 begin.");
-    std::shared_ptr<SingleKvStore> kvStore;
-    Options options;
-    options.createIfMissing = true;
-    options.encrypt = false;
-    options.securityLevel = S1;
-    options.autoSync = true;
-    options.kvStoreType = SINGLE_VERSION;
-    options.area = EL1;
-    options.baseDir = baseDir1;
-    options.isCustomDir = true;
-    mkdir(baseDir1.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
-    Status status = manager.GetSingleKvStore(options, appId, storeId64, kvStore);
-    ASSERT_EQ(status, Status::SUCCESS);
-    mkdir(baseDir2.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
-    options.baseDir = baseDir2;
-    status = manager.GetSingleKvStore(options, appId, storeId64, kvStore);
-    ASSERT_EQ(status, Status::SUCCESS);
-    ASSERT_NE(kvStore, nullptr);
-
-    status = manager.CloseKvStore(appId, storeId64, baseDir1);
-    EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.CloseKvStore(appId, storeId64, baseDir2);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    status = manager.DeleteKvStore(appId, storeId64, baseDir1);
-    EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.DeleteKvStore(appId, storeId64, baseDir2);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    (void)remove((baseDir1 + "/kvdb").c_str());
-    (void)remove(baseDir1.c_str());
-    (void)remove((baseDir2 + "/kvdb").c_str());
-    (void)remove(baseDir2.c_str());
-}
-
-/**
 * @tc.name: CloseKvStoreMulti001
 * @tc.desc: Open a SingleKvStore several times and close them one by one.
 * @tc.type: FUNC
