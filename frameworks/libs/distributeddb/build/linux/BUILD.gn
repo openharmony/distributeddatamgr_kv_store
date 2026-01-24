@@ -96,7 +96,6 @@ ohos_source_set("distributeddb") {
   ]
 
   include_dirs = [
-    "${kv_store_base_path}/kvstoremock/nterfaces/mock/common",
     "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",
     "//third_party/bounds_checking_function/include",

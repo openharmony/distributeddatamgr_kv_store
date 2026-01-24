@@ -106,7 +106,8 @@ ohos_source_set("distributeddata_inner") {
   include_dirs = [
     "${kv_store_base_path}/frameworks/common",
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
-    "${kv_store_base_path}/kvstoremock/interfaces/mock/common",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/mac/include",
     "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",

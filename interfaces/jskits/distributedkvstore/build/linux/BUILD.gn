@@ -35,8 +35,8 @@ ohos_source_set("data_distributedkvstore") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
   ]
   include_dirs += [
-    "${kv_store_base_path}/kvstoremock/interfaces/mock/common",
-    "${kv_store_base_path}/kvstoremock/interfaces/mock/common/appfwk",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common/appfwk",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
     "//base/global/resource_management/interfaces/inner_api/include",
@@ -69,8 +69,8 @@ ohos_source_set("data_distributedkvstore") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
   ]
   sources += [
-    "${kv_store_base_path}/kvstoremock/interfaces/mock/common/hitracechain.cpp",
-    "${kv_store_base_path}/kvstoremock/interfaces/mock/common/hitraceid.cpp",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common/hitracechain.cpp",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common/hitraceid.cpp",
   ]
 
   if (is_arkui_x) {

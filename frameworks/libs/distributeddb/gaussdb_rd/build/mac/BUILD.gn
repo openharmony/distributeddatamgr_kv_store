@@ -80,7 +80,7 @@ ohos_source_set("gaussdb_rd") {
     "${gaussdb_rd_path}/src/oh_adapter/src/sqlite_store_executor_impl.cpp",
   ]
   sources +=
-      [ "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/src/cJSON.mm" ]
+      [ "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/mac/src/cJSON.mm" ]
 
   configs = [ ":gaussdb_rd_config" ]
   public_configs = [ ":gaussdb_rd_public_config" ]
@@ -98,7 +98,7 @@ ohos_source_set("gaussdb_rd") {
     "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
     "//third_party/json/include",
     "//third_party/bounds_checking_function/include",
-    "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/include",
+    "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/mac/include",
   ]
 
   deps = [
