@@ -57,7 +57,7 @@ public:
         const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback);
 
     // Close a KvStore, return OK if close success.
-    DB_API DBStatus CloseKvStore(KvStoreDelegate *kvStore);
+    DBStatus CloseKvStore(KvStoreDelegate *kvStore);
 
     DB_API DBStatus CloseKvStore(KvStoreNbDelegate *kvStore, bool isCloseImmediately = true);
 
