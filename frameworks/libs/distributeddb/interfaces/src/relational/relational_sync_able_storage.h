@@ -278,10 +278,6 @@ public:
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids) override;
 
-    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) override;
-
-    int ResetGenLogTaskStatus();
-
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) override;
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD

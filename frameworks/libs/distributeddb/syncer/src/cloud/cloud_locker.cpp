@@ -17,12 +17,9 @@
 #include "db_errno.h"
 namespace DistributedDB {
 int CloudLocker::BuildCloudLock(const AfterBuildAction &buildAction, const BeforeFinalize &finalize,
-    bool lockCloud, std::shared_ptr<CloudLocker> &locker)
+    std::shared_ptr<CloudLocker> &locker)
 {
     locker = std::make_shared<CloudLocker>();
-    if (!lockCloud) {
-        return E_OK;
-    }
     int errCode = buildAction();
     if (errCode != E_OK) {
         locker = nullptr;

@@ -23,7 +23,7 @@ using BeforeFinalize = std::function<void()>;
 class CloudLocker final {
 public:
     static int BuildCloudLock(const AfterBuildAction &buildAction, const BeforeFinalize &finalize,
-        bool lockCloud, std::shared_ptr<CloudLocker> &locker);
+        std::shared_ptr<CloudLocker> &locker);
     CloudLocker() = default;
     ~CloudLocker();
 private:

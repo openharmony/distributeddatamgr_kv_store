@@ -695,35 +695,6 @@ int RelationalSyncAbleStorage::ConvertLogToLocal(const std::string &tableName, c
     return errCode;
 }
 
-int RelationalSyncAbleStorage::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables)
-{
-    if (storageEngine_ == nullptr) {
-        LOGE("[WaitAsyncGenLogTaskFinished] Storage is null");
-        return -E_INVALID_DB;
-    }
-    std::string localIdentity;
-    int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
-    if (errCode != E_OK) {
-        LOGE("Get local identity failed: %d", errCode);
-        return errCode;
-    }
-    if (localIdentity.empty()) {
-        LOGE("Get empty local identity");
-        return -E_INVALID_ARGS;
-    }
-    return storageEngine_->WaitAsyncGenLogTaskFinished(tables, localIdentity);
-}
-
-int RelationalSyncAbleStorage::ResetGenLogTaskStatus()
-{
-    if (storageEngine_ == nullptr) {
-        LOGE("[SetGenLogTaskStatus] Storage is null");
-        return -E_INVALID_DB;
-    }
-    storageEngine_->ResetGenLogTaskStatus();
-    return E_OK;
-}
-
 int RelationalSyncAbleStorage::PutCloudGid(const std::string &tableName, std::vector<VBucket> &data)
 {
 #ifdef USE_DISTRIBUTEDDB_CLOUD

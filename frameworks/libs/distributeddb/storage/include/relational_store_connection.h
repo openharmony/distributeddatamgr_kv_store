@@ -51,7 +51,7 @@ public:
     virtual int Close() = 0;
 
     virtual std::string GetIdentifier() = 0;
-    virtual int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) = 0;
+    virtual int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) = 0;
     virtual int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) = 0;
 
     virtual int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) = 0;
@@ -91,8 +91,6 @@ public:
     virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess, uint64_t taskId) = 0;
 
     virtual SyncProcess GetCloudTaskStatus(uint64_t taskId) = 0;
-
-    virtual int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) = 0;
 #endif
 
 #ifdef USE_DISTRIBUTEDDB_DEVICE
@@ -114,8 +112,6 @@ public:
     virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 
     virtual int SetProperty(const Property &property) = 0;
-
-    virtual int StopTask(TaskType type) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

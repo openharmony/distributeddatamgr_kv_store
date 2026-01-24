@@ -204,68 +204,6 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample002, TestSize.Level0)
 }
 
 /**
- * @tc.name: RdbCloudSyncExample003
- * @tc.desc: Test update data will change cursor.
- * @tc.type: FUNC
- * @tc.author: zqq
- */
-HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample003, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. cloud insert data.
-     * @tc.expected: step1. Ok
-     */
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
-    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
-    auto ret = ExecuteSQL("INSERT INTO defaultTable1(id, name) VALUES(1, 'name1')", info1);
-    EXPECT_EQ(ret, E_OK);
-    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1), "cursor >= 1"), 1);
-    ret = ExecuteSQL("UPDATE defaultTable1 SET name='name1' WHERE id=1", info1);
-    EXPECT_EQ(ret, E_OK);
-    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1), "cursor >= 2"), 1);
-    ret = ExecuteSQL("UPDATE defaultTable1 SET name='name2' WHERE id=1", info1);
-    EXPECT_EQ(ret, E_OK);
-    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1), "cursor >= 3"), 1);
-}
-
-/**
- * @tc.name: RdbCloudSyncExample004
- * @tc.desc: Test upload failed, when return FILE_NOT_FOUND
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: xiefengzhu
- */
-HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
-{
-    RelationalStoreDelegate::Option option;
-    option.tableMode = DistributedTableMode::COLLABORATION;
-    SetOption(option);
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
-    InsertLocalDBData(0, 2, info1);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
-
-    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
-    ASSERT_NE(virtualCloudDb, nullptr);
-    virtualCloudDb->SetLocalAssetNotFound(true);
-
-    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
-    RDBGeneralUt::SetCloudDbConfig(info1);
-    Query query = Query::Select().FromTable({g_defaultTable1});
-    RDBGeneralUt::CloudBlockSync(info1, query, OK, LOCAL_ASSET_NOT_FOUND);
-    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 2);
-
-    std::string sql = "UPDATE " + g_defaultTable1 + " SET name='update'";
-    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
-    virtualCloudDb->SetLocalAssetNotFound(false);
-    RDBGeneralUt::CloudBlockSync(info1, query);
-    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 0);
-}
-
-
-/**
  * @tc.name: RdbCloudSyncExample005
  * @tc.desc: Test upload when asset is abnormal
  * @tc.type: FUNC

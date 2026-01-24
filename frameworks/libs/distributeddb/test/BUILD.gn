@@ -913,20 +913,10 @@ distributeddb_unittest("DistributedDBKvPermissionSyncTest") {
   ]
 }
 
-distributeddb_unittest("DistributedDBInterfacesStopTaskTest") {
-  sources = [
-    "unittest/common/interfaces/distributeddb_interfaces_stop_task_test.cpp",
-  ]
-}
-
 distributeddb_unittest("DistributedDBRDBPermissionSyncTest") {
   sources = [
     "unittest/common/store_test/rdb/distributeddb_rdb_permission_sync_test.cpp",
   ]
-}
-
-distributeddb_unittest("DistributedDBRDBConflictHandlerTest") {
-  sources = [ "unittest/common/store_test/rdb/distributeddb_rdb_conflict_handler_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBRDBComplexCloudTest") {
@@ -1082,7 +1072,6 @@ group("unittest") {
     ":DistributedDBInterfacesSchemaDatabaseUpgradeTest",
     ":DistributedDBInterfacesSingleVersionResultSetTest",
     ":DistributedDBInterfacesSpaceManagementTest",
-    ":DistributedDBInterfacesStopTaskTest",
     ":DistributedDBInterfacesTransactionOptimizationTest",
     ":DistributedDBJsonPrecheckUnitTest",
     ":DistributedDBKVCompressTest",
@@ -1101,7 +1090,6 @@ group("unittest") {
     ":DistributedDBRDBCollaborationTest",
     ":DistributedDBRDBComplexCloudTest",
     ":DistributedDBRDBCompressTest",
-    ":DistributedDBRDBConflictHandlerTest",
     ":DistributedDBRDBDataStatusTest",
     ":DistributedDBRDBDropTableTest",
     ":DistributedDBRDBKnowledgeClientTest",

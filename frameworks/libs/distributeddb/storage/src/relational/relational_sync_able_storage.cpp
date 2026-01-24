@@ -1291,11 +1291,7 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRela
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     handle->SetLocalSchema(localSchema);
-    errCode = handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return handle->GetLocalDataByRowid(localSchema.GetTable(tableSchema.name), tableSchema, dataInfoWithLog);
+    return handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
 }
 
 int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)

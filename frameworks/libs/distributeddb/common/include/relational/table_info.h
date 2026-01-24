@@ -16,7 +16,6 @@
 #define TABLE_INFO_H
 
 #include <map>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -148,14 +147,6 @@ public:
 
     std::vector<CompositeFields> RemovePKCompositeFields(const std::vector<CompositeFields> &uniqueFields) const;
 
-    void SetCloudTable(const std::optional<TableSchema> &table);
-
-    std::vector<std::string> GetCloudSyncDistributedPk() const;
-
-    std::vector<std::string> GetCloudSyncFields() const;
-
-    std::optional<TableSchema> GetCloudTable() const;
-
     void SetType(const std::string &type);
 
     bool IsView() const;
@@ -191,7 +182,6 @@ private:
     //  b     c
     // d  e  f    ,table_info[a] = {b,c}  [b] = {d, e}  [c] = {f}
     std::vector<TableReferenceProperty> sourceTableReferenced_;
-    std::optional<TableSchema> cloudTable_;
     std::string type_;
 };
 } // namespace DistributedDB

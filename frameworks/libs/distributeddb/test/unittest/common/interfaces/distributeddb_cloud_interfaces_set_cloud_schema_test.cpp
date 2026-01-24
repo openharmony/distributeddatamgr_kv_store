@@ -1226,8 +1226,8 @@ namespace {
          */
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
-            .name = g_tableName2,
-            .sharedTableName = g_sharedTableName2,
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
@@ -1237,11 +1237,11 @@ namespace {
          * @tc.steps:step2. insert local shared table records and sync
          * @tc.expected: step2. return OK
          */
-        InsertLocalSharedTableRecords(0, 10, g_sharedTableName2);
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1);
         g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
             extend.erase(CloudDbConstant::VERSION_FIELD);
         });
-        Query query = Query::Select().FromTable({ g_sharedTableName2 });
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::OK);
 
         g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
@@ -1249,7 +1249,7 @@ namespace {
                 extend[CloudDbConstant::VERSION_FIELD] = "";
             }
         });
-        query = Query::Select().FromTable({ g_sharedTableName2 });
+        query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::OK);
     }
 
@@ -1268,14 +1268,14 @@ namespace {
          */
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
-            .name = g_tableName2,
-            .sharedTableName = g_sharedTableName2,
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
-        InsertLocalSharedTableRecords(0, 10, g_sharedTableName2); // 10 is records num
-        Query query = Query::Select().FromTable({ g_sharedTableName2 });
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1); // 10 is records num
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate);
 
         /**
@@ -1288,7 +1288,7 @@ namespace {
          * @tc.steps:step3. check if the hash of assets in db is empty
          * @tc.expected: step3. OK
          */
-        std::string sql = "SELECT asset from " + g_sharedTableName2;
+        std::string sql = "SELECT asset from " + g_sharedTableName1;
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
         while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -1320,22 +1320,22 @@ namespace {
          */
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
-            .name = g_tableName2,
-            .sharedTableName = g_sharedTableName2,
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
-        CheckSharedTable({g_sharedTableName2});
+        CheckSharedTable({g_sharedTableName1});
 
         /**
          * @tc.steps:step2. insert local shared table records and alter shared table name then sync
          * @tc.expected: step2. return OK
          */
-        InsertLocalSharedTableRecords(0, 10, g_sharedTableName2);
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1);
         dataBaseSchema.tables.clear();
         tableSchema = {
-            .name = g_tableName2,
+            .name = g_tableName1,
             .sharedTableName = g_sharedTableName5,
             .fields = g_cloudField1
         };
@@ -1362,18 +1362,18 @@ namespace {
          */
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
-            .name = g_tableName2,
-            .sharedTableName = g_sharedTableName2,
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
 
         int localCount = 10;
-        ASSERT_NO_FATAL_FAILURE(InsertLocalSharedTableRecords(0, localCount, g_sharedTableName2));
-        Query query = Query::Select().FromTable({ g_sharedTableName2 });
+        InsertLocalSharedTableRecords(0, localCount, g_sharedTableName1);
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::OK);
-        CheckCloudTableCount(g_sharedTableName2, localCount);
+        CheckCloudTableCount(g_sharedTableName1, localCount);
 
         /**
          * @tc.steps:step2. add shared table column and sync
@@ -1381,16 +1381,16 @@ namespace {
          */
         dataBaseSchema.tables.clear();
         tableSchema = {
-            .name = g_tableName2,
-            .sharedTableName = g_sharedTableName2,
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
             .fields = g_cloudField3
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
         int cloudCount = 20;
-        ASSERT_NO_FATAL_FAILURE(InsertLocalSharedTableRecords(localCount, cloudCount, g_sharedTableName2));
+        InsertLocalSharedTableRecords(localCount, cloudCount, g_sharedTableName1, true);
         BlockSync(query, g_delegate, DBStatus::OK);
-        CheckCloudTableCount(g_sharedTableName2, cloudCount);
+        CheckCloudTableCount(g_sharedTableName1, cloudCount);
     }
 
     /**

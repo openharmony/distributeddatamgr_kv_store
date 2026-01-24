@@ -523,9 +523,6 @@ int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &n
             node.fieldName = CloudDbConstant::CLOUD_KV_FIELD_KEY;
             node.type = QueryNodeType::IN;
             break;
-        case QueryObjType::NOT_EQUALTO:
-            node.type = QueryNodeType::NOT_EQUAL_TO;
-            break;
         default:
             LOGE("[Query] not support type %d", static_cast<int>(objNode.operFlag));
             errCode = -E_NOT_SUPPORT;

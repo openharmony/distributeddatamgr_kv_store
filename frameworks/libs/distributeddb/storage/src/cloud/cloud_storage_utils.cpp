@@ -103,7 +103,7 @@ int CloudStorageUtils::BindText(int index, const VBucket &vBucket, const Field &
     }
 
     if (errCode != E_OK) {
-        LOGE("Bind string to statement failed, %d", errCode);
+        LOGE("Bind string to insert statement failed, %d", errCode);
     }
     return errCode;
 }
@@ -203,10 +203,11 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
 
 std::set<std::string> CloudStorageUtils::GetCloudPrimaryKey(const TableSchema &tableSchema)
 {
-    std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
     std::set<std::string> pkSet;
-    for (const auto &field : pkVec) {
-        pkSet.insert(field.colName);
+    for (const auto &field : tableSchema.fields) {
+        if (field.primary) {
+            pkSet.insert(field.colName);
+        }
     }
     return pkSet;
 }
@@ -223,27 +224,14 @@ std::vector<Field> CloudStorageUtils::GetCloudAsset(const TableSchema &tableSche
     return assetFields;
 }
 
-std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema)
+std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName)
 {
     std::vector<Field> pkVec;
-    std::vector<Field> dupCheckColVec;
     for (const auto &field : tableSchema.fields) {
         if (field.primary) {
             pkVec.push_back(field);
         }
-        if (field.dupCheckCol) {
-            dupCheckColVec.push_back(field);
-        }
     }
-    if (dupCheckColVec.empty()) {
-        return pkVec;
-    }
-    return dupCheckColVec;
-}
-
-std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName)
-{
-    std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
     if (sortByName) {
         std::sort(pkVec.begin(), pkVec.end(), [](const Field &a, const Field &b) {
            return a.colName < b.colName;
@@ -255,13 +243,14 @@ std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema 
 std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
     bool sortByUpper)
 {
-    std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
     std::map<std::string, Field> pkMap;
-    for (const auto &field : pkVec) {
-        if (sortByUpper) {
-            pkMap[DBCommon::ToUpperCase(field.colName)] = field;
-        } else {
-            pkMap[field.colName] = field;
+    for (const auto &field : tableSchema.fields) {
+        if (field.primary) {
+            if (sortByUpper) {
+                pkMap[DBCommon::ToUpperCase(field.colName)] = field;
+            } else {
+                pkMap[field.colName] = field;
+            }
         }
     }
     return pkMap;
@@ -656,8 +645,7 @@ static bool IsViolationOfConstraints(const std::string &name, const std::vector<
 
 int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql)
 {
-    if (table.GetCloudSyncDistributedPk().empty() &&
-        DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
+    if (DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
         LOGE("[ConstraintsCheckForCloud] Not support create distributed table with 'UNIQUE' constraint.");
         return -E_NOT_SUPPORT;
     }

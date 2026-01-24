@@ -16,18 +16,12 @@
 #ifndef CLOUD_SYNC_STRATEGY_H
 #define CLOUD_SYNC_STRATEGY_H
 
-#include "cloud/icloud_conflict_handler.h"
 #include "data_transformer.h"
 #include "db_errno.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
 
 namespace DistributedDB {
-struct DataStatusInfo {
-    bool isExistInLocal = false;
-    bool isCloudWin = false;
-    std::string table;
-};
 class CloudSyncStrategy {
 public:
     CloudSyncStrategy();
@@ -37,28 +31,14 @@ public:
 
     void SetConflictResolvePolicy(SingleVerConflictResolvePolicy policy);
 
-    SingleVerConflictResolvePolicy GetConflictResolvePolicy() const;
-
-    virtual OpType TagSyncDataStatus(const DataStatusInfo &statusInfo,
-        const LogInfo &localInfo, const VBucket &localData,
-        const LogInfo &cloudInfo, VBucket &cloudData) const;
-
     virtual OpType TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
-        const LogInfo &cloudInfo) const;
+        const LogInfo &cloudInfo);
 
-    virtual bool JudgeUpdateCursor() const;
+    virtual bool JudgeUpdateCursor();
 
-    virtual bool JudgeUpload() const;
-
-    virtual bool JudgeDownload() const;
-
-    virtual bool JudgeLocker() const;
+    virtual bool JudgeUpload();
 
     bool JudgeKvScene() const;
-
-    virtual bool JudgeQueryLocalData() const;
-
-    virtual void SetCloudConflictHandler(const std::weak_ptr<ICloudConflictHandler> &handler);
 
     static bool IsDelete(const LogInfo &info);
 
@@ -66,6 +46,8 @@ public:
 
     OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const;
 protected:
+    static bool IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo);
+
     bool IsIgnoreUpdate(const LogInfo &localInfo) const;
 
     static bool IsSameRecord(const LogInfo &cloudInfo, const LogInfo &localInfo);

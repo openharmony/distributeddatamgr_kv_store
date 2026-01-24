@@ -26,25 +26,6 @@ const std::string g_defaultTable1 = "defaultTable1";
 const std::string g_defaultTable2 = "defaultTable2";
 const std::vector<uint8_t> PASSWD_VECTOR = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '1'};
 
-using ConflictCallback = std::function<ConflictRet(const std::string &, const VBucket &, const VBucket &, VBucket &)>;
-class TestCloudConflictHandler : public ICloudConflictHandler {
-public:
-    ConflictRet HandleConflict(const std::string &table, const VBucket &oldData, const VBucket &newData,
-        VBucket &upsert) override
-    {
-        if (callback_) {
-            return callback_(table, oldData, newData, upsert);
-        }
-        return ConflictRet::NOT_HANDLE;
-    }
-
-    void SetCallback(const ConflictCallback &callback)
-    {
-        callback_ = callback;
-    }
-protected:
-    ConflictCallback callback_;
-};
 class RDBGeneralUt : public BasicUnitTest {
 public:
     void SetUp() override;
@@ -123,8 +104,6 @@ protected:
         std::shared_ptr<ResultSet> &resultSet);
 
     int PutMetaData(const StoreInfo &store, const Key &key, const Value &value);
-
-    void SetCloudConflictHandler(const StoreInfo &store, const ConflictCallback &callback);
 
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *> stores_;

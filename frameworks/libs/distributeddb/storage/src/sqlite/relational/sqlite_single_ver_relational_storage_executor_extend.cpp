@@ -119,7 +119,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *s
         if (errCode != E_OK) {
             break;
         }
-        errCode = SQLiteRelationalUtils::PutVBucketByType(assetInfo, field, cloudValue);
+        errCode = PutVBucketByType(assetInfo, field, cloudValue);
         if (errCode != E_OK) {
             break;
         }
@@ -136,7 +136,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *s
         if (errCode != E_OK) {
             break;
         }
-        errCode = SQLiteRelationalUtils::PutVBucketByType(dataInfoWithLog.primaryKeys, item.second, cloudValue);
+        errCode = PutVBucketByType(dataInfoWithLog.primaryKeys, item.second, cloudValue);
         if (errCode != E_OK) {
             break;
         }
@@ -144,16 +144,15 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *s
     return errCode;
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetInsertSqlForCloudSync(const std::vector<Field> &insertFields,
-    const TableSchema &tableSchema)
+std::string SQLiteSingleVerRelationalStorageExecutor::GetInsertSqlForCloudSync(const TableSchema &tableSchema)
 {
     std::string sql = "insert into " + tableSchema.name + "(";
-    for (const auto &field : insertFields) {
+    for (const auto &field : tableSchema.fields) {
         sql += field.colName + ",";
     }
     sql.pop_back();
     sql += ") values(";
-    for (size_t i = 0; i < insertFields.size(); i++) {
+    for (size_t i = 0; i < tableSchema.fields.size(); i++) {
         sql += "?,";
     }
     sql.pop_back();
@@ -262,8 +261,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
                 errCode = InsertCloudData(vBucket, tableSchema, trackerTable, GetLocalDataKey(index, downloadData));
                 break;
             case OpType::UPDATE:
-            case OpType::INTEGRATE:
-                errCode = UpdateCloudData(op, tableSchema, vBucket);
+                errCode = UpdateCloudData(vBucket, tableSchema);
                 break;
             case OpType::DELETE:
                 errCode = DeleteCloudData(tableName, vBucket, tableSchema, trackerTable);
@@ -686,15 +684,14 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
         LOGW("get cloud data count failed, %d", errCodeCount);
     }
     LOGI("save cloud data of table %s [length %zu]:%d, cloud data count:%lld, ins:%d, upd:%d, del:%d, only gid:%d,"
-        "flag zero:%d, flag one:%d, upd timestamp:%d, clear gid:%d, not handle:%d, lock:%d, integrate:%d",
+        "flag zero:%d, flag one:%d, upd timestamp:%d, clear gid:%d, not handle:%d, lock:%d",
          DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), errCode, count,
          statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
          statisticMap[static_cast<int>(OpType::DELETE)], statisticMap[static_cast<int>(OpType::ONLY_UPDATE_GID)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE)],
          statisticMap[static_cast<int>(OpType::UPDATE_TIMESTAMP)], statisticMap[static_cast<int>(OpType::CLEAR_GID)],
-         statisticMap[static_cast<int>(OpType::NOT_HANDLE)], statisticMap[static_cast<int>(OpType::LOCKED_NOT_HANDLE)],
-         statisticMap[static_cast<int>(OpType::INTEGRATE)]);
+         statisticMap[static_cast<int>(OpType::NOT_HANDLE)], statisticMap[static_cast<int>(OpType::LOCKED_NOT_HANDLE)]);
     return errCode == E_OK ? ret : errCode;
 }
 
@@ -733,8 +730,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, 
             return errCode;
         }
     }
-    auto insertFields = GetInsertFields(vBucket, tableSchema);
-    std::string sql = GetInsertSqlForCloudSync(insertFields, tableSchema);
+    std::string sql = GetInsertSqlForCloudSync(tableSchema);
     sqlite3_stmt *insertStmt = nullptr;
     errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertStmt);
     if (errCode != E_OK) {
@@ -745,7 +741,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, 
         CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetBeforeDownload);
     }
     int ret = E_OK;
-    errCode = BindValueToUpsertStatement(vBucket, insertFields, insertStmt);
+    errCode = BindValueToUpsertStatement(vBucket, tableSchema.fields, insertStmt);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(insertStmt, true, ret);
         return errCode;
@@ -1026,9 +1022,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateSqlForCloudSync(const std
     }
     std::string sql = "UPDATE " + tableSchema.name + " SET";
     for (const auto &field : updateFields) {
-        if (field.dupCheckCol) {
-            continue;
-        }
         sql +=  " " + field.colName + " = ?,";
     }
     sql.pop_back();
@@ -1087,8 +1080,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(OpType op, const TableSchema &tableSchema,
-    VBucket &vBucket)
+int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(VBucket &vBucket, const TableSchema &tableSchema)
 {
     if (putDataMode_ == PutDataMode::SYNC) {
         CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetBeforeDownload);
@@ -1113,7 +1105,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(OpType op, const T
     SQLiteUtils::ResetStatement(updateStmt, true, ret);
 
     // update log
-    errCode = UpdateLogRecord(vBucket, tableSchema, op);
+    errCode = UpdateLogRecord(vBucket, tableSchema, OpType::UPDATE);
     if (errCode != E_OK) {
         LOGE("update log record failed when update cloud data, errCode = %d", errCode);
     }
@@ -1642,7 +1634,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAllUploadCount(const std::vecto
         std::string sql = helper.GetCountRelationalCloudQuerySql(isCloudForcePush, isCompensatedTask, typeVec[i]);
         int64_t tempCount = 0;
         helper.AppendCloudQueryToGetDiffData(sql, typeVec[i]);
-        helper.SetAppendCondition(!query.IsRelaxForDelete() || typeVec[i] != CloudWaterType::DELETE);
         errCode = GetUploadCountInner(timestampVec[i], helper, sql, tempCount);
         if (errCode != E_OK) {
             return errCode;
@@ -1702,6 +1693,34 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(const CloudUpload
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
+{
+    if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
+        Asset asset;
+        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!CloudStorageUtils::CheckAssetStatus({asset})) {
+            return -E_CLOUD_ERROR;
+        }
+        vBucket.insert_or_assign(field.colName, asset);
+    } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
+        Assets assets;
+        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (CloudStorageUtils::IsAssetsContainDuplicateAsset(assets) || !CloudStorageUtils::CheckAssetStatus(assets)) {
+            return -E_CLOUD_ERROR;
+        }
+        vBucket.insert_or_assign(field.colName, assets);
+    } else {
+        vBucket.insert_or_assign(field.colName, cloudValue);
+    }
+    return E_OK;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetDownloadAsset(std::vector<VBucket> &assetsV, const Field &field,
     Type &cloudValue)
 {
@@ -1748,7 +1767,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetInfoOnTable(sqlite3_stmt *
             if (errCode != E_OK) {
                 break;
             }
-            errCode = SQLiteRelationalUtils::PutVBucketByType(assetInfo, field, cloudValue);
+            errCode = PutVBucketByType(assetInfo, field, cloudValue);
             if (errCode != E_OK) {
                 break;
             }

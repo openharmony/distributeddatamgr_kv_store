@@ -28,6 +28,7 @@
 #include "log_print.h"
 #include "runtime_context.h"
 #include "store_types.h"
+#include "strategy_factory.h"
 #include "version.h"
 
 namespace DistributedDB {
@@ -130,18 +131,14 @@ int CloudSyncer::GetCloudGid(
 QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    bool isCustomPush = cloudTaskInfos_[currentContext_.currentTaskId].mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH;
     for (const auto &item : cloudTaskInfos_[currentContext_.currentTaskId].queryList) {
         if (item.GetTableName() == tableName) {
-            QuerySyncObject tmp = item;
-            tmp.SetRelaxForDelete(isCustomPush);
-            return tmp;
+            return item;
         }
     }
     LOGW("[CloudSyncer] not found query in cache");
     QuerySyncObject querySyncObject;
     querySyncObject.SetTableName(tableName);
-    querySyncObject.SetRelaxForDelete(isCustomPush);
     return querySyncObject;
 }
 
@@ -670,12 +667,6 @@ int CloudSyncer::SaveCursorIfNeed(const std::string &tableName)
 
 int CloudSyncer::PrepareAndDownload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload)
 {
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (!strategyProxy_.JudgeDownload()) {
-            return E_OK;
-        }
-    }
     std::string hashDev;
     int errCode = RuntimeContext::GetInstance()->GetLocalIdentity(hashDev);
     if (errCode != E_OK) {
@@ -845,7 +836,7 @@ void CloudSyncer::SetNeedUpload(bool isNeedUpload)
     currentContext_.isNeedUpload = isNeedUpload;
 }
 
-int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, bool needUpload, bool isFirstDownload)
+int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     std::vector<std::string> needNotifyTables;
     for (size_t i = 0; i < taskInfo.table.size(); ++i) {
@@ -1421,7 +1412,7 @@ std::string CloudSyncer::GetStoreIdByTask(TaskId taskId)
     return cloudTaskInfos_[taskId].storeId;
 }
 
-int CloudSyncer::StopSyncTask(const std::function<int(void)> &removeFunc, int errCode)
+int CloudSyncer::StopSyncTask(std::function<int(void)> &removeFunc)
 {
     hasKvRemoveTask = true;
     CloudSyncer::TaskId currentTask;
@@ -1431,14 +1422,14 @@ int CloudSyncer::StopSyncTask(const std::function<int(void)> &removeFunc, int er
         currentTask = currentContext_.currentTaskId;
     }
     if (currentTask != INVALID_TASK_ID || asyncTaskId_ != INVALID_TASK_ID) {
-        StopAllTasks(errCode);
+        StopAllTasks(-E_CLOUD_ERROR);
     }
-    errCode = E_OK;
-    if (removeFunc != nullptr) {
+    int errCode = E_OK;
+    {
         std::lock_guard<std::mutex> lock(syncMutex_);
         errCode = removeFunc();
+        hasKvRemoveTask = false;
     }
-    hasKvRemoveTask = false;
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] removeFunc execute failed errCode: %d.", errCode);
     }
@@ -1454,14 +1445,10 @@ void CloudSyncer::StopAllTasks(int errCode)
     }
     // mark current task user_change
     SetTaskFailed(currentTask, errCode);
-    std::optional<TaskId> currentTaskId;
-    if (errCode != -E_TASK_INTERRUPTED) {
-        UnlockIfNeed();
-        WaitCurTaskFinished();
-    } else {
-        currentTaskId = GetCurrentTaskId();
-    }
-    std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos(currentTaskId);
+    UnlockIfNeed();
+    WaitCurTaskFinished();
+
+    std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos();
     for (auto &info: infoList) {
         LOGI("[CloudSyncer] finished taskId %" PRIu64 " with errCode %d, isPriority %d.", info.taskId, errCode,
             info.priorityTask);
@@ -1475,15 +1462,12 @@ void CloudSyncer::StopAllTasks(int errCode)
 
 int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
 {
-    std::pair<int, OpType> res;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        res = strategyProxy_.TagStatus(isExist, idx, storageProxy_, param, dataInfo);
-    }
-    const auto &[errCode, strategyOpResult] = res;
+    OpType strategyOpResult = OpType::NOT_HANDLE;
+    int errCode = TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
     if (errCode != E_OK) {
         return errCode;
     }
+    param.downloadData.opType[idx] = strategyOpResult;
     if (!IsDataContainAssets()) {
         return E_OK;
     }
@@ -2110,24 +2094,17 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     return info;
 }
 
-std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos(const std::optional<TaskId> taskId)
+std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
 {
     std::vector<CloudTaskInfo> infoList;
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    for (const auto& [infoTaskId, info]: cloudTaskInfos_) {
-        if (!taskId.has_value() || infoTaskId != taskId.value()) {
-            infoList.push_back(info);
-        }
+    for (const auto &item: cloudTaskInfos_) {
+        infoList.push_back(item.second);
     }
-
-    if (taskId.has_value()) {
-        RetainCurrentTaskInfo(taskId.value());
-    } else {
-        taskQueue_.clear();
-        cloudTaskInfos_.clear();
-        resumeTaskInfos_.clear();
-        currentContext_.notifier = nullptr;
-    }
+    taskQueue_.clear();
+    cloudTaskInfos_.clear();
+    resumeTaskInfos_.clear();
+    currentContext_.notifier = nullptr;
     return infoList;
 }
 

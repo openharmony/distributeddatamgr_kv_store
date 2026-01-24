@@ -24,7 +24,7 @@ public:
 
     int DoDownload(TaskId taskId, bool isFirstDownload) override;
 
-    int DoDownloadInNeed(const CloudTaskInfo &taskInfo, bool needUpload, bool isFirstDownload) override;
+    int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload) override;
 
     int DoUpload(TaskId taskId, bool lastTable, LockAction lockAction) override;
 
@@ -52,8 +52,6 @@ public:
     void TriggerAsyncTask();
 
     void WaitTaskFinished();
-
-    int WaitAsyncGenLogTaskFinished(TaskId triggerTaskId);
 private:
     std::function<int (void)> downloadFunc_;
     std::function<int (void)> downloadInNeedFunc_;

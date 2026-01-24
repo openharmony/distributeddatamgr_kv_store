@@ -626,7 +626,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest001(bool needDown
     InitDataStatusTest(needDownload);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest003()
@@ -660,7 +659,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest003()
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
     g_virtualAssetLoader->ForkDownload(nullptr);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
@@ -706,7 +704,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest004()
     WaitForSync(count);
     g_virtualAssetLoader->ForkDownload(nullptr);
     g_virtualCloudDb->ForkQuery(nullptr);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest005()
@@ -742,7 +739,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest005()
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
     g_virtualAssetLoader->ForkDownload(nullptr);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest006()
@@ -780,7 +776,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest006()
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
     g_virtualAssetLoader->ForkDownload(nullptr);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest007()
@@ -810,7 +805,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::DataStatusTest007()
     InitDataStatusTest(true);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
     WaitForSync(count);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 /*
@@ -2092,7 +2086,6 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ConsistentFlagTest003, Test
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     WaitForSync(count);
     CheckConsistentCount(db, localCount);
-    g_cloudStoreHook->SetSyncFinishHook(nullptr);
 }
 
 /**

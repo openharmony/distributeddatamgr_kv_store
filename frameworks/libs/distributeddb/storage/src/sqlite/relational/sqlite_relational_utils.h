@@ -18,7 +18,6 @@
 
 #include <vector>
 #include "cloud/cloud_store_types.h"
-#include "cloud/icloud_syncer.h"
 #include "data_value.h"
 #include "sqlite_import.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
@@ -79,12 +78,10 @@ public:
     static int InitKnowledgeTableTypeToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
     static int SetLogTriggerStatus(sqlite3 *db, bool status);
 
-    static constexpr const uint32_t BATCH_GEN_LOG_SIZE = 1000;
     struct GenLogParam {
         sqlite3 *db = nullptr;
         bool isMemory = false;
         bool isTrackerTable = false;
-        uint32_t batchLimit = 0;
     };
 
     static int GeneTimeStrForLog(const TableInfo &tableInfo, GenLogParam &param, std::string &timeStr);
@@ -129,28 +126,8 @@ public:
 
     static const std::string GetTempUpdateLogCursorTriggerSql(const std::string &tableName);
 
-    static int GetLocalDataByRowid(sqlite3 *db, const TableInfo &table, const TableSchema &tableSchema,
-        DataInfoWithLog &dataInfoWithLog);
-
-    static int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
-
-    static Field ConvertToField(const FieldInfo &fieldInfo);
-
-    static int32_t ConvertToType(StorageType storageType);
-
-    static std::vector<Field> GetUserUpdateField(const VBucket &vBucket, const TableSchema &tableSchema);
-
-    static std::vector<Field> GetSaveSyncField(const VBucket &vBucket, const TableSchema &tableSchema,
-        bool isContainDupCheck);
-
     static std::pair<int, TableInfo> AnalyzeTable(sqlite3 *db, const std::string &tableName);
-
-    static void FilterTableSchema(const TableInfo &tableInfo, TableSchema &table);
-
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-    static void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
-        ICloudSyncer::CloudTaskInfo &info);
-
     static int PutCloudGid(sqlite3 *db, const std::string &tableName, std::vector<VBucket> &data);
 
     struct CloudNotExistRecord {
@@ -181,11 +158,6 @@ private:
     static int GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);
 
     static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table, const std::string &modifyTime);
-
-    static std::vector<Field> MergeFieldFromSchema(const std::vector<Field> &originFields,
-        const std::vector<FieldInfo> &targetFields);
-
-    static std::string GetQueryLocalDataSQL(const TableInfo &table, int64_t dataKey);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static int CheckUserCreateSharedTableInner(const TableSchema &oriTable, const TableInfo &sharedTableInfo);

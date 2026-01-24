@@ -16,8 +16,9 @@
 #include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
+
 OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unused]] bool isCloudWin,
-    const LogInfo &localInfo, const LogInfo &cloudInfo) const
+    const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
         return OpType::LOCKED_NOT_HANDLE;
@@ -46,12 +47,12 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unuse
     return TagUpdateLocal(cloudInfo, localInfo);
 }
 
-bool CloudForcePullStrategy::JudgeUpdateCursor() const
+bool CloudForcePullStrategy::JudgeUpdateCursor()
 {
     return true;
 }
 
-bool CloudForcePullStrategy::JudgeUpload() const
+bool CloudForcePullStrategy::JudgeUpload()
 {
     return false;
 }

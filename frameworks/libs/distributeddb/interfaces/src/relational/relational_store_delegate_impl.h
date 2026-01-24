@@ -33,8 +33,7 @@ public:
     
     DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option) override;
 
-    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
-        const CreateDistributedTableConfig &config) override;
+    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;
 
     // For connection
     DBStatus Close();
@@ -76,18 +75,12 @@ public:
 
     DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
 
-    DBStatus SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
-
     std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
-
-    DBStatus StopTask([[gnu::unused]] TaskType type) override;
 
     DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
 
     DBStatus UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
         RecordStatus status) override;
-
-    DBStatus SetProperty(const Property &property) override;
 #endif
 
 #ifdef USE_DISTRIBUTEDDB_DEVICE
@@ -106,6 +99,8 @@ public:
     int32_t GetDeviceSyncTaskCount() override;
 
     DBStatus SetStoreConfig(const StoreConfig &config) override;
+
+    DBStatus SetProperty(const Property &property) override;
 #endif
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,

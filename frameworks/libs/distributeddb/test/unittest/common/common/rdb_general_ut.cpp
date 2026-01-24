@@ -642,13 +642,4 @@ int RDBGeneralUt::PutMetaData(const StoreInfo &store, const Key &key, const Valu
     }
     return SQLiteRelationalUtils::PutKvData(db, false, key, value);
 }
-
-void RDBGeneralUt::SetCloudConflictHandler(const StoreInfo &store, const ConflictCallback &callback)
-{
-    auto delegate = GetDelegate(store);
-    ASSERT_NE(delegate, nullptr);
-    auto handler = std::make_shared<TestCloudConflictHandler>();
-    handler->SetCallback(callback);
-    EXPECT_EQ(delegate->SetCloudConflictHandler(handler), OK);
-}
 }

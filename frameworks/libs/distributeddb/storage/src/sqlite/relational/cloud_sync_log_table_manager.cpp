@@ -24,28 +24,15 @@ std::string CloudSyncLogTableManager::CalcPrimaryKeyHash(const std::string &refe
 {
     (void)identity;
     std::string sql;
-    const FieldInfoMap &fieldInfos = table.GetFields();
-    std::vector<std::string> sourceFields = table.GetCloudSyncDistributedPk();
-    if (sourceFields.empty()) {
-        std::for_each(table.GetPrimaryKey().begin(), table.GetPrimaryKey().end(), [&sourceFields](const auto &item) {
-            sourceFields.push_back(item.second);
-        });
-    }
-    return CalcPrimaryKeyHashInner(references, sourceFields, fieldInfos);
-}
-
-std::string CloudSyncLogTableManager::CalcPrimaryKeyHashInner(const std::string &references,
-    const std::vector<std::string> &sourceFields, const DistributedDB::FieldInfoMap &fieldInfos)
-{
-    std::string sql;
-    if (sourceFields.size() == 1) {
-        std::string pkName = sourceFields.at(0);
+    FieldInfoMap fieldInfos = table.GetFields();
+    if (table.GetPrimaryKey().size() == 1) {
+        std::string pkName = table.GetPrimaryKey().at(0);
         if (pkName == "rowid") {
             std::string collateStr = std::to_string(static_cast<uint32_t>(CollateType::COLLATE_NONE));
             // we use _rowid_ to reference sqlite inner rowid to avoid rowid is a user defined column,
             // user can't create distributed table with column named "_rowid_"
             sql = "calc_hash(" + references + "'" + std::string(DBConstant::SQLITE_INNER_ROWID) + "', " +
-                  collateStr + ")";
+                collateStr + ")";
         } else {
             if (fieldInfos.find(pkName) == fieldInfos.end()) {
                 return sql;
@@ -55,8 +42,8 @@ std::string CloudSyncLogTableManager::CalcPrimaryKeyHashInner(const std::string 
         }
     }  else {
         std::set<std::string> primaryKeySet; // we need sort primary key by upper name
-        for (const auto &it : sourceFields) {
-            primaryKeySet.emplace(DBCommon::ToUpperCase(it));
+        for (const auto &it : table.GetPrimaryKey()) {
+            primaryKeySet.emplace(DBCommon::ToUpperCase(it.second));
         }
         sql = "calc_hash(";
         for (const auto &it : primaryKeySet) {
@@ -117,11 +104,24 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + tableName + "_ON_INSERT AFTER INSERT \n";
     insertTrigger += "ON '" + tableName + "'\n";
-    insertTrigger += GetInsertCondition(table);
+    insertTrigger += "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
+    insertTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     insertTrigger += "BEGIN\n";
     insertTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
-    insertTrigger += GetInsertLogSQL(table, identity, true);
-    insertTrigger += ";\n";
+    insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
+    insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
+    insertTrigger += " extend_field, cursor, version, sharing_resource, status)";
+    insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
+    insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02|0x20, ";
+    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
+    insertTrigger += logTblName + " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
+    insertTrigger += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
+    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END, ";
+    insertTrigger += table.GetTrackerTable().GetAssignValSql();
+    insertTrigger += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
+    insertTrigger += "(SELECT CASE WHEN version IS NULL THEN '' ELSE version END FROM " + logTblName;
+    insertTrigger += " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
+    insertTrigger += "), '', 0);\n";
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
     insertTrigger += ", 0, ";
@@ -135,14 +135,23 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
 std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, const std::string &identity)
 {
     (void)identity;
+    std::string logTblName = GetLogTableName(table);
     const std::string &tableName = table.GetTableName();
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + tableName + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += GetUpdateCondition(table);
+    updateTrigger += "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
+    updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
-    updateTrigger += GetUpdateLog(table, identity);
+    updateTrigger += "\t UPDATE " + logTblName;
+    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=((flag&0x1000)|0x02|0x20)&~0x4000";
+    if (!table.GetTrackerTable().IsEmpty()) {
+        updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
+    }
+    updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
+    updateTrigger += CloudStorageUtils::GetUpdateLockChangedSql();
+    updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     updateTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::UPDATE);
     updateTrigger += "SELECT client_observer('" + tableName + "', OLD.";
     updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
@@ -204,107 +213,5 @@ std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableIn
         dropTriggers.emplace_back(clearExtendSql);
     }
     return dropTriggers;
-}
-
-std::string CloudSyncLogTableManager::GetUpdateCondition(const TableInfo &table)
-{
-    std::string condition = "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
-    condition += "WHERE key = 'log_trigger_switch' AND value = 'true'";
-    auto fields = table.GetCloudSyncFields();
-    auto pk = table.GetCloudSyncDistributedPk();
-    for (const auto &field : pk) {
-        condition += " AND NEW.'" + field + "' IS NOT NULL";
-    }
-    if (!pk.empty() && !fields.empty()) {
-        condition += " AND (";
-        for (size_t i = 0; i < fields.size(); ++i) {
-            if (i != 0) {
-                condition += " OR ";
-            }
-            condition += "OLD.'" + fields[i] + "' IS DISTINCT FROM NEW.'" + fields[i] + "'";
-        }
-        condition +=  ")";
-    }
-    condition += ")\n";
-    return condition;
-}
-
-std::string CloudSyncLogTableManager::GetInsertCondition(const TableInfo &table)
-{
-    std::string condition = "WHEN (SELECT count(*) FROM " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata ";
-    condition += "WHERE key = 'log_trigger_switch' AND value = 'true'";
-    auto pk = table.GetCloudSyncDistributedPk();
-    for (const auto &field : pk) {
-        condition += " AND NEW." + field + " IS NOT NULL";
-    }
-    condition += ")\n";
-    return condition;
-}
-
-std::string CloudSyncLogTableManager::GetInsertLogSQL(const TableInfo &table, const std::string &identity,
-    bool isReplace)
-{
-    std::string sql;
-    auto &tableName = table.GetTableName();
-    auto logTblName = DBCommon::GetLogTableName(tableName);
-    sql += "\t INSERT ";
-    if (isReplace) {
-        sql += "OR REPLACE ";
-    }
-    sql += "INTO " + logTblName;
-    sql += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
-    sql += " extend_field, cursor, version, sharing_resource, status)";
-    sql += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
-    sql += " get_raw_sys_time(), get_raw_sys_time(), 0x02|0x20, ";
-    sql += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
-    sql += logTblName + " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
-    sql += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
-    sql += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END, ";
-    sql += table.GetTrackerTable().GetAssignValSql();
-    sql += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
-    sql += "(SELECT CASE WHEN version IS NULL THEN '' ELSE version END FROM " + logTblName;
-    sql += " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
-    sql += "), '', 0)";
-    return sql;
-}
-
-std::string CloudSyncLogTableManager::GetUpdateConflictKey(const TableInfo &table)
-{
-    auto primaryKey = table.GetPrimaryKey();
-    if (primaryKey[0] == DBConstant::ROWID) {
-        return "hash_key, cloud_gid";
-    }
-    return "hash_key";
-}
-
-std::string CloudSyncLogTableManager::GetUpdateLog(const TableInfo &table, const std::string &identity)
-{
-    auto pk = table.GetCloudSyncDistributedPk();
-    std::string logTblName = GetLogTableName(table);
-    const std::string &tableName = table.GetTableName();
-    std::string updateTrigger;
-    if (pk.empty()) {
-        updateTrigger += "\t UPDATE " + logTblName;
-        updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=" +
-            std::string(CloudDbConstant::LOCAL_UPDATE_FLAG);
-        if (!table.GetTrackerTable().IsEmpty()) {
-            updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-        }
-        updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
-        updateTrigger += CloudStorageUtils::GetUpdateLockChangedSql();
-        updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-        return updateTrigger;
-    }
-    updateTrigger += GetInsertLogSQL(table, identity, false);
-    updateTrigger += " ON CONFLICT(" + GetUpdateConflictKey(table) + ") DO UPDATE ";
-    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=" +
-        std::string(CloudDbConstant::LOCAL_UPDATE_FLAG);
-    if (!table.GetTrackerTable().IsEmpty()) {
-        updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-    }
-    updateTrigger += ", cursor=" + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
-    updateTrigger += CloudStorageUtils::GetUpdateLockChangedSql();
-    updateTrigger += ";\n";
-    return updateTrigger;
 }
 } // DistributedDB

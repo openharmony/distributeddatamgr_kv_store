@@ -18,7 +18,7 @@
 namespace DistributedDB {
 const std::string cloud_device_name = "cloud";
 OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unused]] bool isCloudWin,
-    const LogInfo &localInfo, const LogInfo &cloudInfo) const
+    const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
         return OpType::LOCKED_NOT_HANDLE;
@@ -50,12 +50,12 @@ OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unuse
     return OpType::NOT_HANDLE;
 }
 
-bool CloudForcePushStrategy::JudgeUpdateCursor() const
+bool CloudForcePushStrategy::JudgeUpdateCursor()
 {
     return false;
 }
 
-bool CloudForcePushStrategy::JudgeUpload() const
+bool CloudForcePushStrategy::JudgeUpload()
 {
     return true;
 }
