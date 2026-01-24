@@ -18,13 +18,8 @@
 #include <json/json.h>
 #endif
 #include "log_print.h"
-#include "gspd_process_api.h"
 
 namespace DistributedDB {
-
-namespace {
-constexpr int E_OK = 0;
-}
 
 /**
  * @brief is_entity_duplicate user defined function
@@ -51,14 +46,6 @@ void IsEntityDuplicateImpl(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
     // 比较实体是否重复
     bool isDuplicate = false;
-    int32_t ret = GSPD_IsEntityDuplicate(inputEntityJson, dbEntityJson, &isDuplicate);
-    if (ret != E_OK) {
-        LOGE("is_entity_duplicate call failed");
-        sqlite3_result_error(ctx, "is_entity_duplicate call failed", -1);
-        return;
-    }
-
-    // 返回结果
     sqlite3_result_int(ctx, isDuplicate ? 1 : 0);
 }
 

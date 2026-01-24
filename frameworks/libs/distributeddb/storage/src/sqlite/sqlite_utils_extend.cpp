@@ -22,12 +22,14 @@
 #include <mutex>
 #include <map>
 #include <algorithm>
+#include <regex>
 
 #include "sqlite_import.h"
 #include "securec.h"
 #include "db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "gspd_process_api.h"
 #include "log_print.h"
 #include "value_object.h"
 #include "schema_utils.h"
@@ -341,6 +343,53 @@ void SQLiteUtils::CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     CalcHashFunc(ctx, argv);
 }
 
+void SQLiteUtils::RegexpMatch(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (argc != 2) { // 2 is params count
+        sqlite3_result_error(ctx, "RegexpMatch requires 2 arguments: regex, string", -1);
+        return;
+    }
+    const char* regexStr = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+    const char* textStr = reinterpret_cast<const char *>(sqlite3_value_text(argv[1]));
+    if (regexStr == nullptr || textStr == nullptr) {
+        sqlite3_result_null(ctx);
+        return;
+    }
+    bool match = 0;
+    match = std::regex_match(textStr, std::regex(regexStr));
+    sqlite3_result_int(ctx, match ? 1 : 0); // 1 found 0, not found
+}
+
+void SQLiteUtils::IsEntityDuplicate(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr) {
+        return;
+    }
+
+    if (argc != 2 || argv == nullptr || argv[0] == nullptr || argv[1] == nullptr) { // 2 params count
+        std::string errorMsg = "is_entity_duplicate expects 2 arguments: entity_json, input_entity_json";
+        sqlite3_result_error(ctx, errorMsg.c_str(), -1);
+        LOGE("%s", errorMsg.c_str());
+        return;
+    }
+
+    const char* dbEntityJson = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+    const char* inputEntityJson = reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
+    if (!dbEntityJson || !inputEntityJson) {
+        std::string errorMsg = "is_entity_duplicate expects not null value";
+        return;
+    }
+
+    bool isDuplicate = false;
+    int32_t ret = GSPD_IsEntityDuplicate(inputEntityJson, dbEntityJson, &isDuplicate);
+    if (ret != E_OK) {
+        LOGE("is_entity_duplicate call failed");
+        sqlite3_result_error(ctx, "is_entity_duplicate call failed", -1);
+        return;
+    }
+
+    sqlite3_result_int(ctx, isDuplicate ? 1 : 0);
+}
 
 int SQLiteUtils::GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size)
 {

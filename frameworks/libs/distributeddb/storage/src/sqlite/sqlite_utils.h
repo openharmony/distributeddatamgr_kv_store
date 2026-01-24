@@ -133,6 +133,10 @@ public:
 
     static int RegisterMetaDataUpdateFunction(sqlite3 *db);
 
+    static int RegisterRegexpMatchFunction(sqlite3 *db);
+
+    static int RegisterIsEntityDuplicateFunction(sqlite3 *db);
+
     static int GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size);
 
     static int AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPassword &password,
@@ -237,6 +241,8 @@ private:
 
     static void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void RegexpMatch(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void IsEntityDuplicate(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     static void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);

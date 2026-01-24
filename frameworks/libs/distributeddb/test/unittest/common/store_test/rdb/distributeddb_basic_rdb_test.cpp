@@ -500,4 +500,47 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
     EXPECT_EQ(result, 0);  // 应该返回false，因为有一个必选字段不同
     sqlite3_finalize(stmt);
 }
+
+/**
+ * @tc.name: regexpMatchExample001
+ * @tc.desc: Test regexp match example
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicRDBTest, regexpMatchExample001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. init rdb delegate
+     * @tc.expected: step1. return ok
+     */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
+    /**
+     * @tc.steps: step2. query REGEXP_MATCH
+     * @tc.expected: step2. return ok
+     */
+    sqlite3* db = GetSqliteHandle(info1);
+    ASSERT_NE(db, nullptr);
+    std::string querySql = "SELECT REGEXP_MATCH('a', 'a')=TRUE";
+    sqlite3_stmt *stmt = PrepareStatement(db, querySql);
+    ASSERT_NE(stmt, nullptr);
+    EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
+    int result = sqlite3_column_int(stmt, 0);
+    EXPECT_EQ(result, 1);
+    sqlite3_finalize(stmt);
+    /**
+     * @tc.steps: step3. query REGEXP_MATCH
+     * @tc.expected: step3. return ok
+     */
+    querySql = "SELECT 'a' REGEXP_MATCH 'a'";
+    stmt = PrepareStatement(db, querySql);
+    ASSERT_NE(stmt, nullptr);
+    EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
+    result = sqlite3_column_int(stmt, 0);
+    EXPECT_EQ(result, 1);
+    sqlite3_finalize(stmt);
+}
 }
