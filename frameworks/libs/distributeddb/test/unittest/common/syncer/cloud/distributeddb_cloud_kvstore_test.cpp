@@ -1261,6 +1261,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest007, TestSize.Level0)
     EXPECT_EQ(kvDelegatePtrS1_->RemoveDeviceData(deviceId, "user1", ClearMode::CLEAR_SHARED_TABLE), NOT_SUPPORT);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: RemoveDeviceTest008
  * @tc.desc: remove record without mode.
@@ -1312,6 +1313,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, RemoveDeviceTest008, TestSize.Level0)
         EXPECT_EQ(kvDelegatePtrS1_->Get(key, actualValue), NOT_FOUND);
     }
 }
+#endif
 
 /**
  * @tc.name: RemoveDeviceTest009
@@ -1641,6 +1643,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, NormalSyncInvalid004, TestSize.Level0)
     EXPECT_EQ(g_mgr.CloseKvStore(kvDelegateInvalidPtrS2_), OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: NormalSyncInvalid005
  * @tc.desc: Test normal sync with invalid parm.
@@ -1665,6 +1668,7 @@ HWTEST_F(DistributedDBCloudKvStoreTest, NormalSyncInvalid005, TestSize.Level0)
     EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr), DB_ERROR);
     EXPECT_EQ(kvDelegatePtrS1_->Sync(devices, mode, nullptr, query, true), DB_ERROR);
 }
+#endif
 
 /**
  * @tc.name: NormalSyncInvalid006

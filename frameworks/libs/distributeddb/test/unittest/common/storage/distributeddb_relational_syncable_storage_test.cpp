@@ -123,6 +123,7 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, SchemaRefTest001, TestSize.
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: FuncExceptionTest001
  * @tc.desc: Test the interception expection of the delegate interface when the store is empty.
@@ -177,8 +178,8 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
     EXPECT_EQ(conn->OperateDataStatus(0u), -E_INVALID_CONNECTION);
     conn = nullptr;
 }
+#endif
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: FuncExceptionTest002
  * @tc.desc: Test the interception expection of the delegate interface when the store is empty.
@@ -223,5 +224,4 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest002, TestS
     int32_t localCount = 0;
     EXPECT_EQ(executor->GetFlagIsLocalCount("tableName", localCount), -E_INVALID_DB);
 }
-#endif
 #endif // RELATIONAL_STORE

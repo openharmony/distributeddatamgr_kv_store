@@ -178,7 +178,7 @@ void DistributedDBInterfacesNBDelegateRdTest::TearDown(void)
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name:
   * @tc.desc:

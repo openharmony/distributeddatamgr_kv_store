@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 
@@ -770,6 +769,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync013, TestSize.Level1)
     CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: NormalSync014
  * @tc.desc: Test sync after user change.
@@ -813,6 +813,7 @@ HWTEST_F(DistributedDBCloudKvTest, NormalSync014, TestSize.Level1)
     CloseKvStore(kvDelegatePtrS3_, STORE_ID_3);
     g_mgr.SetSyncActivationCheckCallback(nullptr);
 }
+#endif
 
 /**
  * @tc.name: NormalSync015
@@ -2684,4 +2685,3 @@ HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest004, TestSize.Level1)
 }
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD
-#endif

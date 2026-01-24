@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 
 namespace DistributedDB {
@@ -40,6 +39,7 @@ void DistributedDBKVDataStatusTest::SetUp()
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo2, DEVICE_B), E_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: OperateDataStatus001
  * @tc.desc: Test sync from dev1 to dev2 after operate valid data status.
@@ -218,6 +218,7 @@ HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus004, TestSize.Level0)
     EXPECT_EQ(KVGeneralUt::GetDeviceEntries(store2, std::string(DEVICE_C), false, entries), NOT_FOUND);
     EXPECT_EQ(entries.size(), 0u); // 0 record
 }
+#endif
 
 /**
  * @tc.name: OperateDataStatus005
@@ -276,6 +277,7 @@ HWTEST_F(DistributedDBKVDataStatusTest, OperateDataStatus007, TestSize.Level0)
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: OperateDataStatus008
  * @tc.desc: Test operate data status when db was error.
@@ -440,5 +442,5 @@ HWTEST_F(DistributedDBKVDataStatusTest, CloudOperateDataStatus003, TestSize.Leve
     EXPECT_EQ(actualValue, expectValue);
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD
-} // namespace DistributedDB
 #endif
+} // namespace DistributedDB

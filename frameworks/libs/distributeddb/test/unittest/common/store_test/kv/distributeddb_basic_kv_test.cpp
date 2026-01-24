@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "kv_general_ut.h"
 
 namespace DistributedDB {
@@ -34,6 +33,7 @@ void DistributedDBBasicKVTest::SetUp()
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo3, "dev3"), E_OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: ExampleSync001
  * @tc.desc: Test sync from dev1 to dev2.
@@ -106,6 +106,7 @@ HWTEST_F(DistributedDBBasicKVTest, ExampleSync002, TestSize.Level0)
     SetMtu("dev1", 1);
     BlockPush(storeInfo1, storeInfo2);
 }
+#endif
 
 /**
  * @tc.name: WhitelistKvGet001
@@ -310,4 +311,3 @@ HWTEST_F(DistributedDBBasicKVTest, LocalPut004, TestSize.Level0)
     EXPECT_EQ(v1, actualValue);
 }
 } // namespace DistributedDB
-#endif

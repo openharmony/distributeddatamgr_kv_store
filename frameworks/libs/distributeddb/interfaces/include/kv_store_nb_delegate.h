@@ -340,7 +340,7 @@ public:
     // get all sync task count
     DB_API virtual int32_t GetTaskCount()
     {
-        return OK;
+        return 0;
     }
 
     // set generate cloud version callback

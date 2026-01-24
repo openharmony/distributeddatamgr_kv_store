@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "rdb_general_ut.h"
 
 namespace DistributedDB {
@@ -183,7 +182,7 @@ HWTEST_F(DistributedDBRDBDataStatusTest, SplitTable001, TestSize.Level0)
     BlockPush(info1_, info2_, DEVICE_SYNC_TABLE);
 }
 
-
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SplitTable002
  * @tc.desc: Test split table sync with diff dev after update time.
@@ -331,6 +330,7 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable006, TestSize.Level1)
     BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, SCHEMA_MISMATCH);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: CollaborationTable007
  * @tc.desc: Test device collaboration search table and search table sync.
@@ -528,6 +528,7 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable013, TestSize.Level1)
     DBStatus callStatus = store->Sync({toDevice}, SYNC_MODE_PUSH_ONLY, query, nullptr, true);
     EXPECT_EQ(callStatus, NOT_SUPPORT);
 }
+#endif
 
 /**
  * @tc.name: CreateDistributedTableTest001
@@ -603,5 +604,5 @@ HWTEST_F(DistributedDBRDBDataStatusTest, TimeCheck001, TestSize.Level0)
     EXPECT_EQ(ret, E_OK);
     EXPECT_GE(t2, t1);
 }
-}
 #endif
+}

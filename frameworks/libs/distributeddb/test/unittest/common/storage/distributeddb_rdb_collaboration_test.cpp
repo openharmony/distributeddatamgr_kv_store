@@ -12,8 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_DISTRIBUTEDDB_CLOUD
-#ifdef USE_DISTRIBUTEDDB_CLOUD
 #include <gtest/gtest.h>
 #include <variant>
 
@@ -189,6 +187,8 @@ void DistributedDBRDBCollaborationTest::CloseDb()
     }
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: SetSchema001
  * @tc.desc: Test set distributed schema.
@@ -2896,6 +2896,6 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync006, TestSize.Level0)
         EXPECT_EQ(callStatus, NOT_SUPPORT);
     }
 }
+#endif
+#endif
 }
-#endif
-#endif

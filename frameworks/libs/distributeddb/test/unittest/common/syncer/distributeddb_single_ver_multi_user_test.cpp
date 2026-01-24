@@ -455,7 +455,6 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
      */
     g_mgr1.SetSyncActivationCheckCallback(g_syncActivationCheckCallback1);
-
     std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
     EXPECT_TRUE(observer != nullptr);
     /**
@@ -464,7 +463,6 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
      */
     g_mgr1.SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true));
-
     /**
      * @tc.steps: step2. RunCommunicatorLackCallback
      * @tc.expected: step2. success.
@@ -499,7 +497,6 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
     Value actualValue;
     g_kvDelegatePtr2->Get(key, actualValue);
     EXPECT_EQ(actualValue, value);
-
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_KV);
     CloseStore();
@@ -538,7 +535,6 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
     EXPECT_TRUE(g_mgr1.EnableKvStoreAutoLaunch(USER_ID_2, APP_ID, STORE_ID, option, notifier) == OK);
     EXPECT_TRUE(g_mgr1.EnableKvStoreAutoLaunch(USER_ID_1, APP_ID, STORE_ID, option, notifier) == OK);
     DistributedDBToolsUnitTest::Dump();
-
     /**
      * @tc.steps: step3. RunCommunicatorLackCallback
      * @tc.expected: step3. userId2 open db successfully.

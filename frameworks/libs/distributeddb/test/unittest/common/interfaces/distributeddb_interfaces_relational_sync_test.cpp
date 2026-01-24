@@ -413,7 +413,6 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest008, TestS
     EXPECT_EQ(errCode, OK);
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: RelationalSyncTest009
   * @tc.desc: Test sync with invalid query
@@ -452,7 +451,6 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest009, TestS
 
     EXPECT_EQ(status, OK);
 }
-#endif
 
 /**
   * @tc.name: RelationalSyncTest010
@@ -487,7 +485,6 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest010, TestS
     EXPECT_EQ(errCode, DISTRIBUTED_SCHEMA_CHANGED);
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: UpdatePrimaryKeyTest001
   * @tc.desc: Test update data's primary key
@@ -513,7 +510,6 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpdatePrimaryKeyTest001, Tes
         "_log");
     EXPECT_EQ(cnt, 2);
 }
-#endif
 
 /**
   * @tc.name: UpgradeTriggerTest001
@@ -613,7 +609,6 @@ void CheckSyncData(sqlite3 *db, const std::string &checkSql, const std::vector<V
 }
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SyncLimitTest001
   * @tc.desc: Sync device with limit query
@@ -638,7 +633,6 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncLimitTest001, TestSize.L
     std::string checkSql = "select * from sync_data limit 4500 offset 100;";
     CheckSyncData(db, checkSql, data);
 }
-#endif
 
 /**
   * @tc.name: SyncLimitTest002
@@ -1145,6 +1139,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncRangeTest001, 
     EXPECT_EQ(errCode, NOT_SUPPORT);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: RelationalSyncTest011
   * @tc.desc: Test sync with invalid parm
@@ -1204,4 +1199,5 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RelationalSyncTest011, TestS
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     delete observer;
 }
+#endif
 #endif

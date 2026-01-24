@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 
 #include "db_common.h"
@@ -288,6 +287,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start003, TestSize.Level1)
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: start004
   * @tc.desc: Test the nb operations return BUSY after transaction started.
@@ -340,6 +340,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start004, TestSize.Level4)
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_transaction_start004"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 /**
   * @tc.name: commit001
@@ -1098,4 +1099,3 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, rollback008, TestSize.Level1)
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_transaction_rollback008"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
-#endif

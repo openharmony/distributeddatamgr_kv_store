@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <queue>
 #include <random>
@@ -393,8 +392,8 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
     EXPECT_EQ(status, OK);
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifdef USE_DISTRIBUTEDDB_CLOUD
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: RelationalStoreTest004
   * @tc.desc: Test create distributed table with over limit for DEVICE_COOPERATION type
@@ -2198,4 +2197,3 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, GetDbHandleConcurrentlyTest001, 
     EXPECT_EQ(status, OK);
 }
 }
-#endif
