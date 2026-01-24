@@ -1791,5 +1791,26 @@ HWTEST_F(DistributedDBRelationalGetDataTest, EraseDeviceWaterMark001, TestSize.L
     ASSERT_NE(syncAbleEngine, nullptr);
     EXPECT_EQ(syncAbleEngine->EraseDeviceWaterMark("", true), -E_INVALID_ARGS);
 }
+
+/**
+ * @tc.name: RegexpMatchExample001
+ * @tc.desc: Test relational support regexp_match.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zengchuanrui
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, RegexpMatchExample001, TestSize.Level1)
+{
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+
+    SqlCondition condition;
+    condition.sql = "SELECT REGEXP_MATCH('a', 'a') = TRUE";
+    condition.readOnly = true;
+
+    std::vector<VBucket> records;
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), E_OK);
+    EXPECT_EQ(records.size(), 1);
+}
 }
 #endif
