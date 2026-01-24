@@ -21,10 +21,6 @@
 
 namespace DistributedDB {
 
-namespace {
-constexpr int E_OK = 0;
-}
-
 /**
  * @brief is_entity_duplicate user defined function
  */
