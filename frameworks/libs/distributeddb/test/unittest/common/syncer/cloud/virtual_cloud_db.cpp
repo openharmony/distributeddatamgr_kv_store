@@ -726,6 +726,7 @@ void VirtualCloudDb::SetUploadRecordStatus(DBStatus status)
 
 DBStatus VirtualCloudDb::QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
 {
+    (void) ICloudDb::QueryAllGid(tableName, extend, data);
     if (forkQueryAllGid_) {
         return forkQueryAllGid_(tableName, extend, data);
     }
