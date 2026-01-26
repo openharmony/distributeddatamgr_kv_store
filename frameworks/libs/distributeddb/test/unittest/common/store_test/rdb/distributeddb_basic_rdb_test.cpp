@@ -15,6 +15,7 @@
 
 #include "rdb_general_ut.h"
 #include "sqlite_relational_utils.h"
+#include "gspd_api_manager.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -346,7 +347,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbUtilsTest001, TestSize.Level0)
 
 const std::string TEST_TABLE = "entity_test_table";
 
-// 辅助函数：准备SQL语句
+// prepare sql statement
 sqlite3_stmt* PrepareStatement(sqlite3* db, const std::string& sql)
 {
     sqlite3_stmt* stmt = nullptr;
@@ -357,9 +358,9 @@ sqlite3_stmt* PrepareStatement(sqlite3* db, const std::string& sql)
     return stmt;
 }
 
-// 测试实体JSON字符串定义
+// entity JSON string definition for test
 namespace TestEntities {
-    // 实体类型1: 作业待办 - 数学作业
+    // entity type 1: homework to do - math homework
     const std::string MATH_HOMEWORK = R"({
         "subject": "数学",
         "assignment_name": "作业1",
@@ -370,7 +371,7 @@ namespace TestEntities {
         "issue_date": 1632940800
     })";
 
-    // 实体类型1: 作业待办 - 数学作业不同日期 (只有一个必选字段不同)
+    // entity type 1: homework to do - math homework with different date
     const std::string MATH_HOMEWORK_DIFFERENT_DATE = R"({
         "subject": "数学",
         "assignment_name": "作业1",
@@ -384,16 +385,20 @@ namespace TestEntities {
 
 /**
  * @tc.name: RdbIsEntityDuplicate003
- * @tc.desc: 基础功能测试 - 部分字段相同应该返回不重复
+ * @tc.desc: Basic Functionality Test - Returns false if some fields match
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author:
  */
 HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
 {
+    if (!CheckGSPDApi()) {
+        GTEST_SKIP() << "GSPD Api unavailable for current test environment";
+    }
+
     /**
-     * @tc.steps: step1. 创建测试表
-     * @tc.expected: step1. 创建成功
+     * @tc.steps: step1. create test table
+     * @tc.expected: step1. ok
      */
     RelationalStoreDelegate::Option option;
     option.tableMode = DistributedTableMode::COLLABORATION;
@@ -407,8 +412,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
     EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
 
     /**
-     * @tc.steps: step2. 插入数学作业数据 (实体类型1)
-     * @tc.expected: step2. 插入成功
+     * @tc.steps: step2. insert math homework data (entity type 1)
+     * @tc.expected: step2. ok
      */
     std::string insertSql = "INSERT INTO " + TEST_TABLE + " (id, content_type, page_content) VALUES (1, 1, ?)";
 
@@ -424,8 +429,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
     sqlite3_finalize(stmt);
 
     /**
-     * @tc.steps: step3. 使用is_entity_duplicate查询部分字段相同实体
-     * @tc.expected: step3. 返回0 (false)，表示不重复
+     * @tc.steps: step3. query with is_entity_duplicate
+     * @tc.expected: step3. return false
      */
     std::string querySql = "SELECT is_entity_duplicate(page_content, ?) FROM " + TEST_TABLE + " WHERE id = 1";
 
@@ -437,7 +442,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
 
     EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
     int result = sqlite3_column_int(stmt, 0);
-    EXPECT_EQ(result, 0);  // 应该返回false，因为有一个必选字段不同
+    EXPECT_EQ(result, 0);  // expect return false
     sqlite3_finalize(stmt);
 }
 }

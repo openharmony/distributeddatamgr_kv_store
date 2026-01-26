@@ -76,4 +76,19 @@ void UnloadApiInfo(GSPD_APIInfo *gspdApiInfo)
 #endif
 }
 
+bool CheckGSPDApi(void)
+{
+#ifndef _WIN32
+    bool exist = true;
+    if (g_library == nullptr) {
+        GetApiInfoInstance();
+        exist = (g_library != nullptr);
+        UnloadApiInfo(&g_gspdProcessApiInfo);
+    }
+    return exist;
+#else
+    return false;
+#endif
+}
+
 } // namespace DistributedDB
