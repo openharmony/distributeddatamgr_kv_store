@@ -981,7 +981,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &t
     } else if (IsNeedMarkUploadFinishedWithErr(uploadExtend)) {
         sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN " +
             "(flag & ~" + compensatedBit + " & ~" + inconsistencyBit + ") | " + uploadFinishBit +
-            " ELSE (flag & ~" + compensatedBit + ") | " + uploadFinishBit;
+            " ELSE (flag & ~" + compensatedBit + ")";
     } else {
         sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN " +
             "flag & ~" + compensatedBit + " & ~" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
