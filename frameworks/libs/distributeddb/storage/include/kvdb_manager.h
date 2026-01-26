@@ -130,6 +130,8 @@ private:
 
     static bool CheckOpenDBOptionWithCached(const KvDBProperties &properties, IKvDB *kvdb);
 
+    static std::string GenerateKvDBDataDirIdentifier(const KvDBProperties &property);
+
     static std::atomic<KvDBManager *> instance_;
     static std::mutex kvDBLock_;
     static std::mutex instanceLock_;

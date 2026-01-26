@@ -39,6 +39,7 @@ using namespace OHOS;
 using namespace OHOS::DistributedKVStore;
 using namespace ::ohos::data;
 using TaiheOptions = distributedkvstore::Options;
+using TaiheBackupConfig = distributedkvstore::BackupConfig;
 
 static constexpr int MAX_APP_ID_LEN = 256;
 static constexpr int DEVICEID_WIDTH = 4;
@@ -1060,6 +1061,18 @@ public:
         }
     }
 
+    void BackupExSync(TaiheBackupConfig backupConfig)
+    {
+        if (nativeStore_ == nullptr) {
+            ThrowAniError(Status::ILLEGAL_STATE, "");
+            return;
+        }
+        Status status = nativeStore_->Backup(std::string(backupConfig.fileName), std::string(backupConfig.filePath));
+        if (status != Status::SUCCESS) {
+            ThrowAniError(status, "");
+        }
+    }
+
     void RestoreSync(::taihe::string_view file)
     {
         if (nativeStore_ == nullptr) {
@@ -1067,6 +1080,18 @@ public:
             return;
         }
         Status status = nativeStore_->Restore(std::string(file), contextParam_.baseDir);
+        if (status != Status::SUCCESS) {
+            ThrowAniError(status, "");
+        }
+    }
+
+    void RestoreExSync(TaiheBackupConfig backupConfig)
+    {
+        if (nativeStore_ == nullptr) {
+            ThrowAniError(Status::ILLEGAL_STATE, "");
+            return;
+        }
+        Status status = nativeStore_->Restore(std::string(backupConfig.fileName), std::string(backupConfig.filePath));
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
         }
@@ -1090,6 +1115,21 @@ public:
             return {};
         }
         return ani_kvstoreutils::KvStatusMapToTaiheArray(env, results);
+    }
+
+    void DeleteBackupExSync(TaiheBackupConfig backupConfig)
+    {
+        if (nativeStore_ == nullptr) {
+            ThrowAniError(Status::ILLEGAL_STATE, "");
+            return;
+        }
+        std::vector<std::string> files;
+        std::map<std::string, DistributedKv::Status> results;
+        files.emplace_back(std::string(backupConfig.fileName));
+        Status status = nativeStore_->DeleteBackup(files,  std::string(backupConfig.filePath), results);
+        if (status != Status::SUCCESS) {
+            ThrowAniError(status, "");
+        }
     }
 
     void StartTransactionSync()
@@ -1751,6 +1791,10 @@ public:
             ThrowAniError(Status::INVALID_ARGUMENT, "Parameter error:unusable securityLevel");
             return false;
         }
+        if (taiheOptions.rootDir.has_value()) {
+            options.baseDir = taiheOptions.rootDir.value();
+            options.isCustomDir = true;
+        }
         if (!ani_kvstoreutils::IsStoreTypeSupported(options)) {
             ThrowAniError(Status::INVALID_ARGUMENT,
                 "Parameter error:only support DEVICE_COLLABORATION or SINGLE_VERSION");
@@ -1780,7 +1824,8 @@ public:
         if (!parseResult) {
             return MakeEmptyKvStore();
         }
-        kvOptions.baseDir = contextParam_.baseDir;
+
+        kvOptions.baseDir = kvOptions.isCustomDir ? kvOptions.baseDir : contextParam_.baseDir;
         kvOptions.area = contextParam_.area + 1;
         kvOptions.hapName = contextParam_.hapName;
         kvOptions.apiVersion = contextParam_.apiVersion;
@@ -1835,6 +1880,38 @@ public:
         }
     }
 
+    void CloseKVStoreByConfigSync(::taihe::string_view appId, ::taihe::string_view storeId,
+        ::taihe::optional_view<TaiheOptions> options)
+    {
+        if (kvDataManager_ == nullptr) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "KVManager is null, failed!");
+            return;
+        }
+        if (std::string(appId).empty()) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "Parameter error:appId empty");
+            return;
+        }
+        if (!ani_kvstoreutils::IsValidStoreId(std::string(storeId))) {
+            ThrowAniError(Status::INVALID_ARGUMENT,
+                "Parameter error:storeId must be string,consist of letters, digits,"\
+                " underscores(_), limit 128 characters");
+            return;
+        }
+
+        DistributedKv::AppId kvAppId = { std::string(appId) };
+        DistributedKv::StoreId kvStoreId = { std::string(storeId) };
+        DistributedKv::Options kvOptions;
+        bool parseResult = ParseOptions(options.value(), kvOptions);
+        if (!parseResult) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "option parse failed");
+            return;
+        }
+        Status status = kvDataManager_->CloseKvStore(kvAppId, kvStoreId, kvOptions.baseDir);
+        if (status != Status::SUCCESS && status != Status::STORE_NOT_FOUND && status != Status::STORE_NOT_OPEN) {
+            ThrowAniError(status, "");
+        }
+    }
+
     void DeleteKVStoreSync(::taihe::string_view appId, ::taihe::string_view storeId)
     {
         if (kvDataManager_ == nullptr) {
@@ -1857,6 +1934,38 @@ public:
         ZLOGE("DeleteKVStoreSync 3, status %{public}d, DISTRIBUTEDDATAMGR_ERR_OFFSET %{public}d", status,
             DistributedKv::DISTRIBUTEDDATAMGR_ERR_OFFSET);
         if (status != Status::SUCCESS) {
+            ThrowAniError(status, "");
+        }
+    }
+
+    void DeleteKVStoreByConfigSync(::taihe::string_view appId, ::taihe::string_view storeId,
+        ::taihe::optional_view<TaiheOptions> options)
+    {
+        if (kvDataManager_ == nullptr) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "KVManager is null, failed!");
+            return;
+        }
+        if (std::string(appId).empty()) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "Parameter error:appId empty");
+            return;
+        }
+        if (!ani_kvstoreutils::IsValidStoreId(std::string(storeId))) {
+            ThrowAniError(Status::INVALID_ARGUMENT,
+                "Parameter error:storeId must be string,consist of letters, digits,"\
+                " underscores(_), limit 128 characters");
+            return;
+        }
+
+        DistributedKv::AppId kvAppId = { std::string(appId) };
+        DistributedKv::StoreId kvStoreId = { std::string(storeId) };
+        DistributedKv::Options kvOptions;
+        bool parseResult = ParseOptions(options.value(), kvOptions);
+        if (!parseResult) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "option parse failed");
+            return;
+        }
+        Status status = kvDataManager_->DeleteKvStore(kvAppId, kvStoreId, kvOptions.baseDir);
+        if (status != Status::SUCCESS && status != Status::STORE_NOT_FOUND && status != Status::STORE_NOT_OPEN) {
             ThrowAniError(status, "");
         }
     }

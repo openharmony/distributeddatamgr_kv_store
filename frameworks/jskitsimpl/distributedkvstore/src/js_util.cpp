@@ -1039,6 +1039,30 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
     ASSERT(statusMsg.status == napi_ok, "get securityLevel failed", statusMsg);
     statusMsg = GetLevel(level, options.securityLevel);
     ASSERT(statusMsg.status == napi_ok, "invalid securityLevel", statusMsg);
+
+    bool hasRootDir = false;
+    napi_has_named_property(env, in, "rootDir", &hasRootDir);
+    if (hasRootDir) {
+        std::string rootDir = "";
+        statusMsg = GetNamedProperty(env, in, "rootDir", rootDir, true);
+        ASSERT(statusMsg.status == napi_ok, "get rootDir param failed", statusMsg);
+        if (statusMsg.status == napi_ok) {
+            options.baseDir = rootDir;
+            options.isCustomDir = true;
+        }
+    }
+    return napi_ok;
+}
+
+/* napi_value <-> DistributedKv::BackupConfig */
+JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::BackupConfig &backupConfig)
+{
+    ZLOGD("napi_value -> DistributedKv::BackupConfig ");
+    JSUtil::StatusMsg statusMsg = napi_invalid_arg;
+    statusMsg = GetNamedProperty(env, in, "fileName", backupConfig.fileName, true);
+    ASSERT(statusMsg.status == napi_ok, "get fileName failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "filePath", backupConfig.filePath, true);
+    ASSERT(statusMsg.status == napi_ok, "get filePath failed", statusMsg);
     return napi_ok;
 }
 

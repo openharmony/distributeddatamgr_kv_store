@@ -226,6 +226,9 @@ void DistributedDBCloudKvSyncerTest::GetSingleStore()
         DBCommon::GenerateIdentifierId(STORE_ID_1, APP_ID, USER_ID, "", 0));
     prop.SetStringProp(DBProperties::IDENTIFIER_DATA, hashIdentifier);
     prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
+    std::string dataDirIdentifier = hashDataDir + hashIdentifier;
+    prop.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
     int errCode = E_OK;
     singleStore_ = static_cast<SQLiteSingleVerNaturalStore *>(KvDBManager::OpenDatabase(prop, errCode));
     ASSERT_NE(singleStore_, nullptr);

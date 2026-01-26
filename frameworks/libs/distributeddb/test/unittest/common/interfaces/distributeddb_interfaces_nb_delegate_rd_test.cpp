@@ -1537,8 +1537,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, OpenStorePathCheckTest001, Tes
     KvStoreDelegateManager mgr2(APP_ID, USER_ID);
     mgr2.SetKvStoreConfig({dir2});
     mgr2.GetKvStore(STORE_ID_1, g_option, callback2);
-    EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
-    ASSERT_EQ(delegate2, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(delegate2, nullptr);
 
     mgr1.CloseKvStore(delegate1);
     mgr1.DeleteKvStore(STORE_ID_1);

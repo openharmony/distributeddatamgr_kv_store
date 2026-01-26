@@ -271,6 +271,16 @@ void DBCommon::SetDatabaseIds(KvDBProperties &properties, const DbIdParam &dbIdP
     std::string hashDir = TransferHashString(oriStoreDir);
     std::string hexHashDir = TransferStringToHex(hashDir);
     properties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, hexHashDir);
+    bool isMemoryDb = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    std::string curIdentifier = properties.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+    if (isMemoryDb) {
+        properties.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, curIdentifier);
+    } else {
+        std::string dataDir = properties.GetStringProp(KvDBProperties::DATA_DIR, "");
+        std::string hashDataDir = TransferHashString(dataDir);
+        std::string dataDirIdentifier = hashDataDir + curIdentifier;
+        properties.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
+    }
 }
 
 std::string DBCommon::StringMasking(const std::string &oriStr, size_t remain)

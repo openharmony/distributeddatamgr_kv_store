@@ -19,6 +19,7 @@
 #include "virtual_cloud_db.h"
 
 namespace DistributedDB {
+KvStoreConfig KVGeneralUt::kvStoreConfig_;
 void KVGeneralUt::SetUp()
 {
     virtualCloudDb_ = std::make_shared<VirtualCloudDb>();
@@ -30,15 +31,17 @@ void KVGeneralUt::TearDown()
 {
     CloseAllDelegate();
     virtualCloudDb_ = nullptr;
+    kvStoreConfig_ = {};
+    option_ = {};
     BasicUnitTest::TearDown();
 }
 
 int KVGeneralUt::InitDelegate(const StoreInfo &info)
 {
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
     KvStoreDelegateManager manager(info.appId, info.userId);
     manager.SetKvStoreConfig(GetKvStoreConfig());
     KvStoreNbDelegate::Option option;
-    std::lock_guard<std::mutex> autoLock(storeMutex_);
     if (option_.has_value()) {
         option = option_.value();
     }
@@ -57,7 +60,9 @@ int KVGeneralUt::InitDelegate(const StoreInfo &info)
         manager.SetProcessCommunicator(processCommunicator_);
     }
 #endif
-    stores_[info] = store;
+    KvStoreConfig cfg;
+    StoreInfoEx infoEx = { info, GetKvStoreConfig(), option.isMemoryDb };
+    stores_[infoEx] = store;
     LOGI("[KVGeneralUt] Init delegate app %s store %s user %s success", info.appId.c_str(),
          info.storeId.c_str(), info.userId.c_str());
     return E_OK;
@@ -66,7 +71,13 @@ int KVGeneralUt::InitDelegate(const StoreInfo &info)
 int KVGeneralUt::CloseDelegate(const StoreInfo &info)
 {
     std::lock_guard<std::mutex> autoLock(storeMutex_);
-    auto iter = stores_.find(info);
+    KvStoreConfig cfg;
+    bool isMemoryDb = false;
+    if (option_.has_value()) {
+        isMemoryDb = option_.value().isMemoryDb;
+    }
+    StoreInfoEx infoEx = { info, GetKvStoreConfig(), isMemoryDb };
+    auto iter = stores_.find(infoEx);
     if (iter == stores_.end()) {
         LOGW("[KVGeneralUt] Close not exist delegate app %s store %s user %s", info.appId.c_str(),
             info.storeId.c_str(), info.userId.c_str());
@@ -88,15 +99,19 @@ int KVGeneralUt::CloseDelegate(const StoreInfo &info)
 
 void KVGeneralUt::CloseAllDelegate()
 {
-    std::vector<StoreInfo> infoList;
+    std::vector<StoreInfoEx> infoList;
     {
         std::lock_guard<std::mutex> autoLock(storeMutex_);
         for (const auto &item : stores_) {
             infoList.push_back(item.first);
         }
     }
-    for (const auto &info : infoList) {
-        (void)CloseDelegate(info);
+    for (const auto &infoEx : infoList) {
+        SetKvStoreConfig(infoEx.kvStoreConfig);
+        KvStoreNbDelegate::Option option;
+        option.isMemoryDb = infoEx.isMemoryDb;
+        SetOption(option);
+        (void)CloseDelegate(infoEx.storeInfo);
     }
 }
 
@@ -108,6 +123,9 @@ void KVGeneralUt::SetOption(const KvStoreNbDelegate::Option &option)
 
 KvStoreConfig KVGeneralUt::GetKvStoreConfig()
 {
+    if (!kvStoreConfig_.dataDir.empty()) {
+        return kvStoreConfig_;
+    }
     KvStoreConfig config;
     config.dataDir = GetTestDir();
     return config;
@@ -116,7 +134,13 @@ KvStoreConfig KVGeneralUt::GetKvStoreConfig()
 KvStoreNbDelegate *KVGeneralUt::GetDelegate(const DistributedDB::StoreInfo &info) const
 {
     std::lock_guard<std::mutex> autoLock(storeMutex_);
-    auto iter = stores_.find(info);
+    KvStoreConfig cfg;
+    bool isMemoryDb = false;
+    if (option_.has_value()) {
+        isMemoryDb = option_.value().isMemoryDb;
+    }
+    StoreInfoEx infoEx = { info, GetKvStoreConfig(), isMemoryDb };
+    auto iter = stores_.find(infoEx);
     if (iter == stores_.end()) {
         LOGW("[KVGeneralUt] Not exist delegate app %s store %s user %s", info.appId.c_str(),
             info.storeId.c_str(), info.userId.c_str());
@@ -306,5 +330,26 @@ void KVGeneralUt::SetActionStatus(DBStatus status)
 {
     std::lock_guard<std::mutex> autoLock(storeMutex_);
     virtualCloudDb_->SetActionStatus(status);
+}
+
+void KVGeneralUt::SetKvStoreConfig(const KvStoreConfig &kvStoreConfig)
+{
+    kvStoreConfig_ = kvStoreConfig;
+}
+
+DBStatus KVGeneralUt::DeleteKvStore(const StoreInfo &info)
+{
+    std::lock_guard<std::mutex> autoLock(storeMutex_);
+    KvStoreDelegateManager manager(info.appId, info.userId);
+    manager.SetKvStoreConfig(GetKvStoreConfig());
+    auto ret = manager.DeleteKvStore(info.storeId);
+    if (ret != DBStatus::OK) {
+        LOGW("[KVGeneralUt] Delete kv store app %s store %s user %s failed %d", info.appId.c_str(),
+            info.storeId.c_str(), info.userId.c_str(), static_cast<int>(ret));
+        return ret;
+    }
+    LOGI("[KVGeneralUt] Delete kv store app %s store %s user %s success", info.appId.c_str(),
+        info.storeId.c_str(), info.userId.c_str());
+    return DBStatus::OK;
 }
 }

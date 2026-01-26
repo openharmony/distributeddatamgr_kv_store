@@ -526,7 +526,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb001, TestSize.Leve
 
 /**
   * @tc.name: CreateMemoryDb002
-  * @tc.desc: The MemoryDB cannot be created or open, when the physical database has been opened
+  * @tc.desc: The MemoryDB can be created or open, when the physical database has been opened
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: sunpeng
@@ -550,10 +550,12 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb002, TestSize.Leve
      */
     option.isMemoryDb = false;
     g_mgr.GetKvStore("distributed_Memorykvstore_002", option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus != OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
     g_mgr.CloseKvStore(delegate1);
     delegate1 = nullptr;
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 #ifndef OMIT_MULTI_VER
@@ -2647,8 +2649,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OpenStorePathCheckTest001, TestS
     KvStoreDelegateManager mgr2(APP_ID, USER_ID);
     mgr2.SetKvStoreConfig({dir2});
     mgr2.GetKvStore(STORE_ID_1, option, callback2);
-    EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
-    ASSERT_EQ(delegate2, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_NE(delegate2, nullptr);
 
     mgr1.CloseKvStore(delegate1);
     mgr1.DeleteKvStore(STORE_ID_1);

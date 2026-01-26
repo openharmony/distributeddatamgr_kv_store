@@ -435,6 +435,18 @@ EngineState StorageEngine::GetEngineState() const
     return engineState_;
 }
 
+const std::string StorageEngine::GetDataDirIdentifier() const
+{
+    std::lock_guard<std::mutex> lock(dataDirIdMutex_);
+    return dataDirIdentifier_;
+}
+
+void StorageEngine::SetDataDirIdentifier(const std::string &dataDirIdentifier)
+{
+    std::lock_guard<std::mutex> lock(dataDirIdMutex_);
+    dataDirIdentifier_ = dataDirIdentifier;
+}
+
 void StorageEngine::SetEngineState(EngineState state)
 {
     if (state != EngineState::MAINDB) {

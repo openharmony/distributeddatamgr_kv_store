@@ -34,6 +34,7 @@ public:
         Status &status, StoreParams &storeParams);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser = 0);
     Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser = 0, bool isForce = false);
+    Status Close(const AppId &appId, const StoreId &storeId, const std::string &baseDir, bool isForce = false);
 
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
@@ -56,7 +57,8 @@ private:
     Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager, const Options &options,
         DBPassword &dbPassword);
     Status SetDbConfig(std::shared_ptr<DBStore> dbStore);
-    std::string GenerateKey(const std::string &userId, const std::string &storeId) const;
+    std::string GenerateKey(const std::string &keyPrefix, const std::string &storeId) const;
+    Status CloseInner(const AppId &appId, const StoreId &storeId, const std::string &keyPrefix, bool isForce);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];

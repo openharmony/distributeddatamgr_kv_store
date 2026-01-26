@@ -105,6 +105,10 @@ enum Status : int32_t {
     */
     TIME_OUT = DISTRIBUTEDDATAMGR_ERR_OFFSET + 15,
     /**
+     * Parameter is invalid.
+    */
+    INVALID_PARAMTER = DISTRIBUTEDDATAMGR_ERR_OFFSET + 16,
+    /**
      * Not support operation.
     */
     NOT_SUPPORT = DISTRIBUTEDDATAMGR_ERR_OFFSET + 17,

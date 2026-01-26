@@ -754,6 +754,9 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest0
     auto property = g_property;
     property.SetStringProp(KvDBProperties::STORE_ID, "ConnectionTest006");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, "ConnectionTest006ID");
+    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
+    std::string dataDirIdentifier = hashDataDir + "ConnectionTest006ID";
+    property.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
     int errCode = E_OK;
     auto storageEngine =
         static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
@@ -763,8 +766,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest0
      * @tc.steps: step2. inc ref count and release it
      */
     RefObject::IncObjRef(storageEngine);
-    const std::string identifier = property.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
-    (void)StorageEngineManager::ForceReleaseStorageEngine(identifier);
+    (void)StorageEngineManager::ForceReleaseStorageEngine(dataDirIdentifier);
     /**
      * @tc.steps: step3. try use engine api and dec ref count
      * @tc.expected: step3. call api ok
