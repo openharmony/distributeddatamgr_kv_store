@@ -182,7 +182,7 @@ void CloudSyncer::SetCurrentTmpError(int errCode)
     cloudTaskInfos_[currentContext_.currentTaskId].tempErrCode = errCode;
 }
 
-int CloudSyncer::DoDownloadInner(TaskId taskId, SyncParam &param, bool isFirstDownload)
+int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload)
 {
     // Query data by batch until reaching end and not more data need to be download
     int ret = PreCheck(taskId, param.info.tableName);
