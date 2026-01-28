@@ -213,4 +213,33 @@ bool AniIsInstanceOf(ani_env* aniEnv, ani_ref aniRef, const std::string& cls_nam
     return ret;
 }
 
+void AniExecuteFunc(ani_vm* vm, const std::function<void(ani_env*)> func)
+{
+    if (vm == nullptr) {
+        ZLOGE("AniExecuteFunc, vm error");
+        return;
+    }
+    ani_env *currentEnv = nullptr;
+    ani_status aniResult = vm->GetEnv(ANI_VERSION_1, &currentEnv);
+    if (ANI_OK == aniResult && currentEnv != nullptr) {
+        ZLOGI("AniExecuteFunc, env exist");
+        func(currentEnv);
+        return;
+    }
+
+    ani_env* newEnv = nullptr;
+    ani_options aniArgs { 0, nullptr };
+    aniResult = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &newEnv);
+    if (ANI_OK != aniResult || newEnv == nullptr) {
+        ZLOGE("AniExecuteFunc, AttachCurrentThread error");
+        return;
+    }
+    func(newEnv);
+    aniResult = vm->DetachCurrentThread();
+    if (ANI_OK != aniResult) {
+        ZLOGE("AniExecuteFunc, DetachCurrentThread error");
+        return;
+    }
+}
+
 } //namespace ani_utils
