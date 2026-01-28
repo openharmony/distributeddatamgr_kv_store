@@ -1064,12 +1064,12 @@ public:
     void BackupExSync(TaiheBackupConfig backupConfig)
     {
         if (nativeStore_ == nullptr) {
-            ThrowAniError(Status::ILLEGAL_STATE, "");
+            ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
         }
         Status status = nativeStore_->Backup(std::string(backupConfig.fileName), std::string(backupConfig.filePath));
         if (status != Status::SUCCESS) {
-            ThrowAniError(status, "");
+            ThrowAniError(status, "", true);
         }
     }
 
@@ -1088,12 +1088,12 @@ public:
     void RestoreExSync(TaiheBackupConfig backupConfig)
     {
         if (nativeStore_ == nullptr) {
-            ThrowAniError(Status::ILLEGAL_STATE, "");
+            ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
         }
         Status status = nativeStore_->Restore(std::string(backupConfig.fileName), std::string(backupConfig.filePath));
         if (status != Status::SUCCESS) {
-            ThrowAniError(status, "");
+            ThrowAniError(status, "", true);
         }
     }
 
@@ -1120,7 +1120,7 @@ public:
     void DeleteBackupExSync(TaiheBackupConfig backupConfig)
     {
         if (nativeStore_ == nullptr) {
-            ThrowAniError(Status::ILLEGAL_STATE, "");
+            ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
         }
         std::vector<std::string> files;
@@ -1128,7 +1128,7 @@ public:
         files.emplace_back(std::string(backupConfig.fileName));
         Status status = nativeStore_->DeleteBackup(files,  std::string(backupConfig.filePath), results);
         if (status != Status::SUCCESS) {
-            ThrowAniError(status, "");
+            ThrowAniError(status, "", true);
         }
     }
 
@@ -1897,16 +1897,20 @@ public:
                 " underscores(_), limit 128 characters");
             return;
         }
-
-        DistributedKv::AppId kvAppId = { std::string(appId) };
+        DistributedKv::AppId kvappId = { std::string(appId) };
         DistributedKv::StoreId kvStoreId = { std::string(storeId) };
         DistributedKv::Options kvOptions;
-        bool parseResult = ParseOptions(options.value(), kvOptions);
-        if (!parseResult) {
-            ThrowAniError(Status::INVALID_ARGUMENT, "option parse failed");
-            return;
+        if (options.has_value()) {
+            bool parseResult = ParseOptions(options.value(), kvOptions);
+            if (!parseResult) {
+                ZLOGE("option parse failed");
+                ThrowAniError(Status::INVALID_ARGUMENT, "option parse failed");
+                return;
+            }
         }
-        Status status = kvDataManager_->CloseKvStore(kvAppId, kvStoreId, kvOptions.baseDir);
+
+        Status status = kvOptions.isCustomDir ? kvDataManager_->CloseKvStore(kvappId, kvStoreId, kvOptions.baseDir) :
+            kvDataManager_->CloseKvStore(kvappId, kvStoreId);
         if (status != Status::SUCCESS && status != Status::STORE_NOT_FOUND && status != Status::STORE_NOT_OPEN) {
             ThrowAniError(status, "");
         }
@@ -1931,8 +1935,6 @@ public:
         DistributedKv::StoreId kvStoreId = { std::string(storeId) };
         std::string databaseDir = contextParam_.baseDir;
         Status status = kvDataManager_->DeleteKvStore(kvappId, kvStoreId, databaseDir);
-        ZLOGE("DeleteKVStoreSync 3, status %{public}d, DISTRIBUTEDDATAMGR_ERR_OFFSET %{public}d", status,
-            DistributedKv::DISTRIBUTEDDATAMGR_ERR_OFFSET);
         if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
         }
@@ -1953,19 +1955,23 @@ public:
             ThrowAniError(Status::INVALID_ARGUMENT,
                 "Parameter error:storeId must be string,consist of letters, digits,"\
                 " underscores(_), limit 128 characters");
-            return;
         }
-
-        DistributedKv::AppId kvAppId = { std::string(appId) };
+        DistributedKv::AppId kvappId = { std::string(appId) };
         DistributedKv::StoreId kvStoreId = { std::string(storeId) };
         DistributedKv::Options kvOptions;
-        bool parseResult = ParseOptions(options.value(), kvOptions);
-        if (!parseResult) {
-            ThrowAniError(Status::INVALID_ARGUMENT, "option parse failed");
-            return;
+        if (options.has_value()) {
+            bool parseResult = ParseOptions(options.value(), kvOptions);
+            if (!parseResult) {
+                ZLOGE("option parse failed");
+                ThrowAniError(Status::INVALID_ARGUMENT, "option parse failed");
+                return;
+            }
         }
-        Status status = kvDataManager_->DeleteKvStore(kvAppId, kvStoreId, kvOptions.baseDir);
-        if (status != Status::SUCCESS && status != Status::STORE_NOT_FOUND && status != Status::STORE_NOT_OPEN) {
+        std::string databaseDir = kvOptions.isCustomDir ? kvOptions.baseDir : contextParam_.baseDir;
+        Status status = kvDataManager_->DeleteKvStore(kvappId, kvStoreId, databaseDir);
+        ZLOGE("DeleteKVStoreSync 3, status %{public}d, DISTRIBUTEDDATAMGR_ERR_OFFSET %{public}d", status,
+            DistributedKv::DISTRIBUTEDDATAMGR_ERR_OFFSET);
+        if (status != Status::SUCCESS) {
             ThrowAniError(status, "");
         }
     }

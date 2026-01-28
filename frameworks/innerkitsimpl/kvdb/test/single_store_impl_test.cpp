@@ -1892,6 +1892,10 @@ HWTEST_F(SingleStoreImplTest, DoSync001, TestSize.Level1)
     kvStore->isClientSync_ = false;
     auto syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
     EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
+    kvStore->isCustomDir_ = true;
+    syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    EXPECT_EQ(syncStatus, Status::NOT_SUPPORT) << "sync device should return not support";
+    kvStore->isCustomDir_ = false;
     kvStore->isClientSync_ = true;
     kvStore->syncObserver_ = nullptr;
     syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);

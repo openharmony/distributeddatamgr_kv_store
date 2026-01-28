@@ -196,8 +196,8 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
         if (argc >= 3 && argv[2] != nullptr) {
             napi_valuetype type = napi_undefined;
             napi_typeof(env, argv[2], &type);
-            if (type == napi_object) {
-                (void)JSUtil::GetValue(env, argv[2], ctxt->options);
+            if (type != napi_object || JSUtil::GetValue(env, argv[2], ctxt->options) != napi_ok) {
+                ZLOGW("the options parameter is invalid");
             }
         }
     };
@@ -207,11 +207,10 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         AppId appId { ctxt->appId };
         StoreId storeId { ctxt->storeId };
-        Status status = ctxt->options.isCustomDir == true
+        Status status = ctxt->options.isCustomDir
             ? reinterpret_cast<JsKVManager*>(ctxt->native)->kvDataManager_.CloseKvStore(appId, storeId,
                 ctxt->options.baseDir)
             : reinterpret_cast<JsKVManager*>(ctxt->native)->kvDataManager_.CloseKvStore(appId, storeId);
-
         status = GenerateNapiError(status, ctxt->jsCode, ctxt->error);
         ZLOGD("CloseKVStore return status:%{public}d", status);
         ctxt->status
@@ -248,10 +247,9 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
             "error:storeId must be string; consist of only letters, digits underscores (_),limit 128 characters");
         if (argc >= 3 && argv[2] != nullptr) {
             napi_valuetype type = napi_undefined;
-            ctxt->status = napi_typeof(env, argv[2], &type);
-            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok), Status::INVALID_PARAMTER, "napi_typeof failed");
-            if (type == napi_object) {
-                ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->options);
+            napi_typeof(env, argv[2], &type);
+            if (type != napi_object || JSUtil::GetValue(env, argv[2], ctxt->options) != napi_ok) {
+                ZLOGW("the options parameter is invalid");
             }
         }
     };
