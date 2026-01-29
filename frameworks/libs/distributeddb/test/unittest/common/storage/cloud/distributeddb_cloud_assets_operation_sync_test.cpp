@@ -1152,6 +1152,43 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation014, T
 }
 
 /**
+ * @tc.name: SyncWithAssetOperation015
+ * @tc.desc: Delete Assets When Upload
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation015, TestSize.Level0)
+{
+    InsertUserTableRecord(tableName_, 0, 10);
+    int uploadCount = 0;
+    virtualCloudDb_->SetLocalAssetNotFound(true);
+    virtualCloudDb_->ForkUpload([this, &uploadCount](const std::string &, VBucket &) {
+        if (uploadCount > 0) {
+            return;
+        }
+        Asset emptyAsset{};
+        std::vector<uint8_t> emptyAssetBlob;
+        RuntimeContext::GetInstance()->AssetToBlob(emptyAsset, emptyAssetBlob);
+        std::vector<Asset> emptyAssets;
+        std::vector<uint8_t> emptyAssetsBlob;
+        RuntimeContext::GetInstance()->AssetsToBlob(emptyAssets, emptyAssetsBlob);
+        string sql = "UPDATE " + tableName_ + " SET asset = ?, assets = ? WHERE id = 0;";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+        ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, emptyAssetBlob, false), E_OK);
+        ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 2, emptyAssetsBlob, false), E_OK);
+        EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+        int errCode = 0;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        uploadCount++;
+    });
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    virtualCloudDb_->ForkUpload(nullptr);
+}
+
+/**
  * @tc.name: IgnoreRecord001
  * @tc.desc: Download Assets When local assets was removed
  * @tc.type: FUNC

@@ -759,6 +759,9 @@ void CloudStorageUtils::FillAssetsForUploadFailed(Assets &assets, Assets &dbAsse
 int CloudStorageUtils::FillAssetForAbnormal(Asset &asset, Asset &dbAsset,
     AssetOperationUtils::AssetOpType assetOpType)
 {
+    if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+        return E_OK;
+    }
     dbAsset.assetId = asset.assetId;
     dbAsset.status = AssetStatus::ABNORMAL;
     LOGW("Asset %s status set to ABNORMAL", DBCommon::StringMiddleMasking(asset.assetId).c_str());
@@ -978,7 +981,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &t
     } else if (IsNeedMarkUploadFinishedWithErr(uploadExtend)) {
         sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN " +
             "(flag & ~" + compensatedBit + " & ~" + inconsistencyBit + ") | " + uploadFinishBit +
-            " ELSE (flag & ~" + compensatedBit + ") | " + uploadFinishBit;
+            " ELSE (flag & ~" + compensatedBit + ")";
     } else {
         sql += "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = (CASE WHEN timestamp = ? THEN " +
             "flag & ~" + compensatedBit + " & ~" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
