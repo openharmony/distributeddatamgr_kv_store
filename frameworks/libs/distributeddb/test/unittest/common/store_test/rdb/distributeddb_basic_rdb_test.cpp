@@ -52,7 +52,9 @@ public:
         ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
         ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
         ASSERT_EQ(SetDistributedTables(info3, {g_defaultTable1}), E_OK);
+        BasicUnitTest::SetLocalDeviceId("dev1");
         BlockPush(info1, info2, g_defaultTable1);
+        BasicUnitTest::SetLocalDeviceId("dev3");
         BlockPush(info3, info2, g_defaultTable1);
         EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
         EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count*2);
@@ -438,7 +440,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest006, TestSiz
 
 /**
  * @tc.name: RdbRemoveDataForOtherDevicesTest007
- * @tc.desc: Local clean should NOT delete data for other device.
+ * @tc.desc: sync A->B->C->A, A call RemoveExceptDeviceData
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
@@ -465,8 +467,14 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest007, TestSiz
     ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
     ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
     ASSERT_EQ(SetDistributedTables(info3, {g_defaultTable1}), E_OK);
+    BasicUnitTest::SetLocalDeviceId("dev1");
     BlockPush(info1, info2, g_defaultTable1);
+    std::string sql = "UPDATE " + g_defaultTable1 + " SET name='update2'";
+    EXPECT_EQ(ExecuteSQL(sql, info2), E_OK);
+    BasicUnitTest::SetLocalDeviceId("dev2");
     BlockPush(info2, info3, g_defaultTable1);
+    sql = "UPDATE " + g_defaultTable1 + " SET name='update3'";
+    EXPECT_EQ(ExecuteSQL(sql, info3), E_OK);
     BlockPush(info3, info1, g_defaultTable1);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
@@ -477,8 +485,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest007, TestSiz
      */
     auto delegateA = GetDelegate(info1);
     ASSERT_NE(delegateA, nullptr);
-    BasicUnitTest::SetLocalDeviceId("localDevice");
-    std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice"}}};
+    BasicUnitTest::SetLocalDeviceId("dev1");
+    std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"dev1"}}};
     EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
 }

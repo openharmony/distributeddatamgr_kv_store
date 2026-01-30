@@ -489,7 +489,7 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataIte
 
     if (!deviceSyncSaveDataInfo.isExist) { // insert
         logInfoBind.wTimestamp = dataItem.writeTimestamp;
-        logInfoBind.originDev = dataItem.dev;
+        logInfoBind.originDev = dataItem.origDev;
     } else { // update
         logInfoBind.wTimestamp = deviceSyncSaveDataInfo.localLogInfo.wTimestamp;
         logInfoBind.originDev = deviceSyncSaveDataInfo.localLogInfo.originDev;
@@ -499,8 +499,12 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataIte
     int bindIndex = 0;
     // 1 means dataKey index
     SQLiteUtils::BindInt64ToStatement(statement, ++bindIndex, std::get<int64_t>(saveVals[DBConstant::ROWID]));
-    std::vector<uint8_t> originDev(logInfoBind.originDev.begin(), logInfoBind.originDev.end());
-    SQLiteUtils::BindBlobToStatement(statement, ++bindIndex, originDev); // 2 means ori_dev index
+    if (logInfoBind.originDev.empty()) { // 2 means ori_dev index
+        SQLiteUtils::BindTextToStatement(statement, ++bindIndex, logInfoBind.originDev);
+    } else {
+        std::vector<uint8_t> originDev(logInfoBind.originDev.begin(), logInfoBind.originDev.end());
+        SQLiteUtils::BindBlobToStatement(statement, ++bindIndex, originDev);
+    }
     SQLiteUtils::BindInt64ToStatement(statement, ++bindIndex, logInfoBind.timestamp); // 3 means timestamp index
     SQLiteUtils::BindInt64ToStatement(statement, ++bindIndex, logInfoBind.wTimestamp); // 4 means w_timestamp index
     SQLiteUtils::BindInt64ToStatement(statement, ++bindIndex, logInfoBind.flag); // 5 means flag index

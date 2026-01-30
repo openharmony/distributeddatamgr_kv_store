@@ -222,6 +222,8 @@ public:
     static int UpdateLocalDataCloudFlag(sqlite3 *db);
 
     static int ProcessStatementErrCode(sqlite3_stmt *&statement, bool isNeedFinalize, int errCode);
+
+    static int PrintChangeRows(sqlite3_stmt *statement);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

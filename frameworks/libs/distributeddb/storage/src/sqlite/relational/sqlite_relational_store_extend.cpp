@@ -26,9 +26,8 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
         return -E_NOT_SUPPORT;
     }
     int errCode = E_OK;
-    bool isTargetDeviceAllEmpty = true;
     std::map<std::string, std::vector<std::string>> filterTableMap = tableMap;
-    for (auto iter = filterTableMap.begin(); iter != filterTableMap.end();) {
+    for (auto iter = filterTableMap.begin(); iter != filterTableMap.end(); ++iter) {
         const std::string tableName = iter->first;
         errCode = CheckTableSyncType(tableName, TableSyncType::DEVICE_COOPERATION);
         if (errCode != E_OK) {
@@ -41,10 +40,8 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
             return errCode;
         }
         if (targetDevices.empty()) {
-            iter = filterTableMap.erase(iter);
             continue;
         }
-        isTargetDeviceAllEmpty = false;
         // erase watermark first
         for (const auto &hashDevice : targetDevices) {
             errCode = syncAbleEngine_->EraseDeviceWaterMark(hashDevice, false, tableName);
@@ -54,11 +51,6 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
                 return errCode;
             }
         }
-        ++iter;
-    }
-    if (isTargetDeviceAllEmpty) {
-        LOGI("[SQLiteRelationalStore] no data need to remove");
-        return E_OK;
     }
     errCode = RemoveExceptDeviceDataInner(filterTableMap);
     if (errCode == E_OK) {
@@ -119,7 +111,7 @@ int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::strin
 
 int SQLiteRelationalStore::CheckTableSyncType(const std::string &tableName, TableSyncType tableSyncType) const
 {
-    TableInfoMap tableInfo = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
+    TableInfoMap tableInfo = sqliteStorageEngine_->GetSchema().GetTables();
     if (tableInfo.empty()) {
         LOGE("[SQLiteRelationalStore] no distributed table found");
         return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;

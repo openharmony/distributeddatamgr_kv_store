@@ -167,6 +167,7 @@ private:
 
     static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table, const std::string &modifyTime);
 
+    static int BindAndStepDevicesToStatement(sqlite3_stmt *stmt, const std::vector<std::string> &keepDevices);
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static int CheckUserCreateSharedTableInner(const TableSchema &oriTable, const TableInfo &sharedTableInfo);
 #endif
