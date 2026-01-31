@@ -53,7 +53,7 @@ void GetApiInfoInstance(void)
     }
     std::string libPath = "libdataflow_engine.z.so";
     g_library = dlopen(libPath.c_str(), RTLD_LAZY);
-    if (!g_library) {
+    if (g_library == nullptr) {
         return;
     }
     GSPD_ApiInit(g_gspdProcessApiInfo);
