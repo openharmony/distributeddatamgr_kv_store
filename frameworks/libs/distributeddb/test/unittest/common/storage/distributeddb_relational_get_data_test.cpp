@@ -23,6 +23,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "generic_single_ver_kv_entry.h"
+#include "gspd_api_manager.h"
 #include "kvdb_properties.h"
 #include "log_print.h"
 #include "relational_schema_object.h"
@@ -1811,6 +1812,99 @@ HWTEST_F(DistributedDBRelationalGetDataTest, RegexpMatchExample001, TestSize.Lev
     std::vector<VBucket> records;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), E_OK);
     EXPECT_EQ(records.size(), 1);
+}
+
+// entity JSON string definition for test
+namespace TestEntities {
+    // full entity with conflict fields pickUpNumber 001
+    const std::string ENTITY_PICK_UP_FOOD_FULL_ONE =
+        R"([{"itemName":"PickUpFood", "itemType":"ONSCREEN_ENTITY", "brandName":"M1",
+        "restaurantName":"R1", "pickUpNumber":"001", "orderNumber":"002", "orderTime":"003", "itemId":"1",
+        "foodType":"FastFood", "foodDescription":"fries", "orderStatus":"finished", "estimatedPickUpTime":"today",
+        "reservationPickUpTime":"today", "pickUpLocation":"London"}])";
+ 
+    // full entity with conflict fields pickUpNumber 002
+    const std::string ENTITY_PICK_UP_FOOD_FULL_TWO =
+        R"([{"itemName":"PickUpFood", "itemType":"ONSCREEN_ENTITY", "brandName":"M1",
+        "restaurantName":"R1", "pickUpNumber":"002", "orderNumber":"002", "orderTime":"003", "itemId":"1",
+        "foodType":"FastFood", "foodDescription":"fries", "orderStatus":"finished", "estimatedPickUpTime":"today",
+        "reservationPickUpTime":"today", "pickUpLocation":"London"}])";
+ 
+    // full entity with conflict fields pickUpNumber 003
+    const std::string ENTITY_PICK_UP_FOOD_FULL_THREE =
+        R"([{"itemName":"PickUpFood", "itemType":"ONSCREEN_ENTITY", "brandName":"M1",
+        "restaurantName":"R1", "pickUpNumber":"003", "orderNumber":"002", "orderTime":"003", "itemId":"1",
+        "foodType":"FastFood", "foodDescription":"fries", "orderStatus":"finished", "estimatedPickUpTime":"today",
+        "reservationPickUpTime":"today", "pickUpLocation":"London"}])";
+}
+ 
+ 
+const std::string TEST_ENTITY_TABLE = "entity_test_table";
+ 
+static void InsertFullEntity(RelationalStoreDelegate *delegate)
+{
+    // 第一个实体插入
+    SqlCondition condition1;
+    condition1.sql = "INSERT INTO " + TEST_ENTITY_TABLE + " (sample_id, onscreen_entity) VALUES ('001', '" +
+        TestEntities::ENTITY_PICK_UP_FOOD_FULL_ONE + "')";
+ 
+    std::vector<VBucket> records1;
+    EXPECT_EQ(delegate->ExecuteSql(condition1, records1), E_OK);
+ 
+    // 第二个实体插入
+    SqlCondition condition2;
+    condition2.sql = "INSERT INTO " + TEST_ENTITY_TABLE + " (sample_id, onscreen_entity) VALUES ('002', '" +
+        TestEntities::ENTITY_PICK_UP_FOOD_FULL_TWO + "')";
+ 
+    std::vector<VBucket> records2;
+    EXPECT_EQ(delegate->ExecuteSql(condition2, records2), E_OK);
+ 
+    // 第三个实体插入
+    SqlCondition condition3;
+    condition3.sql = "INSERT INTO " + TEST_ENTITY_TABLE + " (sample_id, onscreen_entity) VALUES ('003', '" +
+        TestEntities::ENTITY_PICK_UP_FOOD_FULL_THREE + "')";
+ 
+    std::vector<VBucket> records3;
+    EXPECT_EQ(delegate->ExecuteSql(condition3, records3), E_OK);
+}
+ 
+/**
+ * @tc.name: RdbIsEntityDuplicate001
+ * @tc.desc: Basic Functionality Test - Returns true if not conflict
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, RdbIsEntityDuplicate001, TestSize.Level0)
+{
+    if (!CheckGSPDApi()) {
+        GTEST_SKIP() << "GSPD Api unavailable for current test environment";
+    }
+ 
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+ 
+    SqlCondition condition;
+    condition.sql = "CREATE TABLE IF NOT EXISTS " + TEST_ENTITY_TABLE +
+        " (sample_id TEXT PRIMARY KEY, onscreen_entity TEXT)";
+    std::vector<VBucket> records;
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), E_OK);
+ 
+    InsertFullEntity(g_delegate);
+ 
+    SqlCondition condition2;
+    std::string queryEntity = R"([{"itemName":"PickUpFood", "itemType":"ONSCREEN_ENTITY"}])";
+    condition2.sql = "SELECT * FROM " +
+        TEST_ENTITY_TABLE + " where is_entity_duplicate(onscreen_entity, '" + queryEntity + "')";
+    condition2.readOnly = true;
+    std::vector<VBucket> records2;
+    EXPECT_EQ(g_delegate->ExecuteSql(condition2, records2), E_OK);
+    EXPECT_EQ(records2.size(), 3);   // 3 entity
+ 
+    SqlCondition condition3;
+    condition3.sql = "DROP TABLE IF EXISTS " + TEST_ENTITY_TABLE;
+    std::vector<VBucket> records3;
+    EXPECT_EQ(g_delegate->ExecuteSql(condition3, records3), E_OK);
 }
 }
 #endif
