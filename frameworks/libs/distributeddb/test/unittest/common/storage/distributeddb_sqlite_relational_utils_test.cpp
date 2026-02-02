@@ -153,6 +153,10 @@ HWTEST_F(DistributedDBSqliteRelationalUtilsTest, SqliteRelationalUtilsTest001, T
     std::string fileName = "";
     EXPECT_FALSE(SQLiteRelationalUtils::GetDbFileName(g_db, fileName));
     EXPECT_EQ(SQLiteRelationalUtils::SelectServerObserver(g_db, tableName, false), -E_INVALID_ARGS);
+    std::vector<std::string> devices = {"dev1"};
+    EXPECT_EQ(SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(g_db, tableName, devices), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(g_db, tableName, devices), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(g_db, tableName, devices), -E_INVALID_ARGS);
 }
 
 /**

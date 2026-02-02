@@ -539,7 +539,8 @@ HWTEST_F(DistributedDBSqliteUtilsTest, AbnormalBranchErr, TestSize.Level1)
     EXPECT_EQ(-E_INVALID_ARGS, SQLiteUtils::SetPersistWalMode(nullptr));
     EXPECT_EQ(-1, SQLiteUtils::GetLastRowId(nullptr));
     std::string tableName;
-    EXPECT_EQ(-1, SQLiteUtils::CheckTableExists(nullptr, tableName, isEmpty));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::CheckTableExists(nullptr, tableName, isEmpty));
+    EXPECT_EQ(-E_INVALID_DB, SQLiteUtils::PrintChangeRows(nullptr));
 }
 
 /**

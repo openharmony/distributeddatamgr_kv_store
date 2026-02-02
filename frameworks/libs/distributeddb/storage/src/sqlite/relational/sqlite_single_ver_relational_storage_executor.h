@@ -294,6 +294,8 @@ public:
     
     int DeleteDistributedExceptDeviceTableLog(const std::string &removedTable,
         const std::vector<std::string> &keepDevices, const TrackerTable &trackerTable) const;
+
+    int CheckTableExists(const std::string &tableName, bool &isCreated);
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);

@@ -97,6 +97,7 @@ enum DBStatus {
     LOW_VERSION_TARGET, // The target device is a low version device
     NEED_CORRECT_TARGET_USER, // The target user ID is incorrect and needs to be re-obtained
     CLOUD_ASSET_NOT_FOUND, // The cloud download asset return 404 error
+    TABLE_NOT_FOUND,
     SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT, // Whitelist for contact, skip when cloud space insufficient
     EXPIRED_CURSOR, // Cursor is out of date in cloud
     BUTT_STATUS = 27394048 // end of status

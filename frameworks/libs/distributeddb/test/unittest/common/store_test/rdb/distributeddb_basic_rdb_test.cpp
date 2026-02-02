@@ -30,36 +30,9 @@ class DistributedDBBasicRDBTest : public RDBGeneralUt {
 public:
     void SetUp() override;
     void TearDown() override;
-
-    void PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count)
-    {
-        ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
-        ASSERT_EQ(BasicUnitTest::InitDelegate(info2, g_deviceB), E_OK);
-        ASSERT_EQ(BasicUnitTest::InitDelegate(info3, g_deviceC), E_OK);
-        /**
-        * @tc.steps: step1. dev1 insert data
-        * @tc.expected: step1. Ok
-        */
-        InsertLocalDBData(0, count, info1);
-        EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
-        InsertLocalDBData(count, 0, info3);
-        EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
-
-        /**
-        * @tc.steps: step2. create distributed tables and sync to dev2
-        * @tc.expected: step2. Ok
-        */
-        ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
-        ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
-        ASSERT_EQ(SetDistributedTables(info3, {g_defaultTable1}), E_OK);
-        BasicUnitTest::SetLocalDeviceId("dev1");
-        BlockPush(info1, info2, g_defaultTable1);
-        BasicUnitTest::SetLocalDeviceId("dev3");
-        BlockPush(info3, info2, g_defaultTable1);
-        EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
-        EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count*2);
-        EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
-    }
+    static UtDateBaseSchemaInfo GetDefaultSchema();
+    static UtTableSchemaInfo GetTableSchema(const std::string &table, bool noPk = false);
+    void PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count);
 protected:
     static constexpr const char *DEVICE_SYNC_TABLE = "DEVICE_SYNC_TABLE";
     static constexpr const char *CLOUD_SYNC_TABLE = "CLOUD_SYNC_TABLE";
@@ -74,6 +47,57 @@ void DistributedDBBasicRDBTest::SetUp()
 void DistributedDBBasicRDBTest::TearDown()
 {
     RDBGeneralUt::TearDown();
+}
+
+UtDateBaseSchemaInfo DistributedDBBasicRDBTest::GetDefaultSchema()
+{
+    UtDateBaseSchemaInfo info;
+    info.tablesInfo.push_back(GetTableSchema(DEVICE_SYNC_TABLE));
+    return info;
+}
+
+UtTableSchemaInfo DistributedDBBasicRDBTest::GetTableSchema(const std::string &table, bool noPk = false)
+{
+    UtTableSchemaInfo tableSchema;
+    tableSchema.name = table;
+    UtFieldInfo field;
+    field.field.colName = "id";
+    field.field.type = TYPE_INDEX<int64_t>;
+    if (!noPk) {
+        field.field.primary = true;
+    }
+    tableSchema.fieldInfo.push_back(field);
+    return tableSchema;
+}
+
+void DistributedDBBasicRDBTest::PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count)
+{
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info2, g_deviceB), E_OK);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info3, g_deviceC), E_OK);
+    /**
+    * @tc.steps: step1. dev1 insert data
+    * @tc.expected: step1. Ok
+    */
+    InsertLocalDBData(0, count, info1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
+    InsertLocalDBData(count, 0, info3);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
+
+    /**
+    * @tc.steps: step2. create distributed tables and sync to dev2
+    * @tc.expected: step2. Ok
+    */
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
+    ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
+    ASSERT_EQ(SetDistributedTables(info3, {g_defaultTable1}), E_OK);
+    BasicUnitTest::SetLocalDeviceId("dev1");
+    BlockPush(info1, info2, g_defaultTable1);
+    BasicUnitTest::SetLocalDeviceId("dev3");
+    BlockPush(info3, info2, g_defaultTable1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count*2);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
 }
 
 /**
@@ -327,34 +351,52 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest004, TestSiz
     SetOption(option);
     auto info1 = GetStoreInfo1(); // dev1 as A
     auto info2 = GetStoreInfo2(); // dev2 as B
-    auto info3 = GetStoreInfo3(); // dev3 as C
     /**
      * @tc.steps: step1.  prepare remove info and data
      * @tc.expected: step1. Ok
      */
     int count = 2;
-    PrepareRemoveDataStore(info1, info2, info3, count);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info2, g_deviceB), E_OK);
+    auto delegateB = GetDelegate(info2);
+    ASSERT_NE(delegateB, nullptr);
+    BasicUnitTest::SetLocalDeviceId("localDevice");
+    std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice", g_deviceB}}};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
+
+    InsertLocalDBData(0, count, info1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
+    ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
+    BasicUnitTest::SetLocalDeviceId("dev1");
+    BlockPush(info1, info2, g_defaultTable1);
 
     /**
      * @tc.steps: step2. A local clean with invalid args
      */
-    auto delegateB = GetDelegate(info2);
-    ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
-    std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1 + "%log", {"localDevice", g_deviceC}}};
+    clearMap = {{g_defaultTable1 + "%log", {"localDevice", g_deviceB}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
-    clearMap = {{"", {"localDevice", g_deviceC}}};
+    clearMap = {{"", {"localDevice", g_deviceB}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
-    clearMap = {{"notExist", {"localDevice", g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), DISTRIBUTED_SCHEMA_NOT_FOUND);
-    clearMap = {{g_defaultTable1, {g_deviceC}}};
+    clearMap = {{"notExist", {"localDevice", g_deviceB}}};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), TABLE_NOT_FOUND);
+    clearMap = {{g_defaultTable1, {g_deviceB}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
     clearMap = {{g_defaultTable1, {}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
     clearMap = {{g_defaultTable1, {""}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    std::string longInvalid(129, 'a');
+    clearMap = {{g_defaultTable1, {longInvalid}}};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    clearMap = {};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    clearMap = {{g_defaultTable2, {"localDevice", g_deviceC}}};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
+    clearMap = {{g_defaultTable1, {"localDevice", g_deviceA, g_deviceB, "dev4"}}};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
-    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
 }
 
 /**
@@ -489,6 +531,56 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest007, TestSiz
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"dev1"}}};
     EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
+}
+
+/**
+ * @tc.name: RdbRemoveDataForOtherDevicesTest008
+ * @tc.desc: call RemoveExceptDeviceData with tracker table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest008, TestSize.Level0)
+{
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1(); // dev1 as A
+    auto info2 = GetStoreInfo2(); // dev2 as B
+    SetSchemaInfo(info1, GetDefaultSchema());
+    SetSchemaInfo(info2, GetDefaultSchema());
+    /**
+     * @tc.steps: step1.  prepare remove info and data
+     * @tc.expected: step1. Ok
+     */
+    int count = 2;
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info2, g_deviceB), E_OK);
+    InsertLocalDBData(0, count, info1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, DEVICE_SYNC_TABLE), count);
+
+    /**
+    * @tc.steps: step2. set tracker and distributed tables and sync to dev2
+    * @tc.expected: step2. Ok
+    */
+    ASSERT_EQ(SetDistributedTables(info1, {DEVICE_SYNC_TABLE}), E_OK);
+    ASSERT_EQ(SetDistributedTables(info2, {DEVICE_SYNC_TABLE}), E_OK);
+    ASSERT_EQ(SetTrackerTables(info2, {DEVICE_SYNC_TABLE}), E_OK);
+    BasicUnitTest::SetLocalDeviceId("dev1");
+    BlockPush(info1, info2, DEVICE_SYNC_TABLE);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DEVICE_SYNC_TABLE), count);
+
+    /**
+     * @tc.steps: step3. B call RemoveExceptDeviceData with A kept, table is sync-delete
+     * @tc.expected: step3. Ok
+     */
+    auto delegateB = GetDelegate(info2);
+    ASSERT_NE(delegateB, nullptr);
+    BasicUnitTest::SetLocalDeviceId("dev2");
+    std::map<std::string, std::vector<std::string>> clearMap = {{DEVICE_SYNC_TABLE, {"dev2", "dev4"}}};
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DEVICE_SYNC_TABLE), 0);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE), g_deviceA), count);
 }
 #endif
 

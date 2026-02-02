@@ -1240,5 +1240,20 @@ int SQLiteSingleRelationalStorageEngine::PutCloudGid(const std::string &tableNam
     return errCode;
 }
 #endif
+
+int SQLiteSingleRelationalStorageEngine::CheckTableExists(const std::string &tableName, bool &isCreated)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(false, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([this, handle]() {
+        auto releaseHandle = handle;
+        ReleaseExecutor(releaseHandle);
+    });
+    return handle->CheckTableExists(tableName, isCreated);
+}
 }
 #endif

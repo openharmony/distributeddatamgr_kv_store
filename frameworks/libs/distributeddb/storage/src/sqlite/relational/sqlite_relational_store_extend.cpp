@@ -26,14 +26,13 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
         return -E_NOT_SUPPORT;
     }
     int errCode = E_OK;
-    std::map<std::string, std::vector<std::string>> filterTableMap = tableMap;
-    for (auto iter = filterTableMap.begin(); iter != filterTableMap.end(); ++iter) {
-        const std::string tableName = iter->first;
+    for (const auto &tableInfo : tableMap) {
+        const std::string &tableName = tableInfo.first;
         errCode = CheckTableSyncType(tableName, TableSyncType::DEVICE_COOPERATION);
         if (errCode != E_OK) {
             return errCode;
         }
-        std::vector<std::string> keepDevices = iter->second;
+        std::vector<std::string> keepDevices = tableInfo.second;
         std::vector<std::string> targetDevices;
         errCode = GetTargetDevices(keepDevices, targetDevices); // targetDevices is after hash
         if (errCode != E_OK) {
@@ -52,7 +51,7 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
             }
         }
     }
-    errCode = RemoveExceptDeviceDataInner(filterTableMap);
+    errCode = RemoveExceptDeviceDataInner(tableMap);
     if (errCode == E_OK) {
         storageEngine_->NotifySchemaChanged();
     }
@@ -111,15 +110,27 @@ int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::strin
 
 int SQLiteRelationalStore::CheckTableSyncType(const std::string &tableName, TableSyncType tableSyncType) const
 {
+    bool isCreated = false;
+    int errCode = sqliteStorageEngine_->CheckTableExists(tableName, isCreated);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRelationalStore] check table exist failed, %d", errCode);
+        return errCode;
+    }
+    if (!isCreated) {
+        LOGE("[SQLiteRelationalStore] table %s dose not exist in the database",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        return -E_TABLE_NOT_FOUND;
+    }
     TableInfoMap tableInfo = sqliteStorageEngine_->GetSchema().GetTables();
     if (tableInfo.empty()) {
         LOGE("[SQLiteRelationalStore] no distributed table found");
-        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+        return -E_NOT_SUPPORT;
     }
     auto iter = tableInfo.find(tableName);
     if (iter == tableInfo.end()) {
-        LOGE("[SQLiteRelationalStore] table name which is not a distributed table");
-        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+        LOGE("[SQLiteRelationalStore] table %s is not a distributed table",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        return -E_NOT_SUPPORT;
     }
     if (iter->second.GetTableSyncType() != tableSyncType) {
         LOGE("[SQLiteRelationalStore] table with invalid sync type");
