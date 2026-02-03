@@ -36,7 +36,6 @@ public:
 protected:
     static constexpr const char *DEVICE_SYNC_TABLE = "DEVICE_SYNC_TABLE";
     static constexpr const char *CLOUD_SYNC_TABLE = "CLOUD_SYNC_TABLE";
-    RelationalStoreDelegate *g_delegate = nullptr;
 };
 
 void DistributedDBBasicRDBTest::SetUp()
@@ -56,7 +55,7 @@ UtDateBaseSchemaInfo DistributedDBBasicRDBTest::GetDefaultSchema()
     return info;
 }
 
-UtTableSchemaInfo DistributedDBBasicRDBTest::GetTableSchema(const std::string &table, bool noPk = false)
+UtTableSchemaInfo DistributedDBBasicRDBTest::GetTableSchema(const std::string &table, bool noPk)
 {
     UtTableSchemaInfo tableSchema;
     tableSchema.name = table;
@@ -96,7 +95,7 @@ void DistributedDBBasicRDBTest::PrepareRemoveDataStore(StoreInfo &info1, StoreIn
     BasicUnitTest::SetLocalDeviceId("dev3");
     BlockPush(info3, info2, g_defaultTable1);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count*2);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
 }
 
@@ -320,7 +319,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest003, TestSiz
     auto delegateB = GetDelegate(info2);
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
-    std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice", g_deviceC}}, {g_defaultTable2, {"localDevice", g_deviceA}}};
+    std::map<std::string, std::vector<std::string>> clearMap =
+        {{g_defaultTable1, {"localDevice", g_deviceC}}, {g_defaultTable2, {"localDevice", g_deviceA}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
@@ -426,7 +426,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest005, TestSiz
     ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}), E_OK);
     ASSERT_EQ(SetDistributedTables(info2, {g_defaultTable1}), E_OK);
     BlockPush(info1, info2, g_defaultTable1);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DBCommon::GetDistributedTableName(g_deviceA, g_defaultTable1), ""), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2,
+        DBCommon::GetDistributedTableName(g_deviceA, g_defaultTable1), ""), count);
 
     /**
      * @tc.steps: step2. A local clean with invalid tableMode
@@ -437,7 +438,8 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbRemoveDataForOtherDevicesTest005, TestSiz
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice"}}};
     EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DBCommon::GetDistributedTableName(g_deviceA, g_defaultTable1), ""), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2,
+        DBCommon::GetDistributedTableName(g_deviceA, g_defaultTable1), ""), count);
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
