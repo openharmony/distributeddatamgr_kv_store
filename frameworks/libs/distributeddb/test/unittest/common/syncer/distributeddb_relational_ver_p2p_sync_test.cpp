@@ -1597,7 +1597,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, PressureSync001, TestSize.Level1
         subFinish = true;
         cv.notify_all();
     });
-    subThread.detach();
 
     Query query = Query::Select(tableNameB);
     g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true);
@@ -1606,6 +1605,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, PressureSync001, TestSize.Level1
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
     cv.wait(lock, [&subFinish] { return subFinish; });
+    subThread.join();
 }
 
 /*

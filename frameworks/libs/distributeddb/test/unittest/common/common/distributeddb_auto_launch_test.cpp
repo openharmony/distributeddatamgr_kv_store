@@ -587,7 +587,6 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
             threadIsWorking = false;
             cv.notify_one();
         });
-    aggregatorThread.detach();
     AutoLaunchOption option;
     option.notifier = nullptr;
     option.observer = observer;
@@ -608,6 +607,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
 
     observer = nullptr;
     g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
+    aggregatorThread.join();
 }
 
 namespace {

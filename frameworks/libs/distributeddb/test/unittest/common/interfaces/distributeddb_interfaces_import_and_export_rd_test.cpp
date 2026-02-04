@@ -1214,7 +1214,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.L
         readyFlag.store(true);
         backupVar.notify_one();
     });
-    subThread.detach();
 
     /**
      * @tc.steps: step4. import the backup file during the subthread is importing with empty password.
@@ -1226,6 +1225,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.L
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    subThread.join();
 }
 #endif // OMIT_ENCRYPT
 #endif
