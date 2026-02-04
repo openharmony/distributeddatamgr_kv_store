@@ -72,6 +72,7 @@ public:
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
+    int DropTempTable(const std::string &tableName);
 #endif
     int CheckTableExists(const std::string &tableName, bool &isCreated);
 protected:
@@ -99,7 +100,7 @@ private:
     int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
         SQLiteSingleVerRelationalStorageExecutor *&handle);
 
-    int GenLogInfoForUpgrade(const std::string &tableName, RelationalSchemaObject &schema, bool schemaChanged);
+    int GenLogInfoForUpgrade(const std::string &tableName, bool schemaChanged);
 
     static std::map<std::string, std::map<std::string, bool>> GetReachableWithShared(
         const std::map<std::string, std::map<std::string, bool>> &reachableReference,

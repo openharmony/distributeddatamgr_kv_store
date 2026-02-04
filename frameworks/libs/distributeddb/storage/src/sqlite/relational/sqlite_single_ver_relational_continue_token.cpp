@@ -134,9 +134,7 @@ int SQLiteSingleVerRelationalContinueToken::GetDeletedDataStmt(sqlite3 *db, sqli
     return errCode;
 
 ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode;
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 const QueryObject &SQLiteSingleVerRelationalContinueToken::GetQuery() const
@@ -191,7 +189,7 @@ int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, Cloud
     }
     std::string sql = helper.GetRelationalCloudQuerySql(tableSchema_.fields, cloudDataResult.isCloudForcePushStrategy,
         cloudDataResult.isCompensatedTask, cloudDataResult.mode);
-    errCode = helper.GetCloudQueryStatement(true, db, sql, queryStmt_);
+    errCode = helper.GetCloudQueryStatement(true, db, sql, queryStmt_, true);
     if (errCode == E_OK) {
         queryStmt = queryStmt_;
     }

@@ -95,6 +95,7 @@ public:
 
     int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap) override;
 #endif
+
     int OperateDataStatus(uint32_t dataOperator) override;
 
     int SetProperty(const Property &property) override;

@@ -2352,7 +2352,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 
 /*
  * @tc.name: CleanCloudDataTableTest010
- * @tc.desc: test clear-shared-table mode
+ * @tc.desc: test reference property
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
@@ -2363,7 +2363,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     int64_t paddingSize = 20;
     int cloudCount = 20;
     InsertCloudTableRecordAndSync(db, paddingSize, cloudCount);
-    // step2
+    // step2. set reference property
     std::vector<TableReferenceProperty> tableReferenceProperty;
     TableReferenceProperty property;
     property.columns["name"] = "name";
@@ -2371,13 +2371,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     property.targetTableName = g_tables[1];
     tableReferenceProperty.push_back(property);
     g_delegate->SetReference(tableReferenceProperty);
+    // step3. remove device data
     std::string device;
     ClearDeviceDataOption option = {
         DistributedDB::FLAG_AND_DATA,
         device,
         {g_tables[0]}
     };
-    // step3. check if clean all tables
     CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
@@ -2388,7 +2388,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 
 /*
  * @tc.name: CleanCloudDataTableTest011
- * @tc.desc: test clear-shared-table mode
+ * @tc.desc: passing invalid table (sharedtable or p2p)
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
@@ -2417,7 +2417,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 
 /*
  * @tc.name: CloudInsufficientTest001
- * @tc.desc: Test compensated flag should be failed after cloud space insufficient
+ * @tc.desc: Test compensated task should be failed after cloud space insufficient.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
@@ -2431,7 +2431,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CloudInsuff
     int localCount = 20;
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     /**
-     * @tc.steps: step2. make 2th data exist
+     * @tc.steps: step2. prepare compensated task
      */
     int upIdx = 0;
     g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {

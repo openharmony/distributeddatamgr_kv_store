@@ -59,7 +59,7 @@ public:
 
     DB_API static DBStatus SetPermissionConditionCallback(const PermissionConditionCallback &callback);
 
-    DB_API static bool IsProcessSystemApiAdapterValid();
+    static bool IsProcessSystemApiAdapterValid();
 
     DB_API static void SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle);
 

@@ -285,8 +285,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
             return -E_NOT_SUPPORT;
         }
         if (!isEmpty) {
-            LOGW("[CreateDistributedTable] generate %.3s log for existed data, table type %d",
-                DBCommon::TransferStringToHex(DBCommon::TransferHashString(tableName)).c_str(),
+            LOGW("[CreateDistributedTable] generate log %s for existed data, table type %d",
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str(),
                 static_cast<int>(table.GetTableSyncType()));
         }
     }
@@ -734,8 +734,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaData(const std::vector<K
         errCode = E_OK;
         SQLiteUtils::ResetStatement(statement, false, ret);
     }
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
@@ -755,9 +755,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Ke
             errCode = E_OK;
         }
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
@@ -1322,8 +1321,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
         errCode = E_OK; // Check result ok for distributed table is still exists
         SQLiteUtils::ResetStatement(stmt, false, ret);
     }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const std::string &device,
@@ -1432,6 +1431,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetMaxTimestamp(const std::vector<
         if (errCode != E_OK) {
             maxTimestamp = 0;
             return errCode;
+        } else if (ret != E_OK) {
+            LOGE("[GetMaxTimestamp] Reset statement failed: %d", ret);
+            maxTimestamp = 0;
+            return ret;
         }
     }
     return E_OK;
@@ -1545,7 +1548,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
     }
     std::string sql = helper.GetGidRelationalCloudQuerySql(tableSchema_.fields, isCloudForcePushStrategy,
         isCompensatedTask);
-    errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, queryStmt);
+    errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, queryStmt, true);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1904,9 +1907,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLockStatusByGid(const std::stri
     } else {
         LOGE("Get lock status failed: %d", errCode);
     }
-    int resetRet;
-    SQLiteUtils::ResetStatement(stmt, true, resetRet);
-    return errCode;
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKey(DistributedTableMode mode, const TableInfo &tableInfo,
@@ -1990,6 +1991,58 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudGid(const std::string &tab
     std::vector<VBucket> &data) const
 {
     return SQLiteRelationalUtils::PutCloudGid(dbHandle_, tableName, data);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::DropTempTable(const std::string &tableName) const
+{
+    return SQLiteRelationalUtils::DropTempTable(tableName, dbHandle_);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetCloudNoneExistRecordAssets(const TableInfo &tableInfo,
+    int64_t dataRowid, bool &isExistAsset, IAssetLoader::AssetRecord &removeAssets)
+{
+    for (const auto &fieldInfo : tableInfo.GetFieldInfos()) {
+        Assets assets;
+        int errCode = E_OK;
+        if (fieldInfo.IsAssetType()) {
+            errCode = GetAssetOnTable(tableInfo.GetTableName(), fieldInfo.GetFieldName(), {dataRowid}, assets);
+            if (errCode != E_OK) {
+                LOGE("[GetCloudNoneExistRecordAssets] failed to get cloud asset on table, %d.", errCode);
+                return errCode;
+            }
+        } else if (fieldInfo.IsAssetsType()) {
+            errCode = GetCloudAssetsOnTable(tableInfo.GetTableName(), fieldInfo.GetFieldName(), {dataRowid}, assets);
+            if (errCode != E_OK) {
+                LOGE("[GetCloudNoneExistRecordAssets] failed to get cloud assets on table, %d.", errCode);
+                return errCode;
+            }
+        }
+        if (assets.empty()) {
+            continue;
+        }
+        for (auto &asset : assets) {
+            asset.status = AssetStatus::DELETE;
+        }
+        removeAssets.assets[fieldInfo.GetFieldName()] = assets;
+        isExistAsset = true;
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::RemoveCloudNoneExistRecordAssets(const std::string &tableName,
+    std::vector<IAssetLoader::AssetRecord> &removeAssets)
+{
+    if (assetLoader_ == nullptr) {
+        LOGE("[RemoveCloudNoneExistRecordAssets] not set asset loader.");
+        return -E_NOT_SET;
+    }
+    assetLoader_->BatchRemoveLocalAssets(tableName, removeAssets);
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetGidRecordCount(const std::string &tableName, uint64_t &count) const
+{
+    return SQLiteRelationalUtils::GetGidRecordCount(dbHandle_, tableName, count);
 }
 #endif
 

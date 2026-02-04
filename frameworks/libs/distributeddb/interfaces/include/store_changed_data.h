@@ -33,10 +33,10 @@ public:
     DB_API virtual ~StoreChangedData() {}
 
     // Interface for Getting the device whose data changed.
-    DB_API virtual std::string GetDataChangeDevice() const = 0;
+    virtual std::string GetDataChangeDevice() const = 0;
 
     // Interface for Getting the store whose data changed.
-    DB_API virtual void GetStoreProperty(StoreProperty &storeProperty) const = 0;
+    virtual void GetStoreProperty(StoreProperty &storeProperty) const = 0;
 };
 } // namespace DistributedDB
 

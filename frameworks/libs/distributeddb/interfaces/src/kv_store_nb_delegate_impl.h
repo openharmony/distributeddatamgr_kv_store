@@ -189,7 +189,7 @@ public:
     DBStatus UnSubscribeRemoteQuery(const std::vector<std::string> &devices,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
         const Query &query, bool wait) override;
-    
+
     size_t GetSyncDataSize(const std::string &device) const override;
 
     std::pair<DBStatus, WatermarkInfo> GetWatermarkInfo(const std::string &device) override;

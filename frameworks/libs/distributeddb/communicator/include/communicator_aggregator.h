@@ -53,6 +53,8 @@ public:
     CommunicatorAggregator();
     ~CommunicatorAggregator() override;
 
+    int GetLocalIdentity(std::string &outTarget) const override;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     DISABLE_COPY_ASSIGN_MOVE(CommunicatorAggregator);
 
     // See ICommunicatorAggregator for detail
@@ -78,7 +80,6 @@ public:
     uint32_t GetCommunicatorAggregatorTimeout() const;
     uint32_t GetCommunicatorAggregatorTimeout(const std::string &target) const;
     bool IsDeviceOnline(const std::string &device) const;
-    int GetLocalIdentity(std::string &outTarget) const override;
 
     // Get the protocol version of remote target. Return -E_NOT_FOUND if no record.
     int GetRemoteCommunicatorVersion(const std::string &target, uint16_t &outVersion) const;
@@ -182,22 +183,13 @@ private:
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 
-    static std::atomic<bool> isCommunicatorNotFoundFeedbackEnable_;
-
-    std::atomic<bool> shutdown_;
-    std::atomic<uint32_t> incFrameId_;
-    std::atomic<uint64_t> localSourceId_;
-
     // Handle related
     mutable std::mutex commMapMutex_;
     // bool true indicate communicator activated
     std::map<std::string, std::map<LabelType, std::pair<Communicator *, bool>>> commMap_;
     FrameCombiner combiner_;
     FrameRetainer retainer_;
-    SendTaskScheduler scheduler_;
-    IAdapter *adapterHandle_ = nullptr;
-    CommunicatorLinker *commLinker_ = nullptr;
-
+    
     // Thread related
     std::thread exclusiveThread_;
     bool wakingSignal_ = false;
@@ -238,6 +230,16 @@ private:
 
     std::mutex sendSequenceMutex_;
     std::map<std::string, uint64_t> sendSequence_;
+#endif
+    static std::atomic<bool> isCommunicatorNotFoundFeedbackEnable_;
+
+    std::atomic<bool> shutdown_;
+    std::atomic<uint32_t> incFrameId_;
+    std::atomic<uint64_t> localSourceId_;
+
+    SendTaskScheduler scheduler_;
+    IAdapter *adapterHandle_ = nullptr;
+    CommunicatorLinker *commLinker_ = nullptr;
 };
 } // namespace DistributedDB
 

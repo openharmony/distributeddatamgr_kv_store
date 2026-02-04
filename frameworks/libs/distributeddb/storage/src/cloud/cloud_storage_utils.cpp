@@ -1126,7 +1126,7 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
     } else {
         bool isAsyncDownloading = ((static_cast<uint64_t>(*flag) &
             static_cast<uint64_t>(LogInfoFlag::FLAG_ASSET_DOWNLOADING_FOR_ASYNC)) != 0);
-        int errCode = CheckAbnormalData(cloudSyncData, data, isInsert, isAsyncDownloading);
+        int errCode = CheckAbnormalData(cloudSyncData, data, log, isInsert, isAsyncDownloading);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1196,7 +1196,7 @@ void CloudStorageUtils::CheckAbnormalDataInner(const bool isAsyncDownloading, VB
     }
 }
 
-int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, bool isInsert,
+int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, bool isInsert,
     bool isAsyncDownloading)
 {
     if (data.empty()) {
@@ -1208,7 +1208,7 @@ int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &
     CheckAbnormalDataInner(isAsyncDownloading, data, isSyncAssetAbnormal, isAsyncAssetAbnormal);
     if (isSyncAssetAbnormal) {
         std::string gid;
-        (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, log, gid);
         LOGW("This data is abnormal, ignore it when upload, isInsert:%d, gid:%s",
             static_cast<int>(isInsert), gid.c_str());
         cloudSyncData.ignoredCount++;
@@ -1216,7 +1216,7 @@ int CloudStorageUtils::CheckAbnormalData(CloudSyncData &cloudSyncData, VBucket &
     }
     if (isAsyncAssetAbnormal) {
         std::string gid;
-        (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, data, gid);
+        (void)GetValueFromVBucket(CloudDbConstant::GID_FIELD, log, gid);
         LOGW("This data has assets that are not downloaded, upload data only, gid:%s", gid.c_str());
     }
     return E_OK;
@@ -1479,7 +1479,7 @@ int CloudStorageUtils::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStor
         std::vector<VBucket> assets;
         errCode = handle->GetDownloadAssetRecordsByGid(param.tableSchema, logInfo.cloudGid, assets);
         if (errCode != E_OK) {
-            LOGE("[RDBExecutor]Get downloading assets records by gid failed: %d", errCode);
+            LOGE("[CloudStorageUtils] Get downloading assets records by gid failed: %d", errCode);
             return errCode;
         }
         handle->MarkFlagAsUploadFinished(param.tableName, updateData.hashKey[i],
@@ -1574,6 +1574,9 @@ int CloudStorageUtils::ConvertLogToLocal(sqlite3 *dbHandle, const std::string &t
     ResFinalizer finalizer([&stmt] {
         int ret = E_OK;
         SQLiteUtils::ResetStatement(stmt, true, ret);
+        if (ret != E_OK) {
+            LOGW("[CloudStorageUtils][ConvertLogToLocal]Reset stmt failed: %d", ret);
+        }
     });
     int index = 0;
     for (const auto &gid : gids) {

@@ -589,8 +589,7 @@ HWTEST_F(DistributedDBCloudSyncerLockTest, RDBUnlockCloudSync002, TestSize.Level
      * @tc.steps:step2. sync and check process count
      * @tc.expected: step2. return ok.
      */
-    CloudSyncOption option =
-        PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME, tableName }), LockAction::NONE);
+    CloudSyncOption option = PrepareOption(Query::Select().FromTable({ ASSETS_TABLE_NAME, tableName }), LockAction::NONE);
     CallSync(option);
     EXPECT_EQ(queryIdx, 2L);
     EXPECT_EQ(g_allSyncProcess.size(), 4u);

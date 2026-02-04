@@ -589,6 +589,7 @@ HWTEST_F(DistributedDBBasicKVTest, GetKvStore005, TestSize.Level0)
     EXPECT_NE(store2->Get(k1, actualValue), OK);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: GetKvStore006
  * @tc.desc: Test enable when open db with different paths
@@ -644,4 +645,5 @@ HWTEST_F(DistributedDBBasicKVTest, GetKvStore006, TestSize.Level0)
         autoLaunchOption, notifer), ALREADY_SET);
     EXPECT_EQ(manager1.DisableKvStoreAutoLaunch(storeInfo1.userId, storeInfo1.appId, storeInfo1.storeId), OK);
 }
+#endif
 } // namespace DistributedDB

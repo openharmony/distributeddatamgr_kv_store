@@ -764,7 +764,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
      * @tc.expected: step7. success.
      */
     CheckDataInRealDevice();
-
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
@@ -1396,7 +1395,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSiz
      * @tc.expected: step4. deviceA have data from deviceB.
      */
     CheckDataInRealDevice();
-
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_1, SUB_USER_1, APP_ID, STORE_ID, DBType::DB_RELATION);
     ClearAllDevicesData();

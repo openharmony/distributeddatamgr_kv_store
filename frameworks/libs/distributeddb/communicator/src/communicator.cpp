@@ -34,6 +34,11 @@ Communicator:: ~Communicator()
     commAggrHandle_ = nullptr;
 }
 
+int Communicator::GetLocalIdentity(std::string &outTarget) const
+{
+    return commAggrHandle_->GetLocalIdentity(outTarget);
+}
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int Communicator::RegOnMessageCallback(const OnMessageCallback &onMessage, const Finalizer &inOper)
 {
     std::lock_guard<std::mutex> messageHandleLockGuard(messageHandleMutex_);
@@ -73,11 +78,6 @@ uint32_t Communicator::GetCommunicatorMtuSize() const
 uint32_t Communicator::GetCommunicatorMtuSize(const std::string &target) const
 {
     return commAggrHandle_->GetCommunicatorAggregatorMtuSize(target);
-}
-
-int Communicator::GetLocalIdentity(std::string &outTarget) const
-{
-    return commAggrHandle_->GetLocalIdentity(outTarget);
 }
 
 uint32_t Communicator::GetTimeout() const
@@ -302,4 +302,5 @@ bool Communicator::ExchangeClosePending(bool expected)
     return dbClosePending_.compare_exchange_strong(curVal, expected);
 }
 DEFINE_OBJECT_TAG_FACILITIES(Communicator)
+#endif
 } // namespace DistributedDB

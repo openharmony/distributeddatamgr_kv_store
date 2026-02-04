@@ -330,7 +330,6 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable006, TestSize.Level1)
     BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, SCHEMA_MISMATCH);
 }
 
-#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: CollaborationTable007
  * @tc.desc: Test device collaboration search table and search table sync.
@@ -356,6 +355,7 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable007, TestSize.Level1)
     BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, SCHEMA_MISMATCH);
 }
 
+#ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
  * @tc.name: CollaborationTable008
  * @tc.desc: Test device collaboration and cloud collaboration search table sync.

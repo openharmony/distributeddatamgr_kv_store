@@ -743,6 +743,7 @@ void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData &data)
     data.GetStoreProperty(storeProperty_);
     LOGD("Onchangedata : %s", changeDevice_.c_str());
     LOGD("Onchange() called success!");
+    IncCurrentChangeId();
 }
 
 void RelationalStoreObserverUnitTest::OnChange(
@@ -752,6 +753,7 @@ void RelationalStoreObserverUnitTest::OnChange(
     savedChangedData_[data.tableName] = data;
     lastOrigin_ = origin;
     LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
+    IncCurrentChangeId();
 }
 
 uint32_t RelationalStoreObserverUnitTest::GetCallbackDetailsType() const
@@ -1547,6 +1549,33 @@ bool RelationalStoreObserverUnitTest::IsAssetChange(const std::string &table) co
 DistributedDB::Origin RelationalStoreObserverUnitTest::GetLastOrigin() const
 {
     return lastOrigin_;
+}
+
+uint32_t RelationalStoreObserverUnitTest::GetCurrentChangeId() const
+{
+    std::lock_guard<std::mutex> autoLock(changeMutex_);
+    return currentChangeId_;
+}
+
+void RelationalStoreObserverUnitTest::ExecuteActionAfterChange(uint32_t expectGtChangeId,
+    const std::function<void()> &action)
+{
+    {
+        std::unique_lock<std::mutex> uniqueLock(changeMutex_);
+        bool res = changeCv_.wait_for(uniqueLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
+            [this, expectGtChangeId]() {
+            return currentChangeId_ > expectGtChangeId;
+        });
+        EXPECT_TRUE(res);
+    }
+    action();
+}
+
+void RelationalStoreObserverUnitTest::IncCurrentChangeId()
+{
+    std::lock_guard<std::mutex> autoLock(changeMutex_);
+    currentChangeId_++;
+    changeCv_.notify_all();
 }
 
 void DistributedDBToolsUnitTest::BlockSync(KvStoreNbDelegate *delegate, DistributedDB::DBStatus expectDBStatus,

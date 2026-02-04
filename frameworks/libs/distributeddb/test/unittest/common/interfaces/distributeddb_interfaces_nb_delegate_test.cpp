@@ -1176,6 +1176,7 @@ static void CreatEntrys(int recordSize, vector<Key> &keys, vector<Value> &values
 }
 
 #ifndef LOW_LEVEL_MEM_DEV
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SingleVerPutBatch005
   * @tc.desc: Check for legal parameters that the sum size of all entries is smaller than 512M.
@@ -1269,6 +1270,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatch006, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore("distributed_SingleVerPutBatch_006"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 /**
   * @tc.name: SingleVerPutBatch007

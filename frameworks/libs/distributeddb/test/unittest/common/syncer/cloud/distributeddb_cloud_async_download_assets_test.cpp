@@ -1035,6 +1035,9 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, Test
         thread->join();
         delete thread;
     }
+    auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
+    ASSERT_NE(manager, nullptr);
+    EXPECT_EQ(manager->GetCurrentDownloadCount(), 0u);
 }
 
 /**
@@ -1119,7 +1122,7 @@ void DistributedDBCloudAsyncDownloadAssetsTest::CheckLogTable(sqlite3 *&db, cons
 {
     const string sql = "select COUNT(*) from " + DBCommon::GetLogTableName(tableName) + " where data_key>0;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
     LOGW("check log table finished");
 }
 

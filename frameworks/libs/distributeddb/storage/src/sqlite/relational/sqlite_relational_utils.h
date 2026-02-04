@@ -127,6 +127,7 @@ public:
     static const std::string GetTempUpdateLogCursorTriggerSql(const std::string &tableName);
 
     static std::pair<int, TableInfo> AnalyzeTable(sqlite3 *db, const std::string &tableName);
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static int PutCloudGid(sqlite3 *db, const std::string &tableName, std::vector<VBucket> &data);
 
@@ -134,14 +135,18 @@ public:
         int64_t logRowid = 0;
         int64_t dataRowid = 0;
         uint32_t flag = 0;
-        Type pkValue;
+        std::vector<Type> pkValues;
+        std::string gid;
+        bool isExistAsset = false;
+        bool isNeedDelete = false;
     };
 
     static int GetOneBatchCloudNotExistRecord(const std::string &tableName, sqlite3 *db,
-        std::vector<CloudNotExistRecord> &records, const std::string &dataPk);
+        std::vector<CloudNotExistRecord> &records, const std::vector<std::string> &dataPk,
+        std::pair<bool, bool> isNeedDeleted);
 
-    static int DeleteOneRecord(const std::string &tableName, sqlite3 *db, const CloudNotExistRecord &record,
-        bool isLogicDelete, std::vector<Type> &changePk);
+    static int DeleteOneRecord(const std::string &tableName, sqlite3 *db, CloudNotExistRecord &record,
+        bool isLogicDelete);
 
     static int DropTempTable(const std::string &tableName, sqlite3 *db);
 
@@ -150,6 +155,8 @@ public:
     static int CheckUserCreateSharedTable(sqlite3 *db, const TableSchema &oriTable, const std::string &sharedTable);
 
     static std::map<int32_t, std::string> GetCloudFieldDataType();
+
+    static int GetGidRecordCount(sqlite3 *db, const std::string &tableName, uint64_t &count);
 #endif
     static int DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
         const std::vector<std::string> &keepDevices);
@@ -170,6 +177,9 @@ private:
     static int BindAndStepDevicesToStatement(sqlite3_stmt *stmt, const std::vector<std::string> &keepDevices);
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static int CheckUserCreateSharedTableInner(const TableSchema &oriTable, const TableInfo &sharedTableInfo);
+
+    static int FillCloudNotExistRecord(sqlite3_stmt *stmt, const std::vector<std::string> &dataPk,
+        CloudNotExistRecord &record, std::pair<bool, bool> isNeedDeleted);
 #endif
 };
 } // namespace DistributedDB

@@ -382,6 +382,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckPacketTest001, TestSize.Level0)
     ASSERT_TRUE(schema == TEST_SCHEMA);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: SyncStartTest001
  * @tc.desc: Verify Ability sync SyncStart function.
@@ -414,6 +415,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, SyncStart001, TestSize.Level0)
      */
     EXPECT_TRUE(async.SyncStart(1, 1, 1) == -E_PERIPHERAL_INTERFACE_FAIL);
 }
+
 #ifndef OMIT_JSON
 /**
  * @tc.name: RequestReceiveTest001
@@ -485,6 +487,8 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestReceiveTest001, TestSize.Level0)
     RefObject::KillAndDecObjRef(context);
 }
 #endif
+#endif
+
 /**
  * @tc.name: AckReceiveTest001
  * @tc.desc: Verify Ability AckReceive callback.

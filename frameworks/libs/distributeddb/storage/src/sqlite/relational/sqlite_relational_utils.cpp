@@ -1099,9 +1099,17 @@ int SQLiteRelationalUtils::PutCloudGidInner(sqlite3_stmt *stmt, std::vector<VBuc
 }
 
 int SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(const std::string &tableName, sqlite3 *db,
-    std::vector<CloudNotExistRecord> &records, const std::string &dataPk)
+    std::vector<CloudNotExistRecord> &records, const std::vector<std::string> &dataPk,
+    std::pair<bool, bool> isNeedDeleted)
 {
-    std::string sql = "SELECT a._rowid_, a.data_key, b." + dataPk + ", a.flag FROM " +
+    std::string pkColumns;
+    for (size_t i = 0; i < dataPk.size(); ++i) {
+        if (i != 0) {
+            pkColumns += ", ";
+        }
+        pkColumns += ("b." + dataPk[i]);
+    }
+    std::string sql = "SELECT a._rowid_, a.data_key, " + pkColumns + ", a.flag, a.cloud_gid FROM " +
         DBCommon::GetLogTableName(tableName) + " AS a LEFT JOIN " + tableName + " AS b ON (a.data_key = b._rowid_) "
         "WHERE a.cloud_gid IS NOT '' AND a.cloud_gid NOT IN (SELECT cloud_gid FROM naturalbase_rdb_aux_" + tableName +
         "_log_tmp) limit 100;";
@@ -1116,14 +1124,10 @@ int SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(const std::string &tab
         errCode = SQLiteUtils::StepWithRetry(stmt);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             CloudNotExistRecord record;
-            record.logRowid = sqlite3_column_int64(stmt, 0); // col 0 is _rowid_ of log table
-            record.dataRowid = sqlite3_column_int64(stmt, 1); // col 1 is _rowid_ of data table
-            errCode = GetTypeValByStatement(stmt, 2, record.pkValue); // col 2 is pk of data table
+            errCode = FillCloudNotExistRecord(stmt, dataPk, record, isNeedDeleted);
             if (errCode != E_OK) {
-                LOGE("[RDBUtils][GetOneBatchCloudNotExistRecord] Get pk value failed, errCode = %d.", errCode);
                 break;
             }
-            record.flag = sqlite3_column_int(stmt, 3); // col 3 is flag
             records.push_back(record);
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
@@ -1133,37 +1137,33 @@ int SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(const std::string &tab
             break;
         }
     } while (true);
-
     return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
-int SQLiteRelationalUtils::DeleteOneRecord(const std::string &tableName, sqlite3 *db, const CloudNotExistRecord &record,
-    bool isLogicDelete, std::vector<Type> &changePk)
+int SQLiteRelationalUtils::DeleteOneRecord(const std::string &tableName, sqlite3 *db, CloudNotExistRecord &record,
+    bool isLogicDelete)
 {
-    if ((record.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL)) != 0) {
+    if (!record.isNeedDelete) {
         std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
             " SET cloud_gid = '', version = '', flag=flag&" + UPLOAD_CLOUD_UNFINISHED + " where _rowid_ = " +
             std::to_string(record.logRowid) + ";";
         return SQLiteUtils::ExecuteRawSQL(db, sql);
     }
-    changePk.emplace_back(record.pkValue);
     std::string sql;
-    int errCode = E_OK;
     if (!isLogicDelete) {
         sql = "DELETE FROM " + tableName + " WHERE _rowid_ = " + std::to_string(record.dataRowid) + ";";
-        errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
         if (errCode != E_OK) {
             return errCode;
         }
     }
-    uint32_t recordFlag = static_cast<uint32_t>(record.flag);
     int32_t newFlag = isLogicDelete ?
-        ((recordFlag & (static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
+        (((record.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY)) |
             static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE) |
-            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE))) &
+            static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) &
             (~static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL))) :
-        ((recordFlag & (static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) |
-            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE))) &
+        (((record.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY)) |
+            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) &
             (~static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)));
     sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET cloud_gid = '', version = '', flag = " +
           std::to_string(newFlag) + " where _rowid_ = " + std::to_string(record.logRowid) + ";";
@@ -1173,12 +1173,50 @@ int SQLiteRelationalUtils::DeleteOneRecord(const std::string &tableName, sqlite3
 int SQLiteRelationalUtils::DropTempTable(const std::string &tableName, sqlite3 *db)
 {
     std::string sql = "DROP TABLE IF EXISTS " + DBCommon::GetTmpLogTableName(tableName);
-    return SQLiteUtils::ExecuteRawSQL(db, sql);
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils][DropTempTable] drop temp table failed:%d, tableName:%s", errCode,
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::FillCloudNotExistRecord(sqlite3_stmt *stmt, const std::vector<std::string> &dataPk,
+    CloudNotExistRecord &record,  std::pair<bool, bool> isNeedDeleted)
+{
+    int errCode = E_OK;
+    int rowidStart = 0;
+    record.logRowid = sqlite3_column_int64(stmt, rowidStart); // col 0 is _rowid_ of log table
+    record.dataRowid = sqlite3_column_int64(stmt, ++rowidStart); // col 1 is _rowid_ of data table
+    record.pkValues.resize(dataPk.size());
+    for (size_t i = 0; i < dataPk.size(); ++i) { // col 2~2+size(dataPk)-1 is pk of data table
+        errCode = GetTypeValByStatement(stmt, ++rowidStart, record.pkValues[i]);
+        if (errCode != E_OK) {
+            LOGE("[RDBUtils][FillCloudNotExistRecord] Get pk value failed, errCode = %d.", errCode);
+            return errCode;
+        }
+    }
+    int64_t flag = sqlite3_column_int64(stmt, ++rowidStart); // col 2+size(dataPk) is flag
+    if (flag < 0 || flag > static_cast<int64_t>(UINT32_MAX)) {
+        LOGE("[RDBUtils][FillCloudNotExistRecord] Invalid flag value: %lld.", flag);
+        return -E_INVALID_DB;
+    }
+    record.flag = static_cast<uint32_t>(flag);
+    errCode = SQLiteUtils::GetColumnTextValue(stmt, ++rowidStart, record.gid); // col 3+size(dataPk) is cloud gid
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils][FillCloudNotExistRecord] Get gid failed, errCode = %d.", errCode);
+    }
+    record.isNeedDelete = !isNeedDeleted.first &&
+        (((record.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL)) == 0) || isNeedDeleted.second);
+    return errCode;
 }
 
 int SQLiteRelationalUtils::CheckUserCreateSharedTable(sqlite3 *db, const TableSchema &oriTable,
     const std::string &sharedTable)
 {
+    if (sharedTable.empty()) {
+        return E_OK;
+    }
     auto [errCode, sharedTableInfo] = AnalyzeTable(db, sharedTable);
     if (errCode == -E_NOT_FOUND) {
         return E_OK;
@@ -1211,7 +1249,7 @@ int SQLiteRelationalUtils::CheckUserCreateSharedTableInner(const TableSchema &or
     for (const auto &field : oriTable.fields) {
         auto iter = cloudFieldDataTypes.find(field.type);
         if (iter == cloudFieldDataTypes.end()) {
-            LOGE("[RDBUtils] Check shared table[%s] failed by miss field[%s] type[%" PRId32 "]",
+            LOGE("[RDBUtils] Check shared table[%s] failed by miss field[%s] type[%d]",
                 DBCommon::StringMiddleMaskingWithLen(sharedTableInfo.GetTableName()).c_str(),
                 DBCommon::StringMiddleMaskingWithLen(field.colName).c_str(),
                 field.type);
@@ -1254,6 +1292,19 @@ std::map<int32_t, std::string> SQLiteRelationalUtils::GetCloudFieldDataType()
     cloudFieldTypeMap[TYPE_INDEX<Asset>] = "ASSET";
     cloudFieldTypeMap[TYPE_INDEX<Assets>] = "ASSETS";
     return cloudFieldTypeMap;
+}
+
+int SQLiteRelationalUtils::GetGidRecordCount(sqlite3 *db, const std::string &tableName, uint64_t &count)
+{
+    std::string sql = "SELECT COUNT(1) FROM " + DBCommon::GetLogTableName(tableName) + " WHERE cloud_gid != ''";
+    int ret = 0;
+    int errCode = SQLiteUtils::GetCountBySql(db, sql, ret);
+    count = static_cast<uint64_t>(ret);
+    if (errCode == E_OK) {
+        LOGI("[GetGidRecordCount] Local[%s] exist %d record", DBCommon::StringMiddleMaskingWithLen(tableName).c_str(),
+            ret);
+    }
+    return errCode;
 }
 #endif
 

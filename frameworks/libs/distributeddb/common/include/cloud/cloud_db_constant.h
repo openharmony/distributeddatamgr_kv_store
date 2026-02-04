@@ -104,7 +104,6 @@ public:
     static constexpr const uint32_t ON_CHANGE_CLOUD = 0x8;
 
     static constexpr std::chrono::milliseconds DFX_TIME_THRESHOLD = std::chrono::milliseconds(1000);
-
     static constexpr std::chrono::milliseconds LONG_TIME_TRANSACTION = std::chrono::milliseconds(1000);
     static constexpr std::chrono::milliseconds LONG_TRANSACTION_INTERVAL = std::chrono::milliseconds(50);
 };

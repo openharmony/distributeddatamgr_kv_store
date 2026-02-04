@@ -1519,7 +1519,6 @@ void PrepareForSyncMergeTest(std::vector<std::string> &devices, int &sendRequest
     ASSERT_TRUE(status == OK);
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: PushSyncMergeCheck003
  * @tc.desc: Test push sync task merge, task can not be merged when there is change in db since last push sync
@@ -1571,7 +1570,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck003, TestSize.Lev
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
     EXPECT_EQ(sendRequestCount, 1);
 }
-#endif
 
 /**
  * @tc.name: PushSyncMergeCheck004
@@ -1625,7 +1623,6 @@ void RegOnDispatchWithInvalidMsgAndCnt(int &sendRequestCount, int sleepMs, bool 
     });
 }
 
-#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: PushSyncMergeCheck005
  * @tc.desc: Test push sync task merge, task cannot be merged when the last push sync is failed
@@ -1694,7 +1691,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SyncMergeCheck005, TestSize.Lev
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
     EXPECT_EQ(sendRequestCount, NORMAL_SYNC_SEND_REQUEST_CNT);
 }
-#endif
 
 void PrePareForQuerySyncMergeTest(bool isQuerySync, std::vector<std::string> &devices,
     Key &key, Value &value, int &sendRequestCount)
@@ -2767,21 +2763,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, InvalidSync001, TestSize.Level0
     option.isQuery = true;
     option.isWait = true;
     option.query = query;
-    std::mutex cancelMtx;
-    bool cancelFinished = false;
-    DeviceSyncProcessCallback onProcess = [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
-        bool isAllCancel = true;
-        for (auto &process : processMap) {
-            if (process.second.errCode != COMM_FAILURE) {
-                isAllCancel = false;
-            }
-        }
-        if (isAllCancel) {
-            std::unique_lock<std::mutex> lock(cancelMtx);
-            cancelFinished = true;
-        }
-    };
-    callStatus = OK;
+    DeviceSyncProcessCallback onProcess = nullptr;
     callStatus = g_kvDelegatePtr->Sync(option, onProcess);
     EXPECT_EQ(callStatus, NOT_SUPPORT);
 }

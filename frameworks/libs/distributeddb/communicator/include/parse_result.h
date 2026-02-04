@@ -25,7 +25,7 @@ class ParseResult {
 public:
     ParseResult() = default;
     ~ParseResult() = default;
-
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     void SetFrameId(uint32_t inFrameId)
     {
         frameId_ = inFrameId;
@@ -181,6 +181,7 @@ private:
     uint64_t labelExchangeSequenceId_ = 0; // For Both LabelExchange And LabelExchangeAck Frame
     std::set<LabelType> latestCommLabels_; // For Only LabelExchange Frame
     uint16_t dbVersion_ = 0;
+#endif
 };
 }
 

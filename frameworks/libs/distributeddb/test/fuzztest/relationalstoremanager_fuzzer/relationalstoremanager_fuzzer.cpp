@@ -211,6 +211,9 @@ void RuntimeConfigMoreFuncTest(FuzzedDataProvider &fdp)
     bool syncDualTupleMode = fdp.ConsumeBool();
     RuntimeConfig::GetStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
     RuntimeConfig::GetStoreIdentifier(userId, subUserId, appId, storeId, syncDualTupleMode);
+    RuntimeConfig::SetDataFlowCheckCallback([](const PermissionCheckParam &, const Property &) {
+        return DataFlowCheckRet::DEFAULT;
+    });
 }
 
 CipherPassword GetPassWord(FuzzedDataProvider &fdp)

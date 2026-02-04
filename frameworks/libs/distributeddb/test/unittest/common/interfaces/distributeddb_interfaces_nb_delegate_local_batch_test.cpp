@@ -485,6 +485,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
 }
 
 #ifndef LOW_LEVEL_MEM_DEV
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
   * @tc.name: SingleVerPutLocalBatch005
   * @tc.desc: Check for legal parameters that the sum size of all entries is smaller than 512M.
@@ -578,6 +579,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, SingleVerPutLocalBatch
     EXPECT_EQ(g_mgr.DeleteKvStore("SingleVerPutLocalBatch006"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+#endif
 
 /**
   * @tc.name: SingleVerPutLocalBatch007

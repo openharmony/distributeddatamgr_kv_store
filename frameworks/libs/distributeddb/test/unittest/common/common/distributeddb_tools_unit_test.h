@@ -329,7 +329,12 @@ public:
     bool IsAssetChange(const std::string &table) const;
 
     DistributedDB::Origin GetLastOrigin() const;
+
+    uint32_t GetCurrentChangeId() const;
+
+    void ExecuteActionAfterChange(uint32_t expectGtChangeId, const std::function<void()> &action);
 private:
+    void IncCurrentChangeId();
     unsigned long callCount_;
     unsigned long cloudCallCount_ = 0;
     std::string changeDevice_;
@@ -338,6 +343,9 @@ private:
     std::unordered_map<std::string, DistributedDB::ChangedData> savedChangedData_;
     uint32_t detailsType_ = static_cast<uint32_t>(DistributedDB::CallbackDetailsType::DEFAULT);
     DistributedDB::Origin lastOrigin_ = DistributedDB::ORIGIN_REMOTE;
+    uint32_t currentChangeId_ = 0;
+    mutable std::mutex changeMutex_;
+    std::condition_variable changeCv_;
 };
 
 class KvStoreCorruptInfo {

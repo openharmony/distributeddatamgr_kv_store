@@ -33,7 +33,7 @@ public:
      * Override Part
      */
     ~AdapterStub() override;
-
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     int StartAdapter() override;
     void StopAdapter() override;
     uint32_t GetMtuSize() override;
@@ -149,6 +149,7 @@ private:
     std::vector<UserInfo> userInfo_;
 
     std::shared_ptr<ProcessCommunicatorTestStub> processCommunicator_ = nullptr;
+#endif
 };
 }
 

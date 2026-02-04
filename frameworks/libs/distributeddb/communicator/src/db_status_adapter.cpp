@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "db_status_adapter.h"
 
 #include "db_common.h"
@@ -342,3 +344,4 @@ bool DBStatusAdapter::IsLocalDeviceId(const std::string &deviceId)
     return deviceId == localId;
 }
 }
+#endif
