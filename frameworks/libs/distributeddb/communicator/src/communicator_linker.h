@@ -33,6 +33,7 @@ namespace DistributedDB {
 class CommunicatorAggregator; // Forward Declaration
 
 class CommunicatorLinker : public virtual RefObject {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 public:
     explicit CommunicatorLinker(CommunicatorAggregator *inAggregator,
         std::shared_ptr<DBStatusAdapter> statusAdapter);
@@ -126,6 +127,7 @@ private:
     std::map<std::string, std::set<LabelType>> targetMapOnlineLabels_;
 
     std::shared_ptr<DBStatusAdapter> statusAdapter_;
+#endif
 };
 }
 

@@ -230,7 +230,7 @@ int SqliteQueryHelper::ToQuerySql()
     return errCode;
 }
 
-int SqliteQueryHelper::ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias)
+int SqliteQueryHelper::ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias, bool isLeftJoin)
 {
     int errCode = ParseQueryObjNodeToSQL(true);
     if (errCode != E_OK) {
@@ -239,9 +239,10 @@ int SqliteQueryHelper::ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias)
 
     // Order by time when no order by and no limit and no need order by key.
     if (!hasOrderBy_ && !hasLimit_ && !isNeedOrderbyKey_) {
+        std::string timestampStr = isLeftJoin ? "b.timestamp" : "timestamp";
         querySql_ += (useTimestampAlias ?
             ("ORDER BY " + std::string(DBConstant::TIMESTAMP_ALIAS) + " ASC") :
-            "ORDER BY timestamp ASC");
+            "ORDER BY " + timestampStr + " ASC");
     }
 
     if (!hasSubQuery) {
@@ -962,7 +963,7 @@ int SqliteQueryHelper::GetRelationalSyncDataQuerySql(std::string &sql, bool hasS
     sql = hasSubQuery ? sql : (sql + GetTimeRangeClauseForRDB());
 
     querySql_.clear(); // clear local query sql format
-    int errCode = ToQuerySyncSql(hasSubQuery, true);
+    int errCode = ToQuerySyncSql(hasSubQuery, true, true);
     if (errCode != E_OK) {
         LOGE("To query sql fail! errCode[%d]", errCode);
         return errCode;
@@ -1066,7 +1067,7 @@ int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithLimit(const std::vector<
     sql += " WHERE (b.flag&0x03=0x02)";
 
     querySql_.clear(); // clear local query sql format
-    int errCode = ToQuerySyncSql(true, true);
+    int errCode = ToQuerySyncSql(true, true, true);
     if (errCode != E_OK) {
         LOGE("To query sql fail! errCode[%d]", errCode);
         return errCode;
@@ -1265,10 +1266,10 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompen
 }
 
 int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql,
-    sqlite3_stmt *&statement)
+    sqlite3_stmt *&statement, bool isLeftJoin)
 {
     querySql_.clear(); // clear local query sql format
-    int errCode = ToQuerySyncSql(false, useTimestampAlias);
+    int errCode = ToQuerySyncSql(false, useTimestampAlias, isLeftJoin);
     if (errCode != E_OK) {
         LOGE("To query sql fail! errCode[%d]", errCode);
         return errCode;

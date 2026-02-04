@@ -93,6 +93,7 @@ public:
 
     int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
 #endif
+
     int OperateDataStatus(uint32_t dataOperator) override;
 
     int SetProperty(const Property &property) override;

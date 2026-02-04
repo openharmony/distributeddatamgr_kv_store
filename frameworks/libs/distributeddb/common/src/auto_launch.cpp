@@ -162,6 +162,7 @@ int AutoLaunch::EnableKvStoreAutoLaunchParmCheck(AutoLaunchItem &autoLaunchItem,
 int AutoLaunch::EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,
     const AutoLaunchOption &option)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     LOGI("[AutoLaunch] EnableKvStoreAutoLaunch");
     bool isDualTupleMode = properties.GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false);
     std::string dualTupleIdentifier = properties.GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
@@ -190,6 +191,9 @@ int AutoLaunch::EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLa
         LOGE("[AutoLaunch] EnableKvStoreAutoLaunch failed errCode:%d", errCode);
     }
     return errCode;
+#else
+    return E_OK;
+#endif
 }
 
 void AutoLaunch::GetKVConnectionInEnableInner(const AutoLaunchItem &autoLaunchItem, const std::string &identifier,

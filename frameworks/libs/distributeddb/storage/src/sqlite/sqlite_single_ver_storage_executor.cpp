@@ -124,9 +124,8 @@ int SQLiteSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key 
         }
     }
     errCode = GetKvDataInner(type, statement, key, value, timestamp);
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, useTmpStmt, ret); // finalize stmt when use tmp stmt
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, useTmpStmt, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::BindPutKvData(sqlite3_stmt *statement, const Key &key, const Value &value,
@@ -214,9 +213,8 @@ int SQLiteSingleVerStorageExecutor::GetKvDataByHashKey(const Key &hashKey, Singl
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key &key, const Value &value,
@@ -254,9 +252,8 @@ int SQLiteSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key
     }
 
 ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, useTmpStmt, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, useTmpStmt, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::PutKvData(SingleVerDataType type, const Key &key, const Value &value,
@@ -307,9 +304,8 @@ int SQLiteSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataTyp
     errCode = StepForResultEntries(isGetValue, statement, entries);
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::GetEntries(QueryObject &queryObj, std::vector<Entry> &entries) const
@@ -326,9 +322,8 @@ int SQLiteSingleVerStorageExecutor::GetEntries(QueryObject &queryObj, std::vecto
         errCode = StepForResultEntries(true, statement, entries);
     }
 
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::GetCount(QueryObject &queryObj, int &count) const
@@ -379,9 +374,8 @@ int SQLiteSingleVerStorageExecutor::GetCount(QueryObject &queryObj, int &count) 
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(countStatement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(countStatement, true, errCode);
 }
 
 void SQLiteSingleVerStorageExecutor::InitCurrentMaxStamp(Timestamp &maxStamp)
@@ -402,6 +396,9 @@ void SQLiteSingleVerStorageExecutor::InitCurrentMaxStamp(Timestamp &maxStamp)
         maxStamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 0)); // get the first column
     }
     SQLiteUtils::ResetStatement(statement, true, errCode);
+    if (errCode != E_OK) {
+        LOGW("[InitCurrentMaxStamp] Reset statement failed: %d", errCode);
+    }
 }
 
 int SQLiteSingleVerStorageExecutor::PrepareForSyncDataByTime(Timestamp begin, Timestamp end,
@@ -430,6 +427,9 @@ ERROR:
         LOGE("Bind the timestamp for getting sync data error:%d", errCode);
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[PrepareForSyncDataByTime] Reset statement failed: %d", ret);
+        }
     }
 
     return CheckCorruptedStatus(errCode);
@@ -442,6 +442,8 @@ void SQLiteSingleVerStorageExecutor::ReleaseContinueStatement()
         SQLiteUtils::ResetStatement(getSyncStatement_, true, errCode);
         if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
             SetCorruptedStatus();
+        } else if (errCode != E_OK) {
+            LOGW("[ReleaseContinueStatement] Reset statement failed: %d", errCode);
         }
     }
 }
@@ -519,9 +521,8 @@ int SQLiteSingleVerStorageExecutor::GetSyncDataByTimestamp(std::vector<DataItem>
     }
 
     errCode = GetSyncDataItems(dataItems, statement, appendLength, dataSizeInfo);
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::GetDeletedSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendLength,
@@ -534,9 +535,8 @@ int SQLiteSingleVerStorageExecutor::GetDeletedSyncDataByTimestamp(std::vector<Da
     }
 
     errCode = GetSyncDataItems(dataItems, statement, appendLength, dataSizeInfo);
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 namespace {
@@ -572,9 +572,7 @@ int GetFullDataStatement(sqlite3 *db, const std::pair<Timestamp, Timestamp> &tim
     }
     return E_OK; // do not release statement when success
 ERR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode;
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 int GetQueryDataStatement(sqlite3 *db, QueryObject query, const std::pair<Timestamp, Timestamp> &timeRange,
@@ -624,10 +622,9 @@ int SQLiteSingleVerStorageExecutor::GetSyncDataWithQuery(const QueryObject &quer
         LOGE("Get sync data with query failed. %d", errCode);
     }
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(fullStmt, true, ret);
-    SQLiteUtils::ResetStatement(queryStmt, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    int ret = SQLiteUtils::ProcessStatementErrCode(fullStmt, true, errCode);
+    return SQLiteUtils::ProcessStatementErrCode(queryStmt, true, ret);
 }
 
 int SQLiteSingleVerStorageExecutor::GetSyncDataWithQuery(sqlite3_stmt *fullStmt, sqlite3_stmt *queryStmt,
@@ -708,12 +705,11 @@ int SQLiteSingleVerStorageExecutor::OpenResultSet(const Key &keyPrefix, int &cou
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(countStatement, true, ret);
     if (errCode != E_OK) {
         CloseResultSet();
     }
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(countStatement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::OpenResultSet(QueryObject &queryObj, int &count)
@@ -761,12 +757,11 @@ int SQLiteSingleVerStorageExecutor::OpenResultSet(QueryObject &queryObj, int &co
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(countStatement, true, ret);
     if (errCode != E_OK) {
         CloseResultSet();
     }
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(countStatement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::OpenResultSetForCacheRowIdMode(const Key &keyPrefix,
@@ -1087,9 +1082,8 @@ int SQLiteSingleVerStorageExecutor::GetDeviceIdentifier(PragmaEntryDeviceIdentif
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 void SQLiteSingleVerStorageExecutor::PutIntoCommittedData(const DataItem &itemPut, const DataItem &itemGet,
@@ -1160,13 +1154,13 @@ int SQLiteSingleVerStorageExecutor::ResetForSavingData(SingleVerDataType type)
 {
     int errCode = E_OK;
     if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
-        SQLiteUtils::ResetStatement(saveLocalStatements_.insertStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveLocalStatements_.updateStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveLocalStatements_.queryStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveLocalStatements_.insertStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveLocalStatements_.updateStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveLocalStatements_.queryStatement, false, errCode);
     } else if (type == SingleVerDataType::SYNC_TYPE) {
-        SQLiteUtils::ResetStatement(saveSyncStatements_.insertStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveSyncStatements_.updateStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveSyncStatements_.queryStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.insertStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.updateStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.queryStatement, false, errCode);
     }
     return CheckCorruptedStatus(errCode);
 }
@@ -1261,9 +1255,9 @@ int SQLiteSingleVerStorageExecutor::GetSyncDataItemExt(const DataItem &dataItem,
 
 int SQLiteSingleVerStorageExecutor::ResetSaveSyncStatements(int errCode)
 {
-    SQLiteUtils::ResetStatement(saveSyncStatements_.insertStatement, false, errCode);
-    SQLiteUtils::ResetStatement(saveSyncStatements_.updateStatement, false, errCode);
-    SQLiteUtils::ResetStatement(saveSyncStatements_.queryStatement, false, errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.insertStatement, false, errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.updateStatement, false, errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.queryStatement, false, errCode);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -1642,9 +1636,8 @@ int SQLiteSingleVerStorageExecutor::DeleteLocalDataInner(SingleVerNaturalStoreCo
     }
 
 ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode =  CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::DeleteLocalKvData(const Key &key,
@@ -1682,9 +1675,8 @@ int SQLiteSingleVerStorageExecutor::EraseSyncData(const Key &hashKey)
         LOGE("erase data failed:%d", errCode);
     }
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode =  CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName)
@@ -1812,11 +1804,10 @@ int SQLiteSingleVerStorageExecutor::InitResultSet(const Key &keyPrefix, sqlite3_
     return E_OK;
 
 ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(countStmt, true, ret);
-    SQLiteUtils::ResetStatement(getResultRowIdStatement_, true, ret);
-    SQLiteUtils::ResetStatement(getResultEntryStatement_, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(countStmt, true, errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(getResultRowIdStatement_, true, errCode);
+    return SQLiteUtils::ProcessStatementErrCode(getResultEntryStatement_, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::InitResultSetCount(QueryObject &queryObj, sqlite3_stmt *&countStmt)
@@ -1887,7 +1878,8 @@ int SQLiteSingleVerStorageExecutor::InitResultSet(QueryObject &queryObj, sqlite3
 
     errCode = InitResultSetContent(queryObj);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(countStmt, true, errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(countStmt, true, ret);
     }
     return CheckCorruptedStatus(errCode);
 }
@@ -1986,13 +1978,15 @@ int SQLiteSingleVerStorageExecutor::OpenResultSetForCacheRowIdModeCommon(std::ve
     }
     errCode = StartTransaction(TransactType::DEFERRED);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(getResultEntryStatement_, true, errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(getResultEntryStatement_, true, ret);
         return CheckCorruptedStatus(errCode);
     }
     // Now Ready To Execute
     errCode = ResultSetLoadRowIdCache(rowIdCache, cacheLimit, 0, count);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(getResultEntryStatement_, true, errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(getResultEntryStatement_, true, ret);
         Rollback();
         return CheckCorruptedStatus(errCode);
     }

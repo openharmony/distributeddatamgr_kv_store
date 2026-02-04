@@ -535,6 +535,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level1)
     EXPECT_TRUE(g_mgr1.EnableKvStoreAutoLaunch(USER_ID_2, APP_ID, STORE_ID, option, notifier) == OK);
     EXPECT_TRUE(g_mgr1.EnableKvStoreAutoLaunch(USER_ID_1, APP_ID, STORE_ID, option, notifier) == OK);
     DistributedDBToolsUnitTest::Dump();
+
     /**
      * @tc.steps: step3. RunCommunicatorLackCallback
      * @tc.expected: step3. userId2 open db successfully.

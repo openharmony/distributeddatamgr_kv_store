@@ -801,7 +801,6 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync001, Te
         res.emplace(KEY_SUB_USER, SUB_USER_1);
         return res;
     });
-
     KvStoreNbDelegate *delegatePtr1 = nullptr;
     EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1), OK);
     ASSERT_NE(delegatePtr1, nullptr);
@@ -835,7 +834,6 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync002, Te
         }
         return false;
     });
-
     KvStoreNbDelegate *delegatePtr1 = nullptr;
     EXPECT_EQ(OpenDelegate("/subUser1", delegatePtr1, mgr1, true), OK);
     ASSERT_NE(delegatePtr1, nullptr);
@@ -855,7 +853,6 @@ HWTEST_F(DistributedDBSingleVerMultiSubUserTest, MultiSubUserDelegateSync002, Te
     PermissionCheckCallbackV3 callback = nullptr;
     RuntimeConfig::SetPermissionCheckCallback(callback);
     EXPECT_GE(count, 1);
-
     CloseDelegate(delegatePtr1, mgr1, STORE_ID_1);
 }
 #endif

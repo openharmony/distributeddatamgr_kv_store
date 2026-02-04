@@ -1456,12 +1456,12 @@ HWTEST_F(DistributedDBCommunicatorTest, AbnormalCommunicatorTest001, TestSize.Le
 }
 
 /**
-  * @tc.name: CheckInFragmentNoTest001
-  * @tc.desc: Test CheckInFragmentNo fun.
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: tiansimiao
-  */
+ * @tc.name: CheckInFragmentNoTest001
+ * @tc.desc: Test CheckInFragmentNo fun.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: tiansimiao
+ */
 HWTEST_F(DistributedDBCommunicatorTest, CheckInFragmentNoTest001, TestSize.Level1)
 {
     CombineStatus status;

@@ -886,6 +886,16 @@ int StorageProxy::PutCloudGid(const std::string &tableName, std::vector<VBucket>
     return store_->PutCloudGid(tableName, data);
 }
 
+int StorageProxy::DropTempTable(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[DropTempTable] store is null");
+        return -E_INVALID_DB;
+    }
+    return store_->DropTempTable(tableName);
+}
+
 int StorageProxy::GetCloudGidCursor(const std::string &tableName, std::string &cursor)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -936,13 +946,23 @@ int StorageProxy::CleanCloudInfo(const std::string &tableName)
     return cloudMetaData_->CleanCloudInfo(tableName);
 }
 
-int StorageProxy::DeleteCloudNoneExistRecord(const std::string &tableName)
+int StorageProxy::DeleteCloudNoneExistRecord(const std::string &tableName, std::pair<bool, bool> isNeedDeleted)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         LOGE("[DeleteCloudNoneExistRecord] store is null");
         return -E_INVALID_DB;
     }
-    return store_->DeleteCloudNoneExistRecord(tableName);
+    return store_->DeleteCloudNoneExistRecord(tableName, isNeedDeleted);
+}
+
+int StorageProxy::GetGidRecordCount(const std::string &tableName, uint64_t &count) const
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGE("[CountGidRecords] store is null");
+        return -E_INVALID_DB;
+    }
+    return store_->GetGidRecordCount(tableName, count);
 }
 }

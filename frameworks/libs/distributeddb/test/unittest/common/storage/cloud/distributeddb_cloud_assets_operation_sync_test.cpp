@@ -1158,7 +1158,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation014, T
  * @tc.require:
  * @tc.author: xiefengzhu
  */
-HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation015, TestSize.Level0)
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation015, TestSize.Level1)
 {
     InsertUserTableRecord(tableName_, 0, 10);
     int uploadCount = 0;
@@ -1173,7 +1173,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation015, T
         std::vector<Asset> emptyAssets;
         std::vector<uint8_t> emptyAssetsBlob;
         RuntimeContext::GetInstance()->AssetsToBlob(emptyAssets, emptyAssetsBlob);
-        string sql = "UPDATE " + tableName_ + " SET asset = ?, assets = ? WHERE id = 0;";
+        std::string sql = "UPDATE " + tableName_ + " SET asset = ?, assets = ? WHERE id = 0;";
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
         ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, emptyAssetBlob, false), E_OK);
@@ -1866,7 +1866,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithLogFlag001, TestSize
 
 /**
  * @tc.name: MergeDownloadAssetTest001
- * @tc.desc: Test MergeDownloadAsset func.
+ * @tc.desc: Test MergeDownloadAsset func.get
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: tiansimiao

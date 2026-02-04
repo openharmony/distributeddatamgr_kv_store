@@ -218,7 +218,10 @@ private:
 
     // Communicator
     mutable std::mutex communicatorLock_;
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     IAdapter *adapter_;
+#endif
     ICommunicatorAggregator *communicatorAggregator_;
 
     // Loop and timer

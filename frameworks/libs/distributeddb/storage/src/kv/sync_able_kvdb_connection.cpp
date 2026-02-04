@@ -69,7 +69,6 @@ void SyncAbleKvDBConnection::InitPragmaFunc()
             errCode = SetSyncRetry(*(static_cast<bool *>(parameter))); }},
         {PRAGMA_CANCEL_SYNC_DEVICES, [this](void *parameter, int &errCode) {
             errCode = CancelDeviceSync(*(static_cast<uint32_t *>(parameter))); }},
-
         {PRAGMA_REMOTE_PUSH_FINISHED_NOTIFY, [this](void *parameter, int &errCode) {
             errCode = SetRemotePushFinishedNotify(static_cast<PragmaRemotePushNotify *>(parameter)); }},
         {PRAGMA_INTERCEPT_SYNC_DATA, [this](void *parameter, int &errCode) {

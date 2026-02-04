@@ -168,9 +168,7 @@ int RelationalSyncDataInserter::GetDbValueByRowId(sqlite3 *db, const std::vector
         errCode = SQLiteRelationalUtils::GetSelectVBucket(getValueStmt, bucket);
         if (errCode != E_OK) {
             LOGE("[RelationalSyncDataInserter][GetDbValueByRowId] failed to convert sql result to values");
-            int ret = E_OK;
-            SQLiteUtils::ResetStatement(getValueStmt, true, ret);
-            return errCode;
+            return SQLiteUtils::ProcessStatementErrCode(getValueStmt, true, errCode);
         }
         for (auto value : bucket) {
             values.push_back(value.second);
@@ -179,9 +177,7 @@ int RelationalSyncDataInserter::GetDbValueByRowId(sqlite3 *db, const std::vector
         LOGW("[RelationalSyncDataInserter][GetDbValueByRowId] found no data in db");
         errCode = E_OK;
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(getValueStmt, true, ret);
-    return errCode;
+    return SQLiteUtils::ProcessStatementErrCode(getValueStmt, true, errCode);
 }
 
 int RelationalSyncDataInserter::GetObserverDataByRowId(sqlite3 *db, int64_t rowid, ChangeType type)
@@ -241,9 +237,7 @@ int RelationalSyncDataInserter::SaveData(bool isUpdate, const DataItem &dataItem
     int errCode = BindSaveDataStatement(isUpdate, dataItem, filterSet, stmt, saveVals);
     if (errCode != E_OK) {
         LOGE("Bind data failed, errCode=%d.", errCode);
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(stmt, false, ret);
-        return errCode;
+        return SQLiteUtils::ProcessStatementErrCode(stmt, false, errCode);
     }
 
     errCode = SQLiteUtils::StepWithRetry(stmt, false);
@@ -362,7 +356,7 @@ int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&
     if (errCode != E_OK) {
         int ret = E_OK;
         SQLiteUtils::ResetStatement(logStmt, true, ret);
-        LOGE("[info statement] Get query statement fail! errCode:%d", errCode);
+        LOGE("[info statement] Get query statement fail! errCode:%d, reset stmt ret: %d", errCode, ret);
     }
     return errCode;
 }

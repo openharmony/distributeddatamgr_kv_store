@@ -281,7 +281,9 @@ public:
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) override;
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-    int DeleteCloudNoneExistRecord(const std::string &tableName) override;
+    int DropTempTable(const std::string &tableName) override;
+
+    int DeleteCloudNoneExistRecord(const std::string &tableName, std::pair<bool, bool> isNeedDeleted) override;
 #endif
 protected:
     int FillReferenceData(CloudSyncData &syncData);
@@ -362,11 +364,20 @@ private:
     int StartTransactionForAsyncDownload(TransactType type);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
-    int GetOneBatchCloudNoneExistRecord(const std::string &tableName, const std::string &dataPk,
+    int GetOneBatchCloudNoneExistRecord(const std::string &tableName, const std::vector<std::string> &dataPk,
+        std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records, std::pair<bool, bool> isNeedDeleted);
+
+    int DeleteCloudNoneExistRecords(const std::string &tableName, const std::vector<std::string> &pkFields,
         std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records);
 
-    int DeleteOneBatchCloudNoneExistRecord(const std::string &tableName, ChangedData &changedData,
-        const std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records);
+    int DeleteCloudNoneExistRecordsInTrans(SQLiteSingleVerRelationalStorageExecutor *handle,
+        const std::string &tableName, const std::vector<std::string> &pkFields,
+        std::vector<SQLiteRelationalUtils::CloudNotExistRecord> &records);
+
+    int DeleteOneCloudNoneExistRecord(const std::string &tableName, SQLiteRelationalUtils::CloudNotExistRecord &record,
+        SQLiteSingleVerRelationalStorageExecutor *handle, std::vector<IAssetLoader::AssetRecord> &removeAssetsVec);
+
+    int GetGidRecordCount(const std::string &tableName, uint64_t &count) const override;
 #endif
 
     // data

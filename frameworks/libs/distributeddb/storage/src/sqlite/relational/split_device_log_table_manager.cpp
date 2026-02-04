@@ -63,7 +63,8 @@ std::string SplitDeviceLogTableManager::GetUpdateTrigger(const TableInfo &table,
     if (table.GetPrimaryKey().size() == 1 && table.GetPrimaryKey().at(0) == "rowid") {
         // primary key is rowid, it can't be changed
         updateTrigger += "\t UPDATE " + std::string(DBConstant::RELATIONAL_PREFIX) + table.GetTableName() + "_log";
-        updateTrigger += " SET timestamp=get_sys_time(0), device='', flag=0x22";
+        updateTrigger += " SET timestamp=get_sys_time(0), device='', flag=0x22,";
+        updateTrigger += " data_key=new." + std::string(DBConstant::SQLITE_INNER_ROWID);
         updateTrigger += " WHERE hash_key=" + CalcPrimaryKeyHash("OLD.", table, identity) +
             " AND flag&0x02=0x02;\n";
     } else {

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "communicator_linker.h"
 
 #include <utility>
@@ -507,3 +508,4 @@ void CommunicatorLinker::ClearOnlineLabel()
 }
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorLinker)
 } // namespace DistributedDB
+#endif

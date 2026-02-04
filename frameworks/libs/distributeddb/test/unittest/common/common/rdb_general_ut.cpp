@@ -541,7 +541,7 @@ int RDBGeneralUt::GetAbnormalCount(const std::string &tableName, const DBStatus 
 {
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
-    int abnoramlCount = 0;
+    int abnormalCount = 0;
     std::vector<VBucket> data;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb = GetVirtualCloudDb();
     if (virtualCloudDb == nullptr) {
@@ -561,11 +561,11 @@ int RDBGeneralUt::GetAbnormalCount(const std::string &tableName, const DBStatus 
         }
         auto statusVal = std::get_if<int64_t>(&statusIt->second);
         if (statusVal != nullptr && *statusVal == static_cast<int>(expectDBStatus)) {
-            ++abnoramlCount;
+            ++abnormalCount;
         }
     }
-    LOGI("[RDBGeneralUt] Count cloud table %s success, count %d", tableName.c_str(), abnoramlCount);
-    return abnoramlCount;
+    LOGI("[RDBGeneralUt] Count cloud table %s success, count %d", tableName.c_str(), abnormalCount);
+    return abnormalCount;
 }
 
 void RDBGeneralUt::SetIsDbEncrypted(bool isdbEncrypted)

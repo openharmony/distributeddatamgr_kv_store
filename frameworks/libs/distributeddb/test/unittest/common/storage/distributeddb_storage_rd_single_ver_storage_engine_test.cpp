@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include <gtest/gtest.h>
 
 #include "db_common.h"
@@ -176,9 +175,8 @@ HWTEST_F(DistributedDBStorageRdSingleVerStorageEngineTest, StorageEnginePrintDbF
     storageEngine4->Release();
     EXPECT_EQ(storageEngine4->GetEngineState(), EngineState::INVALID);
     storageEngine4 = nullptr;
-    //remove temp file
+    // remove temp file
     remove(dbPath.c_str());
     remove(walPath.c_str());
     remove(shmPath.c_str());
 }
-#endif // USE_RD_KERNEL

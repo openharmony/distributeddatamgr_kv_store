@@ -18,7 +18,6 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_set>
 #include <vector>
 
 #include "irelational_store.h"
@@ -132,6 +131,7 @@ public:
 
     int SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
 #endif
+
     int OperateDataStatus(uint32_t dataOperator);
 
     int SetProperty(const Property &property);

@@ -154,6 +154,9 @@ int SQLiteUtils::CreateDataBase(const OpenDbProperties &properties, sqlite3 *&db
 
 END:
     if (errCode != E_OK && dbTemp != nullptr) {
+        if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
+            SQLiteUtils::DumpSqliteHeader(dbTemp);
+        }
         (void)sqlite3_close_v2(dbTemp);
         dbTemp = nullptr;
     }

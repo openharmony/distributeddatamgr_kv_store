@@ -30,15 +30,16 @@ public:
 
     bool JudgeUpload() override;
 private:
-    OpType TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete, bool isLocalDelete);
+    OpType TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete, bool isLocalDelete)
+        const;
 
     OpType TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete,
-        bool isLocalDelete);
+        bool isLocalDelete) const;
 
-    OpType TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo);
+    OpType TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo) const;
 
-    OpType TagLocalNotExist(bool isCloudDelete);
-    bool JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo);
+    OpType TagLocalNotExist(bool isCloudDelete) const;
+    bool JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo) const;
 };
 }
 #endif // DIFFERENTIAL_STRATEGY_H

@@ -70,7 +70,7 @@ public:
     DB_API ~CipherPassword();
 
     DB_API bool operator==(const CipherPassword &input) const;
-    DB_API bool operator!=(const CipherPassword &input) const;
+    bool operator!=(const CipherPassword &input) const;
 
     DB_API size_t GetSize() const;
     DB_API const uint8_t *GetData() const;

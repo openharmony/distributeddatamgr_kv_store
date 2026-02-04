@@ -102,6 +102,14 @@ namespace {
         ASSERT_EQ(devices->Initialize(g_communicatorAggregator, syncInterface), E_OK);
     }
 
+    void FreeVirtualDevice(KvVirtualDevice *&devices)
+    {
+        if (devices != nullptr) {
+            delete devices;
+            devices = nullptr;
+        }
+    }
+
 class DistributedDBInterfacesNBDelegateExtendTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -917,6 +925,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, SyncRangeQuery001, TestSiz
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    FreeVirtualDevice(g_deviceB);
 }
 #endif
 

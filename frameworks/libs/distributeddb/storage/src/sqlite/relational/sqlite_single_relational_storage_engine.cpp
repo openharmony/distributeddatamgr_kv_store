@@ -245,7 +245,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     }
     if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
         // Used for upgrading the stock data of the trackerTable
-        errCode = GenLogInfoForUpgrade(tableName, schema, schemaChanged);
+        errCode = GenLogInfoForUpgrade(tableName, schemaChanged);
     }
     return errCode;
 }
@@ -300,13 +300,13 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     if (isUpgraded) {
         table.SetSourceTableReference(schema.GetTable(tableName).GetTableReference());
     }
-    errCode = CreateDistributedTable(handle, isUpgraded, identity, table, schema);
     if (!table.GetTrackerTable().IsEmpty() && tableSyncType == TableSyncType::DEVICE_COOPERATION &&
         GetRelationalProperties().GetDistributedTableMode() == DistributedTableMode::SPLIT_BY_DEVICE) {
         LOGE("not support create distributed table with split mode on tracker table.");
         (void)handle->Rollback();
         return -E_NOT_SUPPORT;
     }
+    errCode = CreateDistributedTable(handle, isUpgraded, identity, table, schema);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         (void)handle->Rollback();
@@ -1003,8 +1003,7 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string &tableName,
-    RelationalSchemaObject &schema, bool schemaChanged)
+int SQLiteSingleRelationalStorageEngine::GenLogInfoForUpgrade(const std::string &tableName, bool schemaChanged)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
@@ -1238,6 +1237,21 @@ int SQLiteSingleRelationalStorageEngine::PutCloudGid(const std::string &tableNam
         }
     }
     return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::DropTempTable(const std::string &tableName)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([this, handle]() {
+        auto releaseHandle = handle;
+        ReleaseExecutor(releaseHandle);
+    });
+    return handle->DropTempTable(tableName);
 }
 #endif
 }

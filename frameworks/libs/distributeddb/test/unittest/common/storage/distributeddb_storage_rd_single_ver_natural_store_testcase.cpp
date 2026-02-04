@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include "distributeddb_storage_rd_single_ver_natural_store_testcase.h"
 
 #include "generic_single_ver_kv_entry.h"
@@ -335,4 +334,3 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::DataBaseCommonGetOpera
     EXPECT_EQ(connection->Get(option, key1, valueRead), E_OK);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsValueEqual(valueRead, value2), true);
 }
-#endif // USE_RD_KERNEL

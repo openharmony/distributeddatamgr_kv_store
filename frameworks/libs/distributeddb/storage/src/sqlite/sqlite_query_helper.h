@@ -109,7 +109,8 @@ public:
     std::string GetGidRelationalCloudQuerySql(const std::vector<Field> &fields, bool isCloudForcePush,
         bool isCompensatedTask);
 
-    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql, sqlite3_stmt *&statement);
+    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql, sqlite3_stmt *&statement,
+        bool isLeftJoin = false);
 
     int GetAndBindGidKvCloudQueryStatement(const std::string &user, sqlite3 *dbHandle, sqlite3_stmt *&stmt);
 
@@ -132,7 +133,7 @@ public:
     static std::string GetCloudVersionRecordSql(bool isDeviceEmpty);
 private:
     int ToQuerySql();
-    int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false);
+    int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false, bool isLeftJoin = false);
     int ToGetCountSql();
     int ParseQueryExpression(const QueryObjNode &queryNode, std::string &querySql,
         const std::string &accessStr = "", bool placeholder = true);

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <new>
@@ -1612,3 +1613,4 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, SendFailed002, TestSize.Level0)
     EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, true), 0);
     EXPECT_EQ(aggregator->GetRetryCount(DEVICE_NAME_B, false), 0);
 }
+#endif

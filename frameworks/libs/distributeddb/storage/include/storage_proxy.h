@@ -198,6 +198,8 @@ public:
     // gid contain in data with key #_gid
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
 
+    int DropTempTable(const std::string &tableName);
+
     int GetCloudGidCursor(const std::string &tableName, std::string &cursor);
 
     int PutCloudGidCursor(const std::string &tableName, const std::string &cursor);
@@ -208,7 +210,9 @@ public:
 
     int CleanCloudInfo(const std::string &tableName);
 
-    int DeleteCloudNoneExistRecord(const std::string &tableName);
+    int DeleteCloudNoneExistRecord(const std::string &tableName, std::pair<bool, bool> isNeedDeleted = {false, true});
+
+    int GetGidRecordCount(const std::string &tableName, uint64_t &count) const;
 protected:
     void Init();
 private:

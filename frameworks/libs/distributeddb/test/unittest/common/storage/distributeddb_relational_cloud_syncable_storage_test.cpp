@@ -1759,11 +1759,11 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor001, TestS
     ASSERT_NE(storage, nullptr);
     std::vector<VBucket> data;
     EXPECT_EQ(storage->PutCloudGid("", data), -E_INVALID_DB);
-    EXPECT_EQ(storage->DeleteCloudNoneExistRecord(""), -E_INVALID_DB);
+    EXPECT_EQ(storage->DeleteCloudNoneExistRecord("", {false, true}), -E_INVALID_DB);
     RefObject::KillAndDecObjRef(storage);
     CreateAndInitUserTable(0, 0, {});
     ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName, CLOUD_COOPERATION), OK);
-    EXPECT_EQ(g_cloudStore->DeleteCloudNoneExistRecord(g_tableName), -1);
+    EXPECT_EQ(g_cloudStore->DeleteCloudNoneExistRecord(g_tableName, {false, true}), -1);
 }
 
 /**
@@ -1789,7 +1789,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor002, TestS
     table.SetPrimaryKey(key);
     obj.AddRelationalTable(table);
     engine->SetSchema(obj);
-    EXPECT_EQ(storage->DeleteCloudNoneExistRecord(""), -E_BUSY);
+    EXPECT_EQ(storage->DeleteCloudNoneExistRecord("", {false, true}), -E_BUSY);
 }
 
 /**

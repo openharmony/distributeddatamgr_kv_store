@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -29,6 +29,7 @@ namespace {
     const std::string ROLLBACK_SQL = "ROLLBACK TRANSACTION";
     const int MAX_BLOB_READ_SIZE = 64 * 1024 * 1024; // 64M limit
     const int MAX_TEXT_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+    const int BUFFER_LEN = 16;
 
     const constexpr char *CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
         "type='table' AND (tbl_name=? COLLATE NOCASE));";
@@ -663,5 +664,31 @@ int SQLiteUtils::StepNext(sqlite3_stmt *stmt, bool isMemDb)
         errCode = E_OK;
     }
     return errCode;
+}
+
+void SQLiteUtils::DumpSqliteHeader(sqlite3 *db)
+{
+    auto fileName = sqlite3_db_filename(db, "main");
+    if (fileName == nullptr) {
+        return;
+    }
+    uint64_t buffer[BUFFER_LEN] = { 0x0 };
+    FILE *file = fopen(fileName, "r");
+    if (file == nullptr) {
+        LOGE("Open db file failed, errno is %d", errno);
+        return;
+    }
+    size_t readSize = fread(buffer, sizeof(uint64_t), BUFFER_LEN, file);
+    if (readSize != BUFFER_LEN) {
+        LOGE("read db file size: %zu, errno is %d", readSize, errno);
+        (void)fclose(file);
+        return;
+    }
+    constexpr int bufferSize = 4;
+    for (uint32_t i = 0; i < BUFFER_LEN; i += bufferSize) {
+        LOGW("line%d: %016" PRIx64 "%016" PRIx64 "%016" PRIx64
+            "%016" PRIx64, i >> 2, buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
+    }
+    (void)fclose(file);
 }
 } // namespace DistributedDB

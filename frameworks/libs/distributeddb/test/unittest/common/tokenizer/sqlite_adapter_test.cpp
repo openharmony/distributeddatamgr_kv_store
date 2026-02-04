@@ -109,7 +109,8 @@ static void SQLTest(const char *sql)
 
 static int HighlightCallback(void *data, int argc, char **argv, char **colName)
 {
-    if (argc != 2) {  // expected num of col is 2
+    const int expectedArgc = 2;
+    if (argc != expectedArgc) {
         return SQLITE_ERROR;
     }
     string result = argv[1];
@@ -406,8 +407,7 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest008, TestSize.Level0)
      * @tc.steps: step2. create table
      * @tc.expected: step2. OK.
      */
-    string sql = "CREATE VIRTUAL TABLE example USING fts5(content, tokenize = 'customtokenizer cut_mode "
-                 "short_words case_sensitive 0')";
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(content, tokenize = 'customtokenizer cut_mode short_words case_sensitive 0')";
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
     /**
@@ -464,14 +464,14 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest009, TestSize.Level0)
      */
     // Save any error messages
     char *zErrMsg = nullptr;
- 
+
     // Save the connection result
     int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
     HandleRc(g_sqliteDb, rc);
- 
+
     rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
     HandleRc(g_sqliteDb, rc);
- 
+
     rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
     HandleRc(g_sqliteDb, rc);
     /**
@@ -482,23 +482,23 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest009, TestSize.Level0)
                  "short_words case_sensitive 0')";
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
- 
+
     const char *SQLINSERT1 =
         "INSERT INTO example(name, content) VALUES('文档1', '这是一个测试文档，用于测试中文文本的分词和索引。');";
     SQLTest(SQLINSERT1);
- 
+
     const char *SQLINSERT2 =
         "INSERT INTO example(name, content) VALUES('文档2', '这是一个检测报告，需要仔细查验和核查数据。');";
     SQLTest(SQLINSERT2);
- 
+
     const char *SQLINSERT3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
     SQLTest(SQLINSERT3);
- 
+
     const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content "
                             "FROM example WHERE example MATCH '测试';";
     char expectResult[] = "这是一个【测试】文档，用于【测试】中文文本的分词和索引。";
     HighlightTest(SQLQUERY1, expectResult);
- 
+
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
  
@@ -517,14 +517,14 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest010, TestSize.Level0)
      */
     // Save any error messages
     char *zErrMsg = nullptr;
- 
+
     // Save the connection result
     int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
     HandleRc(g_sqliteDb, rc);
- 
+
     rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
     HandleRc(g_sqliteDb, rc);
- 
+
     rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
     HandleRc(g_sqliteDb, rc);
     /**
@@ -534,23 +534,23 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest010, TestSize.Level0)
     string sql = "CREATE VIRTUAL TABLE example USING fts5(name, content, tokenize = 'customtokenizer')";
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
- 
+
     const char *SQLINSERT1 =
         "INSERT INTO example(name, content) VALUES('文档1', '这是一个测试文档，用于测试中文文本的分词和索引。');";
     SQLTest(SQLINSERT1);
- 
+
     const char *SQLINSERT2 =
         "INSERT INTO example(name, content) VALUES('文档2', '这是一个检测报告，需要仔细查验和核查数据。');";
     SQLTest(SQLINSERT2);
- 
+
     const char *SQLINSERT3 = "INSERT INTO example(name, content) VALUES('文档3', '日常工作报告，没有特别检测内容。');";
     SQLTest(SQLINSERT3);
- 
+
     const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '测试';";
     char expectResult[] = "这是一个【测试】文档，用于【测试】中文文本的分词和索引。";
     HighlightTest(SQLQUERY1, expectResult);
- 
+
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
 
@@ -569,14 +569,14 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest011, TestSize.Level0)
      */
     // Save any error messages
     char *zErrMsg = nullptr;
- 
+
     // Save the connection result
     int rc = sqlite3_open_v2(g_dbPath, &g_sqliteDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
     HandleRc(g_sqliteDb, rc);
- 
+
     rc = sqlite3_db_config(g_sqliteDb, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, nullptr);
     HandleRc(g_sqliteDb, rc);
- 
+
     rc = sqlite3_load_extension(g_sqliteDb, "libcustomtokenizer.z.so", nullptr, nullptr);
     HandleRc(g_sqliteDb, rc);
     /**
@@ -587,26 +587,26 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest011, TestSize.Level0)
                  "tokenize = 'customtokenizer cut_mode short_words case_sensitive 0')";
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
- 
+
     const char *SQLINSERT1 = "INSERT INTO example(name, content) VALUES('卡拉ok', "
                              "'\"C语言设计c++C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌C++卡拉ok卡拉OK\"');";
     SQLTest(SQLINSERT1);
- 
+
     const char *SQLQUERY1 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"C++\"';";
     char expectResult1[] = "\"C语言设计【c++】C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌【C++】卡拉ok卡拉OK\"";
     HighlightTest(SQLQUERY1, expectResult1);
- 
+
     const char *SQLQUERY2 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"卡拉OK\"';";
     char expectResult2[] = "\"C语言设计c++C语言设计X射线哆啦A梦qqq号250G硬盘usb接口k歌C++【卡拉ok卡拉OK】\"";
     HighlightTest(SQLQUERY2, expectResult2);
- 
+
     const char *SQLQUERY3 = "SELECT name, highlight(example, 1, '【', '】') as highlighted_content FROM"
                             " example WHERE example MATCH '\"qq号\"';";
     char expectResult3[] = "\"C语言设计c++C语言设计X射线哆啦A梦q【qq号】250G硬盘usb接口k歌C++卡拉ok卡拉OK\"";
     HighlightTest(SQLQUERY3, expectResult3);
- 
+
     EXPECT_EQ(sqlite3_close(g_sqliteDb), SQLITE_OK);
 }
 

@@ -46,6 +46,22 @@ NetworkAdapter::~NetworkAdapter()
 {
 }
 
+int NetworkAdapter::GetLocalIdentity(std::string &outTarget)
+{
+    std::lock_guard<std::mutex> identityLockGuard(identityMutex_);
+    DeviceInfos devInfo = processCommunicator_->GetLocalDeviceInfos();
+    if (devInfo.identifier.empty()) {
+        LOGE("[NetworkAdapter] Get empty local id");
+        return -E_PERIPHERAL_INTERFACE_FAIL;
+    }
+    if (devInfo.identifier != localIdentity_) {
+        LOGI("[NAdapt][GetLocal] localIdentity=%s{private}.", devInfo.identifier.c_str());
+    }
+    localIdentity_ = devInfo.identifier;
+    outTarget = localIdentity_;
+    return E_OK;
+}
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int NetworkAdapter::StartAdapter()
 {
     LOGI("[NAdapt][Start] Enter, ProcessLabel=%s.", STR_MASK(DBCommon::TransferStringToHex(processLabel_)));
@@ -213,22 +229,6 @@ uint32_t NetworkAdapter::GetTimeout(const std::string &target)
     uint32_t timeout = processCommunicator_->GetTimeout(devInfos);
     LOGD("[NAdapt][GetTimeout] timeout=%" PRIu32 " ms of target=%s{private}.", timeout, target.c_str());
     return CheckAndAdjustTimeout(timeout);
-}
-
-int NetworkAdapter::GetLocalIdentity(std::string &outTarget)
-{
-    std::lock_guard<std::mutex> identityLockGuard(identityMutex_);
-    DeviceInfos devInfo = processCommunicator_->GetLocalDeviceInfos();
-    if (devInfo.identifier.empty()) {
-        LOGE("[NetworkAdapter] Get empty local id");
-        return -E_PERIPHERAL_INTERFACE_FAIL;
-    }
-    if (devInfo.identifier != localIdentity_) {
-        LOGI("[NAdapt][GetLocal] localIdentity=%s{private}.", devInfo.identifier.c_str());
-    }
-    localIdentity_ = devInfo.identifier;
-    outTarget = localIdentity_;
-    return E_OK;
 }
 
 int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length, uint32_t totalLength)
@@ -449,4 +449,5 @@ std::shared_ptr<ExtendHeaderHandle> NetworkAdapter::GetExtendHeaderHandle(const 
 {
     return processCommunicator_->GetExtendHeaderHandle(paramInfo);
 }
+#endif
 } // namespace DistributedDB
