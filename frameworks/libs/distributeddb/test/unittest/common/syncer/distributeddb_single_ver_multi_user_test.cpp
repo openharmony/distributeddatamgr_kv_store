@@ -262,7 +262,6 @@ void TestSyncWithUserChange(bool wait)
         cv.wait(lck, [&startSync]() { return startSync; });
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
-    subThread.detach();
     g_communicatorAggregator->RegOnDispatch([&](const std::string&, Message *inMsg) {
         if (!startSync) {
             startSync = true;
@@ -291,6 +290,7 @@ void TestSyncWithUserChange(bool wait)
         EXPECT_TRUE((pair.second == USER_CHANGED) || (pair.second == DB_ERROR));
     }
     CloseStore();
+    subThread.join();
 }
 }
 
@@ -644,10 +644,10 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser006, TestSize.Level1)
     thread subThread([]() {
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
-    subThread.detach();
     EXPECT_EQ(g_mgr1.CloseKvStore(g_kvDelegatePtr1), OK);
     g_kvDelegatePtr1 = nullptr;
     CloseStore();
+    subThread.join();
 }
 
 /**
@@ -681,10 +681,10 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser007, TestSize.Level0)
     thread subThread([]() {
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
-    subThread.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     EXPECT_TRUE(g_kvDelegatePtr1->Rekey(passwd) == OK);
     CloseStore();
+    subThread.join();
 }
 
 /**
@@ -754,7 +754,6 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser010, TestSize.Level3)
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
-    subThread.detach();
     /**
      * @tc.steps: step7. deviceA call sync and wait
      * @tc.expected: step7. sync should return OK.
@@ -778,6 +777,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser010, TestSize.Level3)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_3_SECONDS));
     CloseStore();
+    subThread.join();
 }
 
 /**

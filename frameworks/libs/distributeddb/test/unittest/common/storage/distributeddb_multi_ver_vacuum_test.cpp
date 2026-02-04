@@ -437,8 +437,8 @@ namespace {
             isQuitThreadB = true;
             LOGI("[ConcurrentPauseThenCheckResult] ThreadB Exit Do Pause.");
         });
-        threadA.detach();
-        threadB.detach();
+        threadA.join();
+        threadB.join();
         bool result = RepeatCheckAsyncResult([&retForThreadA, &isQuitThreadA, &retForThreadB, &isQuitThreadB]()->bool {
             LOGI("[ConcurrentPauseThenCheckResult] Check.");
             return retForThreadA == E_OK && retForThreadB == E_OK && isQuitThreadA == true && isQuitThreadB == true;
@@ -468,8 +468,8 @@ namespace {
             isQuitThreadB = true;
             LOGI("[ConcurrentPauseAndAbortThenCheckResult] ThreadB Exit Do Abort.");
         });
-        threadA.detach();
-        threadB.detach();
+        threadA.join();
+        threadB.join();
         bool result = RepeatCheckAsyncResult([&retForThreadA, &isQuitThreadA, &retForThreadB, &isQuitThreadB]()->bool {
             LOGI("[ConcurrentPauseAndAbortThenCheckResult] Check."); // Pause May Fail if Abort First
             return retForThreadB == E_OK && isQuitThreadA == true && isQuitThreadB == true;

@@ -381,7 +381,6 @@ namespace {
             cv.wait(lck, [&startSync]() { return startSync; });
             EXPECT_TRUE(RuntimeConfig::NotifyUserChanged() == OK);
         });
-        subThread.detach();
         g_communicatorAggregator->RegOnDispatch([&](const std::string&, Message *inMsg) {
             if (!startSync) {
                 startSync = true;
@@ -395,6 +394,7 @@ namespace {
          * @tc.expected: step7. sync should return OK.
          */
         CheckSyncResult(wait, isRemoteQuery);
+        subThread.join();
     }
 
     int PrepareSelect(sqlite3 *db, sqlite3_stmt *&statement, const std::string &table)
@@ -844,10 +844,10 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser005, TestSize.Level0)
     thread subThread([&]() {
         EXPECT_TRUE(RuntimeConfig::NotifyUserChanged() == OK);
     });
-    subThread.detach();
     EXPECT_EQ(g_mgr1.CloseStore(g_rdbDelegatePtr1), OK);
     g_rdbDelegatePtr1 = nullptr;
     CloseStore();
+    subThread.join();
 }
 
 /**

@@ -1335,7 +1335,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level
         conditionOnline.notify_all();
         LOGW("[Dispatch] NOW DEVICES IS ONLINE");
     });
-    subThread.detach();
 
     RegOnDispatchWithOffline(offlineFlag, invalid, conditionOffline);
 
@@ -1350,6 +1349,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level
      * @tc.expected: step4. should return OK.
      */
     SyncWithQuery(devices, query, OK);
+    subThread.join();
 }
 
 /**
