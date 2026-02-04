@@ -117,7 +117,7 @@ int SQLiteRelationalStore::CheckTableSyncType(const std::string &tableName, Tabl
         return errCode;
     }
     if (!isCreated) {
-        LOGE("[SQLiteRelationalStore] table %s dose not exist in the database",
+        LOGE("[SQLiteRelationalStore] table %s does not exist in the database",
             DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
         return -E_TABLE_NOT_FOUND;
     }
