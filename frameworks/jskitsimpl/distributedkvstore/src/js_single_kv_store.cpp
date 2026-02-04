@@ -934,7 +934,7 @@ void JsSingleKVStore::DataObserver::OnChange(const ChangeNotification& notificat
         argc = 1;
         JSUtil::SetValue(env, notification, argv[0], isSchema);
     };
-    AsyncCall(args);
+    AsyncCall(args, __FUNCTION__);
 }
 
 void JsSingleKVStore::SyncObserver::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
@@ -944,7 +944,7 @@ void JsSingleKVStore::SyncObserver::SyncCompleted(const std::map<std::string, Di
         argc = 1;
         JSUtil::SetValue(env, results, argv[0]);
     };
-    AsyncCall(args);
+    AsyncCall(args, __FUNCTION__);
 }
 
 /*

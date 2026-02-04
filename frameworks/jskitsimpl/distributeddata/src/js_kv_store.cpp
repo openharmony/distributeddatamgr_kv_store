@@ -653,7 +653,7 @@ void JsKVStore::DataObserver::OnChange(const ChangeNotification& notification)
         argc = 1;
         JSUtil::SetValue(env, notification, argv[0], isSchema);
     };
-    AsyncCall(args);
+    AsyncCall(args, __FUNCTION__);
 }
 
 void JsKVStore::SyncObserver::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
@@ -663,6 +663,6 @@ void JsKVStore::SyncObserver::SyncCompleted(const std::map<std::string, Distribu
         argc = 1;
         JSUtil::SetValue(env, results, argv[0]);
     };
-    AsyncCall(args);
+    AsyncCall(args, __FUNCTION__);
 }
 } // namespace OHOS::DistributedData

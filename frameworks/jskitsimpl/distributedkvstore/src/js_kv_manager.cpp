@@ -454,6 +454,6 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
 
 void JsKVManager::DeathRecipient::OnRemoteDied()
 {
-    AsyncCall();
+    AsyncCall(UvQueue::NapiArgsGenerator(), __FUNCTION__);
 }
 } // namespace OHOS::DistributedKVStore
