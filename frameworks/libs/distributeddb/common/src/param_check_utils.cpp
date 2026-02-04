@@ -22,6 +22,7 @@
 #include "db_errno.h"
 #include "log_print.h"
 #include "platform_specific.h"
+#include "runtime_context.h"
 
 namespace DistributedDB {
 bool ParamCheckUtils::CheckDataDir(const std::string &dataDir, std::string &canonicalDir)
@@ -318,5 +319,56 @@ bool ParamCheckUtils::IsSchemaTablesEmpty(const DistributedSchema &schema)
         }
     }
     return false;
+}
+    
+int ParamCheckUtils::FilterTableRemoveMap(std::map<std::string, std::vector<std::string>> &filterTableMap)
+{
+    for (auto &iter : filterTableMap) {
+        const std::string &tableName = iter.first;
+        std::vector<std::string> &keepDevices = iter.second;
+        if (!ParamCheckUtils::CheckRelationalTableName(tableName) || tableName.empty()) {
+            LOGE("[CheckClearMap] invalid tableName, %s",
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            return -E_INVALID_ARGS;
+        }
+        int errCode = ParamCheckUtils::CheckDevices(keepDevices);
+        if (errCode != E_OK) {
+            LOGE("[CheckClearMap] invalid keepDevices item, %d", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+int ParamCheckUtils::CheckDevices(std::vector<std::string> &devices)
+{
+    if (devices.empty()) {
+        LOGE("[CheckDevices] required one device item at least");
+        return -E_INVALID_ARGS;
+    }
+
+    std::string localDeviceId;
+    int errCode = RuntimeContext::GetInstance()->GetLocalIdentity(localDeviceId);
+    if (errCode != E_OK) {
+        LOGE("[CheckDevices] get local identity failed %d", errCode);
+        return errCode;
+    }
+    bool hasLocalDeviceId = false;
+    for (auto &device : devices) {
+        if (device.empty() || device.length() > DBConstant::MAX_DEV_LENGTH) {
+            LOGE("[CheckDevices] invalid devices item, %s",
+                DBCommon::StringMiddleMaskingWithLen(device).c_str());
+            return -E_INVALID_ARGS;
+        }
+        if (device == localDeviceId) {
+            device = ""; // inner identifies local device as ""
+            hasLocalDeviceId = true;
+        }
+    }
+    if (!hasLocalDeviceId) {
+        LOGE("[CheckDevices] a local deviceId is required");
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

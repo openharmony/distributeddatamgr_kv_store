@@ -543,6 +543,17 @@ int32_t SQLiteRelationalStoreConnection::GetDeviceSyncTaskCount()
     }
     return store->GetDeviceSyncTaskCount();
 }
+
+int SQLiteRelationalStoreConnection::RemoveExceptDeviceData(
+    const std::map<std::string, std::vector<std::string>> &tableMap)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->RemoveExceptDeviceData(tableMap);
+}
 #endif
 
 int SQLiteRelationalStoreConnection::SetProperty(const Property &property)

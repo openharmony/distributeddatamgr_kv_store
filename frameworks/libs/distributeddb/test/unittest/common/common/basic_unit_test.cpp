@@ -157,4 +157,10 @@ void BasicUnitTest::SetMtu(const std::string &dev, uint32_t mtu)
     ASSERT_NE(communicatorAggregator_, nullptr);
     communicatorAggregator_->SetDeviceMtuSize(dev, mtu);
 }
+
+void BasicUnitTest::SetLocalDeviceId(const std::string& localDevice)
+{
+    ASSERT_NE(communicatorAggregator_, nullptr);
+    communicatorAggregator_->SetLocalDeviceId(localDevice);
+}
 }  // namespace DistributedDB

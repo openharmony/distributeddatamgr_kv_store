@@ -151,6 +151,14 @@ public:
 
     static std::map<int32_t, std::string> GetCloudFieldDataType();
 #endif
+    static int DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
+        const std::vector<std::string> &keepDevices);
+
+    static int DeleteDistributedExceptDeviceTableLog(sqlite3 *db, const std::string &removedTable,
+        const std::vector<std::string> &keepDevices);
+
+    static int UpdateTrackerTableSyncDelete(sqlite3 *db, const std::string &removedTable,
+        const std::vector<std::string> &keepDevices);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 
@@ -159,6 +167,7 @@ private:
 
     static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table, const std::string &modifyTime);
 
+    static int BindAndStepDevicesToStatement(sqlite3_stmt *stmt, const std::vector<std::string> &keepDevices);
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static int CheckUserCreateSharedTableInner(const TableSchema &oriTable, const TableInfo &sharedTableInfo);
 #endif

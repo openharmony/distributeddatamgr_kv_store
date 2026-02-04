@@ -510,7 +510,7 @@ int SQLiteUtils::ProcessStatementErrCode(sqlite3_stmt *&statement, bool isNeedFi
 int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated, bool isCheckMeta)
 {
     if (db == nullptr) {
-        return -1;
+        return -E_INVALID_DB;
     }
 
     sqlite3_stmt *stmt = nullptr;

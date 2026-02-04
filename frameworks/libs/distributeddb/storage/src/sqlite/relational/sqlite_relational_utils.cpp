@@ -1256,4 +1256,135 @@ std::map<int32_t, std::string> SQLiteRelationalUtils::GetCloudFieldDataType()
     return cloudFieldTypeMap;
 }
 #endif
+
+int SQLiteRelationalUtils::BindAndStepDevicesToStatement(sqlite3_stmt *stmt,
+    const std::vector<std::string> &keepDevices)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        std::string hashDevice = DBCommon::TransferHashString(keepDevices[i]);
+        if (hashDevice.empty()) {
+            errCode = SQLiteUtils::BindTextToStatement(stmt, i + 1, hashDevice);
+        } else {
+            std::vector<uint8_t> originDev(hashDevice.begin(), hashDevice.end());
+            errCode = SQLiteUtils::BindBlobToStatement(stmt, i + 1, originDev);
+        }
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRDBUtils] Bind hashKey failed %d", errCode);
+            return errCode;
+        }
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+        (void) SQLiteUtils::PrintChangeRows(stmt);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
+    const std::vector<std::string> &keepDevices)
+{
+    std::string selectSql = "SELECT data_key FROM " + DBCommon::GetLogTableName(removedTable) +
+        " WHERE ori_device NOT IN (";
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        selectSql += "?";
+        if (i + 1 < keepDevices.size()) {
+            selectSql += ", ";
+        }
+    }
+    selectSql += ") AND data_key <> -1";
+    std::string deleteSql = "DELETE FROM " + removedTable + " WHERE _rowid_ in (" + selectSql + ");";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, deleteSql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] get delete distributed table stmt failed, %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when delete data", ret);
+        }
+    });
+    errCode = BindAndStepDevicesToStatement(stmt, keepDevices);
+    if (errCode != E_OK) {
+        LOGE("[DeleteDistributedExceptDeviceTable] delete table failed, %s, %d",
+            DBCommon::StringMiddleMaskingWithLen(removedTable).c_str(), errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(sqlite3 *db, const std::string &removedTable,
+    const std::vector<std::string> &keepDevices)
+{
+    std::string deleteSql = "DELETE FROM " + DBCommon::GetLogTableName(removedTable) +
+        " WHERE ori_device NOT IN (";
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        deleteSql += "?";
+        if (i + 1 < keepDevices.size()) {
+            deleteSql += ", ";
+        }
+    }
+    deleteSql += ");";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, deleteSql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] get delete distributed log table stmt failed, %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when delete log data", ret);
+        }
+    });
+    errCode = BindAndStepDevicesToStatement(stmt, keepDevices);
+    if (errCode != E_OK) {
+        LOGE("[DeleteDistributedExceptDeviceTableLog] delete log table failed, %s, %d",
+            DBCommon::StringMiddleMaskingWithLen(DBCommon::GetLogTableName(removedTable)).c_str(), errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::string &removedTable,
+    const std::vector<std::string> &keepDevices)
+{
+    std::string deleteSql = "UPDATE " + DBCommon::GetLogTableName(removedTable) +
+        " SET flag = 0x01 WHERE ori_device NOT IN (";
+    for (size_t i = 0; i < keepDevices.size(); i++) {
+        deleteSql += "?";
+        if (i + 1 < keepDevices.size()) {
+            deleteSql += ", ";
+        }
+    }
+    deleteSql += ") AND data_key <> -1;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, deleteSql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] get update tracker sync delete table stmt failed, %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when updatetracker data", ret);
+        }
+    });
+    errCode = BindAndStepDevicesToStatement(stmt, keepDevices);
+    if (errCode != E_OK) {
+        LOGE("[UpdateTrackerTableSyncDelete] delete log table failed, %s, %d",
+            DBCommon::StringMiddleMaskingWithLen(DBCommon::GetLogTableName(removedTable)).c_str(), errCode);
+    }
+    return errCode;
+}
 } // namespace DistributedDB

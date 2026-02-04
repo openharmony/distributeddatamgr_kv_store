@@ -73,6 +73,7 @@ public:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
 #endif
+    int CheckTableExists(const std::string &tableName, bool &isCreated);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;

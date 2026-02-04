@@ -766,4 +766,15 @@ int SQLiteUtils::UpdateLocalDataCloudFlag(sqlite3 *db)
     }
     return errCode;
 }
+
+int SQLiteUtils::PrintChangeRows(sqlite3_stmt *statement)
+{
+    sqlite3 *db = sqlite3_db_handle(statement);
+    if (db == nullptr) {
+        return -E_INVALID_DB;
+    }
+    int64_t changedRows = sqlite3_changes64(db);
+    LOGI("[SQLiteUtils] changed %lld rows", changedRows);
+    return E_OK;
+}
 } // namespace DistributedDB

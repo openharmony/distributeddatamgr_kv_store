@@ -92,6 +92,8 @@ public:
     int32_t GetDeviceSyncTaskCount() override;
 
     int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
+
+    int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap) override;
 #endif
     int OperateDataStatus(uint32_t dataOperator) override;
 

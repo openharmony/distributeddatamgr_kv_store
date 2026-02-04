@@ -108,6 +108,8 @@ public:
     virtual int32_t GetDeviceSyncTaskCount() = 0;
 
     virtual int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) = 0;
+
+    virtual int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap) = 0;
 #endif
     virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 

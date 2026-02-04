@@ -289,6 +289,13 @@ public:
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) const;
 #endif
+    int DeleteDistributedExceptDeviceTable(const std::string &removedTable,
+        const std::vector<std::string> &keepDevices) const;
+    
+    int DeleteDistributedExceptDeviceTableLog(const std::string &removedTable,
+        const std::vector<std::string> &keepDevices, const TrackerTable &trackerTable) const;
+
+    int CheckTableExists(const std::string &tableName, bool &isCreated);
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);

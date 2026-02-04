@@ -63,6 +63,10 @@ public:
     static void TransferSchemaToLower(DataBaseSchema &schema);
 
     static bool IsSchemaTablesEmpty(const DistributedSchema &schema);
+    
+    static int FilterTableRemoveMap(std::map<std::string, std::vector<std::string>> &filterTableMap);
+
+    static int CheckDevices(std::vector<std::string> &devices);
 };
 } // namespace DistributedDB
 #endif // PARAM_CHECK_UTILS_H
