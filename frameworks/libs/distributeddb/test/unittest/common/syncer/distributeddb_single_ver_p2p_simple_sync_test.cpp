@@ -1315,7 +1315,6 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, BlockSync005, TestSize.Level2)
         DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, resultInner, true);
         EXPECT_EQ(status, OK);
     });
-    thread.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     /**
      * @tc.steps: step3. sleep 1s and call sync.
@@ -1325,6 +1324,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, BlockSync005, TestSize.Level2)
     std::map<std::string, DBStatus> result;
     DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result, true);
     EXPECT_EQ(status, OK);
+    thread.join();
 }
 
 /**
@@ -1598,7 +1598,6 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, SyncQueue005, TestSize.Level3)
         DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, resultInner, true);
         EXPECT_EQ(status, OK);
     });
-    threadFirst.detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     /**
      * @tc.steps:step3. New a thread to deviceA call block push sync to deviceB & deviceC,
@@ -1612,7 +1611,6 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, SyncQueue005, TestSize.Level3)
         std::unique_lock<mutex> lockInner(lockMutex);
         conditionVar.notify_one();
     });
-    threadSecond.detach();
 
     /**
      * @tc.steps:step4. Set PragmaCmd to be GET_QUEUED_SYNC_SIZE,
@@ -1629,6 +1627,8 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, SyncQueue005, TestSize.Level3)
     std::unique_lock<mutex> lock(lockMutex);
     auto now = std::chrono::system_clock::now();
     conditionVar.wait_until(lock, now + 2 * INT8_MAX * 1000ms);
+    threadFirst.join();
+    threadSecond.join();
 }
 
 /**
