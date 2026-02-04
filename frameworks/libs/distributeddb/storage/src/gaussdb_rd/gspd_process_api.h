@@ -23,7 +23,9 @@ extern "C" {
 
 namespace DistributedDB {
 
-int32_t GSPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *isDuplicate);
+int32_t GsPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *isDuplicate);
+
+void GsPD_UnloadContext(void);
 
 } // namespace DistributedDB
 

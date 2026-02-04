@@ -20,15 +20,20 @@
 
 namespace DistributedDB {
 
-typedef int32_t (*IsEntityDuplicate)(const char *queryJson, const char *dbJson, bool *isDuplicate);
+typedef void *(*GetDuplicateHandle)(void);
+typedef int32_t (*IsEntityDuplicate)(void *handle, const char *queryJson, const char *dbJson, bool *isDuplicate);
+typedef void (*FinalizeDuplicateHandle)(void *handle);
 
-struct GSPD_APIInfo {
+struct GsPD_APIInfo {
+    void *dupHdl = nullptr;
+    GetDuplicateHandle getDupHdlApi = nullptr;
     IsEntityDuplicate isEntityDuplicateApi = nullptr;
+    FinalizeDuplicateHandle finalizeDupHdlApi = nullptr;
 };
 
-GSPD_APIInfo *GetApiInfo(void);
-void GetApiInfoInstance(void);
-void UnloadApiInfo(GSPD_APIInfo *gspdApiInfo);
+GsPD_APIInfo *GetGsPDApiInfo(void);
+void GetGsPDApiInfoInstance(void);
+void UnloadGsPDApiInfo(GsPD_APIInfo *gspdApiInfo);
 bool CheckGSPDApi(void);
 
 } // namespace DistributedDB

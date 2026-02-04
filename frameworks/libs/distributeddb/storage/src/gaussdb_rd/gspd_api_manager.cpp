@@ -23,31 +23,43 @@
 
 #ifndef _WIN32
 static void *g_library = nullptr;
-static int g_openCount = 0;
 static std::mutex g_apiInfoMutex;
 #endif
 
 namespace DistributedDB {
 
-void GSPD_ApiInit(GSPD_APIInfo &gspdApiInfo)
+void GSPD_ApiInit(GsPD_APIInfo &gspdApiInfo)
 {
 #ifndef _WIN32
+    gspdApiInfo.getDupHdlApi = (GetDuplicateHandle)dlsym(g_library, "GsPD_GetDuplicateHandle");
+    if (gspdApiInfo.getDupHdlApi == nullptr) {
+        gspdApiInfo = {nullptr, nullptr, nullptr, nullptr};
+        return;
+    }
     gspdApiInfo.isEntityDuplicateApi = (IsEntityDuplicate)dlsym(g_library, "GsPD_IsEntityDuplicate");
+    if (gspdApiInfo.isEntityDuplicateApi == nullptr) {
+        gspdApiInfo = {nullptr, nullptr, nullptr, nullptr};
+        return;
+    }
+    gspdApiInfo.finalizeDupHdlApi = (FinalizeDuplicateHandle)dlsym(g_library, "GsPD_FinalizeDuplicateHandle");
+    if (gspdApiInfo.finalizeDupHdlApi == nullptr) {
+        gspdApiInfo = {nullptr, nullptr, nullptr, nullptr};
+        return;
+    }
 #endif
 }
 
-static GSPD_APIInfo g_gspdProcessApiInfo;
+static GsPD_APIInfo g_gspdApiInfo;
 
-GSPD_APIInfo *GetApiInfo(void)
+GsPD_APIInfo *GetGsPDApiInfo(void)
 {
-    return &g_gspdProcessApiInfo;
+    return &g_gspdApiInfo;
 }
 
-void GetApiInfoInstance(void)
+void GetGsPDApiInfoInstance(void)
 {
 #ifndef _WIN32
     std::lock_guard<std::mutex> lock(g_apiInfoMutex);
-    g_openCount++;
     if (g_library != nullptr) {
         return;
     }
@@ -56,23 +68,35 @@ void GetApiInfoInstance(void)
     if (g_library == nullptr) {
         return;
     }
-    GSPD_ApiInit(g_gspdProcessApiInfo);
+    GSPD_ApiInit(g_gspdApiInfo);
+    if (g_gspdApiInfo.getDupHdlApi == nullptr) {
+        dlclose(g_library);
+        g_library = nullptr;
+        return;
+    }
+    g_gspdApiInfo.dupHdl = g_gspdApiInfo.getDupHdlApi();
+    if (g_gspdApiInfo.dupHdl == nullptr) {
+        dlclose(g_library);
+        g_gspdApiInfo = {nullptr, nullptr, nullptr, nullptr};
+        g_library = nullptr;
+        return;
+    }
 #endif
 }
 
-void UnloadApiInfo(GSPD_APIInfo *gspdApiInfo)
+void UnloadGsPDApiInfo(GsPD_APIInfo *gspdApiInfo)
 {
 #ifndef _WIN32
     std::lock_guard<std::mutex> lock(g_apiInfoMutex);
-    g_openCount--;
     if (g_library == nullptr) {
         return;
     }
-    if (g_openCount == 0) {
-        dlclose(g_library);
-        *gspdApiInfo = {nullptr};
-        g_library = nullptr;
+    if (gspdApiInfo->finalizeDupHdlApi != nullptr) {
+        gspdApiInfo->finalizeDupHdlApi(gspdApiInfo->dupHdl);
     }
+    dlclose(g_library);
+    *gspdApiInfo = {nullptr, nullptr, nullptr, nullptr};
+    g_library = nullptr;
 #endif
 }
 
@@ -81,9 +105,9 @@ bool CheckGSPDApi(void)
 #ifndef _WIN32
     bool exist = true;
     if (g_library == nullptr) {
-        GetApiInfoInstance();
+        GetGsPDApiInfoInstance();
         exist = (g_library != nullptr);
-        UnloadApiInfo(&g_gspdProcessApiInfo);
+        UnloadGsPDApiInfo(&g_gspdApiInfo);
     }
     return exist;
 #else

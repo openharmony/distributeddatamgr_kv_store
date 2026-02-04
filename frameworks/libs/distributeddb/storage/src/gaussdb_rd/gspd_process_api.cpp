@@ -48,12 +48,12 @@ int TransferGspdErrno(int err)
     return -E_INTERNAL_ERROR;
 }
 
-static GSPD_APIInfo *g_gspdApiInfo = GetApiInfo();
+static GsPD_APIInfo *g_gspdApiInfo = GetGsPDApiInfo();
 
-int32_t GSPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *isDuplicate)
+int32_t GsPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *isDuplicate)
 {
 #ifndef _WIN32
-    GetApiInfoInstance();
+    GetGsPDApiInfoInstance();
     if (g_gspdApiInfo->isEntityDuplicateApi == nullptr) {
         const char *error = dlerror();
         if (error != nullptr) {
@@ -61,14 +61,20 @@ int32_t GSPD_IsEntityDuplicate(const char *queryJson, const char *dbJson, bool *
         }
         return TransferGspdErrno(GSPD_DATAFLOW_INTERNAL_ERROR);
     }
-    int32_t ret = g_gspdApiInfo->isEntityDuplicateApi(queryJson, dbJson, isDuplicate);
+    int32_t ret = g_gspdApiInfo->isEntityDuplicateApi(g_gspdApiInfo->dupHdl, queryJson, dbJson, isDuplicate);
     if (ret != GSPD_DATAFLOW_OK) {
         LOGE("Fail to duplicate");
     }
-    UnloadApiInfo(g_gspdApiInfo);
     return TransferGspdErrno(ret);
 #endif
     return E_OK;
+}
+
+void GsPD_UnloadContext(void)
+{
+#ifndef _WIN32
+    UnloadGsPDApiInfo(g_gspdApiInfo);
+#endif
 }
 
 } // namespace DistributedDB

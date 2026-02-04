@@ -53,7 +53,7 @@ public:
     };
 
     SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable, DistributedTableMode mode);
-    ~SQLiteSingleVerRelationalStorageExecutor() override = default;
+    ~SQLiteSingleVerRelationalStorageExecutor() override;
 
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerRelationalStorageExecutor);

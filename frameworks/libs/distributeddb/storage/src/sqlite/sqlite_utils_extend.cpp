@@ -385,7 +385,7 @@ void SQLiteUtils::IsEntityDuplicate(sqlite3_context *ctx, int argc, sqlite3_valu
     }
 
     bool isDuplicate = false;
-    int32_t ret = GSPD_IsEntityDuplicate(inputEntityJson, dbEntityJson, &isDuplicate);
+    int32_t ret = GsPD_IsEntityDuplicate(inputEntityJson, dbEntityJson, &isDuplicate);
     if (ret != E_OK) {
         LOGE("is_entity_duplicate call failed");
         sqlite3_result_error(ctx, "is_entity_duplicate call failed", -1);
