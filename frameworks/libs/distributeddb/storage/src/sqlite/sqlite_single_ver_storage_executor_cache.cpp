@@ -55,13 +55,13 @@ int SQLiteSingleVerStorageExecutor::ResetForSavingCacheData(SingleVerDataType ty
 {
     int errCode = E_OK;
     if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
-        SQLiteUtils::ResetStatement(saveLocalStatements_.insertStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveLocalStatements_.updateStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveLocalStatements_.queryStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveLocalStatements_.insertStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveLocalStatements_.updateStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveLocalStatements_.queryStatement, false, errCode);
     } else if (type == SingleVerDataType::SYNC_TYPE) {
-        SQLiteUtils::ResetStatement(saveSyncStatements_.insertStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveSyncStatements_.updateStatement, false, errCode);
-        SQLiteUtils::ResetStatement(saveSyncStatements_.queryStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.insertStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.updateStatement, false, errCode);
+        errCode = SQLiteUtils::ProcessStatementErrCode(saveSyncStatements_.queryStatement, false, errCode);
     }
 
     return CheckCorruptedStatus(errCode);
@@ -70,10 +70,9 @@ int SQLiteSingleVerStorageExecutor::ResetForSavingCacheData(SingleVerDataType ty
 int SQLiteSingleVerStorageExecutor::ResetForMigrateCacheData()
 {
     int errCode = E_OK;
-    SQLiteUtils::ResetStatement(migrateSyncStatements_.insertStatement, false, errCode);
-    SQLiteUtils::ResetStatement(migrateSyncStatements_.updateStatement, false, errCode);
-    SQLiteUtils::ResetStatement(migrateSyncStatements_.queryStatement, false, errCode);
-
+    errCode = SQLiteUtils::ProcessStatementErrCode(migrateSyncStatements_.insertStatement, false, errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(migrateSyncStatements_.updateStatement, false, errCode);
+    errCode = SQLiteUtils::ProcessStatementErrCode(migrateSyncStatements_.queryStatement, false, errCode);
     return CheckCorruptedStatus(errCode);
 }
 
@@ -119,9 +118,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInCacheMode(const std::strin
     }
 
 ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::GetMinVersionCacheData(
@@ -148,9 +146,8 @@ int SQLiteSingleVerStorageExecutor::GetMinVersionCacheData(
         LOGE("Failed to get all the data items by the min version:[%d]", errCode);
     }
 
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::MigrateRmDevData(const DataItem &dataItem) const
@@ -189,9 +186,8 @@ int SQLiteSingleVerStorageExecutor::MigrateRmDevData(const DataItem &dataItem) c
         errCode = E_OK;
     }
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::AttachMainDbAndCacheDb(CipherType type, const CipherPassword &passwd,
@@ -253,9 +249,9 @@ int SQLiteSingleVerStorageExecutor::GetMaxVersionInCacheDb(uint64_t &maxVersion)
         maxVersion = 0;
         errCode = E_OK;
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::MigrateDataItem(DataItem &dataItem, const NotifyMigrateSyncData &syncData)
@@ -335,8 +331,8 @@ int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(std::vector<DataItem> &da
         }
         SQLiteUtils::ResetStatement(stmt, true, ret);
     }
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::MigrateDataItems(std::vector<DataItem> &dataItems, NotifyMigrateSyncData &syncData)
@@ -458,9 +454,8 @@ int SQLiteSingleVerStorageExecutor::DelCacheDbDataByVersion(uint64_t version) co
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::VacuumLocalData() const
@@ -708,9 +703,8 @@ int SQLiteSingleVerStorageExecutor::PutLocalDataToCacheDB(const LocalDataItem &d
     }
 
 ERROR:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::BindLocalDataInCacheMode(sqlite3_stmt *statement,
@@ -970,8 +964,8 @@ int SQLiteSingleVerStorageExecutor::DeleteMetaData(const std::vector<Key> &keys)
         SQLiteUtils::ResetStatement(statement, false, ret);
     }
 
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::DeleteMetaDataByPrefixKey(const Key &keyPrefix)
@@ -993,8 +987,7 @@ int SQLiteSingleVerStorageExecutor::DeleteMetaDataByPrefixKey(const Key &keyPref
         }
     }
 
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 } // namespace DistributedDB

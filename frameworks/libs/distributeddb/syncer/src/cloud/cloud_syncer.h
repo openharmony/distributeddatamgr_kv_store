@@ -62,7 +62,7 @@ public:
 
     int ClearCloudWatermark(const std::vector<std::string> &tableNameList);
 
-    int StopSyncTask(std::function<int(void)> &removeFunc);
+    int StopSyncTask(const std::function<int(void)> &removeFunc);
 
     int StopTaskBeforeSetReference(std::function<int(void)> &setReferenceFunc);
 
@@ -558,15 +558,17 @@ protected:
 
     TaskId GetCurrentTaskId();
 
-    int32_t GetHeatbeatCount(TaskId taskId);
+    int32_t GetHeartbeatCount(TaskId taskId);
 
-    void RemoveHeatbeatData(TaskId taskId);
+    void RemoveHeartbeatData(TaskId taskId);
 
     void ExecuteHeartBeatTask(TaskId taskId);
 
     void SetCurrentTmpError(int errCode);
 
     int DoUpdateExpiredCursor(TaskId taskId, const std::string &table, std::string &newCursor);
+
+    int DoQueryAllGid(TaskId taskId, SyncParam &&param);
 
     int DoUpdatePotentialCursorIfNeed(const std::string &table);
 
@@ -579,6 +581,8 @@ protected:
     int SaveGIDRecord(SyncParam &param);
 
     int SaveGIDCursor(SyncParam &param);
+
+    int DropTempTable(const std::string &tableName);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

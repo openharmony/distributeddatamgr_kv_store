@@ -47,6 +47,7 @@ class FrameRetainer {
 public:
     FrameRetainer() = default; // Default constructor must be explicitly provided due to DISABLE_COPY_ASSIGN_MOVE
     ~FrameRetainer() = default; // Since constructor must be provided, codedex demand deconstructor be provided as well
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     DISABLE_COPY_ASSIGN_MOVE(FrameRetainer);
 
     // Start the timer to clear up overtime frames
@@ -82,6 +83,7 @@ private:
 
     uint64_t incRetainOrder_ = 0;
     std::map<LabelType, std::map<std::string, std::map<uint64_t, RetainWork>>> retainWorkPool_;
+#endif
 };
 } // namespace DistributedDB
 

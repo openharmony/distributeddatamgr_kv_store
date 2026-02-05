@@ -717,10 +717,6 @@ static void ExpectGetInfoByPrimaryKeyOrGidCall()
         .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(9, false); // Gen log info with timestamp 9
             return E_OK;
-        })
-        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
-            info = GetLogInfo(10, false); // Gen log info with timestamp 10
-            return E_OK;
         });
 }
 
@@ -801,7 +797,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest008, TestSize.Lev
  */
 HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest009, TestSize.Level1)
 {
-    // step1: pepare data
+    /**
+     * @tc.steps: step1. prepare task
+     */
     TaskId taskId = 1u;
     ICloudSyncer::SyncParam param;
     g_cloudSyncer->SetTaskResume(taskId, true);

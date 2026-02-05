@@ -89,7 +89,6 @@ void Setup()
 void TearDown()
 {
     LOGD("close store");
-    RuntimeContext::GetInstance()->StopTaskPool();
     g_mgr.CloseStore(g_delegate);
     g_delegate = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
@@ -208,7 +207,11 @@ void CombineTest(FuzzedDataProvider &fdp)
     g_delegate->RemoveDeviceData();
     g_delegate->RemoveDeviceData(deviceId);
     g_delegate->RemoveDeviceData(deviceId, tableName);
-
+    ClearDeviceDataOption option;
+    option.device = deviceId;
+    option.tableList.push_back(tableName);
+    option.mode = static_cast<ClearMode>(len);
+    g_delegate->RemoveDeviceData(option);
     RemoteCondition rc = { tableName, device };
     std::shared_ptr<ResultSet> resultSet = nullptr;
     uint64_t timeout = len;
@@ -218,7 +221,11 @@ void CombineTest(FuzzedDataProvider &fdp)
     g_delegate->UnRegisterObserver();
     delete observer;
     observer = nullptr;
-
+    Property property;
+    std::string s1 = fdp.ConsumeRandomLengthString();
+    std::string s2 = fdp.ConsumeRandomLengthString();
+    property[s1] = s2;
+    g_delegate->SetProperty(property);
     TestDistributedSchema(&fdp);
 }
 }

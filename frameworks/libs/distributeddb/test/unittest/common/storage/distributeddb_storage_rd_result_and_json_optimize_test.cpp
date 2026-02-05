@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #ifndef OMIT_JSON
 #include <gtest/gtest.h>
 
@@ -367,4 +366,3 @@ HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetTest002, Test
     resultSet2->Close();
 }
 #endif
-#endif // USE_RD_KERNEL

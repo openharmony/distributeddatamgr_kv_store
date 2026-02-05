@@ -223,6 +223,8 @@ public:
 
     static int ProcessStatementErrCode(sqlite3_stmt *&statement, bool isNeedFinalize, int errCode);
 
+    static void DumpSqliteHeader(sqlite3 *db);
+
     static int PrintChangeRows(sqlite3_stmt *statement);
 private:
 

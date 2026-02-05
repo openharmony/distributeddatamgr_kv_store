@@ -28,6 +28,7 @@ class CombineStatus {
 public:
     CombineStatus() = default;
     ~CombineStatus() = default;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     void UpdateProgressId(uint64_t inProgressId);
     uint64_t GetProgressId() const;
     bool CheckProgress();
@@ -51,6 +52,7 @@ private:
 
     uint16_t fragmentCount_ = 0;
     std::set<uint16_t> combinedFragmentNo_;
+#endif
 };
 } // namespace DistributedDB
 

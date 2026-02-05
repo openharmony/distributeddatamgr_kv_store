@@ -66,7 +66,7 @@ bool CloudMergeStrategy::JudgeUpload()
 }
 
 OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo,
-    bool isCloudDelete, bool isLocalDelete)
+    bool isCloudDelete, bool isLocalDelete) const
 {
     if (localInfo.cloudGid.empty()) {
         return isCloudDelete ? OpType::NOT_HANDLE
@@ -81,7 +81,7 @@ OpType CloudMergeStrategy::TagLocallyNewer(const LogInfo &localInfo, const LogIn
     return OpType::NOT_HANDLE;
 }
 
-OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo)
+OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo) const
 {
     if (JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOCAL)) == 0 &&
         (localInfo.cloud_flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIN_USER)) == 0
@@ -92,7 +92,7 @@ OpType CloudMergeStrategy::TagLoginUserAndUpdate(const LogInfo &localInfo, const
 }
 
 OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo,
-    bool isCloudDelete, bool isLocalDelete)
+    bool isCloudDelete, bool isLocalDelete) const
 {
     if (isCloudDelete) {
         return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
@@ -103,7 +103,7 @@ OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const L
     return TagUpdateLocal(cloudInfo, localInfo);
 }
 
-OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
+OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete) const
 {
     // when cloud data is deleted, we think it is different data
     if (isCloudDelete) {
@@ -112,7 +112,7 @@ OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete)
     return OpType::INSERT;
 }
 
-bool CloudMergeStrategy::JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo)
+bool CloudMergeStrategy::JudgeLocallyNewer(const LogInfo &localInfo, const LogInfo &cloudInfo) const
 {
     return (localInfo.timestamp > cloudInfo.timestamp) &&
         ((JudgeKvScene() && (localInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_CLOUD_WRITE)) == 0) ||

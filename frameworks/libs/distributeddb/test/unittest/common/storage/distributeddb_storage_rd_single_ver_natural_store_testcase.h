@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #ifndef DISTRIBUTEDDB_STORAGE_SINGLE_VER_NATURAL_STORE_TESTCASE_H
 #define DISTRIBUTEDDB_STORAGE_SINGLE_VER_NATURAL_STORE_TESTCASE_H
 
@@ -71,4 +70,3 @@ private:
     DistributedDB::RdSingleVerNaturalStoreConnection *&connection, DistributedDB::IOption option);
 };
 #endif
-#endif // USE_RD_KERNEL

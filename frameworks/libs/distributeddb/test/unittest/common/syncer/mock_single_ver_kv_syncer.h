@@ -36,7 +36,7 @@ public:
         syncEngine_ = engine;
     }
 
-    ISyncEngine *GetSyncEngine()
+    ISyncEngine* GetSyncEngine()
     {
         return syncEngine_;
     }
@@ -71,4 +71,4 @@ public:
     }
 };
 } // namespace DistributedDB
-#endif // MOCK_SINGLE_VER_KV_SYNCER_H
+#endif // #define MOCK_SINGLE_VER_KV_SYNCER_H

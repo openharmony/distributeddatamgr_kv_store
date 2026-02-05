@@ -2007,11 +2007,11 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest004, T
     EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->CreateDistributedTable(t1), NOT_SUPPORT);
-    EXPECT_EQ(delegate->CreateDistributedTable(t1, DistributedDB::CLOUD_COOPERATION), NOT_SUPPORT);
     EXPECT_EQ(delegate->CreateDistributedTable(t2), OK);
     EXPECT_EQ(delegate->CreateDistributedTable(t3), OK);
     EXPECT_EQ(delegate->CreateDistributedTable(t4), NOT_SUPPORT);
     EXPECT_EQ(delegate->CreateDistributedTable(t5), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable(t1, DistributedDB::CLOUD_COOPERATION), NOT_SUPPORT);
 
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;

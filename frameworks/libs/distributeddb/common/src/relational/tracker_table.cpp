@@ -355,6 +355,10 @@ int TrackerTable::ReBuildTempTrigger(sqlite3 *db, TriggerMode::TriggerModeEnum m
         LOGE("Select temp trigger step mode:%d err:%d", mode, errCode);
         return errCode;
     }
+    if (ret != E_OK) {
+        LOGE("Reset stmt failed when select temp trigger mode: %d", ret);
+        return ret;
+    }
     errCode = SQLiteUtils::ExecuteRawSQL(db, GetDropTempTriggerSql(mode));
     if (errCode != E_OK) {
         LOGE("Failed to drop temp trigger mode:%d err:%d", mode, errCode);

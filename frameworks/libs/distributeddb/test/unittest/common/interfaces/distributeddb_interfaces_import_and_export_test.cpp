@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
 #include <fcntl.h>
@@ -92,10 +94,8 @@ public:
 
 void DistributedDBInterfacesImportAndExportTest::SetUpTestCase(void)
 {
-#ifdef USE_DISTRIBUTEDDB_DEVICE
     g_mgr.SetProcessLabel("6666", "8888");
     g_mgr.SetProcessCommunicator(std::make_shared<ProcessCommunicatorTestStub>());
-#endif
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     g_config.dataDir = g_testDir;
     g_mgr.SetKvStoreConfig(g_config);
@@ -1483,3 +1483,4 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, CheckSecurityLabel002, Test
     g_junkFilesList.push_back(singleFileName);
 }
 #endif // OMIT_ENCRYPT
+#endif

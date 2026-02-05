@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include <cstdint>
 #include <gtest/gtest.h>
 
@@ -596,4 +595,3 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, MoveToTest001, Test
     currPosition = 0;
     EXPECT_EQ(g_nullHandle->MoveTo(position, resultSet, currPosition), -E_INVALID_ARGS);
 }
-#endif // USE_RD_KERNEL

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef VIRTUAL_SINGLE_VER_SERIALIZE_MANAGER_H
 #define VIRTUAL_SINGLE_VER_SERIALIZE_MANAGER_H
 
@@ -39,12 +40,12 @@ public:
     {
         return SingleVerSerializeManager::ControlDeSerialization(buffer, length, inMsg);
     }
-    
+
     static int CallDataPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg)
     {
         return SingleVerSerializeManager::DataPacketSerialization(buffer, length, inMsg);
     }
-    
+
     static int CallDataPacketCalculateLen(const Message *inMsg, uint32_t &len)
     {
         return SingleVerSerializeManager::DataPacketCalculateLen(inMsg, len);
@@ -56,4 +57,4 @@ public:
     }
 };
 } // namespace DistributedDB
-#endif  // #VIRTUAL_SINGLE_VER_SERIALIZE_MANAGER_H
+#endif  // #define VIRTUAL_SINGLE_VER_SERIALIZE_MANAGER_H

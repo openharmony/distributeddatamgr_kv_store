@@ -24,10 +24,12 @@
 
 using namespace DistributedDB;
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 namespace {
     const uint32_t STUB_MTU_SIZE = 5 * 1024 * 1024; // 5 M, 1024 is scale
     const uint32_t STUB_TIME_OUT = 5 * 1000; // 5 S, 1000 is scale
 }
+#endif
 
 /*
  * Override Part
@@ -36,7 +38,7 @@ AdapterStub::~AdapterStub()
 {
     // Do nothing
 }
-
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int AdapterStub::StartAdapter()
 {
     return E_OK;
@@ -477,3 +479,4 @@ void AdapterStub::SetProcessCommunicator(std::shared_ptr<ProcessCommunicatorTest
 {
     processCommunicator_ = std::move(processCommunicator);
 }
+#endif

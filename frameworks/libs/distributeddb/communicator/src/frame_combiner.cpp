@@ -19,6 +19,7 @@
 #include "protocol_proto.h"
 
 namespace DistributedDB {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 static const uint32_t MAX_WORK_PER_SRC_TARGET = 1; // Only allow 1 CombineWork for each target
 static const int COMBINER_SURVAIL_PERIOD_IN_MILLISECOND = 10000; // Period is 10 s
 
@@ -253,4 +254,5 @@ SerialBuffer *FrameCombiner::CreateNewFrameBuffer(const ParseResult &inInfo)
     }
     return buffer;
 }
+#endif
 } // namespace DistributedDB

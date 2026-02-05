@@ -248,6 +248,7 @@ int SQLiteRelationalStoreConnection::RemoveDeviceData(const std::string &device,
     }
     return errCode;
 }
+
 int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
 {
     auto *store = GetDB<SQLiteRelationalStore>();

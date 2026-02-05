@@ -158,7 +158,7 @@ static int IterateCutResults(void *pCtx, int nText, XTokenFn xToken, GRD_CutScen
     int start = 0;  // word's start pos in sentence
     int end = 0;    // word's end pos in sentence
     int startBefore = -1;
-    int ret = GRD_OK;
+    int ret = 0;
     while ((ret = GRD_TokenizerNext(list, &entry)) == GRD_OK) {
         start = static_cast<int>(entry.offset);
         end = start + static_cast<int>(entry.length);

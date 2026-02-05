@@ -34,6 +34,8 @@ public:
 
     ~NetworkAdapter() override;
 
+    int GetLocalIdentity(std::string &outTarget) override;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     int StartAdapter() override;
     void StopAdapter() override;
 
@@ -42,7 +44,6 @@ public:
 
     uint32_t GetTimeout() override;
     uint32_t GetTimeout(const std::string &target) override;
-    int GetLocalIdentity(std::string &outTarget) override;
 
     int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length,
         uint32_t totalLength) override;
@@ -65,13 +66,6 @@ private:
     void CheckDeviceOnlineAfterReception(const DeviceInfos &devInfo);
     void CheckDeviceOfflineAfterSendFail(const DeviceInfos &devInfo);
 
-    std::string processLabel_;
-    std::shared_ptr<IProcessCommunicator> processCommunicator_;
-
-    // For protecting "LocalIdentity" and "MtuSize", these info only need to get from peripheral interface once
-    mutable std::mutex identityMutex_;
-
-    std::string localIdentity_;
     mutable std::mutex mtuSizeMutex_;
     bool isMtuSizeValid_ = false;
     uint32_t mtuSize_ = 0;
@@ -93,6 +87,15 @@ private:
     mutable std::mutex onReceiveMutex_;
     mutable std::mutex onChangeMutex_;
     mutable std::mutex onSendableMutex_;
+#endif
+
+    std::string processLabel_;
+    std::shared_ptr<IProcessCommunicator> processCommunicator_;
+
+    // For protecting "LocalIdentity" and "MtuSize", these info only need to get from peripheral interface once
+    mutable std::mutex identityMutex_;
+
+    std::string localIdentity_;
 };
 } // namespace DistributedDB
 

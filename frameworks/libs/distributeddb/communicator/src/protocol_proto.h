@@ -47,6 +47,7 @@ struct FragmentPacket {
     uint32_t leftLength = 0u;
 };
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 class ProtocolProto {
 public:
     // For application layer frame
@@ -137,6 +138,7 @@ private:
     static std::shared_mutex msgIdMutex_;
     static std::map<uint32_t, TransformFunc> msgIdMapFunc_;
 };
+#endif
 } // namespace DistributedDB
 
 #endif // PROTOCOLPROTO_H

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "combine_status.h"
 
 namespace DistributedDB {
@@ -79,3 +79,4 @@ bool CombineStatus::IsCombineDone() const
     return (combinedFragmentNo_.size() >= fragmentCount_);
 }
 } // namespace DistributedDB
+#endif

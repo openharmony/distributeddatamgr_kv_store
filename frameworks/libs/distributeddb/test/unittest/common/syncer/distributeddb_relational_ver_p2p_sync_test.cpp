@@ -2869,8 +2869,8 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SyncTargetTest001, TestSize.Leve
         auto *newTarget = new (std::nothrow) SingleVerSyncTarget;
         EXPECT_NE(newTarget, nullptr);
         newTarget->SetTaskType(ISyncTarget::REQUEST);
-        EXPECT_EQ(syncTaskContext.AddSyncTarget(newTarget), E_OK);
         newTarget->SetSyncOperation(operation);
+        EXPECT_EQ(syncTaskContext.AddSyncTarget(newTarget), E_OK);
     });
 
     std::thread removeTarget([&syncTaskContext]() {

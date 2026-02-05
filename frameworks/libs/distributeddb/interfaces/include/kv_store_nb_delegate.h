@@ -292,7 +292,7 @@ public:
     // return 1M while sync data size is larger than 1M, otherwise return actualy size
     DB_API virtual size_t GetSyncDataSize(const std::string &device) const
     {
-        return OK;
+        return 0;
     }
 
     // update all key in sync_data which is not deleted data

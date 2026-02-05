@@ -1520,11 +1520,11 @@ void SyncEngine::NotifyRemotePullStart(const std::string &dev)
         DeviceSyncNotifier notifier;
         {
             std::lock_guard<std::mutex> autoLock(pullStartNotifierMutex_);
-            if (pullStartNotifier_ == nullptr) {
-                RefObject::DecObjRef(this);
-                return;
-            }
             notifier = pullStartNotifier_;
+        }
+        if (notifier == nullptr) {
+            RefObject::DecObjRef(this);
+            return;
         }
         notifier({dev});
         LOGI("[SyncEngine] Notifier remote pull start appId[%s] userId[%s] storeId[%s]",

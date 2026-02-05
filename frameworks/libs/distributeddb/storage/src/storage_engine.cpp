@@ -608,6 +608,7 @@ void StorageEngine::PrintDbFileMsg(bool isOpen)
     if (option.isMemDb || dbFilePath.empty()) {
         return;
     }
+
     std::string logMessage = isOpen ? "before open db," : "after close db,";
 
     struct stat dbFileStat;
@@ -633,7 +634,7 @@ std::string StorageEngine::LogAndCheckFileStat(
 {
     int errCode = stat(filePath.c_str(), &fileStat);
     if (errCode != 0) {
-        return logPrefix + ": [stat() failed, errCoded: " + std::to_string(errCode) +
+        return logPrefix + ": [stat() failed, errCode: " + std::to_string(errCode) +
             ", errno: " + std::to_string(errno) + "]; ";
     }
     time_t mtimeSec;

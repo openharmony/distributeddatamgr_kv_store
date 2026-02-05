@@ -935,4 +935,4 @@ bool TableInfo::IsView() const
 {
     return type_ == TYPE_VIEW;
 }
-} // namespace DistributedDB
+} // namespace DistributeDB

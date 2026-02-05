@@ -37,7 +37,7 @@ struct OnOfflineDevice {
     std::string latestOnlineDevice;
     std::string latestOfflineDevice;
 };
-
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 bool SetUpEnv(EnvHandle &inEnv, const std::string &inName,
     const std::shared_ptr<DistributedDB::DBStatusAdapter> &adapter);
 bool SetUpEnv(EnvHandle &inEnv, const std::string &inName);
@@ -150,5 +150,5 @@ DistributedDB::Message *BuildUnRegedTinyMessage();
     ASSERT_NE(communicator, nullptr); \
     (communicator)->Activate(userId); \
 }
-
+#endif
 #endif // DISTRIBUTEDDB_COMMUNICATOR_COMMON_H

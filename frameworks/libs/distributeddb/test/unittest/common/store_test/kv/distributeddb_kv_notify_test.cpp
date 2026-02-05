@@ -112,8 +112,8 @@ HWTEST_F(DistributedDBKVNotifyTest, NotifySync004, TestSize.Level0)
     std::atomic<int> count = 0;
     int ret = store->SetDeviceSyncNotify(DeviceSyncEvent::REMOTE_PULL_STARTED,
         [&count](const DeviceSyncNotifyInfo &info) {
-            EXPECT_EQ(info.deviceId, "dev2");
-            count++;
+          EXPECT_EQ(info.deviceId, "dev2");
+          count++;
         });
     ASSERT_EQ(ret, OK);
     /**
@@ -135,7 +135,7 @@ HWTEST_F(DistributedDBKVNotifyTest, NotifySync004, TestSize.Level0)
 
 /**
  * @tc.name: NotifySync005
- * @tc.desc: Test SetDeviceSyncNotify when event!=0 and not init.
+ * @tc.desc: Test GenericSyncer::SetDeviceSyncNotify when event != REMOTE_PULL_STARTED and not init.
  * @tc.type: FUNC
  * @tc.author: xiefengzhu
  */

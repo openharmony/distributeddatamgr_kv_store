@@ -18,7 +18,6 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_set>
 #include <vector>
 
 #include "irelational_store.h"
@@ -135,6 +134,7 @@ public:
 
     int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap);
 #endif
+
     int OperateDataStatus(uint32_t dataOperator);
 
     int SetProperty(const Property &property);

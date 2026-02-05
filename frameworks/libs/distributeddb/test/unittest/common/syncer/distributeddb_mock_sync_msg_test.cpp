@@ -100,7 +100,7 @@ HWTEST_F(DistributedDBMockSyncMsgTest, EnableClearRemoteStaleDataTest002, TestSi
     EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
         .WillOnce(Return(nullptr));
     
-    MockKvSyncInterface syncInterface;
+    MockKvSyncInterface syncInterface;    
     ISyncTaskContext *context = enginePtr->CreateSyncTaskContext(syncInterface);
     ASSERT_EQ(context, nullptr);
 
@@ -258,7 +258,7 @@ HWTEST_F(DistributedDBMockSyncMsgTest, SendControlAckSendError, TestSize.Level0)
     VirtualRelationalVerSyncDBInterface storage;
     auto communicator = new (std::nothrow) MockCommunicator();
     ASSERT_NE(communicator, nullptr);
-    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillOnce(Return(-E_NOT_INIT));
+    EXPECT_CALL(*communicator, SendMessage(_,_,_,_)).WillOnce(Return(-E_NOT_INIT));
 
     auto mockMetadata = std::make_shared<MockMetadata>();
     std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);
@@ -324,7 +324,7 @@ HWTEST_F(DistributedDBMockSyncMsgTest, TestControlCmdRequestRecvPre, TestSize.Le
     /**
      * @tc.case: 3. controlCmdType >= ControlCmdType::INVALID_CONTROL_CMD.
      */
-    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillOnce(Return(-E_NOT_INIT));
+    EXPECT_CALL(*communicator, SendMessage(_,_,_,_)).WillOnce(Return(-E_NOT_INIT));
     mockSyncTaskContext.SetRemoteSoftwareVersion(SOFTWARE_VERSION_BASE + 1);
     EXPECT_EQ(mockDataSync.CallControlCmdRequestRecvPre(&mockSyncTaskContext, message), -E_WAIT_NEXT_MESSAGE);
     
@@ -390,7 +390,7 @@ HWTEST_F(DistributedDBMockSyncMsgTest, TestSubscribeRequestRecv, TestSize.Level0
     auto mockMetadata = std::make_shared<MockMetadata>();
     std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);
     mockDataSync.Initialize(&storage, communicator, metadata, "deviceId");
-    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillRepeatedly(Return(-E_NOT_INIT));
+    EXPECT_CALL(*communicator, SendMessage(_,_,_,_)).WillRepeatedly(Return(-E_NOT_INIT));
     EXPECT_EQ(mockDataSync.CallSubscribeRequestRecv(&mockSyncTaskContext, message), -E_INVALID_ARGS);
     /**
      * @tc.case: 2. storage_->AddSubscribe is not E_OK.
@@ -438,7 +438,7 @@ HWTEST_F(DistributedDBMockSyncMsgTest, UnsubscribeRequestRecvManagerIsNull, Test
     VirtualRelationalVerSyncDBInterface storage;
     auto communicator = new (std::nothrow) MockCommunicator();
     EXPECT_NE(communicator, nullptr);
-    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillOnce(Return(-E_NOT_INIT));
+    EXPECT_CALL(*communicator, SendMessage(_,_,_,_)).WillOnce(Return(-E_NOT_INIT));
     auto mockMetadata = std::make_shared<MockMetadata>();
     std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);
     mockDataSync.Initialize(&storage, communicator, metadata, "deviceId");
