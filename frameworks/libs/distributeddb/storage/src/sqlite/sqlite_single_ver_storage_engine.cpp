@@ -55,8 +55,8 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::strin
     if (kvdbManager == nullptr) { // LCOV_EXCL_BR_LINE
         return -E_INVALID_DB;
     }
-    auto dataDirIdentifier = GetDataDirIdentifier();
-    auto kvdb = kvdbManager->FindKvDB(dataDirIdentifier);
+    auto identifier = GetIdentifier();
+    auto kvdb = kvdbManager->FindKvDB(identifier);
     if (kvdb == nullptr) { // LCOV_EXCL_BR_LINE
         LOGE("[SingleVerEngine::EraseWaterMark] kvdb is null.");
         return -E_INVALID_DB;
@@ -262,8 +262,8 @@ int SQLiteSingleVerStorageEngine::MigrateSyncData(SQLiteSingleVerStorageExecutor
     NotifyMigrateSyncData syncData;
     auto kvdbManager = KvDBManager::GetInstance();
     if (kvdbManager != nullptr) {
-        auto dataDirIdentifier = GetDataDirIdentifier();
-        auto kvdb = kvdbManager->FindKvDB(dataDirIdentifier);
+        auto identifier = GetIdentifier();
+        auto kvdb = kvdbManager->FindKvDB(identifier);
         if (kvdb != nullptr) {
             auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(kvdb);
             syncData.isPermitForceWrite =
@@ -1036,13 +1036,13 @@ void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStor
         LOGI("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] committedData is null.");
         return;
     }
-    auto dataDirIdentifier = GetDataDirIdentifier();
+    auto identifier = GetIdentifier();
     auto kvDBManager = KvDBManager::GetInstance();
     if (kvDBManager == nullptr) {
         LOGE("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] kvDBManager is null.");
         return;
     }
-    auto kvdb = kvDBManager->FindKvDB(dataDirIdentifier);
+    auto kvdb = kvDBManager->FindKvDB(identifier);
     if (kvdb == nullptr) {
         LOGE("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] kvdb is null.");
         return;

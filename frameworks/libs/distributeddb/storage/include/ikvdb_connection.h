@@ -179,8 +179,6 @@ public:
     virtual int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) = 0;
 
     virtual int SetProperty(const Property &property) = 0;
-
-    virtual std::string GetDataDirIdentifier() const = 0;
 };
 } // namespace DistributedDB
 

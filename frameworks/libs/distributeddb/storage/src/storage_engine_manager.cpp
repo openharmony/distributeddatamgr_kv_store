@@ -27,9 +27,9 @@ std::atomic<StorageEngineManager *> StorageEngineManager::instance_{nullptr};
 std::mutex StorageEngineManager::storageEnginesLock_;
 
 namespace {
-    std::string GetDataDirIdentifier(const KvDBProperties &property)
+    std::string GetIdentifier(const KvDBProperties &property)
     {
-        return property.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
+        return property.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
     }
 
     int GetDatabaseType(const KvDBProperties &property)
@@ -62,13 +62,13 @@ StorageEngine *StorageEngineManager::GetStorageEngine(const KvDBProperties &prop
         errCode = -E_OUT_OF_MEMORY;
         return nullptr;
     }
-    std::string dataDirIdentifier = GetDataDirIdentifier(property);
-    manager->EnterGetEngineProcess(dataDirIdentifier);
-    auto storageEngine = manager->FindStorageEngine(dataDirIdentifier);
+    std::string identifier = GetIdentifier(property);
+    manager->EnterGetEngineProcess(identifier);
+    auto storageEngine = manager->FindStorageEngine(identifier);
     if (storageEngine == nullptr) {
         storageEngine = manager->CreateStorageEngine(property, errCode);
         if (errCode == E_OK) {
-            manager->InsertStorageEngine(dataDirIdentifier, storageEngine);
+            manager->InsertStorageEngine(identifier, storageEngine);
         }
     } else {
         errCode = storageEngine->CheckEngineOption(property);
@@ -78,7 +78,7 @@ StorageEngine *StorageEngineManager::GetStorageEngine(const KvDBProperties &prop
         }
     }
 
-    manager->ExitGetEngineProcess(dataDirIdentifier);
+    manager->ExitGetEngineProcess(identifier);
     return storageEngine;
 }
 
@@ -276,15 +276,15 @@ void StorageEngineManager::ReleaseResources(const std::string &identifier)
 
 int StorageEngineManager::ReleaseEngine(StorageEngine *releaseEngine)
 {
-    const std::string dataDirIdentifier = releaseEngine->GetDataDirIdentifier();
+    const std::string identifier = releaseEngine->GetIdentifier();
     StorageEngine *cacheEngine = nullptr;
 
     {
         std::lock_guard<std::mutex> lockGuard(storageEnginesLock_);
-        auto iter = storageEngines_.find(dataDirIdentifier);
+        auto iter = storageEngines_.find(identifier);
         if (iter != storageEngines_.end()) {
             cacheEngine = iter->second;
-            storageEngines_.erase(dataDirIdentifier);
+            storageEngines_.erase(identifier);
         }
     }
 

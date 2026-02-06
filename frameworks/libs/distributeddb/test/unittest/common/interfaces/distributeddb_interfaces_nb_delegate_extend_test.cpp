@@ -770,9 +770,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, MigrateDeadLockTest001, Te
 
     std::string identifier = DBCommon::GenerateIdentifierId(storeId, APP_ID, USER_ID);
     property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, DBCommon::TransferHashString(identifier));
-    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
-    std::string dataDirIdentifier = hashDataDir + identifier;
-    property.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
     property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     int errCode;

@@ -78,21 +78,6 @@ public:
     API_EXPORT Status CloseKvStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStore);
 
     // WARNING: try to close a KvStore while other thread(s) still using it may cause process crash.
-    //
-    // Disconnect kvstore instance from kvstoreimpl.
-    // if the kvstore created with baseDir for a single kvsotreimpl, kvstoreimpl and resource below will be freed.
-    // before this call, all KvStoreResultSet must be released firstly,
-    // otherwise this call will fail.
-    // after this call, kvstore and KvStoreResultSet become invalid.
-    // call to it will return nullptr exception.
-    // Parameters:
-    // appId: the name of the application.
-    // storeId: the name of the kvstore.
-    // subUser: user Id.
-    // baseDir: database director.
-    API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId, const std::string &baseDir);
-
-    // WARNING: try to close a KvStore while other thread(s) still using it may cause process crash.
     // close all opened kvstores for this appId.
     API_EXPORT Status CloseAllKvStore(const AppId &appId, int32_t subUser = 0);
 

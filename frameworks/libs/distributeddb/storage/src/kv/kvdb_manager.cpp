@@ -323,9 +323,7 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
     }
     IKvDBConnection *connection = nullptr;
     std::string identifier = properties.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
-    std::string dataDirIdentifier = properties.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-    LOGD("Begin to get [%s][%s] database connection.", STR_MASK(DBCommon::TransferStringToHex(identifier)),
-        STR_MASK(DBCommon::TransferStringToHex(dataDirIdentifier)));
+    LOGD("Begin to get [%s] database connection.", STR_MASK(DBCommon::TransferStringToHex(identifier)));
     manager->EnterDBOpenCloseProcess(identifier);
 
     IKvDB *kvDB = manager->GetDataBase(properties, errCode, isNeedIfOpened);
@@ -359,9 +357,8 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
         std::string userId = properties.GetStringProp(KvDBProperties::USER_ID, "");
         std::string storeId = properties.GetStringProp(KvDBProperties::STORE_ID, "");
         manager->DataBaseCorruptNotify(appId, userId, storeId);
-        LOGE("Database [%s][%s] is corrupted or authentication failed:%d",
-            STR_MASK(DBCommon::TransferStringToHex(identifier)),
-            STR_MASK(DBCommon::TransferStringToHex(dataDirIdentifier)), errCode);
+        LOGE("Database [%s] is corrupted or authentication failed:%d",
+            STR_MASK(DBCommon::TransferStringToHex(identifier)), errCode);
     }
 
     return connection;
@@ -374,7 +371,6 @@ int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection, bool isC
     }
 
     std::string identifier = connection->GetIdentifier();
-    std::string dataDirIdentifier = connection->GetDataDirIdentifier();
     auto manager = GetInstance();
     if (manager == nullptr) {
         return -E_OUT_OF_MEMORY;
@@ -386,8 +382,7 @@ int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection, bool isC
     if (errCode != E_OK) {
         LOGE("[KvDBManager] Release db connection:%d", errCode);
     }
-    LOGI("[Connection] db[%s][%s] conn Close", STR_MASK(DBCommon::TransferStringToHex(identifier)),
-        STR_MASK(DBCommon::TransferStringToHex(dataDirIdentifier)));
+    LOGI("[Connection] db[%s] conn Close", STR_MASK(DBCommon::TransferStringToHex(identifier)));
     return errCode;
 }
 
@@ -490,17 +485,12 @@ IKvDB *KvDBManager::GetDataBase(const KvDBProperties &property, int &errCode, bo
 
 bool KvDBManager::IsOpenMemoryDb(const KvDBProperties &properties, const std::map<std::string, IKvDB *> &cache) const
 {
-    std::string dataDirIdentifier = GenerateKvDBDataDirIdentifier(properties);
     std::string identifier = GenerateKvDBIdentifier(properties);
-    std::vector<std::string> identifiers = { dataDirIdentifier, identifier };
-    for (const auto &id : identifiers) {
-        auto iter = cache.find(id);
-        if (iter != cache.end()) {
-            IKvDB *kvDB = iter->second;
-            if (kvDB != nullptr && kvDB->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
-                return true;
-            }
-            return false;
+    auto iter = cache.find(identifier);
+    if (iter != cache.end()) {
+        IKvDB *kvDB = iter->second;
+        if (kvDB != nullptr && kvDB->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
+            return true;
         }
     }
     return false;
@@ -577,27 +567,23 @@ int KvDBManager::CheckDatabaseFileStatus(const KvDBProperties &properties)
     }
 
     std::string identifier = GenerateKvDBIdentifier(properties);
-    std::string dataDirIdentifier = GenerateKvDBDataDirIdentifier(properties);
-    std::vector<std::string> identifiers = { dataDirIdentifier, identifier };
     std::lock_guard<std::mutex> lockGuard(kvDBLock_);
-    for (const auto &id : identifiers) {
-        IKvDB *kvDB = manager->GetKvDBFromCacheByIdentify(id, manager->localKvDBs_);
-        if (kvDB != nullptr) {
-            LOGE("The local KvDB is busy!");
-            return -E_BUSY;
-        }
+    IKvDB *kvDB = manager->GetKvDBFromCacheByIdentify(identifier, manager->localKvDBs_);
+    if (kvDB != nullptr) {
+        LOGE("The local KvDB is busy!");
+        return -E_BUSY;
+    }
 
-        kvDB = manager->GetKvDBFromCacheByIdentify(id, manager->multiVerNaturalStores_);
-        if (kvDB != nullptr) {
-            LOGE("The multi ver natural store is busy!");
-            return -E_BUSY;
-        }
+    kvDB = manager->GetKvDBFromCacheByIdentify(identifier, manager->multiVerNaturalStores_);
+    if (kvDB != nullptr) {
+        LOGE("The multi ver natural store is busy!");
+        return -E_BUSY;
+    }
 
-        kvDB = manager->GetKvDBFromCacheByIdentify(id, manager->singleVerNaturalStores_);
-        if (kvDB != nullptr) {
-            LOGE("The single version natural store is busy!");
-            return -E_BUSY;
-        }
+    kvDB = manager->GetKvDBFromCacheByIdentify(identifier, manager->singleVerNaturalStores_);
+    if (kvDB != nullptr) {
+        LOGE("The single version natural store is busy!");
+        return -E_BUSY;
     }
     return E_OK;
 }
@@ -684,11 +670,6 @@ std::string KvDBManager::GenerateKvDBIdentifier(const KvDBProperties &property)
     return property.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
 }
 
-std::string KvDBManager::GenerateKvDBDataDirIdentifier(const KvDBProperties &property)
-{
-    return property.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-}
-
 KvDBManager *KvDBManager::GetInstance()
 {
     // For Double-Checked Locking, we need check instance_ twice
@@ -717,7 +698,7 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
 
     {
         KvDBProperties properties = kvDB->GetMyProperties();
-        std::string dataDirIdentifier = GenerateKvDBDataDirIdentifier(properties);
+        std::string identifier = GenerateKvDBIdentifier(properties);
         int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
         std::lock_guard<std::mutex> lockGuard(kvDBLock_);
         int errCode = E_OK;
@@ -727,7 +708,7 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
                 RefObject::IncObjRef(kvDBTmp);
                 return kvDBTmp;
             }
-            localKvDBs_.insert(std::pair<std::string, IKvDB *>(dataDirIdentifier, kvDB));
+            localKvDBs_.insert(std::pair<std::string, IKvDB *>(identifier, kvDB));
         } else if (databaseType == KvDBProperties::MULTI_VER_TYPE_SQLITE) {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, multiVerNaturalStores_, true, errCode);
             if (kvDBTmp != nullptr) {
@@ -735,7 +716,7 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
                 return kvDBTmp;
             }
             kvDB->WakeUpSyncer();
-            multiVerNaturalStores_.insert(std::pair<std::string, IKvDB *>(dataDirIdentifier, kvDB));
+            multiVerNaturalStores_.insert(std::pair<std::string, IKvDB *>(identifier, kvDB));
         } else {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, singleVerNaturalStores_, true, errCode);
             if (kvDBTmp != nullptr) {
@@ -743,7 +724,7 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
                 return kvDBTmp;
             }
             kvDB->WakeUpSyncer();
-            singleVerNaturalStores_.insert(std::pair<std::string, IKvDB *>(dataDirIdentifier, kvDB));
+            singleVerNaturalStores_.insert(std::pair<std::string, IKvDB *>(identifier, kvDB));
         }
     }
     kvDB->SetCorruptHandler([kvDB, this]() {
@@ -759,15 +740,15 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
 void KvDBManager::RemoveKvDBFromCache(const IKvDB *kvDB)
 {
     const KvDBProperties &properties = kvDB->GetMyProperties();
-    std::string dataDirIdentifier = GenerateKvDBDataDirIdentifier(properties);
+    std::string identifier = GenerateKvDBIdentifier(properties);
     int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
     std::lock_guard<std::mutex> lockGuard(kvDBLock_);
     if (databaseType == KvDBProperties::LOCAL_TYPE_SQLITE) {
-        localKvDBs_.erase(dataDirIdentifier);
+        localKvDBs_.erase(identifier);
     } else if (databaseType == KvDBProperties::MULTI_VER_TYPE_SQLITE) {
-        multiVerNaturalStores_.erase(dataDirIdentifier);
+        multiVerNaturalStores_.erase(identifier);
     } else {
-        singleVerNaturalStores_.erase(dataDirIdentifier);
+        singleVerNaturalStores_.erase(identifier);
     }
 }
 
@@ -807,8 +788,7 @@ IKvDB *KvDBManager::FindKvDBFromCache(const KvDBProperties &properties, const st
 {
     errCode = E_OK;
     std::string identifier = GenerateKvDBIdentifier(properties);
-    std::string dataDirIdentifier = GenerateKvDBDataDirIdentifier(properties);
-    auto iter = cache.find(dataDirIdentifier);
+    auto iter = cache.find(identifier);
     if (iter != cache.end()) {
         IKvDB *kvDB = iter->second;
         if (kvDB == nullptr) {

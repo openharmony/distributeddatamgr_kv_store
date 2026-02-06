@@ -1518,8 +1518,6 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
 
     std::string identifier = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
     storageEngine_->SetNeedUpdateSecOption(isNeedUpdateSecOpt);
-    std::string dataDirIdentifier = kvDBProp.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-    storageEngine_->SetDataDirIdentifier(dataDirIdentifier);
     int errCode = storageEngine_->InitSQLiteStorageEngine(poolSize, option, identifier);
     if (errCode != E_OK) {
         LOGE("Init the sqlite storage engine failed:%d", errCode);

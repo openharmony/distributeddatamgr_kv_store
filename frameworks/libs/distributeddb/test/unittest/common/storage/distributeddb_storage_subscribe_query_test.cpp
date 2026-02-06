@@ -116,9 +116,6 @@ void CreateAndGetStore(const std::string &storeId, const std::string &schemaStri
     property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierHex);
     property.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, ConflictResolvePolicy::LAST_WIN);
-    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
-    std::string dataDirIdentifier = hashDataDir + identifier;
-    property.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
 
     if (!schemaString.empty()) {
         SchemaObject schemaObj;

@@ -77,11 +77,6 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_pt
     return SUCCESS;
 }
 
-Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId &storeId, const std::string &baseDir)
-{
-    return StoreManager::GetInstance().CloseKVStore(appId, storeId);
-}
-
 Status DistributedKvDataManager::CloseAllKvStore(const AppId &appId, int32_t subUser)
 {
     auto status = StoreManager::GetInstance().CloseAllKVStore(appId);

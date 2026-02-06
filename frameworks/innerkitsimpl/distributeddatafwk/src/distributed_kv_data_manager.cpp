@@ -93,19 +93,6 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId 
     return StoreManager::GetInstance().CloseKVStore(appId, storeId, subUser);
 }
 
-Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId &storeId, const std::string &path)
-{
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
-        TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
-
-    if (!storeId.IsValid() || path.empty()) {
-        ZLOGE("Invalid storeId or path is empty.");
-        return Status::INVALID_ARGUMENT;
-    }
-    KvStoreServiceDeathNotifier::SetAppId(appId);
-    return StoreManager::GetInstance().CloseKVStore(appId, storeId, path);
-}
-
 Status DistributedKvDataManager::CloseKvStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStorePtr)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),

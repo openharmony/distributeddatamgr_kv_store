@@ -49,33 +49,14 @@ protected:
         const std::function<int(const std::shared_ptr<Metadata> &, const std::string &,
         const std::string &)> &queryFunc);
     void SetActionStatus(DBStatus status);
-    static void SetKvStoreConfig(const KvStoreConfig &kvStoreConfig);
-    DBStatus DeleteKvStore(const StoreInfo &info);
 
     KvDBProperties GetDBProperties(const StoreInfo &info);
     static KvStoreConfig GetKvStoreConfig();
-
-    struct StoreInfoEx {
-        StoreInfo storeInfo;
-        KvStoreConfig kvStoreConfig;
-        bool isMemoryDb;
-
-        StoreInfoEx() = default;
-        StoreInfoEx(const StoreInfo &i, KvStoreConfig c, bool m) : storeInfo(i), kvStoreConfig(c), isMemoryDb(m) {}
-
-        bool operator<(const StoreInfoEx &o) const
-        {
-            return std::tie(kvStoreConfig.dataDir, storeInfo.userId, storeInfo.appId, storeInfo.storeId, isMemoryDb)
-                < std::tie(o.kvStoreConfig.dataDir, o.storeInfo.userId, o.storeInfo.appId,
-                o.storeInfo.storeId, o.isMemoryDb);
-        }
-    };
     mutable std::mutex storeMutex_;
     std::optional<KvStoreNbDelegate::Option> option_;
-    std::map<StoreInfoEx, KvStoreNbDelegate *> stores_;
+    std::map<StoreInfo, KvStoreNbDelegate *> stores_;
     DistributedDBUnitTest::DistributedDBToolsUnitTest tool_;
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_;
-    static KvStoreConfig kvStoreConfig_;
 };
 }
 #endif // KV_GENERAL_UT_H

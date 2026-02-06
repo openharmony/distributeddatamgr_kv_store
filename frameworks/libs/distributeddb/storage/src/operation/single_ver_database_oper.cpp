@@ -494,9 +494,6 @@ int SingleVerDatabaseOper::InitStorageEngine()
     }
 
     std::string identify = singleVerNaturalStore_->GetDbProperties().GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
-    std::string dataDirIdentifier =
-        singleVerNaturalStore_->GetDbProperties().GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-    storageEngine_->SetDataDirIdentifier(dataDirIdentifier);
     int errCode = storageEngine_->InitSQLiteStorageEngine(poolSize, option, identify);
     if (errCode != E_OK) {
         LOGE("[SingleVerOper]Init the sqlite storage engine failed:%d", errCode);

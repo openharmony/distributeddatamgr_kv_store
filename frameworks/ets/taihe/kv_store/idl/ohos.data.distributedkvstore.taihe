@@ -116,12 +116,6 @@ struct Options {
     kvStoreType: Optional<KVStoreType>;
     securityLevel: Optional<SecurityLevel>;
     schema: Optional<Schema>;
-    rootDir: Optional<String>;
-}
-
-struct BackupConfig {
-    fileName: String;
-    filePath: String;
 }
 
 union OneUndef {
@@ -319,22 +313,13 @@ interface SingleKVStore {
     @gen_promise("backup")
     BackupSync(file: String): void;
 
-    @gen_promise("backupEx")
-    BackupExSync(backupConfig: BackupConfig): void;
-
     @gen_async("restore")
     @gen_promise("restore")
     RestoreSync(file: String): void;
 
-    @gen_promise("restoreEx")
-    RestoreExSync(backupConfig: BackupConfig): void;
-
     @gen_async("deleteBackup")
     @gen_promise("deleteBackup")
     DeleteBackupSync(files: Array<String>): Array<Opaque>;
-
-    @gen_promise("deleteBackupEx")
-    DeleteBackupExSync(backupConfig: BackupConfig): void;
 
     @gen_async("startTransaction")
     @gen_promise("startTransaction")
@@ -424,15 +409,9 @@ interface KVManager {
     @gen_promise("closeKVStore")
     CloseKVStoreSync(appId: String, storeId: String): void;
 
-    @gen_promise("closeKVStore")
-    CloseKVStoreByConfigSync(appId: String, storeId: String, kvConfig: Optional<Options>): void;
-
     @gen_async("deleteKVStore")
     @gen_promise("deleteKVStore")
     DeleteKVStoreSync(appId: String, storeId: String): void;
-
-    @gen_promise("deleteKVStore")
-    DeleteKVStoreByConfigSync(appId: String, storeId: String, kvConfig: Optional<Options>): void;
 
     @gen_async("getAllKVStoreId")
     @gen_promise("getAllKVStoreId")

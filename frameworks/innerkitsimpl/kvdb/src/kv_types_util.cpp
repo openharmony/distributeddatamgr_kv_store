@@ -106,7 +106,7 @@ template<>
 bool Marshalling(const Options &input, MessageParcel &data)
 {
     if (!ITypesUtil::Marshal(data, input.schema, input.hapName, input.policies, input.cloudConfig.enableCloud,
-                             input.cloudConfig.autoSync, input.authType, input.baseDir)) {
+                             input.cloudConfig.autoSync, input.authType)) {
         ZLOGE("Write policies failed");
         return false;
     }
@@ -126,7 +126,6 @@ bool Marshalling(const Options &input, MessageParcel &data)
     target->dataType = input.dataType;
     target->isPublic = input.isPublic;
     target->subUser = input.subUser;
-    target->isCustomDir = input.isCustomDir;
     return data.WriteRawData(buffer.get(), sizeof(input));
 }
 
@@ -134,7 +133,7 @@ template<>
 bool Unmarshalling(Options &output, MessageParcel &data)
 {
     if (!ITypesUtil::Unmarshal(data, output.schema, output.hapName, output.policies, output.cloudConfig.enableCloud,
-                               output.cloudConfig.autoSync, output.authType, output.baseDir)) {
+                               output.cloudConfig.autoSync, output.authType)) {
         ZLOGE("Read policies failed");
         return false;
     }
@@ -156,7 +155,6 @@ bool Unmarshalling(Options &output, MessageParcel &data)
     output.dataType = source->dataType;
     output.isPublic = source->isPublic;
     output.subUser = source->subUser;
-    output.isCustomDir = source->isCustomDir;
     return true;
 }
 

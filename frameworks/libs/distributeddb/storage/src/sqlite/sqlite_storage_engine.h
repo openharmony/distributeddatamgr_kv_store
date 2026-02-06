@@ -37,6 +37,7 @@ public:
     void ClearEnginePasswd();
 
     int CheckEngineOption(const KvDBProperties &kvDBProp) const override;
+
 protected:
 
     virtual int Upgrade(sqlite3 *db);
