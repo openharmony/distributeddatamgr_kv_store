@@ -481,12 +481,4 @@ int GenericKvDBConnection::SetProperty(const Property &property)
     kvDB_->SetProperty(property);
     return E_OK;
 }
-
-std::string GenericKvDBConnection::GetDataDirIdentifier() const
-{
-    if (kvDB_ == nullptr) {
-        return "";
-    }
-    return kvDB_->GetMyProperties().GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-}
 }

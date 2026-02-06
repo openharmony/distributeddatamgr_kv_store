@@ -90,23 +90,6 @@ public:
     */
     API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId, int32_t subUser = 0);
 
-     /**
-     * @brief Disconnect kvstore instance from kvstoreimpl with the given storeId and path.
-     *
-     * if kvstore created with path for a single kvsotreimpl, kvstoreimpl and resource below will be freed.
-     * before this call, all KvStoreSnapshot must be released firstly,
-     * otherwise this call will fail.
-     * after this call, kvstore and kvstoresnapshot become invalid.
-     * call to it will return nullptr exception.
-     *
-     * @warning Try to close a KvStore while other thread(s) still using it may cause process crash.
-     * @param appId   The name of the application.
-     * @param storeId The name of the kvstore.
-     * @param path The database directory.
-     * @return Return SUCCESS for success, others for failure.
-    */
-    API_EXPORT Status CloseKvStore(const AppId &appId, const StoreId &storeId, const std::string &path);
-
     /**
      * @brief Disconnect kvstore instance from kvstoreimpl.
      *

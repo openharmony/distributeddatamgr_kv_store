@@ -44,8 +44,6 @@ void SingleVerNaturalStore::AbortHandle()
 int SingleVerNaturalStore::RemoveKvDB(const KvDBProperties &properties)
 {
     // To avoid leakage, the engine resources are forced to be released
-    const std::string dataDirIdentifier = properties.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-    (void)StorageEngineManager::ForceReleaseStorageEngine(dataDirIdentifier);
     const std::string identifier = properties.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
     (void)StorageEngineManager::ForceReleaseStorageEngine(identifier);
 

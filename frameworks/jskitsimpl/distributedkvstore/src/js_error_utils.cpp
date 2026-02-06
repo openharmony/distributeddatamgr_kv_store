@@ -33,8 +33,7 @@ static constexpr JsErrorCode JS_ERROR_CODE_MSGS[] = {
     { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
     { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
     { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
-    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."},
-    { Status::INVALID_PARAMTER, 15100000, "Parameter error: Parameters verification failed."}
+    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)

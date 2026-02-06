@@ -1260,9 +1260,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetDBWhileOpened001, TestSize.Leve
     property.SetStringProp(KvDBProperties::APP_ID, APP_ID);
     property.SetStringProp(KvDBProperties::USER_ID, USER_ID);
     property.SetStringProp(KvDBProperties::APP_ID, storeId);
-    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
-    std::string dataDirIdentifier = hashDataDir + identifier;
-    property.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
 
     int errCode = E_OK;
     auto connection1 = KvDBManager::GetDatabaseConnection(property, errCode, false);

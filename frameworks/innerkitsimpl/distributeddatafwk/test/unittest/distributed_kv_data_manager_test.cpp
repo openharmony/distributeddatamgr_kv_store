@@ -28,8 +28,6 @@ using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
 static constexpr size_t NUM_MIN = 5;
 static constexpr size_t NUM_MAX = 12;
-const std::string baseDir1 = "/data/service/el1/public/database/test1";
-const std::string baseDir2 = "/data/service/el1/public/database/test2";
 class DistributedKvDataManagerTest : public testing::Test {
 public:
     static std::shared_ptr<ExecutorPool> executors;
@@ -511,51 +509,6 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore005, TestSize.Level1)
     ZLOGI("CloseKvStore005 begin.");
     Status stat = manager.CloseKvStore(appId, storeId64);
     EXPECT_EQ(stat, Status::STORE_NOT_OPEN);
-}
-
-/**
-* @tc.name: CloseKvStore006
-* @tc.desc: Close a closed SingleKvStore, and the callback function should return SUCCESS.
-* @tc.type: FUNC
-*/
-HWTEST_F(DistributedKvDataManagerTest, CloseKvStore006, TestSize.Level1)
-{
-    ZLOGI("CloseKvStore006 begin.");
-    std::shared_ptr<SingleKvStore> kvStore;
-    Options options;
-    options.createIfMissing = true;
-    options.encrypt = false;
-    options.securityLevel = S1;
-    options.autoSync = true;
-    options.kvStoreType = SINGLE_VERSION;
-    options.area = EL1;
-    options.baseDir = baseDir1;
-    options.isCustomDir = true;
-    mkdir(baseDir1.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
-    Status status = manager.GetSingleKvStore(options, appId, storeId64, kvStore);
-    ASSERT_EQ(status, Status::SUCCESS);
-    ASSERT_NE(kvStore, nullptr);
-
-    Status stat = manager.CloseKvStore(appId, storeId64, baseDir1);
-    EXPECT_EQ(stat, Status::SUCCESS);
-
-    status = manager.DeleteKvStore(appId, storeId64, baseDir1);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    (void)remove((baseDir1 + "/kvdb").c_str());
-    (void)remove(baseDir1.c_str());
-}
-
-/**
-* @tc.name: CloseKvStore007
-* @tc.desc: Close a SingleKvStore with a 65-byte storeId, and the callback function should return INVALID_ARGUMENT.
-* @tc.type: FUNC
-*/
-HWTEST_F(DistributedKvDataManagerTest, CloseKvStore007, TestSize.Level1)
-{
-    ZLOGI("CloseKvStore007 begin.");
-    Status stat = manager.CloseKvStore(appId, storeId65, create.baseDir);
-    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
 }
 
 /**

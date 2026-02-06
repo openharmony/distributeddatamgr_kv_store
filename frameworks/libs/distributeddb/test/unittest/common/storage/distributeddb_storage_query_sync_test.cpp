@@ -157,9 +157,6 @@ void DistributedDBStorageQuerySyncTest::SetUp(void)
     property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     property.SetStringProp(KvDBProperties::STORE_ID, "QuerySyncSchema");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierHex);
-    std::string hashDataDir = DBCommon::TransferHashString(g_testDir);
-    std::string dataDirIdentifier = hashDataDir + identifier;
-    property.SetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, dataDirIdentifier);
 
     g_schemaStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(g_schemaStore, nullptr);

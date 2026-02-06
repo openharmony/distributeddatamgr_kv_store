@@ -506,10 +506,6 @@ struct Options {
     */
     std::string baseDir = "";
     /**
-     * If the baseDir is Customize.
-    */
-    bool isCustomDir = false;
-    /**
      * Whether the kvstore type is valid.
     */
     inline bool IsValidType() const
@@ -580,21 +576,6 @@ struct Options {
     * Sub user config for system ability.
     */
     int32_t subUser = 0;
-};
-
-/**
- * @brief backup information
-*/
-struct BackupConfig {
-    /**
-     * The data base file name.
-    */
-    std::string fileName = "";
-
-     /**
-     * The data base file path.
-    */
-    std::string filePath = "";
 };
 
 /**

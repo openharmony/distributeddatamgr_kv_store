@@ -120,8 +120,6 @@ public:
     int SetDeviceSyncNotify(DeviceSyncEvent event, const DeviceSyncNotifier &notifier) override;
 
     int SetProperty(const Property &property) override;
-
-    std::string GetDataDirIdentifier() const override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

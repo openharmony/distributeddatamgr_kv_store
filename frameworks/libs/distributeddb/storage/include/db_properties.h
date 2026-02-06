@@ -72,7 +72,6 @@ public:
     static constexpr const char *DUAL_TUPLE_IDENTIFIER_DATA = "dualTupleIdentifier";
     static constexpr const char *SYNC_DUAL_TUPLE_MODE = "syncDualTuple";
     static constexpr const char *AUTO_LAUNCH_ID = "autoLaunchID";
-    static constexpr const char *DATA_DIR_IDENTIFIER = "dataDirIdentifier";
 
     static constexpr const char *DATABASE_TYPE = "databaseType";
 

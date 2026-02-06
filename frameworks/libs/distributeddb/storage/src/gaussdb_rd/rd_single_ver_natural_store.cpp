@@ -463,8 +463,6 @@ int RdSingleVerNaturalStore::InitDatabaseContext(const KvDBProperties &kvDBProp)
     );
 
     std::string identifier = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
-    std::string dataDirIdentifier = kvDBProp.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
-    storageEngine_->SetDataDirIdentifier(dataDirIdentifier);
     int errCode = storageEngine_->InitRdStorageEngine(poolSize, option, identifier);
     if (errCode != E_OK) {
         LOGE("Init the rd storage engine failed:%d", errCode);
