@@ -61,7 +61,9 @@ public:
     static napi_value SetSyncParam(napi_env env, napi_callback_info info);
     static napi_value GetSecurityLevel(napi_env env, napi_callback_info info);
     static napi_value Backup(napi_env env, napi_callback_info info);
+    static napi_value BackupEx(napi_env env, napi_callback_info info);
     static napi_value Restore(napi_env env, napi_callback_info info);
+    static napi_value RestoreEx(napi_env env, napi_callback_info info);
     static napi_value DeleteBackup(napi_env env, napi_callback_info info);
     static napi_value DeleteBackupEx(napi_env env, napi_callback_info info);
     static napi_value StartTransaction(napi_env env, napi_callback_info info);

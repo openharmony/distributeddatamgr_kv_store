@@ -33,8 +33,22 @@ static constexpr JsErrorCode JS_ERROR_CODE_MSGS[] = {
     { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
     { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
     { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
-    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."},
-    { Status::INVALID_PARAMTER, 15100000, "Parameter error: Parameters verification failed."}
+    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
+};
+
+static constexpr JsErrorCode JS_NEW_API_ERROR_CODE_MSGS[] = {
+    { Status::INVALID_ARGUMENT, 15100000, "Parameter error: Parameters verification failed." },
+    { Status::STORE_NOT_OPEN, 0, "" },
+    { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
+    { Status::STORE_NOT_SUBSCRIBE, 0, "" },
+    { Status::NOT_FOUND, 15100004, "Not found." },
+    { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
+    { Status::PERMISSION_DENIED, 202, "Permission denied" },
+    { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
+    { Status::OVER_MAX_LIMITS, 15100001, "Over max limits." },
+    { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
+    { Status::DATA_CORRUPTED, 15100003, "Database corrupted" },
+    { Status::WAL_OVER_LIMITS, 14800047, "the WAL file size exceeds the default limit."}
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
@@ -52,9 +66,26 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
     return std::nullopt;
 }
 
-Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage)
+const std::optional<JsErrorCode> GetJsNewApiErrorCode(int32_t errorCode)
 {
-    auto errorMsg = GetJsErrorCode(status);
+    auto jsErrorCode = JsErrorCode{ errorCode, -1, "" };
+    auto iter = std::lower_bound(JS_NEW_API_ERROR_CODE_MSGS,
+        JS_NEW_API_ERROR_CODE_MSGS + sizeof(JS_NEW_API_ERROR_CODE_MSGS) / sizeof(JS_NEW_API_ERROR_CODE_MSGS[0]),
+        jsErrorCode,
+        [](const JsErrorCode &jsErrorCode1, const JsErrorCode &jsErrorCode2) {
+            return jsErrorCode1.status < jsErrorCode2.status;
+        });
+    if (iter < JS_NEW_API_ERROR_CODE_MSGS +
+        sizeof(JS_NEW_API_ERROR_CODE_MSGS) / sizeof(JS_NEW_API_ERROR_CODE_MSGS[0]) &&
+        iter->status == errorCode) {
+        return *iter;
+    }
+    return std::nullopt;
+}
+
+Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage, bool isNewApi)
+{
+    auto errorMsg = isNewApi ? GetJsNewApiErrorCode(status) : GetJsErrorCode(status);
     if (errorMsg.has_value()) {
         auto napiError = errorMsg.value();
         errCode = napiError.jsCode;
@@ -71,13 +102,13 @@ Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessag
     return status;
 }
 
-void ThrowNapiError(napi_env env, int32_t status, const std::string &errMessage, bool isParamsCheck)
+void ThrowNapiError(napi_env env, int32_t status, const std::string &errMessage, bool isParamsCheck, bool isNewApi)
 {
     ZLOGD("ThrowNapiError message: %{public}s", errMessage.c_str());
     if (status == Status::SUCCESS) {
         return;
     }
-    auto errorMsg = GetJsErrorCode(status);
+    auto errorMsg = isNewApi ? GetJsNewApiErrorCode(status) : GetJsErrorCode(status);
     JsErrorCode napiError;
     if (errorMsg.has_value()) {
         napiError = errorMsg.value();

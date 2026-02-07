@@ -158,6 +158,7 @@ private:
     bool syncable_ = false;
     bool encrypt_ = false;
     bool autoBackup_ = false;
+    bool isCustomDir_ = false;
     int32_t securityLevel_ = -1;
     int32_t area_ = 1;
     std::string hapName_ = "";

@@ -421,14 +421,12 @@ interface KVManager {
     GetKVStoreSync(storeId: String, options: Options): KvStoreTypeUnion;
 
     @gen_async("closeKVStore")
-    @gen_promise("closeKVStore")
     CloseKVStoreSync(appId: String, storeId: String): void;
 
     @gen_promise("closeKVStore")
     CloseKVStoreByConfigSync(appId: String, storeId: String, kvConfig: Optional<Options>): void;
 
     @gen_async("deleteKVStore")
-    @gen_promise("deleteKVStore")
     DeleteKVStoreSync(appId: String, storeId: String): void;
 
     @gen_promise("deleteKVStore")

@@ -33,7 +33,7 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);
 
 void ThrowError(const char* message);
 void ThrowError(int32_t code, const char* message);
-void ThrowAniError(int32_t errCode, const std::string &errMessage);
+void ThrowAniError(int32_t errCode, const std::string &errMessage, bool isNewApi = false);
 
 #define ANI_ASSERT(assertion, message, retVal)                           \
     do {                                                                 \

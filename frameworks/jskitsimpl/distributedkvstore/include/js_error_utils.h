@@ -33,8 +33,10 @@ struct JsErrorCode {
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);
-Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage);
-void ThrowNapiError(napi_env env, int32_t errCode, const std::string &errMessage, bool isParamsCheck = true);
+const std::optional<JsErrorCode> GetJsNewApiErrorCode(int32_t errorCode);
+Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage, bool isNewApi = false);
+void ThrowNapiError(napi_env env, int32_t errCode, const std::string &errMessage, bool isParamsCheck = true,
+    bool isNewApi = false);
 napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
 
 #define ASSERT_ERR(env, assertion, errorCode, message)                                       \
