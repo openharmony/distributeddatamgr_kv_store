@@ -20,6 +20,7 @@
 #include "fuzzer/FuzzedDataProvider.h"
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
+#include "runtime_context.h"
 #include "runtime_config.h"
 
 using namespace DistributedDB;
@@ -186,6 +187,7 @@ void CommunicatorFuzzer(FuzzedDataProvider &provider)
         kvManager.CloseKvStore(kvNbDelegatePtr);
         kvManager.DeleteKvStore(rawString);
     }
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 }
 
