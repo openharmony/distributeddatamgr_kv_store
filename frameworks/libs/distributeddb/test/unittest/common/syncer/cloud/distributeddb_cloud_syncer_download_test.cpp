@@ -717,6 +717,10 @@ static void ExpectGetInfoByPrimaryKeyOrGidCall()
         .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(9, false); // Gen log info with timestamp 9
             return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
+            info = GetLogInfo(10, false); // Gen log info with timestamp 10
+            return E_OK;
         });
 }
 
