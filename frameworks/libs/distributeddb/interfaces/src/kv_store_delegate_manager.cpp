@@ -116,7 +116,7 @@ void InitPropWithNbOption(KvDBProperties &properties, const std::string &storePa
     properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
     bool sharedMode = (option.storageEngineType == GAUSSDB_RD);
     properties.SetBoolProp(KvDBProperties::SHARED_MODE, sharedMode);
-    properties.SetUIntProp(KvDBProperties::KVDB_PAGE_SIZE, option.rdconfig.pageSize);
+    properties.SetUIntProp(KvDBProperties::PAGE_SIZE, option.rdconfig.pageSize);
     properties.SetUIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
     properties.SetIntProp(KvDBProperties::INDEX_TYPE, option.rdconfig.type);
 }

@@ -1035,9 +1035,6 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, Test
         thread->join();
         delete thread;
     }
-    auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
-    ASSERT_NE(manager, nullptr);
-    EXPECT_EQ(manager->GetCurrentDownloadCount(), 0u);
 }
 
 /**

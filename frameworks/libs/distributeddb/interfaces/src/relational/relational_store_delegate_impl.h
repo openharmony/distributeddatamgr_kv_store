@@ -30,7 +30,7 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(RelationalStoreDelegateImpl);
 
     DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
-
+    
     DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option) override;
 
     DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;

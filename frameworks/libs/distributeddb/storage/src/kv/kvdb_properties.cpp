@@ -32,7 +32,7 @@ const std::string KvDBProperties::LOCAL_ONLY = "localOnly";
 
 const std::string KvDBProperties::SHARED_MODE = "sharedMode";
 const std::string KvDBProperties::READ_ONLY_MODE = "read_only";
-const std::string KvDBProperties::KVDB_PAGE_SIZE = "pageSize";
+const std::string KvDBProperties::PAGE_SIZE = "pageSize";
 const std::string KvDBProperties::INDEX_TYPE = "indexType";
 const std::string KvDBProperties::CACHE_SIZE = "cacheSize";
 

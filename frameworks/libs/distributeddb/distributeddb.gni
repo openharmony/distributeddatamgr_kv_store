@@ -330,8 +330,6 @@ distributeddb_base_src = [
   "${distributeddb_path}/interfaces/src/relational/relational_store_manager_client.cpp",
   "${distributeddb_path}/interfaces/src/kv_store_errno.cpp",
   "${distributeddb_path}/storage/src/cloud/cloud_storage_utils_client.cpp",
-  "${distributeddb_path}/storage/src/gaussdb_rd/gspd_api_manager.cpp",
-  "${distributeddb_path}/storage/src/gaussdb_rd/gspd_process_api.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/cloud_sync_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/knowledge_log_table_manager.cpp",
   "${distributeddb_path}/storage/src/sqlite/relational/simple_tracker_log_table_manager.cpp",

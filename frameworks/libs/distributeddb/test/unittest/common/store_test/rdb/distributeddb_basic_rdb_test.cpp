@@ -343,7 +343,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample007, TestSize.Level0)
         }
     };
     RDBGeneralUt::SetSchemaInfo(info1, schemaInfo);
-    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     InsertLocalDBData(0, 30, info1);
     // step2: do sync
     ASSERT_EQ(SetDistributedTables(info1, {tableName}, TableSyncType::CLOUD_COOPERATION), E_OK);

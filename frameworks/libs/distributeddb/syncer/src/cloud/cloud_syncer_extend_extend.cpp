@@ -38,6 +38,7 @@ namespace {
     constexpr const uint64_t MAX_DOWNLOAD_LOOP_TIMES = 10000;
     constexpr const uint64_t WARNING_DOWNLOAD_PERIOD = 100;
 }
+
 int CloudSyncer::HandleDownloadResultForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {

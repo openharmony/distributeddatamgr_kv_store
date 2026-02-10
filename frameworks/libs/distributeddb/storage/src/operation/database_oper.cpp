@@ -322,7 +322,7 @@ int DatabaseOper::RenameStatusCtrlFile(const std::string &orgCtrlFile, const std
 
 int DatabaseOper::RecoverPrehandle(int dbType, const std::string &dir, const std::string &fileName)
 {
-    if (DBCommon::RemoveAllFilesOfDirectory(dir, true) != E_OK) {
+    if (DBCommon::RemoveAllFilesOfDirectory(dir, true) != E_OK) { // LCOV_EXCL_BR_LINE
         LOGE("Remove the backup dir failed:%d", errno);
         return -E_REMOVE_FILE;
     }

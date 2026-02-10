@@ -74,7 +74,7 @@ static int g_binlogInit = -1;
 constexpr const char *BINLOG_EXCLUDELIST[] = {"calendardata.db"};
 constexpr const char *COMPRESS_WHITELIST[] = {"calendardata_slave.db", "advisor_slave.db", "DeviceControl_slave.db",
     "iotConnect_slave.db", "OhTips_slave.db", "Clock_slave.db", "quick-game-engine_slave.db",
-    "dual_write_binlog_test_slave.db", "RdbTestNO_slave.db", "media_library.db"};
+    "dual_write_binlog_test_slave.db", "RdbTestNO_slave.db"};
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
