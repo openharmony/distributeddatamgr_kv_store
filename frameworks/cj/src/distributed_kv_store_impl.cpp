@@ -664,11 +664,12 @@ int32_t CJSingleKVStore::OffDataChange(void (*callbackId)(const CChangeNotificat
                 Status status = kvStore_->UnSubscribeKvStore(subscribeType, *it);
                 errCode = ConvertCJErrCode(status);
                 it = dataObserver_[type].erase(it);
+            } else {
+                ++it;
             }
             if (errCode != 0) {
                 return errCode;
             }
-            ++it;
         }
     }
     return 0;
