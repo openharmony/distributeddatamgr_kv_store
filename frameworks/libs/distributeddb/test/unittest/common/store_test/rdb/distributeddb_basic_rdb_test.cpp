@@ -15,7 +15,6 @@
 
 #include "rdb_general_ut.h"
 #include "sqlite_relational_utils.h"
-#include "gspd_api_manager.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -205,13 +204,13 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample002, TestSize.Level0)
 }
 
 /**
- * @tc.name: RdbCloudSyncExample003
+ * @tc.name: RdbCloudSyncExample004
  * @tc.desc: Test upload failed, when return FILE_NOT_FOUND
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
  */
-HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample003, TestSize.Level0)
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
 {
     RelationalStoreDelegate::Option option;
     option.tableMode = DistributedTableMode::COLLABORATION;
@@ -240,13 +239,13 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample003, TestSize.Level0)
 }
 
 /**
- * @tc.name: RdbCloudSyncExample004
+ * @tc.name: RdbCloudSyncExample005
  * @tc.desc: Test upload when asset is abnormal
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
  */
-HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample005, TestSize.Level0)
 {
     RelationalStoreDelegate::Option option;
     option.tableMode = DistributedTableMode::COLLABORATION;
@@ -256,7 +255,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
     ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
     InsertLocalDBData(0, 2, info1);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
-    
+
     std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
     ASSERT_NE(virtualCloudDb, nullptr);
     virtualCloudDb->SetLocalAssetNotFound(true);
@@ -282,13 +281,13 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
 }
 
 /**
- * @tc.name: RdbCloudSyncExample005
+ * @tc.name: RdbCloudSyncExample006
  * @tc.desc: one table is normal and another is abnormal
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
  */
-HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample005, TestSize.Level0)
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample006, TestSize.Level0)
 {
     RelationalStoreDelegate::Option option;
     option.tableMode = DistributedTableMode::COLLABORATION;
@@ -317,6 +316,40 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample005, TestSize.Level0)
     RDBGeneralUt::CloudBlockSync(info1, query);
     EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 0);
     EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable2), 2);
+}
+
+/**
+ * @tc.name: RdbCloudSyncExample007
+ * @tc.desc: sync when table have field "timestamp"
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample007, TestSize.Level0)
+{
+    // step1: init local table
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    const std::vector<UtFieldInfo> filedInfo = {
+        {{"id", TYPE_INDEX<int64_t>, true, false}, false},
+        {{"timestamp", TYPE_INDEX<int64_t>, false, true}, false},
+    };
+    std::string tableName = "test_table";
+    UtDateBaseSchemaInfo schemaInfo = {
+        .tablesInfo = {
+            {.name = tableName, .fieldInfo = filedInfo}
+        }
+    };
+    RDBGeneralUt::SetSchemaInfo(info1, schemaInfo);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
+    InsertLocalDBData(0, 30, info1);
+    // step2: do sync
+    ASSERT_EQ(SetDistributedTables(info1, {tableName}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    Query query = Query::Select().FromTable({tableName});
+    RDBGeneralUt::CloudBlockSync(info1, query);
 }
 
 /**
@@ -378,106 +411,5 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbUtilsTest001, TestSize.Level0)
         return -E_NOT_SUPPORT;
     });
     EXPECT_EQ(SQLiteRelationalUtils::ExecuteListAction(actions), -E_INVALID_ARGS);
-}
-
-const std::string TEST_TABLE = "entity_test_table";
-
-// prepare sql statement
-sqlite3_stmt* PrepareStatement(sqlite3* db, const std::string& sql)
-{
-    sqlite3_stmt* stmt = nullptr;
-    int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-    if (rc != SQLITE_OK) {
-        return nullptr;
-    }
-    return stmt;
-}
-
-// entity JSON string definition for test
-namespace TestEntities {
-    // entity type 1: homework to do - math homework
-    const std::string MATH_HOMEWORK = R"({
-        "subject": "数学",
-        "assignment_name": "作业1",
-        "assignment_date": 1633027200,
-        "completion_date": 1633113600,
-        "assignment_description": "完成练习",
-        "teacher_name": "张老师",
-        "issue_date": 1632940800
-    })";
-
-    // entity type 1: homework to do - math homework with different date
-    const std::string MATH_HOMEWORK_DIFFERENT_DATE = R"({
-        "subject": "数学",
-        "assignment_name": "作业1",
-        "assignment_date": 1633027200,
-        "completion_date": 1633123600,  // 这个字段不同
-        "assignment_description": "完成练习",
-        "teacher_name": "张老师",
-        "issue_date": 1632940800
-    })";
-}
-
-/**
- * @tc.name: RdbIsEntityDuplicate003
- * @tc.desc: Basic Functionality Test - Returns false if some fields match
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author:
- */
-HWTEST_F(DistributedDBBasicRDBTest, RdbIsEntityDuplicate003, TestSize.Level0)
-{
-    if (!CheckGSPDApi()) {
-        GTEST_SKIP() << "GSPD Api unavailable for current test environment";
-    }
-
-    /**
-     * @tc.steps: step1. create test table
-     * @tc.expected: step1. ok
-     */
-    RelationalStoreDelegate::Option option;
-    option.tableMode = DistributedTableMode::COLLABORATION;
-    SetOption(option);
-
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "dev1"), E_OK);
-
-    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + TEST_TABLE +
-        " (id INTEGER PRIMARY KEY, content_type INTEGER, page_content TEXT)";
-    EXPECT_EQ(ExecuteSQL(createTableSql, info1), E_OK);
-
-    /**
-     * @tc.steps: step2. insert math homework data (entity type 1)
-     * @tc.expected: step2. ok
-     */
-    std::string insertSql = "INSERT INTO " + TEST_TABLE + " (id, content_type, page_content) VALUES (1, 1, ?)";
-
-    sqlite3* db = GetSqliteHandle(info1);
-    ASSERT_NE(db, nullptr);
-
-    sqlite3_stmt* stmt = PrepareStatement(db, insertSql);
-    ASSERT_NE(stmt, nullptr);
-
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK.c_str(),
-                      TestEntities::MATH_HOMEWORK.length(), SQLITE_TRANSIENT);
-    EXPECT_EQ(sqlite3_step(stmt), SQLITE_DONE);
-    sqlite3_finalize(stmt);
-
-    /**
-     * @tc.steps: step3. query with is_entity_duplicate
-     * @tc.expected: step3. return false
-     */
-    std::string querySql = "SELECT is_entity_duplicate(page_content, ?) FROM " + TEST_TABLE + " WHERE id = 1";
-
-    stmt = PrepareStatement(db, querySql);
-    ASSERT_NE(stmt, nullptr);
-
-    sqlite3_bind_text(stmt, 1, TestEntities::MATH_HOMEWORK_DIFFERENT_DATE.c_str(),
-                      TestEntities::MATH_HOMEWORK_DIFFERENT_DATE.length(), SQLITE_TRANSIENT);
-
-    EXPECT_EQ(sqlite3_step(stmt), SQLITE_ROW);
-    int result = sqlite3_column_int(stmt, 0);
-    EXPECT_EQ(result, 0);  // expect return false
-    sqlite3_finalize(stmt);
 }
 }

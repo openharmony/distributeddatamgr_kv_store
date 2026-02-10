@@ -823,9 +823,11 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
     int taskErrCode =
         RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData, origin] () mutable {
             LOGD("begin to trigger relational observer.");
-            std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-            for (const auto &item : dataChangeCallbackMap_) {
-                ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, origin);
+            {
+                std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
+                for (const auto &item : dataChangeCallbackMap_) {
+                    ExecuteDataChangeCallback(item, deviceName, changedData, isChangedData, origin);
+                }
             }
             DecObjRef(this);
         });

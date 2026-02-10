@@ -19,14 +19,13 @@
 #include "virtual_single_ver_sync_db_Interface.h"
 
 namespace DistributedDB {
-class VirtualUnKnowSyncInterface : public VirtualSingleVerSyncDBInterface {
+class VirtualUnknowSyncInterface : public VirtualSingleVerSyncDBInterface {
 public:
-    VirtualUnKnowSyncInterface() = default;
-    ~VirtualUnKnowSyncInterface() = default;
-    int GetInterfaceType() const override
-    {
+    VirtualUnknowSyncInterface() = default;
+    ~VirtualUnknowSyncInterface() = default;
+    int GetInterfaceType() const override {
         return ISyncInterface::SYNC_MVD;
     }
 };
 } // namespace DistributedDB
-#endif  // #define VIRTUAL_UNKNOW_SYNC_INTERFACE_H
+#endif // #define VIRTUAL_UNKNOW_SYNC_INTERFACE_H

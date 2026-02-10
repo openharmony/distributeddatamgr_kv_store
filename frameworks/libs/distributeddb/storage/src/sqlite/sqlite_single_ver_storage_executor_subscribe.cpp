@@ -123,9 +123,8 @@ int SQLiteSingleVerStorageExecutor::CheckDataWithQuery(QueryObject query, std::v
     if (errCode != E_OK) {
         LOGE("check data with query failed. %d", errCode);
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(stmt, true, errCode);
 }
 
 namespace {
@@ -169,6 +168,10 @@ int SQLiteSingleVerStorageExecutor::AddSubscribeTrigger(QueryObject &query, cons
         return -E_NOT_SUPPORT;
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+    if (errCode != E_OK) {
+        LOGE("[AddSubscribeTrigger] Reset statement failed, errCode: %d", errCode);
+        return errCode;
+    }
 
     // Delete data API is actually an update operation, there is no need for DELETE trigger
     for (auto mode : {TriggerModeEnum::INSERT, TriggerModeEnum::UPDATE}) {

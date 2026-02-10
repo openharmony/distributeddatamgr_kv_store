@@ -513,9 +513,9 @@ HWTEST_F(DistributedDBRelationalResultSetTest, DeSerializeTest001, TestSize.Leve
 HWTEST_F(DistributedDBRelationalResultSetTest, DeSerializeTest002, TestSize.Level0)
 {
     /**
-     *  @tc.steps: step1. Set totalLen as the critical condition.
-     *  satisfies the write condition (parcelLen is less than totalLen), but does not meet the byte alignment condition
-     *  parcelLen is 12 after writing, after byte alignment it becomes 16, which is greater than totalLen.
+     * @tc.steps: step1. Set totalLen as the critical condition.
+     * satisfies the write condition (parcelLen is less than totalLen), but does not meet the byte alignment condition
+     * parcelLen is 12 after writing, after byte alignment it becomes 16, which is greater than totalLen.
      */
     uint8_t buffer[12] = {0}; // Set totalLen as 12
     Parcel parcelA(buffer, 12);

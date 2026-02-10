@@ -584,7 +584,6 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
             threadIsWorking = false;
             cv.notify_one();
         });
-    aggregatorThread.detach();
     AutoLaunchOption option;
     option.notifier = nullptr;
     option.observer = observer;
@@ -605,6 +604,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch006, TestSize.Level3)
 
     observer = nullptr;
     g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
+    aggregatorThread.join();
 }
 
 namespace {
@@ -1040,7 +1040,6 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
     ASSERT_TRUE(observer != nullptr);
     RuntimeConfig::SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
-
     /**
      * @tc.steps: step2. RunCommunicatorLackCallback
      * @tc.expected: step2. success.
@@ -1092,7 +1091,6 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
     ASSERT_TRUE(observer != nullptr);
     RuntimeConfig::SetAutoLaunchRequestCallback(
         std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
-
     std::thread th ([&]() {
         /**
          * @tc.steps: step2. RunCommunicatorLackCallback
@@ -1110,7 +1108,6 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
-
     th.join();
     observer = nullptr;
 }
@@ -1219,6 +1216,47 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties002, TestSize.L
     dbProperties.SetStringProp(DBProperties::IDENTIFIER_DATA, hId);
     RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties);
     dbProperties.SetStringProp(DBProperties::USER_ID, USER_ID);
+    ASSERT_NO_FATAL_FAILURE(RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties));
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
+    observer = nullptr;
+}
+
+/**
+ * @tc.name: GetAutoLaunchProperties003
+ * @tc.desc: test autoLaunch with invalid properties
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, GetAutoLaunchProperties003, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. SetAutoLaunchRequestCallback
+     * @tc.expected: step1. success.
+     */
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
+    ASSERT_TRUE(observer != nullptr);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
+        DBTypeInner::DB_KV);
+    LabelType label(g_identifierA.begin(), g_identifierA.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(label);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+
+    /**
+     * @tc.steps: step2. close conn
+     * @tc.expected: step2. success.
+     */
+    DBProperties dbProperties;
+    std::string hId = DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0);
+    dbProperties.SetStringProp(DBProperties::IDENTIFIER_DATA, hId);
+    dbProperties.SetStringProp(DBProperties::USER_ID, USER_ID);
+    int closeId = 5;
+    dbProperties.SetIntProp(DBProperties::AUTO_LAUNCH_ID, closeId);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties);
+    closeId = 0;
+    dbProperties.SetIntProp(DBProperties::AUTO_LAUNCH_ID, closeId);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_RELATION, dbProperties);
     ASSERT_NO_FATAL_FAILURE(RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_KV, dbProperties));
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     observer = nullptr;

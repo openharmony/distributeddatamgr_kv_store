@@ -16,6 +16,7 @@
 #include "sqlite_relational_store.h"
 
 #include <random>
+#include <unordered_set>
 #include "cloud/cloud_storage_utils.h"
 #include "cloud_sync_utils.h"
 #include "db_common.h"
@@ -531,7 +532,7 @@ int SQLiteRelationalStore::CheckAndCollectCloudTables(ClearMode mode, const Rela
     auto [table, errCode] = sqliteStorageEngine_->CalTableRef(cloudTableNameList,
         storageEngine_->GetSharedTableOriginNames());
     if (errCode != E_OK) {
-        LOGE("[RelationalStore] failed to expand related cloud tables, %d", errCode);
+        LOGE("[RelationalStore] failed to get reference table, %d", errCode);
         return errCode;
     }
     cloudTableNameList = table;
@@ -557,6 +558,11 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode, const std::vector<std:
     if (cloudSyncer_ == nullptr) {
         LOGE("[RelationalStore] cloudSyncer was not initialized when clean cloud data");
         return -E_INVALID_DB;
+    }
+    errCode = cloudSyncer_->StopSyncTask(nullptr);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] failed to stop sync task, %d.", errCode);
+        return errCode;
     }
     errCode = cloudSyncer_->CleanCloudData(mode, cloudTableNameList, localSchema);
     if (errCode != E_OK) {

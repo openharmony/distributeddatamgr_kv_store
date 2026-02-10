@@ -620,6 +620,29 @@ void StoreManagerFuzz(FuzzedDataProvider &fdp)
     kvManager.DeleteKvStore(storeId);
 }
 
+void StatusFuzz(FuzzedDataProvider &fdp, KvStoreNbDelegate *kvNbDelegatePtr)
+{
+    if (kvNbDelegatePtr == nullptr) {
+        return;
+    }
+    kvNbDelegatePtr->GetDatabaseStatus();
+    uint32_t op = fdp.ConsumeIntegral<uint32_t>();
+    kvNbDelegatePtr->OperateDataStatus(op);
+    Property property;
+    std::string s1 = fdp.ConsumeRandomLengthString();
+    std::string s2 = fdp.ConsumeRandomLengthString();
+    property[s1] = s2;
+    kvNbDelegatePtr->SetProperty(property);
+    ClearKvMetaDataOption option;
+    uint32_t type = fdp.ConsumeIntegral<uint32_t>();
+    option.type = static_cast<ClearKvMetaOpType>(type);
+    kvNbDelegatePtr->ClearMetaData(option);
+    DeviceSyncNotifier notifier = [](const DeviceSyncNotifyInfo &) {
+    };
+    uint32_t event = fdp.ConsumeIntegral<uint32_t>();
+    kvNbDelegatePtr->SetDeviceSyncNotify(static_cast<DeviceSyncEvent>(event), notifier);
+}
+
 void CombineTest(FuzzedDataProvider &fdp, KvStoreNbDelegate::Option &option)
 {
     static auto kvManager = KvStoreDelegateManager("APP_ID", "USER_ID");
@@ -645,6 +668,7 @@ void CombineTest(FuzzedDataProvider &fdp, KvStoreNbDelegate::Option &option)
     if (option.isEncryptedDb) {
         EncryptOperation(fdp, config.dataDir, kvNbDelegatePtr);
     }
+    StatusFuzz(fdp, kvNbDelegatePtr);
     RuntimeContext::GetInstance()->StopTaskPool();
     kvManager.CloseKvStore(kvNbDelegatePtr);
     kvManager.DeleteKvStore("distributed_nb_delegate_test");

@@ -87,16 +87,16 @@ public:
     DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
 
+    DBStatus RemoveDeviceData() override;
+
     DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
 
     DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) override;
 
-    DBStatus RemoveDeviceData() override;
+    int32_t GetDeviceSyncTaskCount() override;
 
     DBStatus SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
-
-    int32_t GetDeviceSyncTaskCount() override;
 
     DBStatus SetStoreConfig(const StoreConfig &config) override;
 

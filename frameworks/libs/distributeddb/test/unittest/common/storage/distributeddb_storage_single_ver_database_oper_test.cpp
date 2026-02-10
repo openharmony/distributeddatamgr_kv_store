@@ -255,7 +255,7 @@ public:
     using SingleVerDatabaseOper::CloseStorages;
     using SingleVerDatabaseOper::ExportAllDatabases;
     TestableSingleVerDatabaseOper(DistributedDB::SQLiteSingleVerNaturalStore *naturalStore,
-        DistributedDB::SQLiteStorageEngine *StorageEngine) : SingleVerDatabaseOper(naturalStore, StorageEngine) {}
+        DistributedDB::SQLiteStorageEngine *storageEngine) : SingleVerDatabaseOper(naturalStore, storageEngine) {}
 };
 
 /**
@@ -485,8 +485,8 @@ HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, ImportUnpackedMetaDataba
 HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, GetStoreSubDirectoryTest001, TestSize.Level0)
 {
     /**
-     *  @tc.steps: step1. Change Type;
-     *  @tc.expected: LOCAL_SUB_DIR.
+     * @tc.steps: step1. Change Type;
+     * @tc.expected: LOCAL_SUB_DIR.
      */
     int type = DistributedDB::KvDBProperties::LOCAL_TYPE_SQLITE;
     EXPECT_EQ(KvDBProperties::GetStoreSubDirectory(type), DBConstant::LOCAL_SUB_DIR);
@@ -502,8 +502,8 @@ HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, GetStoreSubDirectoryTest
 HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, GetStoreSubDirectoryTest002, TestSize.Level0)
 {
     /**
-     *  @tc.steps: step1. Change Type;
-     *  @tc.expected: MULTI_SUB_DIR.
+     * @tc.steps: step1. Change Type;
+     * @tc.expected: MULTI_SUB_DIR.
      */
     int type = DistributedDB::KvDBProperties::MULTI_VER_TYPE_SQLITE;
     EXPECT_EQ(KvDBProperties::GetStoreSubDirectory(type), DBConstant::MULTI_SUB_DIR);
@@ -519,8 +519,8 @@ HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, GetStoreSubDirectoryTest
 HWTEST_F(DistributedDBStorageSingleVerDatabaseOperTest, GetStoreSubDirectoryTest003, TestSize.Level0)
 {
     /**
-     *  @tc.steps: step1. Change Type;
-     *  @tc.expected: unknown.
+     * @tc.steps: step1. Change Type;
+     * @tc.expected: unknown.
      */
     int type = 404;
     EXPECT_EQ(KvDBProperties::GetStoreSubDirectory(type), "unknown");

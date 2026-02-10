@@ -1335,7 +1335,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level
         conditionOnline.notify_all();
         LOGW("[Dispatch] NOW DEVICES IS ONLINE");
     });
-    subThread.detach();
 
     RegOnDispatchWithOffline(offlineFlag, invalid, conditionOffline);
 
@@ -1350,6 +1349,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSafeCheck001, TestSize.Level
      * @tc.expected: step4. should return OK.
      */
     SyncWithQuery(devices, query, OK);
+    subThread.join();
 }
 
 /**
@@ -2767,21 +2767,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, InvalidSync001, TestSize.Level0
     option.isQuery = true;
     option.isWait = true;
     option.query = query;
-    std::mutex cancelMtx;
-    bool cancelFinished = false;
-    DeviceSyncProcessCallback onProcess = [&](const std::map<std::string, DeviceSyncProcess> &processMap) {
-        bool isAllCancel = true;
-        for (auto &process : processMap) {
-            if (process.second.errCode != COMM_FAILURE) {
-                isAllCancel = false;
-            }
-        }
-        if (isAllCancel) {
-            std::unique_lock<std::mutex> lock(cancelMtx);
-            cancelFinished = true;
-        }
-    };
-    callStatus = OK;
+    DeviceSyncProcessCallback onProcess = nullptr;
     callStatus = g_kvDelegatePtr->Sync(option, onProcess);
     EXPECT_EQ(callStatus, NOT_SUPPORT);
 }

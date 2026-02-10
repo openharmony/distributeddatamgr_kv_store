@@ -25,6 +25,7 @@
 #include "protocol_proto.h"
 
 namespace DistributedDB {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 namespace {
 constexpr int RETRY_TIME_SPLIT = 4;
 inline std::string GetThreadId()
@@ -34,6 +35,7 @@ inline std::string GetThreadId()
     return stream.str();
 }
 }
+#endif
 
 std::atomic<bool> CommunicatorAggregator::isCommunicatorNotFoundFeedbackEnable_{true};
 
@@ -51,6 +53,11 @@ CommunicatorAggregator::~CommunicatorAggregator()
     commLinker_ = nullptr;
 }
 
+int CommunicatorAggregator::GetLocalIdentity(std::string &outTarget) const
+{
+    return adapterHandle_->GetLocalIdentity(outTarget);
+}
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 int CommunicatorAggregator::Initialize(IAdapter *inAdapter, const std::shared_ptr<DBStatusAdapter> &statusAdapter)
 {
     if (inAdapter == nullptr) {
@@ -240,11 +247,6 @@ uint32_t CommunicatorAggregator::GetCommunicatorAggregatorTimeout(const std::str
 bool CommunicatorAggregator::IsDeviceOnline(const std::string &device) const
 {
     return adapterHandle_->IsDeviceOnline(device);
-}
-
-int CommunicatorAggregator::GetLocalIdentity(std::string &outTarget) const
-{
-    return adapterHandle_->GetLocalIdentity(outTarget);
 }
 
 void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel, const std::string &userId)
@@ -1237,4 +1239,5 @@ int32_t CommunicatorAggregator::GetRetryCount(const std::string &dev, bool isRet
     return scheduler_.GetRetryCount(dev, isRetryTask);
 }
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
+#endif
 } // namespace DistributedDB

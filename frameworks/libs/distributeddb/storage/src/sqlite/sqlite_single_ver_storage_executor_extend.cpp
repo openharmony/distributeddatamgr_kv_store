@@ -171,7 +171,7 @@ int SQLiteSingleVerStorageExecutor::CloudCheckDataExist(const std::string &sql, 
             isExist = true;
         }
         SQLiteUtils::ResetStatement(statement, true, ret);
-        return E_OK;
+        return ret;
     }
     SQLiteUtils::ResetStatement(statement, true, ret);
     return errCode != E_OK ? errCode : ret;
@@ -205,7 +205,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(ClearMode mode)
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_ALL_DEV_DATA_SQL, "", "");
 #else
-        return E_OK;
+    return E_OK;
 #endif
 }
 
@@ -238,7 +238,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &dev
     }
     return CloudExcuteRemoveOrUpdate(UPDATE_CLOUD_DEV_DATA_BY_DEVID_SQL, deviceName, "");
 #else
-        return E_OK;
+    return E_OK;
 #endif
 }
 
@@ -394,9 +394,8 @@ int SQLiteSingleVerStorageExecutor::PrepareForUnSyncTotalByTime(Timestamp begin,
     errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_BEGIN_STAMP_INDEX, begin);
     if (errCode != E_OK) {
         LOGE("Bind the begin timestamp for getting sync num error:%d", errCode);
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(statement, true, ret);
-        return CheckCorruptedStatus(errCode);
+        errCode = CheckCorruptedStatus(errCode);
+        return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
     }
 
     errCode = SQLiteUtils::BindInt64ToStatement(statement, BIND_END_STAMP_INDEX, end);
@@ -404,6 +403,9 @@ int SQLiteSingleVerStorageExecutor::PrepareForUnSyncTotalByTime(Timestamp begin,
         LOGE("Bind the end timestamp for getting sync num error:%d", errCode);
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[PrepareForUnSyncTotalByTime] Reset statement failed: %d", ret);
+        }
     }
     return CheckCorruptedStatus(errCode);
 }
@@ -425,9 +427,8 @@ int SQLiteSingleVerStorageExecutor::GetCountValue(sqlite3_stmt *&countStatement,
     } else {
         errCode = -E_UNEXPECTED_DATA;
     }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(countStatement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(countStatement, true, errCode);
 }
 
 int SQLiteSingleVerStorageExecutor::GetUnSyncTotalByTimestamp(Timestamp begin, Timestamp end, uint32_t &total) const

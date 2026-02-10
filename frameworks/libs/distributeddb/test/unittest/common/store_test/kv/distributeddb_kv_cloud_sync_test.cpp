@@ -111,5 +111,43 @@ HWTEST_F(DistributedDBKvCloudSyncTest, CloudSyncAbnormal001, TestSize.Level0)
     EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo1, DEVICE_A, OK, CLOUD_ASSET_NOT_FOUND));
     SetActionStatus(OK);
 }
+
+/**
+ * @tc.name: CloudSyncTest001
+ * @tc.desc: Test sync cloud when query return E_EXPIRED_CURSOR.
+ * @tc.type: FUNC
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBKvCloudSyncTest, CloudSyncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. dev1 put (k,v)
+     * @tc.expected: step1. put return OK.
+     */
+    auto storeInfo1 = GetStoreInfo1();
+    auto storeInfo2 = GetStoreInfo2();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    ASSERT_EQ(SetCloud(store1), OK);
+    auto store2 = GetDelegate(storeInfo2);
+    ASSERT_NE(store2, nullptr);
+    ASSERT_EQ(SetCloud(store2), OK);
+    Value expectValue = {'v'};
+    EXPECT_EQ(store1->Put({'k'}, expectValue), OK);
+    /**
+     * @tc.steps: step2. sync and return E_EXPIRED_CURSOR when query
+     * @tc.expected: step2. sync return OK.
+    */
+    std::atomic<int> count = 0;
+    virtualCloudDb_->ForkAfterQueryResult([&count](VBucket &, std::vector<VBucket> &) {
+        count++;
+        return count == 1 ? DBStatus::EXPIRED_CURSOR : DBStatus::QUERY_END;
+    });
+    BlockCloudSync(storeInfo1, DEVICE_A);
+    BlockCloudSync(storeInfo2, DEVICE_B);
+    Value actualValue;
+    EXPECT_EQ(store2->Get({'k'}, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+}
 #endif
 } // namespace

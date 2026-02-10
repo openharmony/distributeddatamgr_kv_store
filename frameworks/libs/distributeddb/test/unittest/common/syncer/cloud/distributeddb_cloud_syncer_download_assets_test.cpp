@@ -2993,5 +2993,193 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId026, TestSize.Le
     g_delegate->RemoveDeviceData("", CLEAR_SHARED_TABLE);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
+
+/**
+ * @tc.name: ExpireCursor001
+ * @tc.desc: Test delete assets when the test cursor becomes invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ExpireCursor001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud data
+     * @tc.expected: step1. return OK.
+    */
+    int dataCount = 120;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    /**
+     * @tc.steps:step2. set expire cursor and sync.
+     * @tc.expected: step2. return OK.
+    */
+    std::atomic<int> count = 0;
+    g_virtualCloudDb->ForkAfterQueryResult([&count](VBucket &, std::vector<VBucket> &) {
+        count++;
+        return count == 1 ? DBStatus::EXPIRED_CURSOR : DBStatus::QUERY_END;
+    });
+    g_virtualCloudDb->ForkQueryAllGid([](const std::string &, VBucket &, std::vector<VBucket> &) {
+        return DBStatus::QUERY_END;
+    });
+    int removeCount = 0;
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&removeCount](std::map<std::string, Assets> &assets) {
+        removeCount++;
+        return OK;
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    EXPECT_EQ(removeCount, dataCount);
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
+    g_virtualCloudDb->ForkQueryAllGid(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
+ * @tc.name: ExpireCursor002
+ * @tc.desc: Test delete assets when the test cursor becomes invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ExpireCursor002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud data
+     * @tc.expected: step1. return OK.
+    */
+    size_t dataCount = 90;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    /**
+     * @tc.steps:step2. set expire cursor and sync.
+     * @tc.expected: step2. return OK.
+    */
+    g_virtualCloudDb->ForkAfterQueryResult([](VBucket &, std::vector<VBucket> &) {
+        return DBStatus::EXPIRED_CURSOR;
+    });
+    g_virtualCloudDb->ForkQueryAllGid([](const std::string &, VBucket &, std::vector<VBucket> &) {
+        return DBStatus::QUERY_END;
+    });
+    int removeCount = 0;
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&removeCount](std::map<std::string, Assets> &assets) {
+        removeCount++;
+        return OK;
+    });
+    g_observer->ClearChangedData();
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::EXPIRED_CURSOR);
+    EXPECT_EQ(removeCount, dataCount);
+    EXPECT_EQ(g_virtualAssetLoader->GetBatchRemoveCount(), 1);
+    auto changeData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changeData.size(), 1u);
+    EXPECT_EQ(changeData[ASSETS_TABLE_NAME].tableName, ASSETS_TABLE_NAME);
+    EXPECT_EQ(changeData[ASSETS_TABLE_NAME].type, ChangedDataType::ASSET);
+    EXPECT_EQ(changeData[ASSETS_TABLE_NAME].primaryData[ChangeType::OP_DELETE].size(), dataCount);
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
+    g_virtualCloudDb->ForkQueryAllGid(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
+ * @tc.name: ExpireCursor003
+ * @tc.desc: Test delete assets with SYNC_MODE_CLOUD_FORCE_PULL
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ExpireCursor003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud data
+     * @tc.expected: step1. return OK.
+    */
+    int dataCount = 120;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    /**
+     * @tc.steps:step2. set expire cursor and sync.
+     * @tc.expected: step2. return OK.
+    */
+    std::atomic<int> count = 0;
+    g_virtualCloudDb->ForkAfterQueryResult([&count](VBucket &, std::vector<VBucket> &) {
+        count++;
+        return count == 1 ? DBStatus::EXPIRED_CURSOR : DBStatus::QUERY_END;
+    });
+    g_virtualCloudDb->ForkQueryAllGid([](const std::string &, VBucket &, std::vector<VBucket> &) {
+        return DBStatus::QUERY_END;
+    });
+    int removeCount = 0;
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&removeCount](std::map<std::string, Assets> &assets) {
+        removeCount++;
+        return OK;
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    EXPECT_EQ(removeCount, dataCount);
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
+    g_virtualCloudDb->ForkQueryAllGid(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
+
+/**
+ * @tc.name: ExpireCursor004
+ * @tc.desc: Test open store and sync when query return EXPIRED_CURSOR
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liaoyonghuang
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, ExpireCursor004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init cloud data and sync to local, then close db
+     * @tc.expected: step1. return OK.
+    */
+    int dataCount = 90;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
+    g_delegate = nullptr;
+    /**
+     * @tc.steps:step2. open db
+     * @tc.expected: step2. return OK.
+    */
+    ASSERT_EQ(
+        g_mgr.OpenStore(g_storePath, STORE_ID, RelationalStoreDelegate::Option{.observer = g_observer}, g_delegate),
+        DBStatus::OK);
+    ASSERT_EQ(g_delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
+    ASSERT_EQ(g_delegate->SetIAssetLoader(g_virtualAssetLoader), DBStatus::OK);
+    DataBaseSchema dataBaseSchema;
+    GetCloudDbSchema(dataBaseSchema);
+    ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    /**
+     * @tc.steps:step3. sync when query return EXPIRED_CURSOR
+     * @tc.expected: step3. return OK.
+    */
+    g_virtualCloudDb->ForkAfterQueryResult([](VBucket &, std::vector<VBucket> &) {
+        return DBStatus::EXPIRED_CURSOR;
+    });
+    g_virtualCloudDb->ForkQueryAllGid([](const std::string &, VBucket &, std::vector<VBucket> &) {
+        return DBStatus::QUERY_END;
+    });
+    int removeCount = 0;
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback([&removeCount](std::map<std::string, Assets> &assets) {
+        removeCount++;
+        return OK;
+    });
+    g_observer->ClearChangedData();
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::EXPIRED_CURSOR);
+    /**
+     * @tc.steps:step4. check data and asset observer
+     * @tc.expected: step4. return OK.
+    */
+    EXPECT_EQ(removeCount, dataCount);
+    EXPECT_EQ(g_virtualAssetLoader->GetBatchRemoveCount(), 1);
+    auto changeData = g_observer->GetSavedChangedData();
+    EXPECT_EQ(changeData.size(), 1u);
+    EXPECT_EQ(changeData[ASSETS_TABLE_NAME].tableName, ASSETS_TABLE_NAME);
+    EXPECT_EQ(changeData[ASSETS_TABLE_NAME].type, ChangedDataType::ASSET);
+    EXPECT_EQ(changeData[ASSETS_TABLE_NAME].primaryData[ChangeType::OP_DELETE].size(), static_cast<size_t>(dataCount));
+    g_virtualCloudDb->ForkAfterQueryResult(nullptr);
+    g_virtualCloudDb->ForkQueryAllGid(nullptr);
+    g_virtualAssetLoader->SetRemoveLocalAssetsCallback(nullptr);
+}
 } // namespace
 #endif // RELATIONAL_STORE

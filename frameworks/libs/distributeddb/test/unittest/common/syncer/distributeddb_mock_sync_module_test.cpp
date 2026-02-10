@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #ifdef RUN_AS_ROOT
@@ -1624,18 +1626,18 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest008, TestSize.Level0)
     std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
     EXPECT_CALL(*enginePtr, CreateSyncTaskContext(_))
         .WillRepeatedly(Return(nullptr));
-    
+
     auto virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
     ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
-    VirtualUnKnowSyncInterface unknowSyncInterface;
+    VirtualUnknowSyncInterface unknowSyncInterface;
     unknowSyncInterface.SetIdentifier(identifier);
     std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
     metaData->Initialize(&unknowSyncInterface);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
     ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
     enginePtr->Initialize(&unknowSyncInterface, metaData, param);
-    
+
     auto *context = enginePtr->CreateSyncTaskContext(unknowSyncInterface);
     EXPECT_EQ(context, nullptr);
     enginePtr->Close();
@@ -1927,7 +1929,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery003, TestSize.Level1)
     DistributedDB::Message *message = nullptr;
     EXPECT_EQ(BuildRemoteQueryMsg(message), E_OK);
     message->SetMessageType(TYPE_RESPONSE);
-    message->SetErrorNo(E_NEED_CORRECT_TARGET_USER);
+    message->SetErrorNo(NEED_CORRECT_TARGET_USER);
     message->SetSessionId(executor->GetLastSessionId());
     executor->ReceiveMessage(deviceName, message);
     std::this_thread::sleep_for(std::chrono::seconds(1)); // mock one msg execute 1 s
@@ -2735,3 +2737,4 @@ HWTEST_F(DistributedDBMockSyncModuleTest, IsNeedRetrySyncTest, TestSize.Level0)
     RefObject::KillAndDecObjRef(context);
 }
 }
+#endif

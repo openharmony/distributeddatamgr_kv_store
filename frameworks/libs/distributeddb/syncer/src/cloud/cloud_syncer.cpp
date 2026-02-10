@@ -1931,7 +1931,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         LOGW("[CloudSyncer] clear unlocking status failed! errCode = %d", err);
     }
     contextCv_.notify_all();
-    // Input errCode has higher then priority info.tempErrCode
+    // Input errCode have higher priority info.tempErrCode
     if (info.errCode == E_OK) {
         info.errCode = errCode == E_OK ? info.tempErrCode : errCode;
     }
@@ -1951,7 +1951,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     }
     if (CloudSyncUtils::NotNeedToCompensated(info.errCode)) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        for (auto& cloudTaskInfoIter : cloudTaskInfos_) {
+        for (auto &cloudTaskInfoIter : cloudTaskInfos_) {
             if (cloudTaskInfoIter.second.compensatedTask) {
                 cloudTaskInfoIter.second.errCode = info.errCode;
             }

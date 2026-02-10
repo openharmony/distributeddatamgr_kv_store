@@ -19,6 +19,7 @@
 #include "serial_buffer.h"
 
 namespace DistributedDB {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 namespace {
 const uint32_t MAX_RETAIN_CAPACITY = 67108864; // 64 M bytes
 const uint32_t MAX_RETAIN_PERIOD_COUNT = 2; // One period is RETAIN_SURVAIL_PERIOD_IN_MILLISECOND.
@@ -252,4 +253,5 @@ void FrameRetainer::ShrinkRetainWorkPool()
         retainWorkPool_.erase(entry);
     }
 }
+#endif
 } // namespace DistributedDB

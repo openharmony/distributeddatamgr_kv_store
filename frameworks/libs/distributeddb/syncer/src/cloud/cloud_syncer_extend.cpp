@@ -1412,7 +1412,7 @@ std::string CloudSyncer::GetStoreIdByTask(TaskId taskId)
     return cloudTaskInfos_[taskId].storeId;
 }
 
-int CloudSyncer::StopSyncTask(std::function<int(void)> &removeFunc)
+int CloudSyncer::StopSyncTask(const std::function<int(void)> &removeFunc)
 {
     hasKvRemoveTask = true;
     CloudSyncer::TaskId currentTask;
@@ -1425,11 +1425,11 @@ int CloudSyncer::StopSyncTask(std::function<int(void)> &removeFunc)
         StopAllTasks(-E_CLOUD_ERROR);
     }
     int errCode = E_OK;
-    {
+    if (removeFunc != nullptr) {
         std::lock_guard<std::mutex> lock(syncMutex_);
         errCode = removeFunc();
-        hasKvRemoveTask = false;
     }
+    hasKvRemoveTask = false;
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] removeFunc execute failed errCode: %d.", errCode);
     }
@@ -2098,7 +2098,7 @@ std::vector<CloudSyncer::CloudTaskInfo> CloudSyncer::CopyAndClearTaskInfos()
 {
     std::vector<CloudTaskInfo> infoList;
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    for (const auto &item: cloudTaskInfos_) {
+    for (const auto &item: std::as_const(cloudTaskInfos_)) {
         infoList.push_back(item.second);
     }
     taskQueue_.clear();

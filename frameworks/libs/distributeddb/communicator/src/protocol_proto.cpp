@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "protocol_proto.h"
 #include <iterator>
 #include <mutex>
@@ -1123,3 +1124,4 @@ int ProtocolProto::GetTransformFunc(uint32_t messageId, DistributedDB::Transform
     return E_OK;
 }
 } // namespace DistributedDB
+#endif

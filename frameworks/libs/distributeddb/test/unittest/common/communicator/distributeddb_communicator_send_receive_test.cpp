@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include <gtest/gtest.h>
 #include <thread>
 #include "db_errno.h"
@@ -920,3 +921,4 @@ HWTEST_F(DistributedDBCommunicatorSendReceiveTest, ToMessageTest001, TestSize.Le
     EXPECT_EQ(errorNo, -E_INVALID_ARGS);
     EXPECT_EQ(msg, nullptr);
 }
+#endif

@@ -281,7 +281,31 @@ HWTEST_F(DistributedDBRDBDropTableTest, CleanDirtyLog001, TestSize.Level0)
     EXPECT_EQ(ExecuteSQL("DROP TABLE DEVICE_SYNC_TABLE", info1_), E_OK);
     EXPECT_EQ(SQLiteRelationalUtils::CleanDirtyLog(handle, DEVICE_SYNC_TABLE, obj), -1); // -1 is default error
 }
-#endif
+
+/**
+ * @tc.name: NotADbTest001
+ * @tc.desc: Test open corrupt db 
+ * @tc.type: FUNC
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRDBDropTableTest, NotADbTest001, TestSize.Level1)
+{
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, DEVICE_A), E_OK);
+    std::string sql = "PRAGMA wal_checkpoint";
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    std::string dbPath = GetTestDir() + "/" + info1.storeId + ".db";
+    std::fstream file(dbPath.c_str(), std::ios::in | std::ios::out | std::ios::binary);
+    ASSERT_TRUE(file.is_open() == true);
+    file.seekp(0, std::ios::beg);
+    ASSERT_TRUE(file.good() == true);
+    char bytes[2] = { 0x1, 0x1 };
+    file.write(bytes, 2);
+    ASSERT_TRUE(file.good() == true);
+    file.close();
+    CloseAllDelegate();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, DEVICE_A), INVALID_PASSWD_OR_CORRUPTED_DB);
+}
 
 /**
  * @tc.name: SyncWithDirtyLog001
@@ -329,6 +353,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, SyncWithDirtyLog001, TestSize.Level1)
     BlockSync(info1_, info2_, DEVICE_SYNC_TABLE, SYNC_MODE_PUSH_ONLY, OK);
     ASSERT_EQ(CountTableData(info2_, DEVICE_SYNC_TABLE, "value = 200"), 1);
 }
+#endif
 
 /**
  * @tc.name: GetLocalLog001

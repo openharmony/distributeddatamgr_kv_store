@@ -683,8 +683,8 @@ HWTEST_F(DistributedDBSqliteUtilsTest, RemoveKvDBTest001, TestSize.Level0)
     std::ofstream dbStoreFile(dbFileNameStore.c_str(), std::ios::out | std::ios::binary);
     ASSERT_TRUE(dbStoreFile.is_open());
     dbStoreFile.close();
-    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH |S_IXOTH)), E_OK);
-    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH |S_IXOTH)), E_OK);
+    EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
+    EXPECT_EQ(chmod(g_dirStoreOnly.c_str(), (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);
     if (access(g_dirAll.c_str(), W_OK) == 0 || access(g_dirStoreOnly.c_str(), W_OK) == 0) {
         LOGD("Modifying permissions is ineffective for execution\n");
         EXPECT_EQ(chmod(g_dirAll.c_str(), (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)), E_OK);

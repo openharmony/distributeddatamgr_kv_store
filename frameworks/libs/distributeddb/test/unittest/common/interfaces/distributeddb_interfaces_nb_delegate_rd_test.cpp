@@ -241,7 +241,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
      * @tc.expected: step7. Returns NOT_FOUND.
      */
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), NOT_FOUND);
-
     observer = nullptr;
     /**
      * @tc.steps:step8. Close the kv store.

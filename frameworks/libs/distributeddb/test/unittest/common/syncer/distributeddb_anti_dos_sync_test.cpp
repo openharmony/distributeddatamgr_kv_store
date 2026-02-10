@@ -153,6 +153,7 @@ void DistributeddbAntiDosSyncTest::TearDown(void)
     g_mgr.DeleteKvStore(ANTI_DOS_STORE_ID);
 }
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
  * @tc.name: Anti Dos attack Sync 001
  * @tc.desc: Whether function run normally when the amount of message is lower than the maximum of threads
@@ -319,3 +320,4 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync003, TestSize.Level3)
     EXPECT_TRUE(g_syncEngine->GetQueueCacheSize() > 0);
     g_communicatorAggregator->SetBlockValue(false);
 }
+#endif

@@ -1119,7 +1119,7 @@ void DistributedDBCloudAsyncDownloadAssetsTest::CheckLogTable(sqlite3 *&db, cons
 {
     const string sql = "select COUNT(*) from " + DBCommon::GetLogTableName(tableName) + " where data_key>0;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
     LOGW("check log table finished");
 }
 

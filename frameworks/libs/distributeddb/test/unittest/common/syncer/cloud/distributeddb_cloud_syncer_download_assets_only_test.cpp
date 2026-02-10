@@ -1172,9 +1172,12 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly013, 
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
         EndGroup();
+    auto id = g_observer->GetCurrentChangeId();
     PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
-    auto changedData = g_observer->GetSavedChangedData();
-    EXPECT_EQ(changedData.size(), 1u);
+    g_observer->ExecuteActionAfterChange(id, []() {
+        auto changedData = g_observer->GetSavedChangedData();
+        EXPECT_EQ(changedData.size(), 1u);
+    });
 }
 
 /**
@@ -1306,17 +1309,20 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly016, 
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
         EndGroup().Or().BeginGroup().EqualTo("id", 1).And().AssetsOnly(assets1).EndGroup();
     g_observer->ResetCloudSyncToZero();
+    auto id = g_observer->GetCurrentChangeId();
     PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     /**
      * @tc.steps:step4. check asset changed data.
      * @tc.expected: step4. return OK.
      */
-    auto changedData = g_observer->GetSavedChangedData();
-    EXPECT_EQ(changedData.size(), 1u);
-    auto item = changedData[ASSETS_TABLE_NAME];
-    auto assetMsg = item.primaryData[1];
-    EXPECT_EQ(assetMsg.size(), 1u);
+    g_observer->ExecuteActionAfterChange(id, []() {
+        auto changedData = g_observer->GetSavedChangedData();
+        EXPECT_EQ(changedData.size(), 1u);
+        auto item = changedData[ASSETS_TABLE_NAME];
+        auto assetMsg = item.primaryData[1];
+        EXPECT_EQ(assetMsg.size(), 1u);
+    });
 }
 
 /**
@@ -1381,17 +1387,20 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly018, 
     assets1["assets"] = {ASSET_COPY.name + "0_copy"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
         EndGroup().Or().BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets1).EndGroup();
+    auto id = g_observer->GetCurrentChangeId();
     PriorityLevelSync(2, query, nullptr, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
 
     /**
      * @tc.steps:step3. check asset changed data.
      * @tc.expected: step3. return OK.
      */
-    auto changedData = g_observer->GetSavedChangedData();
-    EXPECT_EQ(changedData.size(), 1u);
-    auto item = changedData[ASSETS_TABLE_NAME];
-    auto assetMsg = item.primaryData[1];
-    EXPECT_EQ(assetMsg.size(), 1u);
+    g_observer->ExecuteActionAfterChange(id, []() {
+        auto changedData = g_observer->GetSavedChangedData();
+        EXPECT_EQ(changedData.size(), 1u);
+        auto item = changedData[ASSETS_TABLE_NAME];
+        auto assetMsg = item.primaryData[1];
+        EXPECT_EQ(assetMsg.size(), 1u);
+    });
 }
 
 /**
@@ -1631,16 +1640,16 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly024, 
 }
 
 /**
-  * @tc.name: SetAssetsConfig001
-  * @tc.desc: Test set async download assets config
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: caihaoting
-  */
+ * @tc.name: SetAssetsConfig001
+ * @tc.desc: Test set async download assets config
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: caihaoting
+ */
 HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, SetAssetsConfig001, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Set valid param
+     * @tc.steps: step1. Set valid param
      * @tc.expected: step1. ok
      */
     AsyncDownloadAssetsConfig config;

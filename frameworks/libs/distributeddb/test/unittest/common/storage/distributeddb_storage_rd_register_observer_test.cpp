@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include <gtest/gtest.h>
 #include <thread>
 #include "db_common.h"
@@ -311,4 +310,3 @@ HWTEST_F(DistributedDBStorageRdRegisterObserverTest, RegisterObserver013, TestSi
     EXPECT_EQ(handle, nullptr);
     return;
 }
-#endif // USE_RD_KERNEL

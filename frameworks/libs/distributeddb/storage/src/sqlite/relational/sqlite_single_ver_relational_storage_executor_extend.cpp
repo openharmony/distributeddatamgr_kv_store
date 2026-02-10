@@ -1587,7 +1587,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCountInner(const Timestam
     SqliteQueryHelper &helper, std::string &sql, int64_t &count)
 {
     sqlite3_stmt *stmt = nullptr;
-    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt);
+    int errCode = helper.GetCloudQueryStatement(false, dbHandle_, sql, stmt, true);
     if (errCode != E_OK) {
         LOGE("failed to get count statement %d", errCode);
         return errCode;

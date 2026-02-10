@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include <gtest/gtest.h>
 
 #include "db_constant.h"
@@ -278,4 +277,3 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, GetCloudSyncConfigTest
 }
 #endif
 }
-#endif // USE_RD_KERNEL

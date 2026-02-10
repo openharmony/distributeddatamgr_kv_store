@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,6 +38,7 @@ namespace {
     constexpr const uint64_t MAX_DOWNLOAD_LOOP_TIMES = 10000;
     constexpr const uint64_t WARNING_DOWNLOAD_PERIOD = 100;
 }
+
 int CloudSyncer::HandleDownloadResultForAsyncDownload(const DownloadItem &downloadItem, InnerProcessInfo &info,
     DownloadCommitList &commitList, uint32_t &successCount)
 {
@@ -130,13 +131,13 @@ TaskId CloudSyncer::GetCurrentTaskId()
     return currentContext_.currentTaskId;
 }
 
-int32_t CloudSyncer::GetHeatbeatCount(TaskId taskId)
+int32_t CloudSyncer::GetHeartbeatCount(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
     return heartbeatCount_[taskId];
 }
 
-void CloudSyncer::RemoveHeatbeatData(TaskId taskId)
+void CloudSyncer::RemoveHeartbeatData(TaskId taskId)
 {
     std::lock_guard<std::mutex> autoLock(heartbeatMutex_);
     heartbeatCount_.erase(taskId);
@@ -146,11 +147,11 @@ void CloudSyncer::RemoveHeatbeatData(TaskId taskId)
 void CloudSyncer::ExecuteHeartBeatTask(TaskId taskId)
 {
     if (GetCurrentTaskId() != taskId) {
-        RemoveHeatbeatData(taskId);
+        RemoveHeartbeatData(taskId);
         DecObjRef(this);
         return;
     }
-    if (GetHeatbeatCount(taskId) >= HEARTBEAT_PERIOD) {
+    if (GetHeartbeatCount(taskId) >= HEARTBEAT_PERIOD) {
         // heartbeat block twice should finish task now
         SetTaskFailed(taskId, -E_CLOUD_ERROR);
     } else {
@@ -167,7 +168,7 @@ void CloudSyncer::ExecuteHeartBeatTask(TaskId taskId)
         heartbeatCount_[taskId]--;
     }
     if (GetCurrentTaskId() != taskId) {
-        RemoveHeatbeatData(taskId);
+        RemoveHeartbeatData(taskId);
     }
     DecObjRef(this);
 }
@@ -224,6 +225,9 @@ int CloudSyncer::DoUpdateExpiredCursor(TaskId taskId, const std::string &table, 
     }
     SyncParam param;
     param.tableName = table;
+    if (isKvScene_) {
+        return UpdateCloudMarkAndCleanExpiredCursor(param, newCursor);
+    }
     auto errCode = storageProxy_->GetCloudGidCursor(param.tableName, param.cloudWaterMark);
     if (errCode != E_OK) {
         return errCode;
@@ -232,24 +236,58 @@ int CloudSyncer::DoUpdateExpiredCursor(TaskId taskId, const std::string &table, 
     if (errCode != E_OK) {
         return errCode;
     }
+    errCode = DoQueryAllGid(taskId, std::move(param));
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return UpdateCloudMarkAndCleanExpiredCursor(param, newCursor);
+}
+
+int CloudSyncer::DoQueryAllGid(TaskId taskId, SyncParam &&param)
+{
+    uint64_t count = 0;
+    int errCode = storageProxy_->GetGidRecordCount(param.tableName, count);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     int retryCount = 0;
     do {
+        if (count == 0) {
+            LOGI("[CloudSyncer] Skip query[%s] all gid by not exists gid record",
+                DBCommon::StringMiddleMasking(param.tableName).c_str());
+            break;
+        }
         param.downloadData.data.clear();
         int ret = DownloadOneBatchGID(taskId, param);
         if (ret == -E_EXPIRED_CURSOR && retryCount < MAX_EXPIRED_CURSOR_COUNT) {
             retryCount++;
             param.cloudWaterMark = "";
+            errCode = DropTempTable(param.tableName);
+            if (errCode != E_OK) {
+                LOGE("[CloudSyncer] drop temp table failed after download gid: %d", errCode);
+                return errCode;
+            }
+            errCode = SaveGIDCursor(param);
+            if (errCode != E_OK) {
+                LOGE("[CloudSyncer] save gid cursor failed after download gid: %d", errCode);
+                return errCode;
+            }
             continue;
         }
         if (ret != E_OK) {
             return ret;
         }
     } while (!param.isLastBatch);
-    errCode = storageProxy_->DeleteCloudNoneExistRecord(param.tableName);
-    if (errCode != E_OK) {
-        return errCode;
+    if (count == 0) {
+        errCode = DropTempTable(param.tableName);
+    } else {
+        std::pair<bool, bool> isNeedDeleted = {IsModeForcePush(taskId), IsModeForcePull(taskId)};
+        errCode = storageProxy_->DeleteCloudNoneExistRecord(param.tableName, isNeedDeleted);
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
-    return UpdateCloudMarkAndCleanExpiredCursor(param, newCursor);
+    return errCode;
 }
 
 int CloudSyncer::DoUpdatePotentialCursorIfNeed(const std::string &table)
@@ -340,5 +378,10 @@ int CloudSyncer::SaveGIDRecord(SyncParam &param)
 int CloudSyncer::SaveGIDCursor(SyncParam &param)
 {
     return storageProxy_->PutCloudGidCursor(param.tableName, param.cloudWaterMark);
+}
+
+int CloudSyncer::DropTempTable(const std::string &tableName)
+{
+    return storageProxy_->DropTempTable(tableName);
 }
 } // namespace DistributedDB

@@ -345,10 +345,10 @@ HWTEST_F(DistributedDBFilePackageTest, PackageFileTest008, TestSize.Level0)
 HWTEST_F(DistributedDBFilePackageTest, GetPackageVersionTest001, TestSize.Level0)
 {
     uint32_t version;
-    std::ofstream emptyFile(g_packageResultPath + EMPTY_FILE, ios::out | ios::binary | ios::trunc);
+    std::ofstream emptyFile(g_packageResultPath + EMPTY_FILE, std::ios::out | std::ios::binary | std::ios::trunc);
     ASSERT_TRUE(emptyFile.is_open());
     emptyFile.close();
-    std::ofstream secureFile(g_packageResultPath + SECURE_FILE, ios::out | ios::binary | ios::trunc);
+    std::ofstream secureFile(g_packageResultPath + SECURE_FILE, std::ios::out | std::ios::binary | std::ios::trunc);
     ASSERT_TRUE(secureFile.is_open());
     secureFile.close();
     EXPECT_EQ(chmod((g_packageResultPath + SECURE_FILE).c_str(), S_IRUSR | S_IRGRP | S_IROTH), E_OK);

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 #include "distributeddb_communicator_common.h"
 #include <gtest/gtest.h>
 #include "db_errno.h"
@@ -349,3 +350,4 @@ bool RegedGiantObject::CheckEqual(const RegedGiantObject &inLeft, const RegedGia
     }
     return true;
 }
+#endif

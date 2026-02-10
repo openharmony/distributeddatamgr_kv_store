@@ -90,7 +90,7 @@ public:
     {
         return RemoveDeviceTableDataInner(option);
     }
-    
+
     // timeout is in ms.
     DB_API virtual DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, std::shared_ptr<ResultSet> &result)

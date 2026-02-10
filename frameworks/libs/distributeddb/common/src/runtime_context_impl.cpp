@@ -25,6 +25,7 @@
 #include "thread_pool_stub.h"
 
 namespace DistributedDB {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 RuntimeContextImpl::RuntimeContextImpl()
     : adapter_(nullptr),
       communicatorAggregator_(nullptr),
@@ -40,6 +41,22 @@ RuntimeContextImpl::RuntimeContextImpl()
       isBatchDownloadAssets_(true)
 {
 }
+#else
+RuntimeContextImpl::RuntimeContextImpl()
+    : communicatorAggregator_(nullptr),
+      mainLoop_(nullptr),
+      currentTimerId_(0),
+      taskPoolReportsTimerId_(0),
+      timeTickMonitor_(nullptr),
+      systemApiAdapter_(nullptr),
+      lockStatusObserver_(nullptr),
+      currentSessionId_(1),
+      dbStatusAdapter_(nullptr),
+      subscribeRecorder_(nullptr),
+      isBatchDownloadAssets_(true)
+{
+}
+#endif
 
 // Destruct the object.
 RuntimeContextImpl::~RuntimeContextImpl()
@@ -80,6 +97,7 @@ std::string RuntimeContextImpl::GetProcessLabel() const
 
 int RuntimeContextImpl::SetCommunicatorAdapter(IAdapter *adapter)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     {
         std::lock_guard<std::mutex> autoLock(communicatorLock_);
         if (adapter_ != nullptr) {
@@ -94,10 +112,14 @@ int RuntimeContextImpl::SetCommunicatorAdapter(IAdapter *adapter)
     GetCommunicatorAggregator(communicatorAggregator);
     autoLaunch_.SetCommunicatorAggregator(communicatorAggregator);
     return E_OK;
+#else
+    return E_OK;
+#endif
 }
 
 int RuntimeContextImpl::GetCommunicatorAggregator(ICommunicatorAggregator *&outAggregator)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     outAggregator = nullptr;
     const std::shared_ptr<DBStatusAdapter> statusAdapter = GetDBStatusAdapter();
     if (statusAdapter == nullptr) {
@@ -128,10 +150,14 @@ int RuntimeContextImpl::GetCommunicatorAggregator(ICommunicatorAggregator *&outA
     }
     outAggregator = communicatorAggregator_;
     return errCode;
+#else
+    return E_OK;
+#endif
 }
 
 void RuntimeContextImpl::SetCommunicatorAggregator(ICommunicatorAggregator *inAggregator)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> autoLock(communicatorLock_);
     if (communicatorAggregator_ != nullptr) {
         autoLaunch_.SetCommunicatorAggregator(nullptr);
@@ -140,6 +166,7 @@ void RuntimeContextImpl::SetCommunicatorAggregator(ICommunicatorAggregator *inAg
     }
     communicatorAggregator_ = inAggregator;
     autoLaunch_.SetCommunicatorAggregator(communicatorAggregator_);
+#endif
 }
 
 int RuntimeContextImpl::GetLocalIdentity(std::string &outTarget)
@@ -615,11 +642,15 @@ void RuntimeContextImpl::NotifyTimestampChanged(TimeOffset offset) const
 
 bool RuntimeContextImpl::IsCommunicatorAggregatorValid() const
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> autoLock(communicatorLock_);
     if (communicatorAggregator_ == nullptr && adapter_ == nullptr) {
         return false;
     }
     return true;
+#else
+    return false;
+#endif
 }
 
 void RuntimeContextImpl::SetStoreStatusNotifier(const StoreStatusNotifier &notifier)
@@ -785,6 +816,7 @@ void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
 
 void RuntimeContextImpl::SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &handle)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr) {
         dbStatusAdapter->SetDBInfoHandle(handle);
@@ -793,14 +825,17 @@ void RuntimeContextImpl::SetDBInfoHandle(const std::shared_ptr<DBInfoHandle> &ha
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->RemoveAllSubscribe();
     }
+#endif
 }
 
 void RuntimeContextImpl::NotifyDBInfos(const DeviceInfos &devInfos, const std::vector<DBInfo> &dbInfos)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr) {
         dbStatusAdapter->NotifyDBInfos(devInfos, dbInfos);
     }
+#endif
 }
 
 std::shared_ptr<DBStatusAdapter> RuntimeContextImpl::GetDBStatusAdapter()
@@ -818,6 +853,7 @@ std::shared_ptr<DBStatusAdapter> RuntimeContextImpl::GetDBStatusAdapter()
 void RuntimeContextImpl::RecordRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId,
     const QuerySyncObject &query)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
         return;
@@ -826,10 +862,12 @@ void RuntimeContextImpl::RecordRemoteSubscribe(const DBInfo &dbInfo, const Devic
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->RecordSubscribe(dbInfo, deviceId, query);
     }
+#endif
 }
 
 void RuntimeContextImpl::RemoveRemoteSubscribe(const DeviceID &deviceId)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
         return;
@@ -838,10 +876,12 @@ void RuntimeContextImpl::RemoveRemoteSubscribe(const DeviceID &deviceId)
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->RemoveRemoteSubscribe(deviceId);
     }
+#endif
 }
 
 void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
         return;
@@ -850,10 +890,12 @@ void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo)
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->RemoveRemoteSubscribe(dbInfo);
     }
+#endif
 }
 
 void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
         return;
@@ -862,11 +904,13 @@ void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo, const Devic
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->RemoveRemoteSubscribe(dbInfo, deviceId);
     }
+#endif
 }
 
 void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo, const DeviceID &deviceId,
     const QuerySyncObject &query)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
         return;
@@ -875,11 +919,13 @@ void RuntimeContextImpl::RemoveRemoteSubscribe(const DBInfo &dbInfo, const Devic
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->RemoveRemoteSubscribe(dbInfo, deviceId, query);
     }
+#endif
 }
 
 void RuntimeContextImpl::GetSubscribeQuery(const DBInfo &dbInfo,
     std::map<std::string, std::vector<QuerySyncObject>> &subscribeQuery)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter != nullptr && dbStatusAdapter->IsSendLabelExchange()) {
         return;
@@ -888,6 +934,7 @@ void RuntimeContextImpl::GetSubscribeQuery(const DBInfo &dbInfo,
     if (subscribeRecorder != nullptr) {
         subscribeRecorder->GetSubscribeQuery(dbInfo, subscribeQuery);
     }
+#endif
 }
 
 std::shared_ptr<SubscribeRecorder> RuntimeContextImpl::GetSubscribeRecorder()
@@ -905,20 +952,26 @@ std::shared_ptr<SubscribeRecorder> RuntimeContextImpl::GetSubscribeRecorder()
 bool RuntimeContextImpl::IsNeedAutoSync(const std::string &userId, const std::string &appId, const std::string &storeId,
     const std::string &devInfo)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter == nullptr) {
         return true;
     }
     return dbStatusAdapter->IsNeedAutoSync(userId, appId, storeId, devInfo);
+#else
+    return false;
+#endif
 }
 
 void RuntimeContextImpl::SetRemoteOptimizeCommunication(const std::string &dev, bool optimize)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::shared_ptr<DBStatusAdapter> dbStatusAdapter = GetDBStatusAdapter();
     if (dbStatusAdapter == nullptr) {
         return;
     }
     dbStatusAdapter->SetRemoteOptimizeCommunication(dev, optimize);
+#endif
 }
 
 void RuntimeContextImpl::SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback)
@@ -1225,11 +1278,13 @@ std::shared_ptr<AssetsDownloadManager> RuntimeContextImpl::GetAssetsDownloadMana
 
 void RuntimeContextImpl::ClearOnlineLabel()
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     std::lock_guard<std::mutex> autoLock(communicatorLock_);
     if (communicatorAggregator_ == nullptr) {
         LOGE("[Runtime] clear online label with null aggregator");
         return;
     }
     communicatorAggregator_->ClearOnlineLabel();
+#endif
 }
 } // namespace DistributedDB

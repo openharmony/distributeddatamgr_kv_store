@@ -33,6 +33,8 @@ public:
     Communicator(CommunicatorAggregator *inCommAggregator, const LabelType &inLabel);
     ~Communicator() override;
 
+    int GetLocalIdentity(std::string &outTarget) const override;
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     DISABLE_COPY_ASSIGN_MOVE(Communicator);
 
     int RegOnMessageCallback(const OnMessageCallback &onMessage, const Finalizer &inOper) override;
@@ -47,7 +49,7 @@ public:
     uint32_t GetTimeout() const override;
     uint32_t GetTimeout(const std::string &target) const override;
     bool IsDeviceOnline(const std::string &device) const override;
-    int GetLocalIdentity(std::string &outTarget) const override;
+
     // Get the protocol version of remote target. Return -E_NOT_FOUND if no record.
     int GetRemoteCommunicatorVersion(const std::string &target, uint16_t &outVersion) const override;
 
@@ -77,21 +79,21 @@ private:
 
     DECLARE_OBJECT_TAG(Communicator);
 
-    CommunicatorAggregator *commAggrHandle_ = nullptr;
-    LabelType commLabel_;
-
     std::set<std::string> onlineTargets_; // Actually protected by connectHandleMutex_
 
-    OnMessageCallback onMessageHandle_;
-    OnConnectCallback onConnectHandle_;
-    std::function<void(void)> onSendableHandle_;
-    std::atomic<bool> dbClosePending_;
     Finalizer onMessageFinalizer_;
     Finalizer onConnectFinalizer_;
     Finalizer onSendableFinalizer_;
     std::mutex messageHandleMutex_;
     std::mutex connectHandleMutex_;
     std::mutex sendableHandleMutex_;
+#endif
+    CommunicatorAggregator *commAggrHandle_ = nullptr;
+    LabelType commLabel_;
+    std::atomic<bool> dbClosePending_;
+    OnMessageCallback onMessageHandle_;
+    OnConnectCallback onConnectHandle_;
+    std::function<void(void)> onSendableHandle_;
 };
 } // namespace DistributedDB
 

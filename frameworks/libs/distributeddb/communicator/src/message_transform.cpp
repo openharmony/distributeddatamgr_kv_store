@@ -19,6 +19,10 @@
 namespace DistributedDB {
 int MessageTransform::RegTransformFunction(uint32_t msgId, const TransformFunc &inFunc)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     return ProtocolProto::RegTransformFunction(msgId, inFunc);
+#else
+    return 0;
+#endif
 }
 } // namespace DistributedDB

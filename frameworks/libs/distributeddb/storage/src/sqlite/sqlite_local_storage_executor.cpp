@@ -68,9 +68,8 @@ int SQLiteLocalStorageExecutor::Get(const Key &key, Value &value) const
     errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, value);
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteLocalStorageExecutor::Clear()
@@ -124,9 +123,8 @@ int SQLiteLocalStorageExecutor::GetEntries(const Key &keyPrefix,
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteLocalStorageExecutor::PutBatch(const std::vector<Entry> &entries)
@@ -218,9 +216,8 @@ int SQLiteLocalStorageExecutor::Put(const Key &key, const Value &value)
     }
 
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 
 int SQLiteLocalStorageExecutor::Delete(const Key &key)
@@ -249,8 +246,7 @@ int SQLiteLocalStorageExecutor::Delete(const Key &key)
         }
     }
 END:
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(statement, true, ret);
-    return CheckCorruptedStatus(errCode);
+    errCode = CheckCorruptedStatus(errCode);
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
 }
 } // namespace DistributedDB

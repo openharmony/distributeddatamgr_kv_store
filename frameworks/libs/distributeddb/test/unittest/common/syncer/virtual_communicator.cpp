@@ -216,6 +216,7 @@ VirtualCommunicator::VirtualCommunicator(const std::string &deviceId,
 
 int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
 {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
     int errCode = E_OK;
     std::shared_ptr<ExtendHeaderHandle> extendHandle = nullptr;
     auto buffer = ProtocolProto::ToSerialBuffer(inMsg, extendHandle, false, errCode);
@@ -227,6 +228,9 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
     delete buffer;
     buffer = nullptr;
     return errCode;
+#else
+    return E_OK;
+#endif
 }
 
 void VirtualCommunicator::SetDropMessageTypeByDevice(MessageId msgid, uint32_t dropTimes)

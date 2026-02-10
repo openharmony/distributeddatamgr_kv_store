@@ -25,6 +25,7 @@ using RemoteDBChangeCallback = std::function<void(const std::string &devInfo, co
 using LocalDBChangeCallback = std::function<void(void)>;
 using RemoteSupportChangeCallback = std::function<void(const std::string &devInfo)>;
 class DBStatusAdapter {
+#ifdef USE_DISTRIBUTEDDB_DEVICE
 public:
     DBStatusAdapter();
     ~DBStatusAdapter() = default;
@@ -68,6 +69,7 @@ private:
     bool localSendLabelExchange_;
     bool cacheLocalSendLabelExchange_;
     std::map<std::string, bool> remoteOptimizeInfo_; // key: device uuid, value: is support notified by user
+#endif
 };
 }
 #endif // DB_STATUS_ADAPTER_H

@@ -332,12 +332,23 @@ public:
         return E_OK;
     }
 
-    virtual int DeleteCloudNoneExistRecord([[gnu::unused]] const std::string &tableName)
+    virtual int DropTempTable([[gnu::unused]] const std::string &tableName)
+    {
+        return E_OK;
+    }
+
+    virtual int DeleteCloudNoneExistRecord([[gnu::unused]] const std::string &tableName,
+        [[gnu::unused]] std::pair<bool, bool> isNeedDeleted)
     {
         return E_OK;
     }
 
     virtual int DeleteMetaData([[gnu::unused]] const std::vector<Key> &keys)
+    {
+        return E_OK;
+    }
+
+    virtual int GetGidRecordCount([[gnu::unused]] const std::string &tableName, [[gnu::unused]] uint64_t &count) const
     {
         return E_OK;
     }

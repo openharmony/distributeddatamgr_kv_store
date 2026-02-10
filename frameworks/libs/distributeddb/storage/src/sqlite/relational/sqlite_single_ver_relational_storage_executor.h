@@ -288,6 +288,16 @@ public:
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) const;
+
+    int GetCloudNoneExistRecordAssets(const TableInfo &tableInfo, int64_t dataRowid, bool &isExistAsset,
+        IAssetLoader::AssetRecord &removeAssets);
+
+    int RemoveCloudNoneExistRecordAssets(const std::string &tableName,
+        std::vector<IAssetLoader::AssetRecord> &removeAssets);
+
+    int DropTempTable(const std::string &tableName) const;
+
+    int GetGidRecordCount(const std::string &tableName, uint64_t &count) const;
 #endif
 private:
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,

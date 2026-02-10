@@ -381,7 +381,6 @@ namespace {
             cv.wait(lck, [&startSync]() { return startSync; });
             EXPECT_TRUE(RuntimeConfig::NotifyUserChanged() == OK);
         });
-        subThread.detach();
         g_communicatorAggregator->RegOnDispatch([&](const std::string&, Message *inMsg) {
             if (!startSync) {
                 startSync = true;
@@ -395,6 +394,7 @@ namespace {
          * @tc.expected: step7. sync should return OK.
          */
         CheckSyncResult(wait, isRemoteQuery);
+        subThread.join();
     }
 
     int PrepareSelect(sqlite3 *db, sqlite3_stmt *&statement, const std::string &table)
@@ -764,7 +764,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
      * @tc.expected: step7. success.
      */
     CheckDataInRealDevice();
-
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
@@ -844,10 +843,10 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser005, TestSize.Level0)
     thread subThread([&]() {
         EXPECT_TRUE(RuntimeConfig::NotifyUserChanged() == OK);
     });
-    subThread.detach();
     EXPECT_EQ(g_mgr1.CloseStore(g_rdbDelegatePtr1), OK);
     g_rdbDelegatePtr1 = nullptr;
     CloseStore();
+    subThread.join();
 }
 
 /**
@@ -1396,7 +1395,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, SubUserAutoLaunchTest001, TestSiz
      * @tc.expected: step4. deviceA have data from deviceB.
      */
     CheckDataInRealDevice();
-
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_1, SUB_USER_1, APP_ID, STORE_ID, DBType::DB_RELATION);
     ClearAllDevicesData();
