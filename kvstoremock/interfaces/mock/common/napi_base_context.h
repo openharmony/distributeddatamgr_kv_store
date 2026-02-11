@@ -19,7 +19,7 @@
 #include <memory>
  
 #include "napi/native_api.h"
-#ifndef CROSSPLATFORM
+ 
 namespace OHOS {
 namespace AppExecFwk {
 class Ability;
@@ -35,5 +35,4 @@ std::shared_ptr<Context> GetStageModeContext(napi_env env, napi_value object);
 AppExecFwk::Ability* GetCurrentAbility(napi_env env);
 }  // namespace AbilityRuntime
 }  // namespace OHOS
-#endif
 #endif  // ABILITY_RUNTIME_NAPI_BASE_CONTEXT_H
