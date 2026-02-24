@@ -30,7 +30,7 @@ public:
 
     napi_env GetEnv();
     void AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs = NapiArgsGenerator(),
-        const std::string& taskName = "");
+        const std::string &taskName = "distributedKvStore");
 private:
     napi_env env_ = nullptr;
 };
