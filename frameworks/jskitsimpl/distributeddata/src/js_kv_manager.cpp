@@ -24,7 +24,7 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedData {
-static constexpr const char *TASK_NAME_ON_SERVICE_DIE = "kvStoreOnDistributedDataServiceDie";
+static constexpr const char *TASK_NAME_SERVICE_DIE = "kvStoreServiceDie";
 bool IsStoreTypeSupported(Options options)
 {
     return (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION)
@@ -403,6 +403,6 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
 
 void JsKVManager::DeathRecipient::OnRemoteDied()
 {
-    AsyncCall(UvQueue::NapiArgsGenerator(), TASK_NAME_ON_SERVICE_DIE);
+    AsyncCall(TASK_NAME_SERVICE_DIE);
 }
 } // namespace OHOS::DistributedData

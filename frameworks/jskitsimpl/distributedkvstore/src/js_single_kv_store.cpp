@@ -25,8 +25,8 @@
 using namespace OHOS::DistributedKv;
 namespace OHOS::DistributedKVStore {
 inline static uint8_t UNVALID_SUBSCRIBE_TYPE = 255;
-static constexpr const char *TASK_NAME_ON_DATA_CHANGE = "kvStoreOnDataChange";
-static constexpr const char *TASK_NAME_ON_SYNC_COMPLETE = "kvStoreOnSyncComplete";
+static constexpr const char *TASK_NAME_DATA_CHANGE = "kvStoreDataChange";
+static constexpr const char *TASK_NAME_SYNC_COMPLETE = "kvStoreSyncComplete";
 std::map<std::string, JsSingleKVStore::Exec> JsSingleKVStore::onEventHandlers_ = {
     { "dataChange", JsSingleKVStore::OnDataChange },
     { "syncComplete", JsSingleKVStore::OnSyncComplete }
@@ -936,7 +936,7 @@ void JsSingleKVStore::DataObserver::OnChange(const ChangeNotification& notificat
         argc = 1;
         JSUtil::SetValue(env, notification, argv[0], isSchema);
     };
-    AsyncCall(args, TASK_NAME_ON_DATA_CHANGE);
+    AsyncCall(TASK_NAME_DATA_CHANGE, args);
 }
 
 void JsSingleKVStore::SyncObserver::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
@@ -946,7 +946,7 @@ void JsSingleKVStore::SyncObserver::SyncCompleted(const std::map<std::string, Di
         argc = 1;
         JSUtil::SetValue(env, results, argv[0]);
     };
-    AsyncCall(args, TASK_NAME_ON_SYNC_COMPLETE);
+    AsyncCall(TASK_NAME_SYNC_COMPLETE, args);
 }
 
 /*
