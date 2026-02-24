@@ -25,7 +25,7 @@ public:
     napi_ref GetCallback();
     void Clear();
 protected:
-    void AsyncCall( const std::string &taskName = "",
+    void AsyncCall(const std::string &taskName = "",
         UvQueue::NapiArgsGenerator genArgs = UvQueue::NapiArgsGenerator());
 private:
     std::shared_ptr<UvQueue> uvQueue_;
