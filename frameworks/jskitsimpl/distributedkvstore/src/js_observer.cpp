@@ -41,7 +41,7 @@ napi_ref JSObserver::GetCallback()
     return callback_;
 }
 
-void JSObserver::AsyncCall(UvQueue::NapiArgsGenerator genArgs, const std::string& taskName)
+void JSObserver::AsyncCall(const std::string& taskName, UvQueue::NapiArgsGenerator genArgs)
 {
     if (callback_ == nullptr) {
         return;
