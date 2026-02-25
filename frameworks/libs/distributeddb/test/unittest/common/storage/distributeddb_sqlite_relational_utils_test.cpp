@@ -157,6 +157,10 @@ HWTEST_F(DistributedDBSqliteRelationalUtilsTest, SqliteRelationalUtilsTest001, T
     EXPECT_EQ(SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(g_db, tableName, devices), -E_INVALID_DB);
     EXPECT_EQ(SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(g_db, tableName, devices), -E_INVALID_DB);
     EXPECT_EQ(SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(g_db, tableName, devices), -E_INVALID_DB);
+    devices = {};
+    EXPECT_EQ(SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(g_db, tableName, devices), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(g_db, tableName, devices), -E_INVALID_ARGS);
+    EXPECT_EQ(SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(g_db, tableName, devices), -E_INVALID_ARGS);
 }
 
 /**
