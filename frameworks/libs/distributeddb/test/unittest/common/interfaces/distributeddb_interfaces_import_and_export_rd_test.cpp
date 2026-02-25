@@ -1223,9 +1223,9 @@ HWTEST_F(DistributedDBInterfacesImportAndExportRdTest, ImportTest001, TestSize.L
     std::this_thread::sleep_for(std::chrono::microseconds(millsecondsPerSecond));
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleFileName, passwd), OK);
 
+    subThread.join();
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
-    subThread.join();
 }
 #endif // OMIT_ENCRYPT
 #endif

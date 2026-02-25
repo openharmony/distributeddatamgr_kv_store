@@ -129,6 +129,7 @@ void AssetOperationUtils::FilterDeleteAsset(VBucket &record)
             if (EraseBitMask(it->status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
                 it = assets.erase(it);
                 filterCount++;
+                continue;
             }
             it++;
         }
