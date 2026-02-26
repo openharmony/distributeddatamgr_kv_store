@@ -29,8 +29,8 @@ public:
     ~UvQueue();
 
     napi_env GetEnv();
-    void AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs = NapiArgsGenerator(),
-        const std::string &taskName);
+    void AsyncCall(NapiCallbackGetter getter, const std::string &taskName,
+        NapiArgsGenerator genArgs = NapiArgsGenerator());
 private:
     napi_env env_ = nullptr;
 };

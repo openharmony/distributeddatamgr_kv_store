@@ -30,7 +30,7 @@ UvQueue::~UvQueue()
     env_ = nullptr;
 }
 
-void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs, const std::string& taskName)
+void UvQueue::AsyncCall(NapiCallbackGetter getter, const std::string& taskName, NapiArgsGenerator genArgs)
 {
     if (!getter) {
         ZLOGE("This callback is nullptr");

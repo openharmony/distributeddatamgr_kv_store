@@ -55,6 +55,6 @@ void JSObserver::AsyncCall(const std::string& taskName, UvQueue::NapiArgsGenerat
         napi_value callback = nullptr;
         napi_get_reference_value(env, observer->callback_, &callback);
         return callback;
-        }, genArgs, taskName);
+        }, taskName, genArgs);
 }
 } // namespace OHOS::DistributedKVStore
