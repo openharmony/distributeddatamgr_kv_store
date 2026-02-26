@@ -26,6 +26,8 @@ using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedData {
 inline static uint8_t UNVALID_SUBSCRIBE_TYPE = 255;
+static constexpr const char *TASK_NAME_DATA_CHANGE = "kvStoreDataChange";
+static constexpr const char *TASK_NAME_SYNC_COMPLETE = "kvStoreSyncComplete";
 std::map<std::string, JsKVStore::Exec> JsKVStore::onEventHandlers_ = {
     { "dataChange", JsKVStore::OnDataChange },
     { "syncComplete", JsKVStore::OnSyncComplete }
@@ -653,7 +655,7 @@ void JsKVStore::DataObserver::OnChange(const ChangeNotification& notification)
         argc = 1;
         JSUtil::SetValue(env, notification, argv[0], isSchema);
     };
-    AsyncCall(args);
+    AsyncCall(TASK_NAME_DATA_CHANGE, args);
 }
 
 void JsKVStore::SyncObserver::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
@@ -663,6 +665,6 @@ void JsKVStore::SyncObserver::SyncCompleted(const std::map<std::string, Distribu
         argc = 1;
         JSUtil::SetValue(env, results, argv[0]);
     };
-    AsyncCall(args);
+    AsyncCall(TASK_NAME_SYNC_COMPLETE, args);
 }
 } // namespace OHOS::DistributedData

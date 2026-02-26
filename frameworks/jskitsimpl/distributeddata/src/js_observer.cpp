@@ -41,7 +41,7 @@ napi_ref JSObserver::GetCallback()
     return callback_;
 }
 
-void JSObserver::AsyncCall(UvQueue::NapiArgsGenerator genArgs)
+void JSObserver::AsyncCall(const std::string &taskName, UvQueue::NapiArgsGenerator genArgs)
 {
     if (callback_ == nullptr) {
         return;
@@ -55,6 +55,6 @@ void JSObserver::AsyncCall(UvQueue::NapiArgsGenerator genArgs)
         napi_value callback = nullptr;
         napi_get_reference_value(env, observer->callback_, &callback);
         return callback;
-        }, genArgs);
+        }, taskName, genArgs);
 }
 } // namespace OHOS::DistributedData

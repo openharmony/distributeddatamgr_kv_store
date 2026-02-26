@@ -30,7 +30,7 @@ UvQueue::~UvQueue()
     env_ = nullptr;
 }
 
-void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
+void UvQueue::AsyncCall(NapiCallbackGetter getter, const std::string &taskName, NapiArgsGenerator genArgs)
 {
     if (!getter) {
         ZLOGE("This callback is nullptr");
@@ -68,7 +68,7 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
         }
         napi_close_handle_scope(env, scope);
     };
-    napi_status status = napi_send_event(env_, task, napi_eprio_immediate);
+    napi_status status = napi_send_event(env_, task, napi_eprio_immediate, taskName.c_str());
     if (status != napi_ok) {
         ZLOGE("Failed to napi_send_event. status:%{public}d", status);
     }
