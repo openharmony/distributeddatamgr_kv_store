@@ -38,7 +38,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
         StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area,
         StoreUtil::Anonymous(path).c_str());
     status = ILLEGAL_STATE;
-    if (!appId.IsValid() || !storeId.IsValid() || !options.IsValidType()) {
+    if (!appId.IsValid() || !storeId.IsValid() || !options.IsValidType()
+        || (options.isCustomDir && options.baseDir.empty())) {
         ZLOGE("Params invalid type");
         status = INVALID_ARGUMENT;
         return nullptr;
