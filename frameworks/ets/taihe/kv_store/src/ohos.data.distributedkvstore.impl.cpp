@@ -850,6 +850,10 @@ public:
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
+        if (keys.empty()) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "");
+            return;
+        }
         std::vector<DistributedKv::Key> kvKeys(keys.size());
         std::transform(keys.begin(), keys.end(), kvKeys.begin(), [](::taihe::string c) {
             std::string stdkey(c);
