@@ -92,7 +92,7 @@ public:
     int GetVirtualSyncData(const std::string &tableName, const std::string &hashKey, VirtualRowData &data);
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries,
-        const std::string &sourceID, const std::string &targetID, bool isPush) const override
+        const std::string &sourceID, const std::string &targetID, bool isPush) override
     {
         return E_OK;
     }

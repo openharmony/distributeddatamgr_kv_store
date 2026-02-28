@@ -18,6 +18,7 @@
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
 #include "db_constant.h"
+#include "db_common.h"
 #include "log_print.h"
 #include "relational_store_manager.h"
 #include "time_helper.h"

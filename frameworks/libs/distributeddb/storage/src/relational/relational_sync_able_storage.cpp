@@ -560,8 +560,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     SchemaInfo schemaInfo = {storageEngine_->GetSchema(), storageEngine_->GetTrackerSchema()};
     auto inserter = RelationalSyncDataInserter::CreateInserter(
         deviceName, query, schemaInfo, filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
-    inserter.SetEntries(dataItems);
-
+    inserter.Init(dataItems, GetLocalHashDevId());
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
@@ -676,8 +675,9 @@ int RelationalSyncAbleStorage::LocalDataChanged(int notifyEvent, std::vector<Que
 }
 
 int RelationalSyncAbleStorage::InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-    const std::string &targetID, bool isPush) const
+    const std::string &targetID, bool isPush)
 {
+    SetLocalHashDevId(DBCommon::TransferHashString(targetID));
     return E_OK;
 }
 

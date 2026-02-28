@@ -104,7 +104,7 @@ public:
     int LocalDataChanged(int notifyEvent, std::vector<QuerySyncObject> &queryObj) override;
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID, bool isPush) const override;
+        const std::string &targetID, bool isPush) override;
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
     int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
@@ -380,6 +380,8 @@ private:
     int GetGidRecordCount(const std::string &tableName, uint64_t &count) const override;
 #endif
 
+    void SetLocalHashDevId(const std::string &devId);
+    std::string GetLocalHashDevId() const;
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -423,6 +425,9 @@ private:
 
     mutable std::mutex propertyMutex_;
     Property property_;
+
+    mutable std::mutex localDevMutex_;
+    std::string localHashDevId_;
 };
 }  // namespace DistributedDB
 #endif

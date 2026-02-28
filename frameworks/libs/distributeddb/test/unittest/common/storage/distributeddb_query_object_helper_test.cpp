@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "cloud/cloud_db_types.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "get_query_info.h"
 #include "log_print.h"

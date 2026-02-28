@@ -17,6 +17,7 @@
 #include "cloud/cloud_storage_utils.h"
 #include "data_transformer.h"
 #include "db_common.h"
+#include "runtime_context.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_utils.h"
 
@@ -53,7 +54,7 @@ RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std:
     const StoreInfo &info)
 {
     RelationalSyncDataInserter inserter;
-    inserter.SetHashDevId(DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceName)));
+    inserter.SetRemoteHexDevId(DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceName)));
     inserter.SetRemoteFields(remoteFields);
     inserter.SetQuery(query);
     TableInfo localTable = schemaInfo.localSchema.GetTable(query.GetTableName());
@@ -69,9 +70,14 @@ RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std:
     return inserter;
 }
 
-void RelationalSyncDataInserter::SetHashDevId(const std::string &hashDevId)
+void RelationalSyncDataInserter::SetRemoteHexDevId(const std::string &hexDevId)
 {
-    hashDevId_ = hashDevId;
+    remoteHexDevId_ = hexDevId;
+}
+
+void RelationalSyncDataInserter::SetLocalHashDevId(const std::string &hashDevId)
+{
+    localHashDevId_ = hashDevId;
 }
 
 void RelationalSyncDataInserter::SetRemoteFields(std::vector<FieldInfo> remoteFields)
@@ -324,7 +330,7 @@ int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt 
 int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt)
 {
     const std::string tableName = DBConstant::RELATIONAL_PREFIX + query_.GetTableName() + "_log";
-    std::string dataFormat = "?, '" + hashDevId_ + "', ?, ?, ?, ?, ?";
+    std::string dataFormat = "?, '" + remoteHexDevId_ + "', ?, ?, ?, ?, ?";
     TrackerTable trackerTable = localTable_.GetTrackerTable();
     if (trackerTable.GetExtendNames().empty()) {
         dataFormat += ", ?";
@@ -389,7 +395,7 @@ int RelationalSyncDataInserter::Iterate(const std::function<int (DataItem &)> &s
 {
     int errCode = E_OK;
     for (auto &it : entries_) {
-        it.dev = hashDevId_;
+        it.dev = remoteHexDevId_;
         int ret = saveSyncDataItem(it);
         errCode = errCode == E_OK ? ret : errCode;
     }
@@ -488,6 +494,7 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataIte
         logInfoBind.wTimestamp = deviceSyncSaveDataInfo.localLogInfo.wTimestamp;
         logInfoBind.originDev = deviceSyncSaveDataInfo.localLogInfo.originDev;
     }
+    logInfoBind.originDev = ConvertOriDevice(logInfoBind.originDev);
     auto statement = saveStmt.saveLogStmt;
     // bind
     int bindIndex = 0;
@@ -575,5 +582,19 @@ void RelationalSyncDataInserter::DfxPrintLog() const
         LOGI("[RelationalStorageExecutor][SaveSyncDataItem] Delete non-exist data. Nothing to save, cnt:" PRIu32 ".",
             nonExistDelCnt_);
     }
+}
+
+std::string RelationalSyncDataInserter::ConvertOriDevice(const std::string &device)
+{
+    if (localHashDevId_ == device) {
+        return "";
+    }
+    return device;
+}
+
+void RelationalSyncDataInserter::Init(const std::vector<DataItem> &dataItems, const std::string &localHashDevId)
+{
+    SetEntries(dataItems);
+    SetLocalHashDevId(localHashDevId);
 }
 } // namespace DistributedDB

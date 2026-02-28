@@ -546,7 +546,7 @@ int VirtualSingleVerSyncDBInterface::CheckAndInitQueryCondition(QueryObject &que
 }
 
 int VirtualSingleVerSyncDBInterface::InterceptData(std::vector<SingleVerKvEntry *> &entries,
-    const std::string &sourceID, const std::string &targetID, bool isPush) const
+    const std::string &sourceID, const std::string &targetID, bool isPush)
 {
     return E_OK;
 }

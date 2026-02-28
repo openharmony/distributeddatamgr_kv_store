@@ -18,6 +18,7 @@
 #include "db_common.h"
 #include "db_errno.h"
 #include "res_finalizer.h"
+#include "relational_store_client_utils.h"
 #include "knowledge_log_table_manager.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_utils.h"
@@ -474,7 +475,7 @@ std::pair<int, bool> KnowledgeSourceUtils::CheckSchemaValidAndChangeStatus(sqlit
         return res;
     }
     RelationalSchemaObject rdbSchema;
-    std::tie(errCode, rdbSchema) = GetRDBSchema(db, false);
+    std::tie(errCode, rdbSchema) = RelationalStoreClientUtils::GetRDBSchema(db, false);
     if (errCode != E_OK) {
         return res;
     }
@@ -482,7 +483,7 @@ std::pair<int, bool> KnowledgeSourceUtils::CheckSchemaValidAndChangeStatus(sqlit
         errCode = -E_INVALID_ARGS;
         return res;
     }
-    std::tie(errCode, rdbSchema) = GetRDBSchema(db, true);
+    std::tie(errCode, rdbSchema) = RelationalStoreClientUtils::GetRDBSchema(db, true);
     if (errCode != E_OK) {
         return res;
     }
@@ -596,32 +597,6 @@ std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetKnowledgeSourceS
     }
     std::string schemaJson(schemaVal.begin(), schemaVal.end());
     errCode = rdbSchema.ParseFromTrackerSchemaString(schemaJson);
-    return res;
-}
-
-std::pair<int, RelationalSchemaObject> KnowledgeSourceUtils::GetRDBSchema(sqlite3 *db, bool isTracker)
-{
-    std::pair<int, RelationalSchemaObject> res;
-    auto &[errCode, rdbSchema] = res;
-    std::string schemaKey = isTracker ? DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY : DBConstant::RELATIONAL_SCHEMA_KEY;
-    const Key schema(schemaKey.begin(), schemaKey.end());
-    Value schemaVal;
-    errCode = SQLiteRelationalUtils::GetKvData(db, false, schema, schemaVal); // save schema to meta_data
-    if (errCode == -E_NOT_FOUND) {
-        LOGD("Not found rdb schema in db");
-        errCode = E_OK;
-        return res;
-    }
-    if (errCode != E_OK) {
-        LOGE("Get rdb schema from meta table failed. %d", errCode);
-        return res;
-    }
-    std::string schemaJson(schemaVal.begin(), schemaVal.end());
-    if (isTracker) {
-        errCode = rdbSchema.ParseFromTrackerSchemaString(schemaJson);
-    } else {
-        errCode = rdbSchema.ParseFromSchemaString(schemaJson);
-    }
     return res;
 }
 

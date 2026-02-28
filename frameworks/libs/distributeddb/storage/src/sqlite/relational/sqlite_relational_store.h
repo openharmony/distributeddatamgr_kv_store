@@ -233,7 +233,8 @@ protected:
 
     int CheckTableSyncType(const std::string &tableName, TableSyncType tableSyncType) const;
 
-    int GetTargetDevices(const std::vector<std::string> &keepDevices, std::vector<std::string> &targetDevices);
+    int GetTargetDevices(const std::string &localDeviceId, const std::vector<std::string> &keepDevices,
+        std::vector<std::string> &targetDevices);
 #ifdef USE_DISTRIBUTEDDB_DEVICE
     int RemoveExceptDeviceDataInner(const std::map<std::string, std::vector<std::string>> &tableMap);
 #endif

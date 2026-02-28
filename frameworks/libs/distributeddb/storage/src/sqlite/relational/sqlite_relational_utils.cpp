@@ -29,6 +29,7 @@ namespace {
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     constexpr const char *UPLOAD_CLOUD_UNFINISHED = "~0x400";
 #endif
+    constexpr const char *CONDITION_NO_DELETE_AND_LOCAL = "AND data_key <> -1 AND flag&0x02=0";
 }
 int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, DataValue &value)
 {
@@ -1347,7 +1348,7 @@ int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const
             selectSql += ", ";
         }
     }
-    selectSql += ") AND data_key <> -1";
+    selectSql.append(") ").append(CONDITION_NO_DELETE_AND_LOCAL);
     std::string deleteSql = "DELETE FROM " + removedTable + " WHERE _rowid_ in (" + selectSql + ");";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, deleteSql, stmt);
@@ -1382,7 +1383,7 @@ int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(sqlite3 *db, co
             deleteSql += ", ";
         }
     }
-    deleteSql += ");";
+    deleteSql.append(") ").append(CONDITION_NO_DELETE_AND_LOCAL);
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, deleteSql, stmt);
     if (errCode != E_OK) {
@@ -1416,7 +1417,7 @@ int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::
             deleteSql += ", ";
         }
     }
-    deleteSql += ") AND data_key <> -1;";
+    deleteSql.append(") ").append(CONDITION_NO_DELETE_AND_LOCAL);
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, deleteSql, stmt);
     if (errCode != E_OK) {
@@ -1428,7 +1429,7 @@ int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::
         int ret = E_OK;
         SQLiteUtils::ResetStatement(statement, true, ret);
         if (ret != E_OK) {
-            LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when updatetracker data", ret);
+            LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when update tracker data", ret);
         }
     });
     errCode = BindAndStepDevicesToStatement(stmt, keepDevices);

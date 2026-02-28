@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <set>
 
@@ -66,12 +67,35 @@ struct KnowledgeSourceSchema {
     std::set<std::string> knowledgeColNames;
     std::map<std::string, std::set<std::string>> columnsToVerify;
 };
+
+struct UpdateContent {
+    std::optional<LogFlag> flag;
+    std::optional<std::string> oriDevice;
+};
+
+struct SelectCondition {
+    std::string sql; // condition sql
+    std::vector<Type> args; // bind args
+};
+
+struct UpdateCondition {
+    std::optional<SelectCondition> dataCondition;
+    std::optional<SelectCondition> logCondition;
+};
+
+struct UpdateOption {
+    std::string tableName;
+    UpdateCondition condition;
+    UpdateContent content;
+};
 }
 
 DB_API DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db,
     const DistributedDB::KnowledgeSourceSchema &schema);
 
 DB_API DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
+
+DB_API DistributedDB::DBStatus UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option);
 
 DB_API void Clean(bool isOpenSslClean);
 #endif // RELATIONAL_STORE_CLIENT_H

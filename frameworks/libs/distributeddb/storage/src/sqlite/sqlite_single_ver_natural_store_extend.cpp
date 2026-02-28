@@ -357,7 +357,7 @@ void SQLiteSingleVerNaturalStore::SetSendDataInterceptor(const PushDataIntercept
 }
 
 int SQLiteSingleVerNaturalStore::InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-    const std::string &targetID, bool isPush) const
+    const std::string &targetID, bool isPush)
 {
     PushDataInterceptor interceptor = nullptr;
     {

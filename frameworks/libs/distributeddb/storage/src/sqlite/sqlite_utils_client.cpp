@@ -691,4 +691,37 @@ void SQLiteUtils::DumpSqliteHeader(sqlite3 *db)
     }
     (void)fclose(file);
 }
+
+int SQLiteUtils::BindType(sqlite3_stmt *statement, const Type &type, int cid)
+{
+    switch (type.index()) {
+        case TYPE_INDEX<int64_t>: {
+            int64_t value = std::get<int64_t>(type);
+            return BindInt64ToStatement(statement, cid, value);
+        }
+        case TYPE_INDEX<double>: {
+            double value = std::get<double>(type);
+            return SQLiteUtils::MapSQLiteErrno(sqlite3_bind_double(statement, cid, value));
+        }
+        case TYPE_INDEX<std::string>: {
+            auto &value = std::get<std::string>(type);
+            return BindTextToStatement(statement, cid, value);
+        }
+        case TYPE_INDEX<Bytes>: {
+            auto &value = std::get<Bytes>(type);
+            return BindBlobToStatement(statement, cid, value);
+        }
+        case TYPE_INDEX<Nil>: {
+            return SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(statement, cid));
+        }
+        case TYPE_INDEX<bool>: {
+            auto &value = std::get<bool>(type);
+            return BindInt64ToStatement(statement, cid, value ? 1 : 0);
+        }
+        default: {
+            LOGE("[SQLiteUtils][BindType] Invalid type %zu", type.index());
+            return -E_INVALID_ARGS;
+        }
+    }
+}
 } // namespace DistributedDB

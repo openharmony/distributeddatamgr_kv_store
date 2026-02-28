@@ -226,6 +226,8 @@ public:
     static void DumpSqliteHeader(sqlite3 *db);
 
     static int PrintChangeRows(sqlite3_stmt *statement);
+
+    static int BindType(sqlite3_stmt *statement, const Type &type, int cid);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

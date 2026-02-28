@@ -32,6 +32,7 @@
 #include "param_check_utils.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
+#include "relational_store_client_utils.h"
 #include "thread_pool_stub.h"
 #include "sqlite_utils.h"
 
@@ -2066,6 +2067,11 @@ DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableNa
             errCode, DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), cursor);
     }
     return TransferDBErrno(errCode);
+}
+
+DistributedDB::DBStatus UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option)
+{
+    return TransferDBErrno(RelationalStoreClientUtils::UpdateDataLog(db, option));
 }
 
 void Clean(bool isOpenSslClean)

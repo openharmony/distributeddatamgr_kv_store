@@ -26,8 +26,20 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
         LOGE("[SQLiteRelationalStore]RemoveExceptDeviceData only support collaboration table mode");
         return -E_NOT_SUPPORT;
     }
-    int errCode = E_OK;
-    for (const auto &tableInfo : tableMap) {
+    auto remoteTableMap = tableMap;
+    std::string localDeviceId;
+    int errCode = RuntimeContext::GetInstance()->GetLocalIdentity(localDeviceId);
+    if (errCode != E_OK) {
+        LOGE("[RemoveExceptDeviceData] get local identity failed %d", errCode);
+        return errCode;
+    }
+    if (tableMap.empty()) {
+        const auto schema = sqliteStorageEngine_->GetSchema();
+        for (const auto &tableInfo : schema.GetTables()) {
+            remoteTableMap[tableInfo.first] = {"", localDeviceId};
+        }
+    }
+    for (const auto &tableInfo : remoteTableMap) {
         const std::string &tableName = tableInfo.first;
         errCode = CheckTableSyncType(tableName, TableSyncType::DEVICE_COOPERATION);
         if (errCode != E_OK) {
@@ -35,7 +47,7 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
         }
         std::vector<std::string> keepDevices = tableInfo.second;
         std::vector<std::string> targetDevices;
-        errCode = GetTargetDevices(keepDevices, targetDevices); // targetDevices is after hash
+        errCode = GetTargetDevices(localDeviceId, keepDevices, targetDevices); // targetDevices is after hash
         if (errCode != E_OK) {
             return errCode;
         }
@@ -52,11 +64,7 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
             }
         }
     }
-    errCode = RemoveExceptDeviceDataInner(tableMap);
-    if (errCode == E_OK) {
-        storageEngine_->NotifySchemaChanged();
-    }
-    return errCode;
+    return RemoveExceptDeviceDataInner(remoteTableMap);
 }
 
 int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::string, std::vector<std::string>> &tableMap)
@@ -140,8 +148,8 @@ int SQLiteRelationalStore::CheckTableSyncType(const std::string &tableName, Tabl
     return E_OK;
 }
 
-int SQLiteRelationalStore::GetTargetDevices(const std::vector<std::string> &keepDevices,
-    std::vector<std::string> &targetDevices)
+int SQLiteRelationalStore::GetTargetDevices(const std::string &localDeviceId,
+    const std::vector<std::string> &keepDevices, std::vector<std::string> &targetDevices)
 {
     std::set<std::string> hashDevices;
     int errCode = E_OK;
@@ -152,7 +160,7 @@ int SQLiteRelationalStore::GetTargetDevices(const std::vector<std::string> &keep
 
     std::unordered_set<std::string> keepHashDeviceSet;
     for (const auto &device : keepDevices) {
-        if (device.empty()) {
+        if (device.empty() || device == localDeviceId) {
             continue; // "" mean local device
         }
         std::string hashDeviceId;

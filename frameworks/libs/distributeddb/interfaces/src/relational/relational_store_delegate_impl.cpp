@@ -231,10 +231,6 @@ DBStatus RelationalStoreDelegateImpl::RemoveExceptDeviceData(
         LOGE("[RelationalStore Delegate][RemoveExceptDeviceData] Invalid connection for operation!");
         return DB_ERROR;
     }
-    if (tableMap.empty()) {
-        LOGE("[RelationalStore Delegate][RemoveExceptDeviceData] remove clear map is empty");
-        return INVALID_ARGS;
-    }
     int errCode = E_OK;
     std::map<std::string, std::vector<std::string>> filterTableMap = tableMap;
     errCode = ParamCheckUtils::FilterTableRemoveMap(filterTableMap);

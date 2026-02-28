@@ -15,6 +15,7 @@
 
 #include "relationalstoredelegateset_fuzzer.h"
 #include "cloud/cloud_store_types.h"
+#include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb/result_set.h"
 #include "distributeddb_tools_test.h"
