@@ -23,6 +23,7 @@
 #include "data_transformer.h"
 #include "db_common.h"
 #include "log_table_manager_factory.h"
+#include "gspd_process_api.h"
 #include "relational_row_data_impl.h"
 #include "res_finalizer.h"
 #include "runtime_context.h"
@@ -93,6 +94,11 @@ SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecut
     bindCloudFieldFuncMap_[TYPE_INDEX<Bytes>] = &CloudStorageUtils::BindBlob;
     bindCloudFieldFuncMap_[TYPE_INDEX<Asset>] = &CloudStorageUtils::BindAsset;
     bindCloudFieldFuncMap_[TYPE_INDEX<Assets>] = &CloudStorageUtils::BindAsset;
+}
+
+SQLiteSingleVerRelationalStorageExecutor::~SQLiteSingleVerRelationalStorageExecutor()
+{
+    GsPD_UnloadContext();
 }
 
 int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode, TableSyncType syncType)
