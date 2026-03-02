@@ -2043,5 +2043,75 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTableTmpMsg(const std::vector
     }
     return errCode;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKeyBeforePutCloudData(const DownloadData &downloadData,
+    size_t index, const TableSchema &tableSchema, const OpType op)
+{
+    if (downloadData.existDataHashKey.size() <= index) {
+        // should not happen
+        LOGE("[UpdateHashKeyBeforePutCloudData] error download data with size = %zu, and index = %zu",
+            downloadData.existDataHashKey.size(), index);
+        return -E_INTERNAL_ERROR;
+    }
+    VBucket vBucket = downloadData.data[index];
+    Key hashKey = downloadData.existDataHashKey[index];
+
+    if (!CheckUpdateHashKeyCondition(vBucket, op, hashKey)) {
+        return E_OK;
+    }
+    bool isNeedUpdateHashKey = false;
+    Key hashPrimaryKey;
+    int errCode = CalculateAndCompareHashKey(vBucket, tableSchema, hashKey, hashPrimaryKey, isNeedUpdateHashKey);
+    if (errCode != E_OK) {
+        LOGE("[UpdateHashKeyBeforePutCloudData] determining whether to update hashKey failed, %d", errCode);
+        return errCode;
+    }
+    if (isNeedUpdateHashKey) {
+        errCode = SQLiteRelationalUtils::UpdateHashKey(dbHandle_, tableSchema.name, hashKey, hashPrimaryKey);
+        if (errCode != E_OK) {
+            LOGE("[UpdateHashKeyBeforePutCloudData] update hashKey failed, %d", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+bool SQLiteSingleVerRelationalStorageExecutor::CheckUpdateHashKeyCondition(const VBucket &vBucket, const OpType op,
+    const Key &hashKey) const
+{
+    // if the hashKey exists, it needs to be updated during insertion
+    if ((op == OpType::INSERT && hashKey.empty()) || op == OpType::DELETE) {
+        return false;
+    }
+    bool isDeleted = false;
+    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::DELETE_FIELD, vBucket, isDeleted);
+    std::string gid;
+    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
+    // if DELETE_FIELD is not present, it indicates tha the data is not deleted. deleted data cannot be updated
+    return !isDeleted && !gid.empty();
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CalculateAndCompareHashKey(const VBucket &vBucket,
+    const TableSchema &tableSchema, const Key &hashKey, Key &hashPrimaryKey, bool &isNeedUpdateHashKey)
+{
+    TableInfo localTable = localSchema_.GetTable(tableSchema.name);
+    if (!DBCommon::CaseInsensitiveCompare(localTable.GetTableName(), tableSchema.name)) {
+        LOGE("[CalculateAndCompareHashKey] localSchema doesn't contain table from cloud which is %s",
+            DBCommon::StringMiddleMaskingWithLen(tableSchema.name).c_str());
+        return -E_INTERNAL_ERROR;
+    }
+    int errCode = E_OK;
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema, true);
+    if (pkMap.empty() || !CloudStorageUtils::IsDownloadDataContainsPrimaryKey(vBucket, pkMap)) {
+        isNeedUpdateHashKey = false;
+        return E_OK;
+    } else {
+        std::tie(errCode, hashPrimaryKey) = CloudStorageUtils::GetHashValueWithPrimaryKeyMap(vBucket,
+            tableSchema, localTable, pkMap, false);
+    }
+    // not being equal means hashkey need to be updated
+    isNeedUpdateHashKey = (errCode == E_OK) && (hashKey != hashPrimaryKey);
+    return errCode;
+}
 } // namespace DistributedDB
 #endif

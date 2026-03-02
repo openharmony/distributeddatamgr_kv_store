@@ -814,6 +814,8 @@ namespace {
             int64_t mTime = 12345679L + i;
             vBucket[CloudDbConstant::MODIFY_FIELD] = mTime;
             downloadData.data.push_back(vBucket);
+            downloadData.existDataKey.push_back(i + 1);
+            downloadData.existDataHashKey.push_back(Key());
         }
 
         downloadData.opType = { OpType::UPDATE, OpType::DELETE, OpType::ONLY_UPDATE_GID, OpType::INSERT,
@@ -1032,6 +1034,8 @@ namespace {
             int64_t mTime = BASE_MODIFY_TIME + i;
             vBucket[CloudDbConstant::MODIFY_FIELD] = mTime;
             downloadData.data.push_back(vBucket);
+            downloadData.existDataKey.push_back(i + 1);
+            downloadData.existDataHashKey.push_back(Key());
         }
 
         downloadData.opType = { OpType::UPDATE, OpType::UPDATE_TIMESTAMP, OpType::INSERT, OpType::INSERT,
@@ -1153,6 +1157,8 @@ namespace {
         vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME;
         downloadData.data.push_back(vBucket);
         downloadData.opType = { OpType::DELETE };
+        downloadData.existDataKey.push_back(1);
+        downloadData.existDataHashKey.push_back(Key());
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
@@ -1187,6 +1193,8 @@ namespace {
             vBucket[CloudDbConstant::GID_FIELD] = gid;
             vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME;
             downloadData.data.push_back(vBucket);
+            downloadData.existDataKey.push_back(i + 1);
+            downloadData.existDataHashKey.push_back(Key());
         }
         downloadData.opType = { OpType::ONLY_UPDATE_GID, OpType::CLEAR_GID };
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
@@ -1252,6 +1260,8 @@ namespace {
         vBucket[CloudDbConstant::GID_FIELD] = gid;
         vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME;
         downloadData.data.push_back(vBucket);
+        downloadData.existDataKey.push_back(1);
+        downloadData.existDataHashKey.push_back(Key());
         downloadData.opType = { OpType::DELETE };
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
@@ -1568,5 +1578,172 @@ namespace {
         EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_NOT_FOUND);
         field.type = TYPE_INDEX<Asset>;
         EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_CLOUD_ERROR);
+    }
+
+    void GetLocalHashKeyByGid(const std::string &gid, Key &hashPrimaryKey)
+    {
+        std::string logTableName = DBCommon::GetLogTableName(g_tableName);
+        std::string sql = "SELECT hash_key FROM " + logTableName + " WHERE cloud_gid = ?";
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        sqlite3_stmt *stmt = nullptr;
+        EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), SQLITE_OK);
+        EXPECT_EQ(SQLiteUtils::BindTextToStatement(stmt, 1, gid), E_OK);
+        int errCode = SQLiteUtils::StepWithRetry(stmt);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            (void)SQLiteUtils::GetColumnBlobValue(stmt, 0, hashPrimaryKey);
+        }
+        int resetErrCode = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, resetErrCode);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+
+    void BuildVBuket(DownloadData &downloadData, std::string gid, int64_t index, OpType op)
+    {
+        VBucket vBucket;
+        double newAge = 100.0;
+        vBucket[CloudDbConstant::GID_FIELD] = gid;
+        vBucket["id"] = 20L + index;
+        std::string newName = "wangwu" + std::to_string(index);
+        vBucket["name"] = newName;
+        vBucket["age"] = newAge + index;
+        vBucket["image"] = std::vector<uint8_t>(1, 0);
+        int64_t cTime = BASE_CREATE_TIME + index;
+        vBucket[CloudDbConstant::CREATE_FIELD] = cTime;
+        int64_t mTime = BASE_MODIFY_TIME + index;
+        vBucket[CloudDbConstant::MODIFY_FIELD] = mTime;
+        downloadData.data.push_back(vBucket);
+        downloadData.existDataKey.push_back(index);
+        Key hashPrimaryKey;
+        GetLocalHashKeyByGid(gid, hashPrimaryKey);
+        downloadData.existDataHashKey.push_back(hashPrimaryKey);
+        downloadData.opType.push_back(op);
+    }
+
+    void BuildDownloadDataWithConfictPK(DownloadData &downloadData, const std::vector<OpType> &opType)
+    {
+        for (size_t i = 1; i <= opType.size(); ++i) {
+            std::string gid = g_gid + std::to_string(i - 1);
+            BuildVBuket(downloadData, gid, i, opType[i - 1]);
+        }
+    }
+
+    void PutCloudDataWithConfictPK(PrimaryKeyType pkType, const std::vector<OpType> &opType)
+    {
+        /**
+         * @tc.steps:step1. create db, create table, prepare data.
+         * @tc.expected: step1. success.
+         */
+        PrepareDataBase(g_tableName, pkType);
+
+        /**
+         * @tc.steps:step2. build downloaddata with different singlePk and hashKey
+         * @tc.expected: step2. return ok.
+         */
+        DownloadData downloadData;
+        BuildDownloadDataWithConfictPK(downloadData, opType);
+
+        /**
+         * @tc.steps:step3. call PutCloudSyncData
+         * @tc.expected: step3. return ok.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+        EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+    }
+
+    /**
+     * @tc.name: PutCloudDataWithConfictPKTest001
+     * @tc.desc: Test fix log hash_key by gid when UPDATE data without pk fields (single primary key)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest001, TestSize.Level1)
+    {
+        PutCloudDataWithConfictPK(PrimaryKeyType::SINGLE_PRIMARY_KEY, { OpType::UPDATE });
+    }
+
+    /**
+     * @tc.name: PutCloudDataWithConfictPKTest002
+     * @tc.desc: Test fix log hash_key by gid when UPDATE data without pk fields (composite primary key)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest002, TestSize.Level1)
+    {
+        PutCloudDataWithConfictPK(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, { OpType::UPDATE });
+    }
+
+    /**
+     * @tc.name: PutCloudDataWithConfictPKTest003
+     * @tc.desc: Test fix log hash_key by gid when UPDATE data without pk fields (no primary key)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest003, TestSize.Level1)
+    {
+        PutCloudDataWithConfictPK(PrimaryKeyType::NO_PRIMARY_KEY, { OpType::UPDATE });
+    }
+
+    /**
+     * @tc.name: PutCloudDataWithConfictPKTest004
+     * @tc.desc: Test fix log hash_key by gid when UPDATE data without local data is deleted
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest004, TestSize.Level1)
+    {
+        std::vector<OpType> opTypes = std::vector<OpType>(6, OpType::UPDATE);
+        opTypes.push_back(OpType::INSERT);
+        PutCloudDataWithConfictPK(PrimaryKeyType::SINGLE_PRIMARY_KEY, opTypes);
+    }
+
+    /**
+     * @tc.name: PutCloudDataWithConfictPKTest005
+     * @tc.desc: Test fix log hash_key with invaild downloaddata
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest005, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. create db, create table, prepare data.
+         * @tc.expected: step1. success.
+         */
+        PrepareDataBase(g_tableName, PrimaryKeyType::SINGLE_PRIMARY_KEY);
+
+        /**
+         * @tc.steps:step2. build invalid downloaddata
+         * @tc.expected: step2. return ok.
+         */
+        DownloadData downloadData;
+        VBucket vBucket;
+        double newAge = 100.0;
+        vBucket[CloudDbConstant::GID_FIELD] = g_gid + std::to_string(0);
+        vBucket["id"] = 20L + 1;
+        std::string newName = "wangwu" + std::to_string(1);
+        vBucket["name"] = newName;
+        vBucket["age"] = newAge + 1;
+        vBucket["image"] = std::vector<uint8_t>(1, 0);
+        vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME + 1;
+        downloadData.data.push_back(vBucket);
+        downloadData.opType.push_back(OpType::UPDATE);
+
+        /**
+         * @tc.steps:step3. call PutCloudSyncData
+         * @tc.expected: step3. return ok.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+        EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), -E_INTERNAL_ERROR);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
 }

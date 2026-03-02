@@ -1847,7 +1847,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     } else if (opType == OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE) {
         updateLogSql += "flag = flag | " + std::to_string(SET_FLAG_ONE_MASK); // set 2th bit of flag
         CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
-    }  else if (opType == OpType::UPDATE_TIMESTAMP) {
+    } else if (opType == OpType::UPDATE_TIMESTAMP) {
         updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) +
             ", timestamp = ?, cloud_gid = '', version = '', sharing_resource = ''";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
@@ -1860,7 +1860,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += ", version = ?";
         updateColName.push_back(CloudDbConstant::VERSION_FIELD);
     } else {
-        updateLogSql += " device = 'cloud', timestamp = ?,";
+        updateLogSql += "device = 'cloud', timestamp = ?, ";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
         if (opType == OpType::DELETE) {
             int errCode = GetCloudDeleteSql(tableSchema.name, updateLogSql);

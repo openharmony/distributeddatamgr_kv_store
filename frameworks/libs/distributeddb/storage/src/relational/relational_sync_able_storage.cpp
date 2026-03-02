@@ -1872,6 +1872,7 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
             recordCopy[CloudDbConstant::VERSION_FIELD] = dataInfoWithLog.logInfo.version;
         }
         downloadData.existDataKey.push_back(dataInfoWithLog.logInfo.dataKey);
+        downloadData.existDataHashKey.push_back(dataInfoWithLog.logInfo.hashKey);
         downloadData.data.push_back(std::move(recordCopy));
     }
     return PutCloudSyncDataInner(handle, tableName, downloadData);

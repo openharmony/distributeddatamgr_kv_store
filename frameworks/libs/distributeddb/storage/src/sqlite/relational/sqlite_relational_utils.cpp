@@ -1438,4 +1438,64 @@ int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::
     }
     return errCode;
 }
+
+int SQLiteRelationalUtils::BindMultipleParams(sqlite3_stmt *stmt, const std::vector<BindParamFunc> &bindFuncs)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int bindIndex = 0;
+    for (const auto &bindFunc : bindFuncs) {
+        if (bindFunc == nullptr) {
+            LOGE("[SQLiteRDBUtils] bind function is null at index %d", bindIndex);
+            return -E_INVALID_ARGS;
+        }
+        int errCode = bindFunc(stmt, ++bindIndex);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRDBUtils] bind param failed at index %d, errCode = %d", bindIndex, errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalUtils::UpdateHashKey(sqlite3 *db, const std::string &tableName,
+    const Key &existDataHashKey, const Key &hashPrimaryKey)
+{
+    std::string updateHashKeySql = "UPDATE " + DBCommon::GetLogTableName(tableName) +
+        " SET hash_key = ? WHERE hash_key = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, updateHashKeySql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRDBUtils] get update hashKey with log table stmt failed, %d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *statement = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        if (ret != E_OK) {
+            LOGW("[SQLiteRDBUtils] reset stmt failed %d when update hashKey", ret);
+        }
+    });
+    std::vector<BindParamFunc> bindFuncs = {
+        [&hashPrimaryKey] (sqlite3_stmt *statement, int index) {
+            return SQLiteUtils::BindBlobToStatement(statement, index, hashPrimaryKey);
+        },
+        [&existDataHashKey] (sqlite3_stmt *statement, int index) {
+            return SQLiteUtils::BindBlobToStatement(statement, index, existDataHashKey);
+        }
+    };
+
+    errCode = BindMultipleParams(stmt, bindFuncs);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+        LOGW("[SQLiteRDBUtils] update hashKey with new primary key");
+    }
+    return errCode;
+}
 } // namespace DistributedDB

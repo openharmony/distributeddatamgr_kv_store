@@ -1601,4 +1601,16 @@ bool CloudStorageUtils::IsNeedMarkUploadFinishedWithErr(const VBucket &record)
 {
     return DBCommon::IsRecordAssetsMissing(record) || DBCommon::IsRecordAssetsSpaceInsufficient(record);
 }
+
+bool CloudStorageUtils::IsDownloadDataContainsPrimaryKey(const VBucket &vBucket,
+    const std::map<std::string, Field> &pkMap)
+{
+    for (const auto &pkPair : pkMap) {
+        const std::string &pkName = pkPair.second.colName;
+        if (vBucket.find(pkName) == vBucket.end()) {
+            return false;
+        }
+    }
+    return true;
+}
 }
