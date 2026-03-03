@@ -1339,6 +1339,9 @@ int SQLiteRelationalUtils::BindAndStepDevicesToStatement(sqlite3_stmt *stmt,
 int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
     const std::vector<std::string> &keepDevices)
 {
+    if (keepDevices.empty()) {
+        return -E_INVALID_ARGS;
+    }
     std::string selectSql = "SELECT data_key FROM " + DBCommon::GetLogTableName(removedTable) +
         " WHERE ori_device NOT IN (";
     for (size_t i = 0; i < keepDevices.size(); i++) {
@@ -1374,6 +1377,9 @@ int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const
 int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(sqlite3 *db, const std::string &removedTable,
     const std::vector<std::string> &keepDevices)
 {
+    if (keepDevices.empty()) {
+        return -E_INVALID_ARGS;
+    }
     std::string deleteSql = "DELETE FROM " + DBCommon::GetLogTableName(removedTable) +
         " WHERE ori_device NOT IN (";
     for (size_t i = 0; i < keepDevices.size(); i++) {
@@ -1408,6 +1414,9 @@ int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(sqlite3 *db, co
 int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::string &removedTable,
     const std::vector<std::string> &keepDevices)
 {
+    if (keepDevices.empty()) {
+        return -E_INVALID_ARGS;
+    }
     std::string deleteSql = "UPDATE " + DBCommon::GetLogTableName(removedTable) +
         " SET flag = 0x01 WHERE ori_device NOT IN (";
     for (size_t i = 0; i < keepDevices.size(); i++) {
