@@ -1494,7 +1494,10 @@ int SQLiteRelationalUtils::UpdateHashKey(sqlite3 *db, const std::string &tableNa
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
-        LOGW("[SQLiteRDBUtils] update hashKey with new primary key");
+        int changeRows = sqlite3_changes(db);
+        if (changeRows > 0) {
+            LOGW("[SQLiteRDBUtils] update hashKey with new primary key");
+        }
     }
     return errCode;
 }

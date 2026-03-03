@@ -1587,7 +1587,7 @@ namespace {
         sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
         EXPECT_NE(db, nullptr);
         sqlite3_stmt *stmt = nullptr;
-        EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), SQLITE_OK);
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), SQLITE_OK);
         EXPECT_EQ(SQLiteUtils::BindTextToStatement(stmt, 1, gid), E_OK);
         int errCode = SQLiteUtils::StepWithRetry(stmt);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
@@ -1598,7 +1598,7 @@ namespace {
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 
-    void BuildVBuket(DownloadData &downloadData, std::string gid, int64_t index, OpType op)
+    void BuildVBucket(DownloadData &downloadData, std::string gid, int64_t index, OpType op)
     {
         VBucket vBucket;
         double newAge = 100.0;
@@ -1624,11 +1624,11 @@ namespace {
     {
         for (size_t i = 1; i <= opType.size(); ++i) {
             std::string gid = g_gid + std::to_string(i - 1);
-            BuildVBuket(downloadData, gid, i, opType[i - 1]);
+            BuildVBucket(downloadData, gid, i, opType[i - 1]);
         }
     }
 
-    void PutCloudDataWithConfictPK(PrimaryKeyType pkType, const std::vector<OpType> &opType)
+    void PutCloudDataWithConflictPK(PrimaryKeyType pkType, const std::vector<OpType> &opType)
     {
         /**
          * @tc.steps:step1. create db, create table, prepare data.
@@ -1655,63 +1655,63 @@ namespace {
     }
 
     /**
-     * @tc.name: PutCloudDataWithConfictPKTest001
+     * @tc.name: PutCloudDataWithConflictPKTest001
      * @tc.desc: Test fix log hash_key by gid when UPDATE data without pk fields (single primary key)
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: xiefengzhu
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest001, TestSize.Level1)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConflictPKTest001, TestSize.Level1)
     {
-        PutCloudDataWithConfictPK(PrimaryKeyType::SINGLE_PRIMARY_KEY, { OpType::UPDATE });
+        PutCloudDataWithConflictPK(PrimaryKeyType::SINGLE_PRIMARY_KEY, { OpType::UPDATE });
     }
 
     /**
-     * @tc.name: PutCloudDataWithConfictPKTest002
+     * @tc.name: PutCloudDataWithConflictPKTest002
      * @tc.desc: Test fix log hash_key by gid when UPDATE data without pk fields (composite primary key)
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: xiefengzhu
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest002, TestSize.Level1)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConflictPKTest002, TestSize.Level1)
     {
-        PutCloudDataWithConfictPK(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, { OpType::UPDATE });
+        PutCloudDataWithConflictPK(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, { OpType::UPDATE });
     }
 
     /**
-     * @tc.name: PutCloudDataWithConfictPKTest003
+     * @tc.name: PutCloudDataWithConflictPKTest003
      * @tc.desc: Test fix log hash_key by gid when UPDATE data without pk fields (no primary key)
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: xiefengzhu
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest003, TestSize.Level1)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConflictPKTest003, TestSize.Level1)
     {
-        PutCloudDataWithConfictPK(PrimaryKeyType::NO_PRIMARY_KEY, { OpType::UPDATE });
+        PutCloudDataWithConflictPK(PrimaryKeyType::NO_PRIMARY_KEY, { OpType::UPDATE });
     }
 
     /**
-     * @tc.name: PutCloudDataWithConfictPKTest004
+     * @tc.name: PutCloudDataWithConflictPKTest004
      * @tc.desc: Test fix log hash_key by gid when UPDATE data without local data is deleted
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: xiefengzhu
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest004, TestSize.Level1)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConflictPKTest004, TestSize.Level1)
     {
         std::vector<OpType> opTypes = std::vector<OpType>(6, OpType::UPDATE);
         opTypes.push_back(OpType::INSERT);
-        PutCloudDataWithConfictPK(PrimaryKeyType::SINGLE_PRIMARY_KEY, opTypes);
+        PutCloudDataWithConflictPK(PrimaryKeyType::SINGLE_PRIMARY_KEY, opTypes);
     }
 
     /**
-     * @tc.name: PutCloudDataWithConfictPKTest005
+     * @tc.name: PutCloudDataWithConflictPKTest005
      * @tc.desc: Test fix log hash_key with invaild downloaddata
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: xiefengzhu
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConfictPKTest005, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudDataWithConflictPKTest005, TestSize.Level0)
     {
         /**
          * @tc.steps:step1. create db, create table, prepare data.

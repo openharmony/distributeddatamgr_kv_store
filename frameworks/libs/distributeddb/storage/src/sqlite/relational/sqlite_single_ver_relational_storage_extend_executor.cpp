@@ -2053,8 +2053,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKeyBeforePutCloudData(co
             downloadData.existDataHashKey.size(), index);
         return -E_INTERNAL_ERROR;
     }
-    VBucket vBucket = downloadData.data[index];
-    Key hashKey = downloadData.existDataHashKey[index];
+    const VBucket &vBucket = downloadData.data[index];
+    const Key &hashKey = downloadData.existDataHashKey[index];
 
     if (!CheckUpdateHashKeyCondition(vBucket, op, hashKey)) {
         return E_OK;
