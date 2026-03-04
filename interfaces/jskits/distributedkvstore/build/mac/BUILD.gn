@@ -23,14 +23,16 @@ gen_js_obj("distributed_kvstore_js") {
 }
 
 ohos_source_set("data_distributedkvstore") {
-  cflags_cc = [
+cflags_cc = [
     "-std=c++17",
     "-stdlib=libc++",
+    "-Werror=vla",
   ]
 
-  cflags = [
+cflags = [
     "-includemac_kv_store_compat.h",
     "-fno-lto",
+    "-Werror=vla",
   ]
 
   cflags_objcc = [ "-fobjc-arc" ]

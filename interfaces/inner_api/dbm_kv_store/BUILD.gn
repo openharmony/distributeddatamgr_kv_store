@@ -23,7 +23,10 @@ if (ohos_kernel_type == "liteos_m") {
   }
 } else {
   shared_library("foundation_dbm_kv_store") {
-    cflags = [ "-Wall" ]
+    cflags = [
+      "-Wall",
+      "-Werror=vla",
+    ]
     cflags_cc = cflags
     sources = [ "${kv_store_native_path}/dbm_kv_store/src/kvstore_impl_posix/dbm_kv_store.c" ]
     include_dirs = [

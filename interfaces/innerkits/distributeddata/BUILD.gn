@@ -26,7 +26,10 @@ group("build_module") {
 config("distributeddatafwk_config") {
   visibility = [ ":*" ]
 
-  cflags = [ "-Wno-multichar" ]
+  cflags = [
+    "-Wno-multichar",
+    "-Werror=vla",
+  ]
 
   cflags_cc = [ "-fvisibility=hidden" ]
 
@@ -123,7 +126,10 @@ ohos_shared_library("distributeddata_inner") {
 
   configs = [ ":distributeddatafwk_config" ]
   public_configs = [ ":distributeddatafwk_public_config" ]
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-Wno-c99-designator",
+    "-Werror=vla",
+  ]
   deps = deps_config
   external_deps = external_deps_config
   if (dms_service_enable && qemu_disable) {
@@ -163,7 +169,10 @@ ohos_shared_library("distributeddata_client_sync") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
   ]
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-Wno-c99-designator",
+    "-Werror=vla",
+  ]
   configs = [ ":distributeddatafwk_config" ]
 
   deps = [
@@ -215,7 +224,10 @@ ohos_static_library("kvdb_inner_lite") {
   ]
 
   public_configs = [ ":kvdb_inner_lite_config" ]
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-Wno-c99-designator",
+    "-Werror=vla",
+  ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
@@ -253,7 +265,10 @@ ohos_static_library("distributeddata_inner_executor") {
     debug = false
   }
   public_configs = [ ":distributeddata_common_public_config" ]
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-Wno-c99-designator",
+    "-Werror=vla",
+  ]
 
   if (use_platform_win) {
     sources = [

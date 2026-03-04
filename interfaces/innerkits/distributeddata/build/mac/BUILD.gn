@@ -101,6 +101,7 @@ ohos_source_set("distributeddata_inner") {
     "-Wno-c99-designator",
     "-includemac_kv_store_compat.h",
     "-fno-lto",
+    "-Werror=vla",
   ]
 
   include_dirs = [

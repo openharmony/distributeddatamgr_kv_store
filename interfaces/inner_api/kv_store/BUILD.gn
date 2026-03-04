@@ -39,7 +39,10 @@ if (ohos_kernel_type == "liteos_m") {
   }
 } else {
   shared_library("utils_kv_store") {
-    cflags = [ "-Wall" ]
+    cflags = [
+      "-Wall",
+      "-Werror=vla",
+    ]
     cflags_cc = cflags
     sources = [
       "${kv_store_native_path}/kv_store/src/kvstore_common/kvstore_common.c",

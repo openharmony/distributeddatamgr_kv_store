@@ -23,7 +23,9 @@ group("build_module") {
 config("data_mgr_public_config") {
   visibility = [ ":*" ]
 
-  cflags = [ "-Wno-multichar" ]
+  cflags = [
+    "-Wno-multichar",
+  ]
 
   include_dirs = [
     "include",
@@ -47,7 +49,10 @@ ohos_shared_library("distributeddata_mgr") {
     "../../../frameworks/innerkitsimpl/distributeddatasvc/src/distributed_data_mgr.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatasvc/src/kvstore_data_service_mgr.cpp",
   ]
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-Wno-c99-designator",
+    "-Werror=vla",
+  ]
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",

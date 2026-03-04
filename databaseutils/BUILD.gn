@@ -39,7 +39,10 @@ if (is_ios || is_android) {
     branch_protector_ret = "pac_ret"
     sources = base_sources
     configs = [ ":database_utils_config" ]
-    cflags_cc = [ "-fvisibility=hidden" ]
+    cflags_cc = [
+    "-fvisibility=hidden",
+    "-Werror=vla",
+  ]
     public_configs = [ ":database_utils_public_config" ]
     deps = [ "${kv_store_base_path}/kvstoremock/interfaces/mock:build_module" ]
     public_external_deps = [ "bounds_checking_function:libsec_static" ]
@@ -61,7 +64,10 @@ if (is_ios || is_android) {
     }
     innerapi_tags = [ "platformsdk" ]
     configs = [ ":database_utils_config" ]
-    cflags_cc = [ "-fvisibility=hidden" ]
+    cflags_cc = [
+    "-fvisibility=hidden",
+    "-Werror=vla",
+  ]
     public_configs = [ ":database_utils_public_config" ]
     deps = [ "${kv_store_base_path}/kvstoremock/interfaces/mock:build_module" ]
     external_deps = [ "hilog:libhilog" ]
