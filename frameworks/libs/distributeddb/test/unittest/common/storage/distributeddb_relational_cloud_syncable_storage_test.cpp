@@ -261,6 +261,8 @@ void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData, std::
         vBucket[CloudDbConstant::MODIFY_FIELD] = mTime;
         vBucket[CloudDbConstant::CREATE_FIELD] = mTime;
         downloadData.data.push_back(vBucket);
+        downloadData.existDataKey.push_back(i);
+        downloadData.existDataHashKey.push_back(Key());
     }
     downloadData.opType = opTypes;
 }

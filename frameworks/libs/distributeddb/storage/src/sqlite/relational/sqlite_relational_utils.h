@@ -24,6 +24,7 @@
 #include "table_info.h"
 
 namespace DistributedDB {
+using BindParamFunc = std::function<int(sqlite3_stmt *, int)>;
 class SQLiteRelationalUtils {
 public:
     static int GetDataValueByType(sqlite3_stmt *statement, int cid, DataValue &value);
@@ -158,6 +159,10 @@ public:
 
     static int GetGidRecordCount(sqlite3 *db, const std::string &tableName, uint64_t &count);
 #endif
+
+    static int UpdateHashKey(sqlite3 *db, const std::string &tableName,
+        const Key &existDataHashKey, const Key &hashPrimaryKey);
+
     static int DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
         const std::vector<std::string> &keepDevices);
 
@@ -167,6 +172,8 @@ public:
     static int UpdateTrackerTableSyncDelete(sqlite3 *db, const std::string &removedTable,
         const std::vector<std::string> &keepDevices);
 private:
+    static int BindMultipleParams(sqlite3_stmt *stmt, const std::vector<BindParamFunc> &bindFuncs);
+
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 
     static int GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);

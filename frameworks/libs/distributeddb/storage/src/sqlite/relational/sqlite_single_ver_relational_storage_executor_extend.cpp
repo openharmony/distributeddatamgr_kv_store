@@ -255,6 +255,11 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
     int index = 0;
     int errCode = E_OK;
     for (OpType op : downloadData.opType) {
+        errCode = UpdateHashKeyBeforePutCloudData(downloadData, static_cast<size_t>(index), tableSchema, op);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutePutCloudData] update hashKey failed, %d", errCode);
+            return errCode;
+        }
         VBucket &vBucket = downloadData.data[index];
         switch (op) {
             case OpType::INSERT:
@@ -283,7 +288,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
                 break;
         }
         if (errCode != E_OK) {
-            LOGE("put cloud sync data fail: %d", errCode);
+            LOGE("[RDBExecutePutCloudData] put cloud sync data fail: %d", errCode);
             return errCode;
         }
         statisticMap[static_cast<int>(op)]++;

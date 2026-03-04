@@ -571,6 +571,14 @@ private:
 
     int CleanTableTmpMsg(const std::vector<std::string> &tableNameList);
 
+    int UpdateHashKeyBeforePutCloudData(const DownloadData &downloadData, size_t index,
+        const TableSchema &tableSchema, const OpType op);
+
+    bool CheckUpdateHashKeyCondition(const VBucket &vBucket, const OpType op, const Key &hashKey) const;
+
+    int CalculateAndCompareHashKey(const VBucket &vBucket, const TableSchema &tableSchema,
+        const Key &hashKey, Key &hashPrimaryKey, bool &isNeedUpdateHashKey);
+
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";
     static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
