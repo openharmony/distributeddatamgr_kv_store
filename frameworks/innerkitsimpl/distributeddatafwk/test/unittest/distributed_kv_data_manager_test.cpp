@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -555,6 +555,19 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore007, TestSize.Level1)
 {
     ZLOGI("CloseKvStore007 begin.");
     Status stat = manager.CloseKvStore(appId, storeId65, create.baseDir);
+    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: CloseKvStore008
+* @tc.desc: Verify scenarios where the parameter path is empty.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, CloseKvStore008, TestSize.Level1)
+{
+    ZLOGI("CloseKvStore008 begin.");
+    std::string path = "";
+    Status stat = manager.CloseKvStore(appId, storeId64, path);
     EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
 }
 

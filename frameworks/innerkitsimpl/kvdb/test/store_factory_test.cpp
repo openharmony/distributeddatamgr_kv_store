@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -492,5 +492,26 @@ HWTEST_F(StoreFactoryTest, RekeyNoPwdFile, TestSize.Level1)
 
     isKeyExist = StoreUtil::IsFileExist(keyFileName);
     ASSERT_EQ(isKeyExist, true);
+}
+
+/**
+ * @tc.name: CloseKVStore001
+ * @tc.desc: Verify the situation where CloseKVStore call parameters are incorrect.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryTest, CloseKVStore001, TestSize.Level1)
+{
+    std::string path;
+    AppId invalidAppId = { "" };
+    StoreId invalidStoreId = { "" };
+
+    Status status = StoreManager::GetInstance().CloseKVStore(appId, storeId, path);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+
+    status = StoreManager::GetInstance().CloseKVStore(appId, invalidStoreId, path);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+
+    status = StoreManager::GetInstance().CloseKVStore(invalidAppId, invalidStoreId, path);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 } // namespace
