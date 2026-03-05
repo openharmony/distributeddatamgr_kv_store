@@ -44,8 +44,6 @@ protected:
 
     static std::pair<int, RelationalSchemaObject> GetKnowledgeSourceSchema(sqlite3 *db);
 
-    static std::pair<int, RelationalSchemaObject> GetRDBSchema(sqlite3 *db, bool isTracker);
-
     static int SaveKnowledgeSourceSchema(sqlite3 *db, const RelationalSchemaObject &schema);
 
     static std::pair<int, bool> CheckSchemaValidAndChangeStatus(sqlite3 *db,

@@ -925,5 +925,17 @@ int RelationalSyncAbleStorage::GetGidRecordCount(const std::string &tableName, u
     return readHandle->GetGidRecordCount(tableName, count);
 }
 #endif
+
+void RelationalSyncAbleStorage::SetLocalHashDevId(const std::string &devId)
+{
+    std::lock_guard<std::mutex> lock(localDevMutex_);
+    localHashDevId_ = devId;
+}
+
+std::string RelationalSyncAbleStorage::GetLocalHashDevId() const
+{
+    std::lock_guard<std::mutex> lock(localDevMutex_);
+    return localHashDevId_;
+}
 }
 #endif

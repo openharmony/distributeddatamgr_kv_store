@@ -57,61 +57,12 @@ struct ClearKvMetaDataOption {
     ClearKvMetaOpType type = ClearKvMetaOpType::CLEAN_CLOUD_WATERMARK;
 };
 
-enum class AssetOpType {
-    NO_CHANGE = 0,
-    INSERT,
-    DELETE,
-    UPDATE
-};
-
-enum AssetStatus : uint32_t {
-    NORMAL = 0,
-    DOWNLOADING,
-    ABNORMAL,
-    INSERT, // INSERT/DELETE/UPDATE are for client use
-    DELETE,
-    UPDATE,
-    // high 16 bit USE WITH BIT MASK
-    HIDDEN = 0x20000000,
-    DOWNLOAD_WITH_NULL = 0x40000000,
-    UPLOADING = 0x80000000,
-};
-
 struct ClearDeviceDataOption {
     ClearMode mode = ClearMode::DEFAULT;
     std::string device;
     std::vector<std::string> tableList; // when left empty tableList, clear all tables
 };
 
-struct Asset {
-    uint32_t version = 0;
-    std::string name;
-    std::string assetId;
-    std::string subpath;
-    std::string uri;
-    std::string modifyTime;
-    std::string createTime;
-    std::string size;
-    std::string hash;
-    uint32_t flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
-    uint32_t status = static_cast<uint32_t>(AssetStatus::NORMAL);
-    int64_t timestamp = 0;
-    bool operator==(const Asset& asset) const
-    {
-        if (this == &asset) {
-            return true;
-        }
-        // force check all field
-        return (version == asset.version) && (name == asset.name) && (assetId == asset.assetId) &&
-            (subpath == asset.subpath) && (uri == asset.uri) && (modifyTime == asset.modifyTime) &&
-            (createTime == asset.createTime) && (size == asset.size) && (hash == asset.hash) && (flag == asset.flag) &&
-            (status == asset.status) && (timestamp == asset.timestamp);
-    }
-};
-using Assets = std::vector<Asset>;
-using Bytes = std::vector<uint8_t>;
-using Entries = std::map<std::string, std::string>;
-using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets, Entries>;
 using VBucket = std::map<std::string, Type>;
 using GenerateCloudVersionCallback = std::function<std::string(const std::string &originVersion)>;
 

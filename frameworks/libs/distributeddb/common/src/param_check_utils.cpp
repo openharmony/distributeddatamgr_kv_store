@@ -342,11 +342,6 @@ int ParamCheckUtils::FilterTableRemoveMap(std::map<std::string, std::vector<std:
 
 int ParamCheckUtils::CheckDevices(std::vector<std::string> &devices)
 {
-    if (devices.empty()) {
-        LOGE("[CheckDevices] required one device item at least");
-        return -E_INVALID_ARGS;
-    }
-
     std::string localDeviceId;
     int errCode = RuntimeContext::GetInstance()->GetLocalIdentity(localDeviceId);
     if (errCode != E_OK) {
@@ -361,14 +356,14 @@ int ParamCheckUtils::CheckDevices(std::vector<std::string> &devices)
             return -E_INVALID_ARGS;
         }
         if (device == localDeviceId) {
-            device = ""; // inner identifies local device as ""
             hasLocalDeviceId = true;
         }
     }
     if (!hasLocalDeviceId) {
-        LOGE("[CheckDevices] a local deviceId is required");
-        return -E_NOT_SUPPORT;
+        devices.push_back(localDeviceId);
     }
+    // local device data save with ''
+    devices.emplace_back("");
     return E_OK;
 }
 } // namespace DistributedDB

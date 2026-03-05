@@ -14,6 +14,7 @@
  */
 
 #include "query_utils.h"
+#include "db_common.h"
 
 namespace DistributedDB {
 void QueryUtils::FillQueryIn(const std::string &col, const std::vector<Type> &data, size_t valueType,

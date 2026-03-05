@@ -861,6 +861,10 @@ distributeddb_unittest("DistributedDBBasicRDBTest") {
       [ "unittest/common/store_test/rdb/distributeddb_basic_rdb_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRemoveExceptDeviceDataTest") {
+  sources = [ "unittest/common/store_test/rdb/distributeddb_remove_except_device_data_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBRDBDataStatusTest") {
   sources = [
     "unittest/common/store_test/rdb/distributeddb_rdb_data_status_test.cpp",
@@ -1109,6 +1113,7 @@ group("unittest") {
     ":DistributedDBRelationalSchemaObjectTest",
     ":DistributedDBRelationalSyncableStorageTest",
     ":DistributedDBRelationalVerP2PSyncTest",
+    ":DistributedDBRemoveExceptDeviceDataTest",
     ":DistributedDBSchemaObjectTest",
     ":DistributedDBSchemalTest",
     ":DistributedDBSingleVerDLPTest",

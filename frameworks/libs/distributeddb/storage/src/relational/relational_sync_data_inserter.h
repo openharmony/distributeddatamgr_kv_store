@@ -54,7 +54,8 @@ public:
     static RelationalSyncDataInserter CreateInserter(const std::string &deviceName, const QueryObject &query,
         const SchemaInfo &schemaInfo, const std::vector<FieldInfo> &remoteFields, const StoreInfo &info);
 
-    void SetHashDevId(const std::string &hashDevId);
+    void SetRemoteHexDevId(const std::string &hexDevId);
+    void SetLocalHashDevId(const std::string &hashDevId);
     // Set remote fields in cid order
     void SetRemoteFields(std::vector<FieldInfo> remoteFields);
     void SetEntries(std::vector<DataItem> entries);
@@ -91,6 +92,8 @@ public:
 
     void IncNonExistDelCnt();
     void DfxPrintLog() const;
+
+    void Init(const std::vector<DataItem> &dataItems, const std::string &localHashDevId);
 private:
 
     int GetInsertStatement(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -104,7 +107,10 @@ private:
         const int64_t rowid, std::vector<Type> &values);
     void BindExtendFieldOrRowid(sqlite3_stmt *&stmt, std::map<std::string, Type> &saveVals, int bindIndex);
 
-    std::string hashDevId_;
+    std::string ConvertOriDevice(const std::string &device);
+
+    std::string remoteHexDevId_;
+    std::string localHashDevId_;
     std::vector<FieldInfo> remoteFields_;
     std::vector<DataItem> entries_;
     TableInfo localTable_;

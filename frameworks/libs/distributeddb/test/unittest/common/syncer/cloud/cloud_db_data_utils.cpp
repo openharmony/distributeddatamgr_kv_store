@@ -16,6 +16,7 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_db_types.h"
+#include "db_common.h"
 namespace DistributedDB {
 std::vector<VBucket> CloudDBDataUtils::GenerateRecords(int recordCounts, const TableSchema &schema)
 {

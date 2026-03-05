@@ -187,6 +187,38 @@ private:
 #define VEC_TO_STR(x) DBCommon::VectorToHexString(x).c_str()
 #define STR_MASK(x) DBCommon::StringMasking(x).c_str()
 #define STR_TO_HEX(x) DBCommon::TransferStringToHex(x).c_str()
+
+template<typename Tp, typename... Types>
+struct IndexOf : std::integral_constant<size_t, 0> {};
+
+template<typename Tp, typename... Types>
+inline static constexpr size_t INDEX_OF_V = IndexOf<Tp, Types...>::value;
+
+template<typename Tp, typename First, typename... Rest>
+struct IndexOf<Tp, First, Rest...>
+    : std::integral_constant<size_t, std::is_same_v<Tp, First> ? 0 : INDEX_OF_V<Tp, Rest...> + 1> {};
+
+template<typename... Types>
+struct VariantSizeOf {
+    static constexpr size_t VALUE = sizeof...(Types);
+};
+
+template<typename T, typename... Types>
+struct VariantIndexOf {
+    static constexpr size_t VALUE = INDEX_OF_V<T, Types...>;
+};
+
+template<typename... Types>
+static VariantSizeOf<Types...> VariantSizeTest(const std::variant<Types...> &);
+
+template<typename T, typename... Types>
+static VariantIndexOf<T, Types...> VariantIndexTest(const T &, const std::variant<Types...> &);
+
+template<typename T>
+inline constexpr static int32_t TYPE_INDEX =
+    decltype(VariantIndexTest(std::declval<T>(), std::declval<Type>()))::VALUE;
+
+inline constexpr static int32_t TYPE_MAX = decltype(VariantSizeTest(std::declval<Type>()))::VALUE;
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_COMMON_H

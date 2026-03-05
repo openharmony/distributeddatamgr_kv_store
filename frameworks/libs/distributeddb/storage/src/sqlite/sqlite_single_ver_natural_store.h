@@ -185,7 +185,7 @@ public:
     int CheckAndInitQueryCondition(QueryObject &query) const override;
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID, bool isPush) const override;
+        const std::string &targetID, bool isPush) override;
 
     void SetSendDataInterceptor(const PushDataInterceptor &interceptor) override;
 
