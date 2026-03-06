@@ -386,16 +386,17 @@ void TimeSync001()
     EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillRepeatedly(Return(DB_ERROR));
     const int loopCount = 100;
     const int timeDriverMs = 200;
+    std::shared_ptr<MockTimeSync> timeSync = std::make_shared<MockTimeSync>();
+    EXPECT_CALL(*timeSync, SyncStart(_, _, _)).WillRepeatedly(Return(E_OK));
     for (int i = 0; i < loopCount; ++i) {
-        MockTimeSync timeSync;
-        EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A", ""), E_OK);
-        EXPECT_CALL(timeSync, SyncStart).WillRepeatedly(Return(E_OK));
-        timeSync.ModifyTimer(timeDriverMs);
+        EXPECT_EQ(timeSync->Initialize(communicator, metadata, storage, "DEVICES_A", ""), E_OK);
+        timeSync->ModifyTimer(timeDriverMs);
         std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
-        timeSync.Close();
+        timeSync->Close();
     }
     std::this_thread::sleep_for(std::chrono::seconds(1));
     metadata = nullptr;
+    timeSync = nullptr;
     delete storage;
     delete communicator;
 }

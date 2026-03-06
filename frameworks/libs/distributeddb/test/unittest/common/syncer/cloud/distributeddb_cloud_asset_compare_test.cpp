@@ -1051,4 +1051,40 @@ namespace {
             EXPECT_EQ(strategy, OpType::INSERT);
         }
     }
+
+    /**
+     * @tc.name: FilterDeleteAsset001
+     * @tc.desc: Test FilterDeleteAsset with both Asset and Assets having DELETE status
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, FilterDeleteAsset001, TestSize.Level0)
+    {
+        VBucket record;
+        Asset deleteAsset;
+        deleteAsset.name = "delete_asset";
+        deleteAsset.status = static_cast<uint32_t>(AssetStatus::DELETE);
+        record[FIELD_HOUSE] = deleteAsset;
+
+        Assets assets;
+        Asset normalAsset;
+        normalAsset.name = "normal_asset";
+        normalAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+
+        Asset deleteAssetInAssets;
+        deleteAssetInAssets.name = "delete_asset_in_assets";
+        deleteAssetInAssets.status = static_cast<uint32_t>(AssetStatus::DELETE);
+
+        assets.push_back(normalAsset);
+        assets.push_back(deleteAssetInAssets);
+        record[FIELD_CARS] = assets;
+
+        AssetOperationUtils::FilterDeleteAsset(record);
+
+        EXPECT_EQ(record[FIELD_HOUSE].index(), TYPE_INDEX<Nil>);
+        auto& result = std::get<Assets>(record[FIELD_CARS]);
+        EXPECT_EQ(result.size(), 1u);
+        EXPECT_EQ(result[0].name, "normal_asset");
+    }
 }

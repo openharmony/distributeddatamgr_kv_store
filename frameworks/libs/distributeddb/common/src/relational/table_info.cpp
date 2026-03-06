@@ -485,7 +485,9 @@ void TableInfo::AddUniqueDefineString(std::string &attrStr) const
 int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string &schemaVersion) const
 {
     if (!DBCommon::CaseInsensitiveCompare(tableName_, inTableInfo.GetTableName())) {
-        LOGW("[Relational][Compare] Table name is not same");
+        LOGW("[Relational][Compare] Table name is not same, local table = %s, input table = %s",
+            DBCommon::StringMiddleMaskingWithLen(tableName_).c_str(),
+            DBCommon::StringMiddleMaskingWithLen(inTableInfo.GetTableName()).c_str());
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
 
@@ -497,19 +499,22 @@ int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string 
 
     int fieldCompareResult = CompareWithTableFields(inTableInfo.GetFields());
     if (fieldCompareResult == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
-        LOGW("[Relational][Compare] Compare table fields with in table, %d", fieldCompareResult);
+        LOGW("[Relational][Compare] Table fields are incompatible for table %s",
+            DBCommon::StringMiddleMaskingWithLen(tableName_).c_str());
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
 
     if (schemaVersion == SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1) {
         int uniqueCompareResult = CompareWithTableUnique(inTableInfo.GetUniqueDefine());
         if (uniqueCompareResult == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
-            LOGW("[Relational][Compare] Compare table unique with in table, %d", fieldCompareResult);
+            LOGW("[Relational][Compare] Table unique define is not same for table %s",
+                DBCommon::StringMiddleMaskingWithLen(tableName_).c_str());
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
 
         if (autoInc_ != inTableInfo.GetAutoIncrement()) {
-            LOGW("[Relational][Compare] Compare table auto increment with in table");
+            LOGW("[Relational][Compare] Table auto increment is not same for table %s",
+                DBCommon::StringMiddleMaskingWithLen(tableName_).c_str());
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
     }
