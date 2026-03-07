@@ -225,7 +225,9 @@ HWTEST_F(ConcurrentMapTestNew, SizeMultipleElements, TestSize.Level0)
 {
     for (int i = 0; i < 10; ++i) {
         std::string key = "key_" + std::to_string(i);
-        TestValueAlpha value = { "id_" + std::to_string(i), "name_" + std::to_string(i), "scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "id_" + std::to_string(i),
+                                  "name_" + std::to_string(i),
+                                  "scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
     ASSERT_EQ(dataAlpha_.Size(), 10);
@@ -239,7 +241,9 @@ HWTEST_F(ConcurrentMapTestNew, SizeMultipleElements, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, IntSizeMultipleElements, TestSize.Level0)
 {
     for (int i = 0; i < 20; ++i) {
-        TestValueAlpha value = { "int_id_" + std::to_string(i), "int_name_" + std::to_string(i), "int_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "int_id_" + std::to_string(i),
+                                  "int_name_" + std::to_string(i),
+                                  "int_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i, value);
     }
     ASSERT_EQ(dataBeta_.Size(), 20);
@@ -253,7 +257,9 @@ HWTEST_F(ConcurrentMapTestNew, IntSizeMultipleElements, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, UintSizeMultipleElements, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 30; ++i) {
-        TestValueAlpha value = { "uint_id_" + std::to_string(i), "uint_name_" + std::to_string(i), "uint_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "uint_id_" + std::to_string(i),
+                                  "uint_name_" + std::to_string(i),
+                                  "uint_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i, value);
     }
     ASSERT_EQ(dataGamma_.Size(), 30);
@@ -357,7 +363,9 @@ HWTEST_F(ConcurrentMapTestNew, MultipleEmplaceAndFind, TestSize.Level0)
 {
     for (int i = 0; i < 50; ++i) {
         std::string key = "multi_key_" + std::to_string(i);
-        TestValueAlpha value = { "multi_id_" + std::to_string(i), "multi_name_" + std::to_string(i), "multi_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "multi_id_" + std::to_string(i),
+                                  "multi_name_" + std::to_string(i),
+                                  "multi_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
     for (int i = 0; i < 50; ++i) {
@@ -377,7 +385,9 @@ HWTEST_F(ConcurrentMapTestNew, MultipleEmplaceAndFind, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, MultipleIntEmplaceAndFind, TestSize.Level0)
 {
     for (int i = 0; i < 60; ++i) {
-        TestValueAlpha value = { "int_multi_id_" + std::to_string(i), "int_multi_name_" + std::to_string(i), "int_multi_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "int_multi_id_" + std::to_string(i),
+                                  "int_multi_name_" + std::to_string(i),
+                                  "int_multi_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i * 10, value);
     }
     for (int i = 0; i < 60; ++i) {
@@ -396,7 +406,9 @@ HWTEST_F(ConcurrentMapTestNew, MultipleIntEmplaceAndFind, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, MultipleUintEmplaceAndFind, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 70; ++i) {
-        TestValueAlpha value = { "uint_multi_id_" + std::to_string(i), "uint_multi_name_" + std::to_string(i), "uint_multi_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "uint_multi_id_" + std::to_string(i),
+                                  "uint_multi_name_" + std::to_string(i),
+                                  "uint_multi_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i * 5, value);
     }
     for (uint32_t i = 0; i < 70; ++i) {
@@ -416,7 +428,9 @@ HWTEST_F(ConcurrentMapTestNew, ClearAfterMultipleOperations, TestSize.Level0)
 {
     for (int i = 0; i < 80; ++i) {
         std::string key = "clear_multi_key_" + std::to_string(i);
-        TestValueAlpha value = { "clear_multi_id_" + std::to_string(i), "clear_multi_name_" + std::to_string(i), "clear_multi_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "clear_multi_id_" + std::to_string(i),
+                                  "clear_multi_name_" + std::to_string(i),
+                                  "clear_multi_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
     ASSERT_EQ(dataAlpha_.Size(), 80);
@@ -433,7 +447,9 @@ HWTEST_F(ConcurrentMapTestNew, ClearAfterMultipleOperations, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, ClearIntAfterMultipleOperations, TestSize.Level0)
 {
     for (int i = 0; i < 90; ++i) {
-        TestValueAlpha value = { "clear_int_multi_id_" + std::to_string(i), "clear_int_multi_name_" + std::to_string(i), "clear_int_multi_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "clear_int_multi_id_" + std::to_string(i),
+                                  "clear_int_multi_name_" + std::to_string(i),
+                                  "clear_int_multi_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i * 2, value);
     }
     ASSERT_EQ(dataBeta_.Size(), 90);
@@ -450,7 +466,9 @@ HWTEST_F(ConcurrentMapTestNew, ClearIntAfterMultipleOperations, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, ClearUintAfterMultipleOperations, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 100; ++i) {
-        TestValueAlpha value = { "clear_uint_multi_id_" + std::to_string(i), "clear_uint_multi_name_" + std::to_string(i), "clear_uint_multi_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "clear_uint_multi_id_" + std::to_string(i),
+                                  "clear_uint_multi_name_" + std::to_string(i),
+                                  "clear_uint_multi_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i * 3, value);
     }
     ASSERT_EQ(dataGamma_.Size(), 100);
@@ -468,7 +486,9 @@ HWTEST_F(ConcurrentMapTestNew, EmplacePiecewiseConstruct, TestSize.Level0)
 {
     TestValueAlpha value = { "piecewise_id", "piecewise_name", "piecewise_scenario" };
     dataAlpha_.Clear();
-    auto success = dataAlpha_.Emplace(std::piecewise_construct, std::forward_as_tuple("piecewise_key"), std::forward_as_tuple(value));
+    auto success = dataAlpha_.Emplace(std::piecewise_construct,
+                                       std::forward_as_tuple("piecewise_key"),
+                                       std::forward_as_tuple(value));
     ASSERT_TRUE(success);
     auto result = dataAlpha_.Find("piecewise_key");
     ASSERT_TRUE(result.first);
@@ -525,7 +545,9 @@ HWTEST_F(ConcurrentMapTestNew, LargeScaleEmplace, TestSize.Level0)
 {
     for (int i = 0; i < 200; ++i) {
         std::string key = "large_key_" + std::to_string(i);
-        TestValueAlpha value = { "large_id_" + std::to_string(i), "large_name_" + std::to_string(i), "large_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "large_id_" + std::to_string(i),
+                                  "large_name_" + std::to_string(i),
+                                  "large_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
     ASSERT_EQ(dataAlpha_.Size(), 200);
@@ -539,7 +561,9 @@ HWTEST_F(ConcurrentMapTestNew, LargeScaleEmplace, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, LargeScaleIntEmplace, TestSize.Level0)
 {
     for (int i = 0; i < 300; ++i) {
-        TestValueAlpha value = { "large_int_id_" + std::to_string(i), "large_int_name_" + std::to_string(i), "large_int_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "large_int_id_" + std::to_string(i),
+                                  "large_int_name_" + std::to_string(i),
+                                  "large_int_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i, value);
     }
     ASSERT_EQ(dataBeta_.Size(), 300);
@@ -553,7 +577,9 @@ HWTEST_F(ConcurrentMapTestNew, LargeScaleIntEmplace, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, LargeScaleUintEmplace, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 400; ++i) {
-        TestValueAlpha value = { "large_uint_id_" + std::to_string(i), "large_uint_name_" + std::to_string(i), "large_uint_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "large_uint_id_" + std::to_string(i),
+                                 "large_uint_name_" + std::to_string(i),
+                                 "large_uint_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i, value);
     }
     ASSERT_EQ(dataGamma_.Size(), 400);
@@ -613,7 +639,9 @@ HWTEST_F(ConcurrentMapTestNew, FindRandomKey, TestSize.Level0)
 {
     for (int i = 0; i < 150; ++i) {
         std::string key = "random_key_" + std::to_string(i);
-        TestValueAlpha value = { "random_id_" + std::to_string(i), "random_name_" + std::to_string(i), "random_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "random_id_" + std::to_string(i),
+                                  "random_name_" + std::to_string(i),
+                                  "random_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
     int randomIndex = 75;
@@ -631,7 +659,9 @@ HWTEST_F(ConcurrentMapTestNew, FindRandomKey, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, FindRandomIntKey, TestSize.Level0)
 {
     for (int i = 0; i < 250; ++i) {
-        TestValueAlpha value = { "random_int_id_" + std::to_string(i), "random_int_name_" + std::to_string(i), "random_int_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "random_int_id_" + std::to_string(i),
+                                  "random_int_name_" + std::to_string(i),
+                                  "random_int_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i * 3, value);
     }
     int randomIndex = 125;
@@ -649,7 +679,9 @@ HWTEST_F(ConcurrentMapTestNew, FindRandomIntKey, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, FindRandomUintKey, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 350; ++i) {
-        TestValueAlpha value = { "random_uint_id_" + std::to_string(i), "random_uint_name_" + std::to_string(i), "random_uint_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "random_uint_id_" + std::to_string(i),
+                                  "random_uint_name_" + std::to_string(i),
+                                  "random_uint_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i * 7, value);
     }
     uint32_t randomIndex = 175;
@@ -668,7 +700,9 @@ HWTEST_F(ConcurrentMapTestNew, SizeAfterClear, TestSize.Level0)
 {
     for (int i = 0; i < 180; ++i) {
         std::string key = "size_clear_key_" + std::to_string(i);
-        TestValueAlpha value = { "size_clear_id_" + std::to_string(i), "size_clear_name_" + std::to_string(i), "size_clear_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "size_clear_id_" + std::to_string(i),
+                                  "size_clear_name_" + std::to_string(i),
+                                  "size_clear_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
     ASSERT_EQ(dataAlpha_.Size(), 180);
@@ -684,7 +718,9 @@ HWTEST_F(ConcurrentMapTestNew, SizeAfterClear, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, IntSizeAfterClear, TestSize.Level0)
 {
     for (int i = 0; i < 280; ++i) {
-        TestValueAlpha value = { "int_size_clear_id_" + std::to_string(i), "int_size_clear_name_" + std::to_string(i), "int_size_clear_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "int_size_clear_id_" + std::to_string(i),
+                                  "int_size_clear_name_" + std::to_string(i),
+                                  "int_size_clear_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i * 4, value);
     }
     ASSERT_EQ(dataBeta_.Size(), 280);
@@ -700,7 +736,9 @@ HWTEST_F(ConcurrentMapTestNew, IntSizeAfterClear, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, UintSizeAfterClear, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 380; ++i) {
-        TestValueAlpha value = { "uint_size_clear_id_" + std::to_string(i), "uint_size_clear_name_" + std::to_string(i), "uint_size_clear_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "uint_size_clear_id_" + std::to_string(i),
+                                  "uint_size_clear_name_" + std::to_string(i),
+                                  "uint_size_clear_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i * 9, value);
     }
     ASSERT_EQ(dataGamma_.Size(), 380);
@@ -819,7 +857,9 @@ HWTEST_F(ConcurrentMapTestNew, SizeConsistencyCheck, TestSize.Level0)
     ASSERT_EQ(dataAlpha_.Size(), 0);
     for (int i = 0; i < 100; ++i) {
         std::string key = "consistency_key_" + std::to_string(i);
-        TestValueAlpha value = { "consistency_id_" + std::to_string(i), "consistency_name_" + std::to_string(i), "consistency_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "consistency_id_" + std::to_string(i),
+                                  "consistency_name_" + std::to_string(i),
+                                  "consistency_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
         ASSERT_EQ(dataAlpha_.Size(), i + 1);
     }
@@ -842,7 +882,9 @@ HWTEST_F(ConcurrentMapTestNew, IntSizeConsistencyCheck, TestSize.Level0)
 {
     ASSERT_EQ(dataBeta_.Size(), 0);
     for (int i = 0; i < 120; ++i) {
-        TestValueAlpha value = { "int_consistency_id_" + std::to_string(i), "int_consistency_name_" + std::to_string(i), "int_consistency_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "int_consistency_id_" + std::to_string(i),
+                                  "int_consistency_name_" + std::to_string(i),
+                                  "int_consistency_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i * 5, value);
         ASSERT_EQ(dataBeta_.Size(), i + 1);
     }
@@ -865,7 +907,9 @@ HWTEST_F(ConcurrentMapTestNew, UintSizeConsistencyCheck, TestSize.Level0)
 {
     ASSERT_EQ(dataGamma_.Size(), 0);
     for (uint32_t i = 0; i < 140; ++i) {
-        TestValueAlpha value = { "uint_consistency_id_" + std::to_string(i), "uint_consistency_name_" + std::to_string(i), "uint_consistency_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "uint_consistency_id_" + std::to_string(i),
+                                  "uint_consistency_name_" + std::to_string(i),
+                                  "uint_consistency_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i * 11, value);
         ASSERT_EQ(dataGamma_.Size(), i + 1);
     }
@@ -936,23 +980,23 @@ HWTEST_F(ConcurrentMapTestNew, MultipleMapsIndependent, TestSize.Level0)
     TestValueAlpha valueAlpha = { "alpha_id", "alpha_name", "alpha_scenario" };
     TestValueAlpha valueBeta = { "beta_id", "beta_name", "beta_scenario" };
     TestValueAlpha valueGamma = { "gamma_id", "gamma_name", "gamma_scenario" };
-
+    
     dataAlpha_.Emplace("alpha_key", valueAlpha);
     dataBeta_.Emplace(1, valueBeta);
     dataGamma_.Emplace(1, valueGamma);
-
+    
     ASSERT_EQ(dataAlpha_.Size(), 1);
     ASSERT_EQ(dataBeta_.Size(), 1);
     ASSERT_EQ(dataGamma_.Size(), 1);
-
+    
     auto resultAlpha = dataAlpha_.Find("alpha_key");
     auto resultBeta = dataBeta_.Find(1);
     auto resultGamma = dataGamma_.Find(1);
-
+    
     ASSERT_TRUE(resultAlpha.first);
     ASSERT_TRUE(resultBeta.first);
     ASSERT_TRUE(resultGamma.first);
-
+    
     ASSERT_EQ(resultAlpha.second.identifier, "alpha_id");
     ASSERT_EQ(resultBeta.second.label, "beta_name");
     ASSERT_EQ(resultGamma.second.scenario, "gamma_scenario");
@@ -1053,19 +1097,19 @@ HWTEST_F(ConcurrentMapTestNew, MixedKeyTypes, TestSize.Level0)
     TestValueAlpha value1 = { "mixed_id_1", "mixed_name_1", "mixed_scenario_1" };
     TestValueAlpha value2 = { "mixed_id_2", "mixed_name_2", "mixed_scenario_2" };
     TestValueAlpha value3 = { "mixed_id_3", "mixed_name_3", "mixed_scenario_3" };
-
+    
     dataAlpha_.Emplace("mixed_string_key", value1);
     dataBeta_.Emplace(777, value2);
     dataGamma_.Emplace(666, value3);
-
+    
     auto result1 = dataAlpha_.Find("mixed_string_key");
     auto result2 = dataBeta_.Find(777);
     auto result3 = dataGamma_.Find(666);
-
+    
     ASSERT_TRUE(result1.first);
     ASSERT_TRUE(result2.first);
     ASSERT_TRUE(result3.first);
-
+    
     ASSERT_EQ(result1.second.identifier, "mixed_id_1");
     ASSERT_EQ(result2.second.label, "mixed_name_2");
     ASSERT_EQ(result3.second.scenario, "mixed_scenario_3");
@@ -1108,7 +1152,9 @@ HWTEST_F(ConcurrentMapTestNew, VeryLongStringKey, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, SequentialIntKeys, TestSize.Level0)
 {
     for (int i = 0; i < 500; ++i) {
-        TestValueAlpha value = { "seq_id_" + std::to_string(i), "seq_name_" + std::to_string(i), "seq_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "seq_id_" + std::to_string(i),
+                                  "seq_name_" + std::to_string(i),
+                                  "seq_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i, value);
     }
     for (int i = 0; i < 500; ++i) {
@@ -1127,7 +1173,9 @@ HWTEST_F(ConcurrentMapTestNew, SequentialIntKeys, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, SequentialUintKeys, TestSize.Level0)
 {
     for (uint32_t i = 0; i < 600; ++i) {
-        TestValueAlpha value = { "uint_seq_id_" + std::to_string(i), "uint_seq_name_" + std::to_string(i), "uint_seq_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "uint_seq_id_" + std::to_string(i),
+                                  "uint_seq_name_" + std::to_string(i),
+                                  "uint_seq_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(i, value);
     }
     for (uint32_t i = 0; i < 600; ++i) {
@@ -1146,7 +1194,9 @@ HWTEST_F(ConcurrentMapTestNew, SequentialUintKeys, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, ReverseIntKeys, TestSize.Level0)
 {
     for (int i = 300; i >= 0; --i) {
-        TestValueAlpha value = { "rev_id_" + std::to_string(i), "rev_name_" + std::to_string(i), "rev_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "rev_id_" + std::to_string(i),
+                                  "rev_name_" + std::to_string(i),
+                                  "rev_scenario_" + std::to_string(i) };
         dataBeta_.Emplace(i, value);
     }
     for (int i = 0; i <= 300; ++i) {
@@ -1165,7 +1215,9 @@ HWTEST_F(ConcurrentMapTestNew, ReverseIntKeys, TestSize.Level0)
 HWTEST_F(ConcurrentMapTestNew, ReverseUintKeys, TestSize.Level0)
 {
     for (int i = 200; i >= 0; --i) {
-        TestValueAlpha value = { "uint_rev_id_" + std::to_string(i), "uint_rev_name_" + std::to_string(i), "uint_rev_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "uint_rev_id_" + std::to_string(i),
+                                  "uint_rev_name_" + std::to_string(i),
+                                  "uint_rev_scenario_" + std::to_string(i) };
         dataGamma_.Emplace(static_cast<uint32_t>(i), value);
     }
     for (uint32_t i = 0; i <= 200; ++i) {
@@ -1186,7 +1238,9 @@ HWTEST_F(ConcurrentMapTestNew, RandomAccessTest, TestSize.Level0)
     std::vector<std::string> keys;
     for (int i = 0; i < 300; ++i) {
         std::string key = "random_access_key_" + std::to_string(i);
-        TestValueAlpha value = { "random_access_id_" + std::to_string(i), "random_access_name_" + std::to_string(i), "random_access_scenario_" + std::to_string(i) };
+        TestValueAlpha value = { "random_access_id_" + std::to_string(i),
+                                  "random_access_name_" + std::to_string(i),
+                                  "random_access_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
         keys.push_back(key);
     }
@@ -1368,19 +1422,19 @@ HWTEST_F(ConcurrentMapTestNew, FindWithSimilarKeys, TestSize.Level0)
     dataAlpha_.Emplace("key_alpha", value);
     dataAlpha_.Emplace("key_beta", value);
     dataAlpha_.Emplace("key_gamma", value);
-
+    
     auto result1 = dataAlpha_.Find("key_alpha");
     auto result2 = dataAlpha_.Find("key_beta");
     auto result3 = dataAlpha_.Find("key_gamma");
-
+    
     ASSERT_TRUE(result1.first);
     ASSERT_TRUE(result2.first);
     ASSERT_TRUE(result3.first);
-
+    
     auto result4 = dataAlpha_.Find("key_alph");
     auto result5 = dataAlpha_.Find("key_bet");
     auto result6 = dataAlpha_.Find("key_gam");
-
+    
     ASSERT_FALSE(result4.first);
     ASSERT_FALSE(result5.first);
     ASSERT_FALSE(result6.first);
@@ -1397,18 +1451,18 @@ HWTEST_F(ConcurrentMapTestNew, IntFindWithSimilarKeys, TestSize.Level0)
     dataBeta_.Emplace(1000, value);
     dataBeta_.Emplace(1001, value);
     dataBeta_.Emplace(1002, value);
-
+    
     auto result1 = dataBeta_.Find(1000);
     auto result2 = dataBeta_.Find(1001);
     auto result3 = dataBeta_.Find(1002);
-
+    
     ASSERT_TRUE(result1.first);
     ASSERT_TRUE(result2.first);
     ASSERT_TRUE(result3.first);
-
+    
     auto result4 = dataBeta_.Find(999);
     auto result5 = dataBeta_.Find(1003);
-
+    
     ASSERT_FALSE(result4.first);
     ASSERT_FALSE(result5.first);
 }
@@ -1424,18 +1478,18 @@ HWTEST_F(ConcurrentMapTestNew, UintFindWithSimilarKeys, TestSize.Level0)
     dataGamma_.Emplace(2000, value);
     dataGamma_.Emplace(2001, value);
     dataGamma_.Emplace(2002, value);
-
+    
     auto result1 = dataGamma_.Find(2000);
     auto result2 = dataGamma_.Find(2001);
     auto result3 = dataGamma_.Find(2002);
-
+    
     ASSERT_TRUE(result1.first);
     ASSERT_TRUE(result2.first);
     ASSERT_TRUE(result3.first);
-
+    
     auto result4 = dataGamma_.Find(1999);
     auto result5 = dataGamma_.Find(2003);
-
+    
     ASSERT_FALSE(result4.first);
     ASSERT_FALSE(result5.first);
 }
@@ -1450,20 +1504,20 @@ HWTEST_F(ConcurrentMapTestNew, ClearFindEmplaceSequence, TestSize.Level0)
     dataAlpha_.Clear();
     auto result1 = dataAlpha_.Find("seq_key");
     ASSERT_FALSE(result1.first);
-
+    
     TestValueAlpha value = { "seq_id", "seq_name", "seq_scenario" };
     dataAlpha_.Emplace("seq_key", value);
-
+    
     auto result2 = dataAlpha_.Find("seq_key");
     ASSERT_TRUE(result2.first);
-
+    
     dataAlpha_.Clear();
-
+    
     auto result3 = dataAlpha_.Find("seq_key");
     ASSERT_FALSE(result3.first);
-
+    
     dataAlpha_.Emplace("seq_key", value);
-
+    
     auto result4 = dataAlpha_.Find("seq_key");
     ASSERT_TRUE(result4.first);
 }
@@ -1478,20 +1532,20 @@ HWTEST_F(ConcurrentMapTestNew, IntClearFindEmplaceSequence, TestSize.Level0)
     dataBeta_.Clear();
     auto result1 = dataBeta_.Find(999);
     ASSERT_FALSE(result1.first);
-
+    
     TestValueAlpha value = { "int_seq_id", "int_seq_name", "int_seq_scenario" };
     dataBeta_.Emplace(999, value);
-
+    
     auto result2 = dataBeta_.Find(999);
     ASSERT_TRUE(result2.first);
-
+    
     dataBeta_.Clear();
-
+    
     auto result3 = dataBeta_.Find(999);
     ASSERT_FALSE(result3.first);
-
+    
     dataBeta_.Emplace(999, value);
-
+    
     auto result4 = dataBeta_.Find(999);
     ASSERT_TRUE(result4.first);
 }
@@ -1506,20 +1560,20 @@ HWTEST_F(ConcurrentMapTestNew, UintClearFindEmplaceSequence, TestSize.Level0)
     dataGamma_.Clear();
     auto result1 = dataGamma_.Find(888);
     ASSERT_FALSE(result1.first);
-
+    
     TestValueAlpha value = { "uint_seq_id", "uint_seq_name", "uint_seq_scenario" };
     dataGamma_.Emplace(888, value);
-
+    
     auto result2 = dataGamma_.Find(888);
     ASSERT_TRUE(result2.first);
-
+    
     dataGamma_.Clear();
-
+    
     auto result3 = dataGamma_.Find(888);
     ASSERT_FALSE(result3.first);
-
+    
     dataGamma_.Emplace(888, value);
-
+    
     auto result4 = dataGamma_.Find(888);
     ASSERT_TRUE(result4.first);
 }
@@ -1806,23 +1860,23 @@ HWTEST_F(ConcurrentMapTestNew, FinalComprehensiveTest, TestSize.Level0)
 {
     ASSERT_TRUE(dataAlpha_.Empty());
     ASSERT_EQ(dataAlpha_.Size(), 0);
-
+    
     for (int i = 0; i < 100; ++i) {
         std::string key = "final_key_" + std::to_string(i);
         TestValueAlpha value = { "final_id_" + std::to_string(i), "final_name_" + std::to_string(i), "final_scenario_" + std::to_string(i) };
         dataAlpha_.Emplace(key, value);
     }
-
+    
     ASSERT_EQ(dataAlpha_.Size(), 100);
     ASSERT_FALSE(dataAlpha_.Empty());
-
+    
     for (int i = 0; i < 100; i += 2) {
         std::string key = "final_key_" + std::to_string(i);
         auto result = dataAlpha_.Find(key);
         ASSERT_TRUE(result.first);
         ASSERT_EQ(result.second.identifier, "final_id_" + std::to_string(i));
     }
-
+    
     dataAlpha_.Clear();
     ASSERT_TRUE(dataAlpha_.Empty());
     ASSERT_EQ(dataAlpha_.Size(), 0);
