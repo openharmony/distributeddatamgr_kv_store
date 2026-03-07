@@ -123,7 +123,7 @@ ohos_unittest("TraitsTest") {
 ohos_unittest("PoolTest") {
   module_out_path = module_output_path
 
-  sources = [ "pool_test.cpp" ]
+  sources = [ "pool_test.cpp", "pool_new_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
