@@ -141,7 +141,7 @@ ohos_unittest("PoolTest") {
 ohos_unittest("PriorityQueueTest") {
   module_out_path = module_output_path
 
-  sources = [ "priority_queue_test.cpp", "priority_queue_new_test.cpp" ]
+  sources = [ "priority_queue_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
