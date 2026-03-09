@@ -26,6 +26,18 @@ using namespace OHOS;
 namespace OHOS::Test {
 static constexpr uint32_t CAPABILITY_TEST_NEW = 3;
 static constexpr uint32_t MIN_TEST_NEW = 1;
+static constexpr uint32_t SMALL_POOL_SIZE = 2;
+static constexpr uint32_t MEDIUM_POOL_SIZE = 3;
+static constexpr uint32_t LARGE_ITERATIONS = 100;
+static constexpr uint32_t MEDIUM_ITERATIONS = 50;
+static constexpr uint32_t SMALL_ITERATIONS = 10;
+static constexpr uint32_t TINY_ITERATIONS = 3;
+static constexpr uint32_t THREAD_COUNT_HIGH = 20;
+static constexpr uint32_t THREAD_COUNT_MEDIUM = 10;
+static constexpr uint32_t ROUND_COUNT_LOW = 3;
+static constexpr uint32_t ROUND_COUNT_MEDIUM = 5;
+static constexpr uint32_t ROUND_COUNT_HIGH = 10;
+static constexpr uint32_t ROUND_COUNT_VERY_HIGH = 20;
 class PoolTestNew : public testing::Test {
 public:
     struct Node {
@@ -54,7 +66,8 @@ protected:
 
     void ConcurrentGetOperation(std::atomic<int>& counter)
     {
-        for (int j = 0; j < 10; ++j) {
+        const int RETRY_TIMES = 10;
+        for (int j = 0; j < RETRY_TIMES; ++j) {
             auto ret = poolNew_.Get();
             ProcessNode(ret, counter);
         }
@@ -62,7 +75,8 @@ protected:
     
     void ConcurrentReleaseOperation(std::atomic<int>& counter)
     {
-        for (int j = 0; j < 5; ++j) {
+        const int RETRY_TIMES = 5;
+        for (int j = 0; j < RETRY_TIMES; ++j) {
             auto ret = poolNew_.Get();
             ProcessNode(ret, counter);
         }
@@ -777,7 +791,7 @@ HWTEST_F(PoolTestNew, MultipleGetForceTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetStressTest, TestSize.Level1)
 {
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < LARGE_ITERATIONS; ++i) {
         auto ret = poolNew_.Get();
         if (ret != nullptr) {
             ret->value = i;
@@ -805,7 +819,8 @@ HWTEST_F(PoolTestNew, ReleaseStressTest, TestSize.Level1)
         poolNew_.Idle(node);
         poolNew_.Release(node);
     }
-    for (int i = 0; i < 50; ++i) {
+    const int RETRY_TIMES = 50;
+    for (int i = 0; i < RETRY_TIMES; ++i) {
         auto ret = poolNew_.Get();
         EXPECT_NE(ret, nullptr);
         ret->value = i;
@@ -821,7 +836,7 @@ HWTEST_F(PoolTestNew, ReleaseStressTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, CleanStressTest, TestSize.Level1)
 {
-    for (int round = 0; round < 10; ++round) {
+    for (int round = 0; round < ROUND_COUNT_HIGH; ++round) {
         std::vector<std::shared_ptr<PoolTestNew::Node>> nodes;
         for (int i = 0; i < CAPABILITY_TEST_NEW; ++i) {
             auto ret = poolNew_.Get();
@@ -898,7 +913,7 @@ HWTEST_F(PoolTestNew, IdleReleaseSequenceTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetIdleReleaseTest, TestSize.Level1)
 {
-    for (int round = 0; round < 3; ++round) {
+    for (int round = 0; round < ROUND_COUNT_LOW; ++round) {
         auto ret = poolNew_.Get();
         EXPECT_NE(ret, nullptr);
         ret->value = round;
@@ -914,8 +929,8 @@ HWTEST_F(PoolTestNew, GetIdleReleaseTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, MultiplePoolTest, TestSize.Level1)
 {
-    Pool<PoolTestNew::Node> pool1(2, 1, "pool1_new");
-    Pool<PoolTestNew::Node> pool2(2, 1, "pool2_new");
+    Pool<PoolTestNew::Node> pool1(SMALL_POOL_SIZE, MIN_TEST_NEW, "pool1_new");
+    Pool<PoolTestNew::Node> pool2(SMALL_POOL_SIZE, MIN_TEST_NEW, "pool2_new");
     auto ret1 = pool1.Get();
     auto ret2 = pool2.Get();
     EXPECT_NE(ret1, nullptr);
@@ -935,9 +950,9 @@ HWTEST_F(PoolTestNew, MultiplePoolTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetFromMultiplePoolsTest, TestSize.Level1)
 {
-    Pool<PoolTestNew::Node> pool1(3, 1, "pool1_new");
-    Pool<PoolTestNew::Node> pool2(3, 1, "pool2_new");
-    for (int i = 0; i < 3; ++i) {
+    Pool<PoolTestNew::Node> pool1(MEDIUM_POOL_SIZE, MIN_TEST_NEW, "pool1_new");
+    Pool<PoolTestNew::Node> pool2(MEDIUM_POOL_SIZE, MIN_TEST_NEW, "pool2_new");
+    for (int i = 0; i < MEDIUM_POOL_SIZE; ++i) {
         auto ret1 = pool1.Get();
         auto ret2 = pool2.Get();
         EXPECT_NE(ret1, nullptr);
@@ -1058,7 +1073,7 @@ HWTEST_F(PoolTestNew, GetReuseAfterCleanTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, IdleReleaseMultipleTest, TestSize.Level1)
 {
-    for (int round = 0; round < 10; ++round) {
+    for (int round = 0; round < ROUND_COUNT_HIGH; ++round) {
         auto ret = poolNew_.Get();
         EXPECT_NE(ret, nullptr);
         ret->value = round;
@@ -1074,7 +1089,7 @@ HWTEST_F(PoolTestNew, IdleReleaseMultipleTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetReleaseCycleTest, TestSize.Level1)
 {
-    for (int round = 0; round < 20; ++round) {
+    for (int round = 0; round < ROUND_COUNT_VERY_HIGH; ++round) {
         std::vector<std::shared_ptr<PoolTestNew::Node>> nodes;
         for (int i = 0; i < CAPABILITY_TEST_NEW; ++i) {
             auto ret = poolNew_.Get();
@@ -1098,7 +1113,7 @@ HWTEST_F(PoolTestNew, GetForceConcurrentTest, TestSize.Level1)
 {
     std::vector<std::thread> threads;
     std::atomic<int> counter = 0;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < THREAD_COUNT_MEDIUM; ++i) {
         threads.emplace_back([this, &counter]() {
             auto ret = poolNew_.Get(true);
             if (ret != nullptr) {
@@ -1150,7 +1165,7 @@ HWTEST_F(PoolTestNew, GetConcurrentDifferentThreads, TestSize.Level1)
     std::vector<std::thread> threads;
     std::atomic<int> successCount = 0;
     std::atomic<int> failCount = 0;
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < THREAD_COUNT_HIGH; ++i) {
         threads.emplace_back([this, &successCount, &failCount]() {
             auto ret = poolNew_.Get();
             if (ret != nullptr) {
@@ -1244,7 +1259,7 @@ HWTEST_F(PoolTestNew, GetAfterPartialCleanTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, MultipleCleanTest, TestSize.Level1)
 {
-    for (int round = 0; round < 5; ++round) {
+    for (int round = 0; round < ROUND_COUNT_MEDIUM; ++round) {
         std::vector<std::shared_ptr<PoolTestNew::Node>> nodes;
         for (int i = 0; i < CAPABILITY_TEST_NEW; ++i) {
             auto ret = poolNew_.Get();
@@ -1310,7 +1325,7 @@ HWTEST_F(PoolTestNew, ReleaseMultipleTimesTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetReleaseSequenceTest, TestSize.Level1)
 {
-    for (int i = 0; i < 50; ++i) {
+    for (int i = 0; i < MEDIUM_ITERATIONS; ++i) {
         auto ret = poolNew_.Get();
         EXPECT_NE(ret, nullptr);
         ret->value = i;
@@ -1780,7 +1795,7 @@ HWTEST_F(PoolTestNew, GetCleanConcurrentTest, TestSize.Level1)
         poolNew_.Clean(close);
     });
     std::thread getThread([this]() {
-        for (int i = 0; i < 10; ++i) {
+for (int i = 0; i < SMALL_ITERATIONS; ++i) {
             auto ret = poolNew_.Get();
             if (ret != nullptr) {
                 poolNew_.Idle(ret);
