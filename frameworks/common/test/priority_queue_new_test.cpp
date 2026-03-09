@@ -1091,7 +1091,10 @@ HWTEST_F(PriorityQueueTestNew, UpdateIntervalTest, TestSize.Level1)
     auto ret = priorityqueueNew_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto updater = [](TestTaskNew &) {
-        return std::pair<bool, TimeNew> { true, std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL_NEW * 2) };
+        return std::pair<bool, TimeNew> {
+            true,
+            std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL_NEW * 2)
+        };
     };
     auto retUpdate = priorityqueueNew_.Update(id, updater);
     EXPECT_EQ(retUpdate, true);
