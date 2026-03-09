@@ -411,7 +411,7 @@ HWTEST_F(PoolTestNew, CleanMultipleTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetAfterReleaseTest, TestSize.Level1)
 {
-    for (int round = 0; round < 3; ++round) {
+    for (int round = 0; round < TINY_ITERATIONS; ++round) {
         std::vector<std::shared_ptr<PoolTestNew::Node>> nodes;
         for (int i = 0; i < CAPABILITY_TEST_NEW; ++i) {
             auto ret = poolNew_.Get();
@@ -645,7 +645,7 @@ HWTEST_F(PoolTestNew, ConcurrentReleaseTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetSequenceTest, TestSize.Level1)
 {
-    for (int i = 0; i < CAPABILITY_TEST_NEW * 3; ++i) {
+    for (int i = 0; i < CAPABILITY_TEST_NEW * MEDIUM_POOL_SIZE; ++i) {
         auto ret = poolNew_.Get();
         EXPECT_NE(ret, nullptr);
         ret->value = i;
@@ -1471,9 +1471,9 @@ HWTEST_F(PoolTestNew, ReleaseConcurrentStressTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, GetSequenceMultiplePoolsTest, TestSize.Level1)
 {
-    Pool<PoolTestNew::Node> pool1(3, 1, "pool1_new");
-    Pool<PoolTestNew::Node> pool2(3, 1, "pool2_new");
-    for (int i = 0; i < 10; ++i) {
+    Pool<PoolTestNew::Node> pool1(MEDIUM_POOL_SIZE, MIN_TEST_NEW, "pool1_new");
+    Pool<PoolTestNew::Node> pool2(MEDIUM_POOL_SIZE, MIN_TEST_NEW, "pool2_new");
+    for (int i = 0; i < SMALL_ITERATIONS; ++i) {
         auto ret1 = pool1.Get();
         auto ret2 = pool2.Get();
         EXPECT_NE(ret1, nullptr);
@@ -1492,11 +1492,11 @@ HWTEST_F(PoolTestNew, GetSequenceMultiplePoolsTest, TestSize.Level1)
  */
 HWTEST_F(PoolTestNew, CleanMultiplePoolsTest, TestSize.Level1)
 {
-    Pool<PoolTestNew::Node> pool1(3, 1, "pool1_new");
-    Pool<PoolTestNew::Node> pool2(3, 1, "pool2_new");
+    Pool<PoolTestNew::Node> pool1(MEDIUM_POOL_SIZE, MIN_TEST_NEW, "pool1_new");
+    Pool<PoolTestNew::Node> pool2(MEDIUM_POOL_SIZE, MIN_TEST_NEW, "pool2_new");
     std::vector<std::shared_ptr<PoolTestNew::Node>> nodes1;
     std::vector<std::shared_ptr<PoolTestNew::Node>> nodes2;
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < MEDIUM_POOL_SIZE; ++i) {
         auto ret1 = pool1.Get();
         auto ret2 = pool2.Get();
         nodes1.push_back(ret1);
@@ -1811,7 +1811,7 @@ for (int i = 0; i < SMALL_ITERATIONS; ++i) {
  */
 HWTEST_F(PoolTestNew, FinalComprehensiveTest, TestSize.Level1)
 {
-    for (int round = 0; round < 3; ++round) {
+    for (int round = 0; round < TINY_ITERATIONS; ++round) {
         std::vector<std::shared_ptr<PoolTestNew::Node>> nodes;
         for (int i = 0; i < CAPABILITY_TEST_NEW; ++i) {
             auto ret = poolNew_.Get();
