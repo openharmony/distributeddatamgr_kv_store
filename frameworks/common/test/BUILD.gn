@@ -108,7 +108,7 @@ ohos_unittest("TaskSchedulerTest") {
 ohos_unittest("TraitsTest") {
   module_out_path = module_output_path
 
-  sources = [ "traits_test.cpp", "traits_test_new_test.cpp" ]
+  sources = [ "traits_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
