@@ -123,6 +123,9 @@ void GenericKvDB::CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *
         LOGE("Failed to do commit notify, notificationChain_ is nullptr.");
         return;
     }
+    if (notificationChain_->EmptyListener(notifyEvent)) {
+        return;
+    }
     ++eventNotifyCounter_;
     if (data == nullptr) {
         notificationChain_->NotifyEvent(static_cast<EventType>(notifyEvent), nullptr);
