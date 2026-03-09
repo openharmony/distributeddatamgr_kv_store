@@ -1214,36 +1214,6 @@ HWTEST_F(SingleStoreImplMockNew, IsRebuildNew, testing::ext::TestSize.Level1)
     GTEST_LOG_(INFO) << "SingleStoreImplMockNew-end IsRebuildNew";
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * @tc.name: GetDeviceEntriesNew_002
  * @tc.desc: Get device entries with valid store.
