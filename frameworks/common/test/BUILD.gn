@@ -63,7 +63,7 @@ ohos_unittest("ConcurrentMapTest") {
 ohos_unittest("ExecutorPoolTest") {
   module_out_path = module_output_path
 
-  sources = [ "executor_pool_test.cpp", "executor_pool_new_test.cpp" ]
+  sources = [ "executor_pool_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
