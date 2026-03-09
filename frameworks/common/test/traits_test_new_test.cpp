@@ -512,16 +512,16 @@ HWTEST_F(TraitsTestNew, get_if_convertible_type001, TestSize.Level0)
     auto *fVal = Traits::get_if<double>(&value);
     ASSERT_EQ(fVal, nullptr);
     value = "test case";
-    auto *strVal = Traits::get_if<std::string>(&value);
+    auto *strVal = Traits::get_if<const char *>(&value);
     ASSERT_NE(strVal, nullptr);
     ASSERT_TRUE(strcmp(*strVal, "test case") == 0);
     value = From();
-    auto *toVal = Traits::get_if<Convertible>(&value);
-    ASSERT_NE(toVal, nullptr);
+    auto *fromVal = Traits::get_if<From>(&value);
+    ASSERT_NE(fromVal, nullptr);
     std::variant<std::monostate, int64_t, double, const char *, Convertible> val2;
     val2 = Convertible();
-    auto *fromVal = Traits::get_if<From>(&val2);
-    ASSERT_NE(fromVal, nullptr);
+    auto *fromVal2 = Traits::get_if<From>(&val2);
+    ASSERT_NE(fromVal2, nullptr);
 }
 
 HWTEST_F(TraitsTestNew, get_if_convertible_type002, TestSize.Level0)
