@@ -35,20 +35,20 @@ int SchemaMgr::ChkSchema(const TableName &tableName, RelationalSchemaObject &loc
     }
     TableInfo tableInfo = localSchema.GetTable(tableName);
     if (tableInfo.Empty()) {
-        LOGE("Local schema does not contain certain table [%s size = %d]",
-            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        LOGE("Local schema does not contain certain table %s",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
         return -E_SCHEMA_MISMATCH;
     }
     if (tableInfo.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION) {
-        LOGE("Sync type of local table [%s size = %d] is not CLOUD_COOPERATION",
-            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size());
+        LOGE("Sync type of local table %s is not CLOUD_COOPERATION",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
         return -E_NOT_SUPPORT;
     }
     TableSchema cloudTableSchema;
     int ret = GetCloudTableSchema(tableName, cloudTableSchema);
     if (ret != E_OK) {
-        LOGE("Cloud schema does not contain certain table [%s size = %d]:%d",
-            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), ret);
+        LOGE("Cloud schema does not contain certain table %s, errCode = %d",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), ret);
         return -E_SCHEMA_MISMATCH;
     }
     std::map<int, FieldName> primaryKeys = tableInfo.GetPrimaryKey();
@@ -62,7 +62,8 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
     std::unordered_set<std::string> cloudColNames;
     for (const Field &cloudField : cloudFields) {
         if (localFields.find(cloudField.colName) == localFields.end()) {
-            LOGE("Column name mismatch between local and cloud schema");
+            LOGE("Column name mismatch between local and cloud schema, cloud column %s not found in local schema",
+                DBCommon::StringMiddleMaskingWithLen(cloudField.colName).c_str());
             return -E_SCHEMA_MISMATCH;
         }
         if (IsAssetPrimaryField(cloudField)) {
@@ -71,15 +72,20 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
         }
         FieldInfo &localField = localFields[cloudField.colName];
         if (!CompareType(localField, cloudField)) {
-            LOGE("Type mismatch between local and cloud schema");
+            StorageType localType = localField.GetStorageType();
+            LOGE("Type mismatch between local and cloud schema, column = %s, local type = %d, cloud type = %d",
+                DBCommon::StringMiddleMaskingWithLen(cloudField.colName).c_str(),
+                static_cast<int>(localType), cloudField.type);
             return -E_SCHEMA_MISMATCH;
         }
         if (!CompareNullable(localField, cloudField)) {
-            LOGE("The nullable property is mismatched between local and cloud schema");
+            LOGE("The nullable property is mismatched between local and cloud schema, column = %s",
+                DBCommon::StringMiddleMaskingWithLen(cloudField.colName).c_str());
             return -E_SCHEMA_MISMATCH;
         }
         if (!ComparePrimaryField(primaryKeys, cloudField)) {
-            LOGE("The primary key property is mismatched between local and cloud schema");
+            LOGE("The primary key property is mismatched between local and cloud schema, column = %s",
+                DBCommon::StringMiddleMaskingWithLen(cloudField.colName).c_str());
             return -E_SCHEMA_MISMATCH;
         }
         cloudColNames.emplace(cloudField.colName);
@@ -92,7 +98,8 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
         if (!fieldInfo.HasDefaultValue() &&
             fieldInfo.IsNotNull() &&
             cloudColNames.find(fieldName) == cloudColNames.end()) {
-            LOGE("Column from local schema is not within cloud schema but doesn't have default value");
+            LOGE("Column from local schema is not within cloud schema, column = %s",
+                DBCommon::StringMiddleMaskingWithLen(fieldName).c_str());
             return -E_SCHEMA_MISMATCH;
         }
     }
@@ -210,6 +217,7 @@ std::shared_ptr<DataBaseSchema> SchemaMgr::GetCloudDbSchema()
 int SchemaMgr::GetCloudTableSchema(const TableName &tableName, TableSchema &retSchema)
 {
     if (cloudSchema_ == nullptr) {
+        LOGE("[SchemaMgr] get cloud table schema failed, cloud schema is nullptr");
         return -E_SCHEMA_MISMATCH;
     }
     for (const TableSchema &tableSchema : cloudSchema_->tables) {
