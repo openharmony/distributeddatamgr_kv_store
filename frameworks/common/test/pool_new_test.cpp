@@ -42,6 +42,31 @@ public:
     void TearDown();
 protected:
     static Pool<PoolTestNew::Node> poolNew_;
+
+    static void ProcessNode(std::shared_ptr<Node> node, std::atomic<int>& counter)
+    {
+        if (node != nullptr) {
+            counter++;
+            poolNew_.Idle(node);
+            poolNew_.Release(node);
+        }
+    }
+
+    void ConcurrentGetOperation(std::atomic<int>& counter)
+    {
+        for (int j = 0; j < 10; ++j) {
+            auto ret = poolNew_.Get();
+            ProcessNode(ret, counter);
+        }
+    }
+    
+    void ConcurrentReleaseOperation(std::atomic<int>& counter)
+    {
+        for (int j = 0; j < 5; ++j) {
+            auto ret = poolNew_.Get();
+            ProcessNode(ret, counter);
+        }
+    }
 };
 Pool<PoolTestNew::Node> PoolTestNew::poolNew_ =
     Pool<PoolTestNew::Node>(CAPABILITY_TEST_NEW, MIN_TEST_NEW, "pool_test_new");
@@ -1398,14 +1423,7 @@ HWTEST_F(PoolTestNew, GetConcurrentStressTest, TestSize.Level1)
     std::atomic<int> counter = 0;
     for (int i = 0; i < 50; ++i) {
         threads.emplace_back([this, &counter]() {
-            for (int j = 0; j < 10; ++j) {
-                auto ret = poolNew_.Get();
-                if (ret != nullptr) {
-                    counter++;
-                    poolNew_.Idle(ret);
-                    poolNew_.Release(ret);
-                }
-            }
+            ConcurrentGetOperation(counter);
         });
     }
     for (auto &thread : threads) {
@@ -1425,14 +1443,7 @@ HWTEST_F(PoolTestNew, ReleaseConcurrentStressTest, TestSize.Level1)
     std::atomic<int> counter = 0;
     for (int i = 0; i < 20; ++i) {
         threads.emplace_back([this, &counter]() {
-            for (int j = 0; j < 5; ++j) {
-                auto ret = poolNew_.Get();
-                if (ret != nullptr) {
-                    counter++;
-                    poolNew_.Idle(ret);
-                    poolNew_.Release(ret);
-                }
-            }
+            ConcurrentReleaseOperation(counter);
         });
     }
     for (auto &thread : threads) {
