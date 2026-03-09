@@ -66,8 +66,7 @@ protected:
 
     void ConcurrentGetOperation(std::atomic<int>& counter)
     {
-        const int RETRY_TIMES = 10;
-        for (int j = 0; j < RETRY_TIMES; ++j) {
+        for (int j = 0; j < ROUND_COUNT_HIGH; ++j) {
             auto ret = poolNew_.Get();
             ProcessNode(ret, counter);
         }
@@ -75,8 +74,7 @@ protected:
     
     void ConcurrentReleaseOperation(std::atomic<int>& counter)
     {
-        const int RETRY_TIMES = 5;
-        for (int j = 0; j < RETRY_TIMES; ++j) {
+        for (int j = 0; j < ROUND_COUNT_MEDIUM; ++j) {
             auto ret = poolNew_.Get();
             ProcessNode(ret, counter);
         }
@@ -819,8 +817,7 @@ HWTEST_F(PoolTestNew, ReleaseStressTest, TestSize.Level1)
         poolNew_.Idle(node);
         poolNew_.Release(node);
     }
-    const int RETRY_TIMES = 50;
-    for (int i = 0; i < RETRY_TIMES; ++i) {
+    for (int i = 0; i < MEDIUM_ITERATIONS; ++i) {
         auto ret = poolNew_.Get();
         EXPECT_NE(ret, nullptr);
         ret->value = i;
