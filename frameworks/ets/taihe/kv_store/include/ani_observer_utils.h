@@ -45,34 +45,35 @@ using VarCallbackType = std::variant<
     ::taihe::callback<void(::taihe::array_view<uintptr_t>)>,
     ::taihe::callback<void(::ohos::data::distributedkvstore::ChangeNotification const&)>>;
 
-class JsBaseObserver {
+bool IsSameTaiheCallback(VarCallbackType p1, VarCallbackType p2);
+
+class ChangeObserver : public DistributedKv::KvStoreObserver {
 public:
-    JsBaseObserver(VarCallbackType cb);
-    virtual ~JsBaseObserver() {}
-    VarCallbackType& GetJsCallback();
-    static bool IsSameTaiheCallback(VarCallbackType p1, VarCallbackType p2);
-    bool SendEventToMainThread(const std::function<void()> func);
+    ChangeObserver(VarCallbackType callback);
+    ~ChangeObserver();
+    VarCallbackType& GetJsCallback() { return jsCallback_; }
     void Release();
+    void SetIsSchemaStore(bool isSchemaStore);
+    void OnChange(const DistributedKv::ChangeNotification& info) override;
 
 protected:
     std::recursive_mutex mutex_;
     VarCallbackType jsCallback_;
-    static std::shared_ptr<OHOS::AppExecFwk::EventHandler> mainHandler_;
+    bool isSchemaStore_ = false;
 };
 
-class DataObserver : public JsBaseObserver,
-    public DistributedKv::KvStoreObserver, public DistributedKv::KvStoreSyncCallback,
-    public std::enable_shared_from_this<DataObserver> {
+class SyncObserver : public DistributedKv::KvStoreSyncCallback {
 public:
-    DataObserver(VarCallbackType callback);
-    ~DataObserver();
+    SyncObserver(VarCallbackType callback);
+    ~SyncObserver();
     void GetVm();
-    void SetIsSchemaStore(bool isSchemaStore);
-    void OnChange(const DistributedKv::ChangeNotification& info) override;
+    VarCallbackType& GetJsCallback() { return jsCallback_; }
+    void Release();
     void SyncCompleted(const std::map<std::string, DistributedKv::Status>& results) override;
 
 protected:
-    bool isSchemaStore_ = false;
+    std::recursive_mutex mutex_;
+    VarCallbackType jsCallback_;
     ani_vm* vm_ = nullptr;
 };
 
@@ -81,32 +82,40 @@ public:
     DataObserverMgr(std::shared_ptr<DistributedKv::SingleKvStore> kvstore, bool isSchemaStore);
     ~DataObserverMgr();
 
+    bool IsCallbackDuplicated(std::string const& event, ani_observerutils::VarCallbackType const& callback);
     void RegisterListener(std::string const& event,
         DistributedKv::SubscribeType type, ani_observerutils::VarCallbackType &callbackParam);
     void UnregisterListener(std::string const& event,
         ::taihe::optional<ani_observerutils::VarCallbackType> optCallback, bool &isUpdateFlag);
-    DistributedKv::Status RegisterDataChangeObserver(DistributedKv::SubscribeType type,
+    DistributedKv::Status RegisterChangeObserver(DistributedKv::SubscribeType type,
         ani_observerutils::VarCallbackType &cb);
     DistributedKv::Status RegisterSyncCompleteObserver(ani_observerutils::VarCallbackType &cb);
-    DistributedKv::Status UnRegisterObserver(std::string const& event, DistributedKv::SubscribeType type,
+    DistributedKv::Status UnRegisterChangeObserver(DistributedKv::SubscribeType type,
         ::taihe::optional<ani_observerutils::VarCallbackType> optCallback, bool &isUpdateFlag);
-    DistributedKv::Status UnRegisterObserver(std::string const& event, DistributedKv::SubscribeType type,
-        ani_observerutils::VarCallbackType callbackParam, bool &isUpdateFlag);
+    DistributedKv::Status UnRegisterSyncCompleteObserver(DistributedKv::SubscribeType type,
+        ::taihe::optional<ani_observerutils::VarCallbackType> optCallback, bool &isUpdateFlag);
     void UnRegisterAll();
 
 private:
     bool isSchemaStore_ = false;
-    std::recursive_mutex cbMapMutex_;
-    std::map<std::string, std::vector<std::shared_ptr<ani_observerutils::DataObserver>>> jsCbMap_;
     std::shared_ptr<DistributedKv::SingleKvStore> nativeStore_;
+    std::recursive_mutex changeMapMutex_;
+    std::vector<std::shared_ptr<ani_observerutils::ChangeObserver>> jsChangeMap_;
+    std::recursive_mutex syncMapMutex_;
+    std::vector<std::shared_ptr<ani_observerutils::SyncObserver>> jsSyncMap_;
 };
 
-class ManagerObserver : public JsBaseObserver, public DistributedKv::KvStoreDeathRecipient,
-    public std::enable_shared_from_this<ManagerObserver> {
+class ManagerObserver : public DistributedKv::KvStoreDeathRecipient {
 public:
     ManagerObserver(VarCallbackType cb);
     ~ManagerObserver();
+    VarCallbackType& GetJsCallback() { return jsCallback_; }
+    void Release();
     void OnRemoteDied() override;
+
+private:
+    std::recursive_mutex mutex_;
+    VarCallbackType jsCallback_;
 };
 
 }  // namespace ani_observerutils

@@ -1791,7 +1791,7 @@ public:
         ani_observerutils::VarCallbackType varcb = f;
         bool isDuplicate = std::any_of(jsDeathCbList_.begin(), jsDeathCbList_.end(),
             [&varcb](std::shared_ptr<ani_observerutils::ManagerObserver> const& item) {
-                return ani_observerutils::JsBaseObserver::IsSameTaiheCallback(varcb, item->GetJsCallback());
+                return ani_observerutils::IsSameTaiheCallback(varcb, item->GetJsCallback());
             });
         if (isDuplicate) {
             ZLOGW("OnDistributedDataServiceDie, Failed to register duplicated");
@@ -1811,7 +1811,7 @@ public:
             varcb = optCallback.value();
         }
         auto pred = [varcb](std::shared_ptr<ani_observerutils::ManagerObserver> &obj) {
-            return ani_observerutils::JsBaseObserver::IsSameTaiheCallback(varcb, obj->GetJsCallback());
+            return ani_observerutils::IsSameTaiheCallback(varcb, obj->GetJsCallback());
         };
         for (auto iter = jsDeathCbList_.begin(); iter != jsDeathCbList_.end();) {
             if (std::holds_alternative<std::monostate>(varcb) || pred(*iter) == true) {
