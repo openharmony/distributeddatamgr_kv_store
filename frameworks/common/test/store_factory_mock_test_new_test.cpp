@@ -321,7 +321,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_010, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::TIME_OUT)).WillOnce(Return(Status::TIME_OUT));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -343,7 +342,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_011, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(INVALID_ARGUMENT)).WillOnce(Return(INVALID_ARGUMENT));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -365,7 +363,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_012, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::INVALID_ARGUMENT)).WillOnce(Return(Status::INVALID_ARGUMENT));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -387,7 +384,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_013, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::INVALID_ARGUMENT)).WillOnce(Return(Status::INVALID_ARGUMENT));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -409,7 +405,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_014, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(SECURITY_LEVEL_ERROR)).WillOnce(Return(SECURITY_LEVEL_ERROR));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -431,7 +426,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_015, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::TIME_OUT)).WillOnce(Return(Status::TIME_OUT));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -475,7 +469,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_017, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(OVER_MAX_LIMITS)).WillOnce(Return(OVER_MAX_LIMITS));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -497,7 +490,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_018, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(STORE_NOT_FOUND)).WillOnce(Return(STORE_NOT_FOUND));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -519,7 +511,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_019, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::KEY_NOT_FOUND)).WillOnce(Return(Status::KEY_NOT_FOUND));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -541,7 +532,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_020, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::NOT_FOUND)).WillOnce(Return(Status::NOT_FOUND));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -563,7 +553,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_021, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(STORE_ALREADY_SUBSCRIBE)).WillOnce(Return(STORE_ALREADY_SUBSCRIBE));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -585,7 +574,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_022, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(STORE_NOT_SUBSCRIBE)).WillOnce(Return(STORE_NOT_SUBSCRIBE));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
@@ -607,7 +595,6 @@ HWTEST_F(StoreFactoryMockNewTest, RekeyRecover_023, testing::ext::TestSize.Level
         EXPECT_CALL(*securityManagerMock, GetDBPassword(_, _, _)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBSecurity(_)).Times(2);
         EXPECT_CALL(*storeUtilMock, GetDBIndexType(_)).Times(2);
-        EXPECT_CALL(*storeUtilMock, ConvertStatus(_)).WillOnce(Return(Status::DEVICE_NOT_FOUND)).WillOnce(Return(Status::DEVICE_NOT_FOUND));
         auto status = StoreFactory::GetInstance().RekeyRecover(storeId, path, dbPassword, dbManager, options);
         EXPECT_TRUE(status != SUCCESS);
     } catch (...) {
