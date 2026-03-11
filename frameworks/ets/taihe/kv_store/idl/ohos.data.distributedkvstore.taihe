@@ -43,11 +43,11 @@ enum Constants : i32 {
 }
 
 enum ValueType : i32 {
-    STRING,
-    BYTE_ARRAY,
-    BOOLEAN,
-    DOUBLE,
-    LONG
+    STRING = 0,
+    BYTE_ARRAY = 3,
+    BOOLEAN = 4,
+    DOUBLE = 5,
+    LONG = 6
 }
 
 union ValueUnion {

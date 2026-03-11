@@ -424,29 +424,38 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
     return ::taihe::array<uintptr_t>(::taihe::copy_data_t{}, stdArray.data(), stdArray.size());
 }
 
+int32_t GetTaiheValueTypeRealValue(ValueType::key_t key)
+{
+    int32_t keyInt = (int32_t)key;
+    switch (keyInt) {
+        case static_cast<int32_t>(ValueType::key_t::STRING):
+        case static_cast<int32_t>(ValueType::key_t::BYTE_ARRAY):
+        case static_cast<int32_t>(ValueType::key_t::BOOLEAN):
+        case static_cast<int32_t>(ValueType::key_t::DOUBLE):
+        case static_cast<int32_t>(ValueType::key_t::LONG):
+            return ValueType::table[keyInt];
+            break;
+        default:
+            return ValueType::table[static_cast<int32_t>(ValueType::key_t::LONG)];
+            break;
+    }
+}
+
 int32_t TaiheValueTypeToNative(int32_t taiheType)
 {
-    switch (taiheType) {
-        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::STRING:
-            return ani_kvstoreutils::STRING;
-            break;
-        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::BYTE_ARRAY:
-            return ani_kvstoreutils::BYTE_ARRAY;
-            break;
-        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::BOOLEAN:
-            return ani_kvstoreutils::BOOLEAN;
-            break;
-        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::DOUBLE:
-            return ani_kvstoreutils::DOUBLE;
-            break;
-        case (int32_t)::ohos::data::distributedkvstore::ValueType::key_t::LONG:
-            return ani_kvstoreutils::LONG;
-            break;
-        default: {
-            ZLOGE("TaiheValueTypeToNative, unexpected taiheType type %{public}d", taiheType);
-            return ani_kvstoreutils::DOUBLE;
-        }
-            break;
+    if (taiheType == GetTaiheValueTypeRealValue(ValueType::key_t::STRING)) {
+        return ani_kvstoreutils::STRING;
+    } else if (taiheType == GetTaiheValueTypeRealValue(ValueType::key_t::BYTE_ARRAY)) {
+        return ani_kvstoreutils::BYTE_ARRAY;
+    } else if (taiheType == GetTaiheValueTypeRealValue(ValueType::key_t::BOOLEAN)) {
+        return ani_kvstoreutils::BOOLEAN;
+    } else if (taiheType == GetTaiheValueTypeRealValue(ValueType::key_t::DOUBLE)) {
+        return ani_kvstoreutils::DOUBLE;
+    } else if (taiheType == GetTaiheValueTypeRealValue(ValueType::key_t::LONG)) {
+        return ani_kvstoreutils::LONG;
+    } else {
+        ZLOGE("TaiheValueTypeToNative, unexpected taiheType type %{public}d", taiheType);
+        return ani_kvstoreutils::DOUBLE;
     }
 }
 
