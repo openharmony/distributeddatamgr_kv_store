@@ -73,9 +73,10 @@ void BackupManager::Prepare(const std::string &path, const std::string &storeId)
     std::string topPath = path + BACKUP_TOP_PATH;
     std::string storePath = topPath + "/" + storeId;
     std::string autoBackupName = storePath + "/" + AUTO_BACKUP_NAME + BACKUP_POSTFIX;
-    (void)StoreUtil::InitPath(topPath);
-    (void)StoreUtil::InitPath(storePath);
-    (void)StoreUtil::CreateFile(autoBackupName);
+    if (!StoreUtil::InitPath(topPath) || !StoreUtil::InitPath(storePath) || !StoreUtil::CreateFile(autoBackupName)) {
+        ZLOGE("InitPath or CreateFile failed.");
+        return;
+    }
     if (!StoreUtil::SetServiceGid(topPath) || !StoreUtil::SetServiceGid(storePath) ||
         !StoreUtil::SetServiceGid(autoBackupName)) {
         return;
@@ -135,8 +136,10 @@ Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> db
     if ((StoreUtil::GetFiles(storePath).size() >= MAX_BACKUP_NUM) && isCreate) {
         return ERROR;
     }
-    (void)StoreUtil::InitPath(topPath);
-    (void)StoreUtil::InitPath(storePath);
+    if (!StoreUtil::InitPath(topPath) || !StoreUtil::InitPath(storePath)) {
+        ZLOGE("InitPath failed.");
+        return ERROR;
+    }
     KeepData(backupFullName, isCreate);
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(info.storeId, info.baseDir);
     if (dbPassword.IsValid()) {

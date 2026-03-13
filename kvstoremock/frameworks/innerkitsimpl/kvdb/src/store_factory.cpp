@@ -113,14 +113,23 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
 {
     std::shared_ptr<DBManager> dbManager;
     dbManagers_.Compute(path, [&dbManager, &appId](const auto &path, std::shared_ptr<DBManager> &manager) {
+        std::string fullPath = path + "/kvdb";
+        auto result = StoreUtil::InitPath(fullPath);
+        if (!result) {
+            ZLOGE("Init fullPath:%{public}s failed", StoreUtil::Anonymous(fullPath).c_str());
+            return false;
+        }
         if (manager != nullptr) {
             dbManager = manager;
             return true;
         }
-        std::string fullPath = path + "/kvdb";
-        auto result = StoreUtil::InitPath(fullPath);
         dbManager = std::make_shared<DBManager>(appId.appId, "default");
-        dbManager->SetKvStoreConfig({fullPath});
+        auto dbStatus = dbManager->SetKvStoreConfig({fullPath});
+        if (dbStatus != DBStatus::OK) {
+            dbManager.reset();
+            ZLOGE("SetKvStoreConfig failed status:%{public}u", dbStatus);
+            return false;
+        }
         manager = dbManager;
         return result;
     });

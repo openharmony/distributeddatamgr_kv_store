@@ -243,7 +243,10 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     }
     keyContent.assign(keyContent.size(), 0);
     auto keyPath = path + KEY_DIR;
-    StoreUtil::InitPath(keyPath);
+    if (!StoreUtil::InitPath(keyPath)) {
+        ZLOGE("Init keyPath:%{public}s failed", StoreUtil::Anonymous(keyPath).c_str());
+        return false;
+    }
     auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY_V1;
     auto fd = open(keyFullPath.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd < 0) {
@@ -457,7 +460,10 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &path, bool openFile)
 {
     lockFile_ = path + KEY_DIR + SLASH + name + SUFFIX_KEY_LOCK;
-    StoreUtil::InitPath(path + KEY_DIR);
+    if (!StoreUtil::InitPath(path + KEY_DIR)) {
+        ZLOGE("Init KeyFiles:%{public}s failed", StoreUtil::Anonymous(path + KEY_DIR).c_str());
+        return;
+    }
     if (!openFile) {
         return;
     }

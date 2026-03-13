@@ -184,12 +184,20 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
     dbManagers_.Compute(path, [&dbManager, &appId, &subUser](const auto &path, std::shared_ptr<DBManager> &manager) {
         std::string fullPath = path + "/kvdb";
         auto result = StoreUtil::InitPath(fullPath);
-        if (manager != nullptr && result) {
+        if (!result) {
+            ZLOGE("Init fullPath:%{public}s failed", StoreUtil::Anonymous(fullPath).c_str());
+            return false;
+        }
+        if (manager != nullptr) {
             dbManager = manager;
             return true;
         }
         dbManager = std::make_shared<DBManager>(appId.appId, std::to_string(subUser));
-        dbManager->SetKvStoreConfig({ fullPath });
+        auto dbStatus = dbManager->SetKvStoreConfig({ fullPath });
+        if (dbStatus != DBStatus::OK) {
+            ZLOGE("SetKvStoreConfig failed status:%{public}d", dbStatus);
+            return false;
+        }
         manager = dbManager;
         BackupManager::GetInstance().Init(path);
         return result;
@@ -309,7 +317,10 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
 {
     std::string rekeyPath = path + "/rekey";
     std::string rekeyName = rekeyPath + "/key/" + storeId + REKEY_NEW + ".key_v1";
-    (void)StoreUtil::InitPath(rekeyPath);
+    if (!StoreUtil::InitPath(rekeyPath)) {
+        ZLOGE("Init rekeyPath:%{public}s failed", StoreUtil::Anonymous(rekeyPath).c_str());
+        return false;
+    }
 
     auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId + REKEY_NEW, rekeyPath, true);
     if (!newDbPassword.IsValid()) {

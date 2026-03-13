@@ -514,4 +514,41 @@ HWTEST_F(StoreFactoryTest, CloseKVStore001, TestSize.Level1)
     status = StoreManager::GetInstance().CloseKVStore(invalidAppId, invalidStoreId, path);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
+
+/**
+ * @tc.name: GetDBManagerTest
+ * @tc.desc: GetDBManagerTest test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryTest, GetDBManagerTest, testing::ext::TestSize.Level1)
+{
+    std::string errPath = "/datassd/service/el1/public/database/rekey";
+    std::string path = "/data/service/el1/public/database/rekey";
+    std::shared_ptr<DBManager> dbManager = std::make_shared<DBManager>(appId.appId, "default");
+    StoreFactory::GetInstance().dbManagers_.Insert(errPath, dbManager);
+    auto ptr = StoreFactory::GetInstance().GetDBManager(errPath, appId);
+    EXPECT_TRUE(ptr == nullptr);
+    StoreFactory::GetInstance().dbManagers_.Insert(path, dbManager);
+    ptr = StoreFactory::GetInstance().GetDBManager(path, appId);
+    EXPECT_FALSE(ptr == nullptr);
+
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, options.baseDir, false);
+    auto result = StoreFactory::GetInstance().ExecuteRekey(storeId.storeId, errPath, dbPassword, nullptr);
+    EXPECT_FALSE(result);
+}
+
+/**
+ * @tc.name: SaveDBPasswordTest
+ * @tc.desc: SaveDBPasswordTest test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryTest, SaveDBPasswordTest, testing::ext::TestSize.Level1)
+{
+    DistributedDB::CipherPassword dbPassword;
+    std::string errPath = "/datass/service/el1/public/database/SecurityManagerTest";
+    std::string name = "test_store";
+    auto result = SecurityManager::GetInstance().SaveDBPassword(name, errPath, dbPassword);
+    dbPassword.Clear();
+    ASSERT_FALSE(result);
+}
 } // namespace
