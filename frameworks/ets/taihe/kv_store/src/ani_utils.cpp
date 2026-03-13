@@ -177,7 +177,7 @@ bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value 
         ZLOGE("FindClass std.core.Tuple2 failed");
         return false;
     }
-    if (ANI_OK != env->Class_FindMethod(tupleCls, "<ctor>", nullptr, &tupleCtorMethod)) {
+    if (ANI_OK != env->Class_FindMethod(tupleCls, "<ctor>", "C{std.core.Object}C{std.core.Object}:", &tupleCtorMethod)) {
         ZLOGE("Class_FindMethod ctor failed");
         return false;
     }
@@ -189,30 +189,6 @@ bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value 
     return true;
 }
 
-bool AniIsInstanceOf(ani_env* aniEnv, ani_ref aniRef, const std::string& cls_name)
-{
-    if (aniEnv == nullptr || aniRef == nullptr) {
-        return false;
-    }
-    ani_boolean isNull = false;
-    ani_boolean isUndefined = false;
-    aniEnv->Reference_IsNull(aniRef, &isNull);
-    aniEnv->Reference_IsUndefined(aniRef, &isUndefined);
-    if (isNull || isUndefined) {
-        return false;
-    }
-    ani_class cls;
-    if (ANI_OK != aniEnv->FindClass(cls_name.c_str(), &cls) || cls == nullptr) {
-        return false;
-    }
-    ani_boolean ret;
-    ani_object aniObj = reinterpret_cast<ani_object>(aniRef);
-    if (ANI_OK != aniEnv->Object_InstanceOf(aniObj, cls, &ret)) {
-        return false;
-    }
-    return ret;
-}
-
 void AniExecuteFunc(ani_vm* vm, const std::function<void(ani_env*)> func)
 {
     if (vm == nullptr) {
@@ -221,7 +197,7 @@ void AniExecuteFunc(ani_vm* vm, const std::function<void(ani_env*)> func)
     }
     ani_env *currentEnv = nullptr;
     ani_status aniResult = vm->GetEnv(ANI_VERSION_1, &currentEnv);
-    if (ANI_OK == aniResult && currentEnv != nullptr) {
+    if (aniResult == ANI_OK && currentEnv != nullptr) {
         ZLOGI("AniExecuteFunc, env exist");
         func(currentEnv);
         return;
@@ -230,13 +206,13 @@ void AniExecuteFunc(ani_vm* vm, const std::function<void(ani_env*)> func)
     ani_env* newEnv = nullptr;
     ani_options aniArgs { 0, nullptr };
     aniResult = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &newEnv);
-    if (ANI_OK != aniResult || newEnv == nullptr) {
+    if (aniResult != ANI_OK || newEnv == nullptr) {
         ZLOGE("AniExecuteFunc, AttachCurrentThread error");
         return;
     }
     func(newEnv);
     aniResult = vm->DetachCurrentThread();
-    if (ANI_OK != aniResult) {
+    if (aniResult != ANI_OK) {
         ZLOGE("AniExecuteFunc, DetachCurrentThread error");
         return;
     }

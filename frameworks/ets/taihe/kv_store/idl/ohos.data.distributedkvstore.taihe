@@ -91,7 +91,7 @@ enum SyncMode : i32 {
 }
 
 enum SubscribeType : i32 {
-    SUBSCRIBE_TYPE_LOCAL = 1,
+    SUBSCRIBE_TYPE_LOCAL,
     SUBSCRIBE_TYPE_REMOTE,
     SUBSCRIBE_TYPE_ALL
 }

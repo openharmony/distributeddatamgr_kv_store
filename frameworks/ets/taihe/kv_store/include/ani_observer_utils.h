@@ -32,91 +32,60 @@
 static constexpr const char* DATA_CHANGE_EVENT = "dataChange";
 static constexpr const char* SYNC_COMPLETE_EVENT = "syncComplete";
 
-namespace ani_observerutils {
+namespace AniObserverUtils {
 
 using namespace OHOS;
 
 using JsDataChangeCallbackType = ::taihe::callback<void(::ohos::data::distributedkvstore::ChangeNotification const&)>;
 using JsSyncCompleteCallbackType = ::taihe::callback<void(::taihe::array_view<uintptr_t>)>;
 using JsServiceDeathType = ::taihe::callback<void(::ohos::data::distributedkvstore::OneUndef const&)>;
-using VarCallbackType = std::variant<
-    std::monostate,
-    ::taihe::callback<void(::ohos::data::distributedkvstore::OneUndef const&)>,
-    ::taihe::callback<void(::taihe::array_view<uintptr_t>)>,
-    ::taihe::callback<void(::ohos::data::distributedkvstore::ChangeNotification const&)>>;
+using TaiheVariantCallbackType = std::variant<std::monostate,
+    JsServiceDeathType, JsSyncCompleteCallbackType, JsDataChangeCallbackType>;
 
-bool IsSameTaiheCallback(VarCallbackType p1, VarCallbackType p2);
+bool IsSameTaiheCallback(TaiheVariantCallbackType callbackType1, TaiheVariantCallbackType callbackType2);
 
-class ChangeObserver : public DistributedKv::KvStoreObserver {
+class AniDataChangeObserver : public DistributedKv::KvStoreObserver {
 public:
-    ChangeObserver(VarCallbackType callback);
-    ~ChangeObserver();
-    VarCallbackType& GetJsCallback() { return jsCallback_; }
+    AniDataChangeObserver(TaiheVariantCallbackType callback);
+    ~AniDataChangeObserver();
+    TaiheVariantCallbackType& GetJsCallback() { return jsCallback_; }
     void Release();
     void SetIsSchemaStore(bool isSchemaStore);
     void OnChange(const DistributedKv::ChangeNotification& info) override;
 
 protected:
     std::recursive_mutex mutex_;
-    VarCallbackType jsCallback_;
+    TaiheVariantCallbackType jsCallback_;
     bool isSchemaStore_ = false;
 };
 
-class SyncObserver : public DistributedKv::KvStoreSyncCallback {
+class AniSyncCallback : public DistributedKv::KvStoreSyncCallback {
 public:
-    SyncObserver(VarCallbackType callback);
-    ~SyncObserver();
+    AniSyncCallback(TaiheVariantCallbackType callback);
+    ~AniSyncCallback();
     void GetVm();
-    VarCallbackType& GetJsCallback() { return jsCallback_; }
+    TaiheVariantCallbackType& GetJsCallback() { return jsCallback_; }
     void Release();
     void SyncCompleted(const std::map<std::string, DistributedKv::Status>& results) override;
 
 protected:
     std::recursive_mutex mutex_;
-    VarCallbackType jsCallback_;
+    TaiheVariantCallbackType jsCallback_;
     ani_vm* vm_ = nullptr;
 };
 
-class DataObserverMgr {
+class AniServiceDeathObserver : public DistributedKv::KvStoreDeathRecipient {
 public:
-    DataObserverMgr(std::shared_ptr<DistributedKv::SingleKvStore> kvstore, bool isSchemaStore);
-    ~DataObserverMgr();
-
-    bool IsCallbackDuplicated(std::string const& event, ani_observerutils::VarCallbackType const& callback);
-    void RegisterListener(std::string const& event,
-        DistributedKv::SubscribeType type, ani_observerutils::VarCallbackType &callbackParam);
-    void UnregisterListener(std::string const& event,
-        ::taihe::optional<ani_observerutils::VarCallbackType> optCallback, bool &isUpdateFlag);
-    DistributedKv::Status RegisterChangeObserver(DistributedKv::SubscribeType type,
-        ani_observerutils::VarCallbackType &cb);
-    DistributedKv::Status RegisterSyncCompleteObserver(ani_observerutils::VarCallbackType &cb);
-    DistributedKv::Status UnRegisterChangeObserver(DistributedKv::SubscribeType type,
-        ::taihe::optional<ani_observerutils::VarCallbackType> optCallback, bool &isUpdateFlag);
-    DistributedKv::Status UnRegisterSyncCompleteObserver(DistributedKv::SubscribeType type,
-        ::taihe::optional<ani_observerutils::VarCallbackType> optCallback, bool &isUpdateFlag);
-    void UnRegisterAll();
-
-private:
-    bool isSchemaStore_ = false;
-    std::shared_ptr<DistributedKv::SingleKvStore> nativeStore_;
-    std::recursive_mutex changeMapMutex_;
-    std::vector<std::shared_ptr<ani_observerutils::ChangeObserver>> jsChangeMap_;
-    std::recursive_mutex syncMapMutex_;
-    std::vector<std::shared_ptr<ani_observerutils::SyncObserver>> jsSyncMap_;
-};
-
-class ManagerObserver : public DistributedKv::KvStoreDeathRecipient {
-public:
-    ManagerObserver(VarCallbackType cb);
-    ~ManagerObserver();
-    VarCallbackType& GetJsCallback() { return jsCallback_; }
+    AniServiceDeathObserver(TaiheVariantCallbackType cb);
+    ~AniServiceDeathObserver();
+    TaiheVariantCallbackType& GetJsCallback() { return jsCallback_; }
     void Release();
     void OnRemoteDied() override;
 
 private:
     std::recursive_mutex mutex_;
-    VarCallbackType jsCallback_;
+    TaiheVariantCallbackType jsCallback_;
 };
 
-}  // namespace ani_observerutils
+}  // namespace AniObserverUtils
 #endif  // OHOS_ANI_OBSERVER_UTILS_H
