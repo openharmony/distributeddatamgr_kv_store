@@ -1003,6 +1003,10 @@ distributeddb_unittest("DistributedDBRDBKnowledgeTest") {
       [ "unittest/common/store_test/rdb/distributeddb_rdb_knowledge_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRDBAbnormalTableTest") {
+  sources = [ "unittest/common/store_test/rdb/distributeddb_rdb_abnormal_table_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -1102,6 +1106,7 @@ group("unittest") {
     ":DistributedDBRDBKnowledgeClientTest",
     ":DistributedDBRDBKnowledgeTest",
     ":DistributedDBRDBMultiUserSyncTest",
+    ":DistributedDBRDBAbnormalTableTest",
     ":DistributedDBRDBPermissionSyncTest",
     ":DistributedDBRDBSqliteUtilsTest",
     ":DistributedDBRDBUpgradeTest",

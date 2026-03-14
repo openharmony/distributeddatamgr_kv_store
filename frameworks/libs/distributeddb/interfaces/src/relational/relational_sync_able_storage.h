@@ -279,7 +279,6 @@ public:
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids) override;
 
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) override;
-
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int DropTempTable(const std::string &tableName) override;
 

@@ -106,7 +106,7 @@ SyncStrategy SchemaNegotiate::ConcludeSyncStrategy(const SyncOpinion &localOpini
 }
 
 RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSchemaObject &localSchema,
-    const RelationalSchemaObject &remoteSchema)
+    const RelationalSchemaObject &remoteSchema, int &errCode)
 {
     RelationalSyncOpinion opinion;
     for (const auto &it : localSchema.GetTables()) {
@@ -115,14 +115,14 @@ RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSche
             continue;
         }
         // remote table is compatible(equal or upgrade) based on local table, permit sync and don't need check
-        int errCode = it.second.CompareWithTable(remoteSchema.GetTable(it.first), localSchema.GetSchemaVersion());
-        if (errCode != -E_RELATIONAL_TABLE_INCOMPATIBLE) {
+        int ret = it.second.CompareWithTable(remoteSchema.GetTable(it.first), localSchema.GetSchemaVersion());
+        if (ret != -E_RELATIONAL_TABLE_INCOMPATIBLE) {
             opinion[it.first] = {true, false, false};
             continue;
         }
         // local table is compatible upgrade based on remote table, permit sync and need check
-        errCode = remoteSchema.GetTable(it.first).CompareWithTable(it.second, remoteSchema.GetSchemaVersion());
-        if (errCode != -E_RELATIONAL_TABLE_INCOMPATIBLE) {
+        ret = remoteSchema.GetTable(it.first).CompareWithTable(it.second, remoteSchema.GetSchemaVersion());
+        if (ret != -E_RELATIONAL_TABLE_INCOMPATIBLE) {
             opinion[it.first] = {true, false, true};
             continue;
         }
@@ -130,49 +130,71 @@ RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSche
         LOGW("[RelationalSchema][opinion] Local table is incompatible with remote table mutually.");
         opinion[it.first] = {false, true, true};
     }
+    if (opinion.empty()) {
+        errCode = -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+    }
+    for (auto &it : std::as_const(opinion)) {
+        if (!it.second.permitSync) {
+            errCode = -E_TABLE_FIELD_MISMATCH;
+            break;
+        }
+    }
     return opinion;
 }
 
-RelationalSyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const RelationalSchemaObject &localSchema,
-    const std::string &remoteSchema, uint8_t remoteSchemaType, uint32_t remoteSoftwareVersion)
+bool SchemaNegotiate::CheckSchemaTypeAndValidity(const RelationalSchemaObject &localSchema,
+    SchemaType remoteType, int &errCode)
 {
-    SchemaType localType = localSchema.GetSchemaType();
-    SchemaType remoteType = ReadSchemaType(remoteSchemaType);
     if (remoteType == SchemaType::UNRECOGNIZED) {
-        LOGW("[RelationalSchema][opinion] Remote schema type %" PRIu8 " is unrecognized.", remoteSchemaType);
-        return {};
+        LOGW("[RelationalSchema][opinion] Remote schema type is unrecognized.");
+        return false;
     }
 
     if (remoteType != SchemaType::RELATIVE) {
         LOGW("[RelationalSchema][opinion] Not support sync with schema type: local-type=[%s] remote-type=[%s]",
-            SchemaUtils::SchemaTypeString(localType).c_str(), SchemaUtils::SchemaTypeString(remoteType).c_str());
-        return {};
+            SchemaUtils::SchemaTypeString(localSchema.GetSchemaType()).c_str(),
+            SchemaUtils::SchemaTypeString(remoteType).c_str());
+        errCode = -E_DISTRIBUTED_SCHEMA_MISMATCH;
+        return false;
     }
 
     if (!localSchema.IsSchemaValid()) {
         LOGW("[RelationalSchema][opinion] Local schema is not valid");
-        return {};
+        return false;
     }
+    return true;
+}
 
-    RelationalSchemaObject remoteSchemaObj;
-    int errCode = remoteSchemaObj.ParseFromSchemaString(remoteSchema);
-    if (errCode != E_OK) {
-        LOGW("[RelationalSchema][opinion] Parse remote schema failed %d, remote schema type %s", errCode,
-            SchemaUtils::SchemaTypeString(remoteType).c_str());
-        return {};
+bool SchemaNegotiate::ParseAndCheckRemoteSchema(const RelationalSchemaObject &localSchema,
+    const std::string &remoteSchema, uint32_t remoteSoftwareVersion,
+    RelationalSchemaObject &remoteSchemaObj, int &errCode)
+{
+    int parseErrCode = remoteSchemaObj.ParseFromSchemaString(remoteSchema);
+    if (parseErrCode != E_OK) {
+        errCode = -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+        LOGW("[RelationalSchema][opinion] Parse remote schema failed %d", parseErrCode);
+        return false;
     }
 
     if (localSchema.GetSchemaVersion() != remoteSchemaObj.GetSchemaVersion()) {
         LOGW("[RelationalSchema][opinion] Schema version mismatch, local %s, remote %s",
             localSchema.GetSchemaVersion().c_str(), remoteSchemaObj.GetSchemaVersion().c_str());
-        return {};
+        if (localSchema.GetTables().empty() || remoteSchemaObj.GetTables().empty()) {
+            LOGW("[RelationalSchema][opinion] table not found, size local %zu, remote %zu",
+                localSchema.GetTables().size(), remoteSchemaObj.GetTables().size());
+            errCode = -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+        } else {
+            errCode = -E_DISTRIBUTED_SCHEMA_MISMATCH;
+        }
+        return false;
     }
 
     if (localSchema.GetSchemaVersion() == SchemaConstant::SCHEMA_SUPPORT_VERSION_V2_1 &&
         localSchema.GetTableMode() != remoteSchemaObj.GetTableMode()) {
         LOGW("[RelationalSchema][opinion] Schema table mode mismatch, local %d, remote %d",
             localSchema.GetTableMode(), remoteSchemaObj.GetTableMode());
-        return {};
+        errCode = -E_DISTRIBUTED_SCHEMA_MISMATCH;
+        return false;
     }
 
     if ((remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_11_0) &&
@@ -180,12 +202,28 @@ RelationalSyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const RelationalSche
         (remoteSchemaObj.GetDistributedSchema().tables.empty() || localSchema.GetDistributedSchema().tables.empty())) {
         LOGW("[RelationalSchema][opinion] Distributed schema is empty, local %zu, remote %zu",
             localSchema.GetDistributedSchema().tables.size(), remoteSchemaObj.GetDistributedSchema().tables.size());
+        errCode = -E_DISTRIBUTED_SCHEMA_MISMATCH;
+        return false;
+    }
+
+    return !IsDistributedSchemaInvalid(localSchema, remoteSchemaObj, errCode);
+}
+
+RelationalSyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const RelationalSchemaObject &localSchema,
+    const std::string &remoteSchema, uint8_t remoteSchemaType, uint32_t remoteSoftwareVersion, int &errCode)
+{
+    SchemaType remoteType = ReadSchemaType(remoteSchemaType);
+    if (!CheckSchemaTypeAndValidity(localSchema, remoteType, errCode)) {
         return {};
     }
-    if (IsDistributedSchemaInvalid(localSchema, remoteSchemaObj)) {
+
+    RelationalSchemaObject remoteSchemaObj;
+    if (!ParseAndCheckRemoteSchema(localSchema, remoteSchema, remoteSoftwareVersion, remoteSchemaObj, errCode)) {
         return {};
     }
-    return MakeOpinionEachTable(localSchema, remoteSchemaObj);
+
+    RelationalSyncOpinion localOpinion = MakeOpinionEachTable(localSchema, remoteSchemaObj, errCode);
+    return localOpinion;
 }
 
 RelationalSyncStrategy SchemaNegotiate::ConcludeSyncStrategy(const RelationalSyncOpinion &localOpinion,
@@ -285,7 +323,7 @@ int SchemaNegotiate::DeserializeData(Parcel &parcel, RelationalSyncOpinion &opin
 }
 
 bool SchemaNegotiate::IsDistributedSchemaInvalid(const RelationalSchemaObject &localSchema,
-    const RelationalSchemaObject &remoteSchema)
+    const RelationalSchemaObject &remoteSchema, int &errCode)
 {
     auto localTables = localSchema.GetTableNames();
     for (const auto &localTable : localTables) {
@@ -297,8 +335,18 @@ bool SchemaNegotiate::IsDistributedSchemaInvalid(const RelationalSchemaObject &l
         if (remoteDistributedTable.tableName.empty()) {
             continue;
         }
+        const TableInfo &localTableInfo = localSchema.GetTable(localTable);
+        const TableInfo &remoteTableInfo = remoteSchema.GetTable(localTable);
         if (IsDistributedTableInvalid(localDistributedTable, remoteDistributedTable,
-            localSchema.GetTable(localTable), remoteSchema.GetTable(localTable))) {
+            localTableInfo, remoteTableInfo)) {
+            if (localTableInfo.Empty() || remoteTableInfo.Empty()) {
+                LOGE("[SchemaNegotiate] %s table not found, local %d, remote %d",
+                    DBCommon::StringMiddleMaskingWithLen(localTable).c_str(),
+                    !localTableInfo.Empty(), !remoteTableInfo.Empty());
+                errCode = -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+            } else {
+                errCode = -E_DISTRIBUTED_SCHEMA_MISMATCH;
+            }
             return true;
         }
     }

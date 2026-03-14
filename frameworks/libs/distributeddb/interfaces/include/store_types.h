@@ -100,6 +100,8 @@ enum DBStatus {
     TABLE_NOT_FOUND,
     SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT, // Whitelist for contact, skip when cloud space insufficient
     EXPIRED_CURSOR, // Cursor is out of date in cloud
+    TABLE_FIELD_MISMATCH, // Table field mismatch between local and remote
+    DISTRIBUTED_SCHEMA_MISMATCH, // Distributed schema mismatch between local and remote
     BUTT_STATUS = 27394048 // end of status
 };
 
