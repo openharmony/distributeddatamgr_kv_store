@@ -551,4 +551,31 @@ HWTEST_F(StoreFactoryTest, SaveDBPasswordTest, testing::ext::TestSize.Level1)
     dbPassword.Clear();
     ASSERT_FALSE(result);
 }
+
+/**
+ * @tc.name: DeleteTest
+ * @tc.desc: DeleteTest test.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryTest, DeleteTest, testing::ext::TestSize.Level1)
+{
+    std::string errPath = "/datass/service/el1/public/database/SecurityManagerTest";
+    auto result = StoreFactory::GetInstance().Delete(appId, storeId, errPath);
+    ASSERT_EQ(result, Status::ERROR);
+}
+
+/**
+ * @tc.name: ReKeyTest
+ * @tc.desc: ReKeyTest.
+ * @tc.type: FUNC
+ */
+HWTEST_F(StoreFactoryTest, ReKeyTest, testing::ext::TestSize.Level1)
+{
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, options.baseDir, false);
+    StoreFactory::GetInstance().ReKey(storeId.storeId, options.baseDir, dbPassword, nullptr, options);
+    auto result = StoreFactory::GetInstance().RekeyRecover(storeId.storeId, options.baseDir, dbPassword, nullptr, options);
+    ASSERT_EQ(result, Status::ERROR);
+    result = StoreFactory::GetInstance().IsPwdValid(storeId.storeId, nullptr, options, dbPassword);
+    ASSERT_EQ(result, Status::ERROR);
+}
 } // namespace

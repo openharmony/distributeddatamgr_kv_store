@@ -81,6 +81,11 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         std::string path = options.GetDatabaseDir();
         auto dbManager = GetDBManager(path, appId, options.subUser);
+        if (dbManager == nullptr) {
+            status = ERROR;
+            ZLOGE("GetDBManager failed.");
+            return false;
+        }
         auto dbPassword =
             SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
@@ -134,6 +139,10 @@ Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const st
 {
     Close(appId, storeId, subUser, true);
     auto dbManager = GetDBManager(path, appId, subUser);
+    if (dbManager == nullptr) {
+        ZLOGE("GetDBManager failed.");
+        return ERROR;
+    }
     Status status = StoreUtil::ConvertStatus(dbManager->DeleteKvStore(storeId));
     if (status == SUCCESS) {
         SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
@@ -245,6 +254,10 @@ void StoreFactory::ReKey(const std::string &storeId, const std::string &path, DB
     int32_t retry = 0;
     DBStatus dbStatus;
     DBStore *kvStore;
+    if (dbManager == nullptr) {
+        ZLOGE("dbManager is nullptr.");
+        return;
+    }
     auto dbOption = GetDBOption(options, dbPassword);
     dbManager->GetKvStore(storeId, dbOption, [&dbStatus, &kvStore](auto status, auto *dbStore) {
         dbStatus = status;
@@ -276,6 +289,11 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     auto reKeyFile = storeId + REKEY_NEW;
     auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key_v1";
     Status pwdValid = DB_ERROR;
+    if (dbManager == nullptr) {
+        pwdValid = ERROR;
+        ZLOGE("dbManager is nullptr.");
+        return pwdValid;
+    }
     if (StoreUtil::IsFileExist(keyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
         pwdValid = IsPwdValid(storeId, dbManager, options, dbPassword);
@@ -303,6 +321,10 @@ Status StoreFactory::IsPwdValid(const std::string &storeId, std::shared_ptr<DBMa
 {
     DBStatus status = DistributedDB::DB_ERROR;
     DBStore *kvstore = nullptr;
+    if (dbManager == nullptr) {
+        ZLOGE("dbManager is nullptr.");
+        return ERROR;
+    }
     auto dbOption = GetDBOption(options, dbPassword);
     dbManager->GetKvStore(storeId, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore) {
         status = dbStatus;
