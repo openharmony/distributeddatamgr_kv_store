@@ -49,11 +49,6 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        if (dbManager == nullptr) {
-            status = ERROR;
-            ZLOGE("GetDBManager failed.");
-            return false;
-        }
         auto password = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
         DBStatus dbStatus = DBStatus::DB_ERROR;
         dbManager->GetKvStore(storeId, GetDBOption(options, password),
@@ -85,10 +80,6 @@ Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const st
 {
     Close(appId, storeId, subUser, true);
     auto dbManager = GetDBManager(path, appId);
-    if (dbManager == nullptr) {
-        ZLOGE("GetDBManager failed.");
-        return ERROR;
-    }
     auto status = dbManager->DeleteKvStore(storeId);
     SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
     return StoreUtil::ConvertStatus(status);
@@ -122,23 +113,14 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
 {
     std::shared_ptr<DBManager> dbManager;
     dbManagers_.Compute(path, [&dbManager, &appId](const auto &path, std::shared_ptr<DBManager> &manager) {
-        std::string fullPath = path + "/kvdb";
-        auto result = StoreUtil::InitPath(fullPath);
-        if (!result) {
-            ZLOGE("Init fullPath:%{public}s failed", StoreUtil::Anonymous(fullPath).c_str());
-            return false;
-        }
         if (manager != nullptr) {
             dbManager = manager;
             return true;
         }
+        std::string fullPath = path + "/kvdb";
+        auto result = StoreUtil::InitPath(fullPath);
         dbManager = std::make_shared<DBManager>(appId.appId, "default");
-        auto dbStatus = dbManager->SetKvStoreConfig({fullPath});
-        if (dbStatus != DBStatus::OK) {
-            dbManager.reset();
-            ZLOGE("SetKvStoreConfig failed status:%{public}u", dbStatus);
-            return false;
-        }
+        dbManager->SetKvStoreConfig({fullPath});
         manager = dbManager;
         return result;
     });

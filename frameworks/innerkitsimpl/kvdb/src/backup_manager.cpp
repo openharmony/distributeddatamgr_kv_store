@@ -138,7 +138,7 @@ Status BackupManager::Backup(const BackupInfo &info, std::shared_ptr<DBStore> db
     }
     if (!StoreUtil::InitPath(topPath) || !StoreUtil::InitPath(storePath)) {
         ZLOGE("InitPath failed.");
-        return ERROR;
+        return INVALID_ARGUMENT;
     }
     KeepData(backupFullName, isCreate);
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(info.storeId, info.baseDir);

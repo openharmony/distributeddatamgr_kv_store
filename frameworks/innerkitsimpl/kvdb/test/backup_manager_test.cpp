@@ -146,7 +146,7 @@ HWTEST_F(BackupManagerTest, BackUp, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     std::string errPath = "/datass/service/el1/public/database/BackupManagerTest";
     status = kvStore_->Backup("testbackup1", errPath);
-    ASSERT_EQ(status, ERROR);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 /**
  * @tc.name: BackUpInvalidArguments

@@ -460,10 +460,7 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &path, bool openFile)
 {
     lockFile_ = path + KEY_DIR + SLASH + name + SUFFIX_KEY_LOCK;
-    if (!StoreUtil::InitPath(path + KEY_DIR)) {
-        ZLOGE("Init KeyFiles:%{public}s failed", StoreUtil::Anonymous(path + KEY_DIR).c_str());
-        return;
-    }
+    StoreUtil::InitPath(path + KEY_DIR);
     if (!openFile) {
         return;
     }
