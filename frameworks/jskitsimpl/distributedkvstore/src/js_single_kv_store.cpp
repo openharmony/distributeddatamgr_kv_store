@@ -596,20 +596,20 @@ napi_value JsSingleKVStore::BackupEx(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<BackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <file or backupConfig>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
             "Parameter error:Mandatory parameters are left unspecified");
         napi_valuetype type = napi_undefined;
         napi_typeof(env, argv[0], &type);
-        ASSERT_BUSINESS_ERR(ctxt, (type == napi_object), Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, (type == napi_object), Status::INVALID_ARGUMENT,
             "invalid arg[0], type error!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
             "Parameter error:backupConfig");
         ctxt->isCustomDir = true;
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Backup exit");
-    
+
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
         Status status = jsKvStore->kvStore_->Backup(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath);
@@ -669,14 +669,14 @@ napi_value JsSingleKVStore::RestoreEx(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<RestoreContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <backupConfig>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
             "Parameter error:Mandatory parameters are left unspecified");
         napi_valuetype type = napi_undefined;
         napi_typeof(env, argv[0], &type);
-        ASSERT_BUSINESS_ERR(ctxt, (type == napi_object), Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, (type == napi_object), Status::INVALID_ARGUMENT,
             "invalid arg[0], type error!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
             "Parameter error:backupConfig");
         ctxt->isCustomDir = true;
     };
@@ -746,10 +746,10 @@ napi_value JsSingleKVStore::DeleteBackupEx(napi_env env, napi_callback_info info
     auto ctxt = std::make_shared<DeleteBackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: backupConfig
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_NEW_API_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT,
             "Parameter error:Mandatory parameters are left unspecified");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->backupConfig);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            ASSERT_BUSINESS_NEW_API_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "Parameter error:backupConfig");
     };
     ctxt->GetCbInfo(env, info, input);

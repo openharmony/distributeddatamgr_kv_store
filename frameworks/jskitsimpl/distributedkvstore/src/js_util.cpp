@@ -1061,6 +1061,9 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::B
     JSUtil::StatusMsg statusMsg = napi_invalid_arg;
     statusMsg = GetNamedProperty(env, in, "fileName", backupConfig.fileName, true);
     ASSERT(statusMsg.status == napi_ok, "get fileName failed", statusMsg);
+    if (backupConfig.fileName.find('/') != std::string::npos) {
+        return napi_invalid_arg;
+    }
     statusMsg = GetNamedProperty(env, in, "filePath", backupConfig.filePath, true);
     ASSERT(statusMsg.status == napi_ok, "get filePath failed", statusMsg);
     return napi_ok;
