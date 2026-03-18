@@ -665,13 +665,19 @@ HWTEST_F(BackupManagerTest, GetSecretKeyFromServiceInvalid, TestSize.Level0)
 {
     AppId appId = { "BackupManagerTest" };
     StoreId storeId = { "SingleKVStoreEncryptNotFound" };
+
+    std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    BackupInfo info = { .name = "BackupManagerTest", .baseDir = baseDir, .appId = {},
+        .storeId = {} };
     std::vector<std::vector<uint8_t>> keys;
-    auto status = BackupManager::GetInstance().GetSecretKeyFromService({}, {}, keys);
+    auto status = BackupManager::GetInstance().GetSecretKeyFromService({}, {}, keys, info);
     ASSERT_NE(status, SUCCESS);
 
     std::string errPath = "/datass/service/el1/public/database/rekey";
     BackupManager::GetInstance().Prepare(errPath, storeId);
-    status = BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys);
+    BackupInfo info = { .name = "BackupManagerTest", .baseDir = errPath, .appId = appId.appId,
+        .storeId = storeId.storeId };
+    status = BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys, info);
     ASSERT_EQ(keys.size(), 0);
 }
 } // namespace OHOS::Test

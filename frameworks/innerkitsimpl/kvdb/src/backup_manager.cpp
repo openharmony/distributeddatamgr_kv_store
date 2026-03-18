@@ -203,7 +203,7 @@ Status BackupManager::Restore(const BackupInfo &info, std::shared_ptr<DBStore> d
     auto dbStatus = dbStore->Import(fullName, password, info.isCheckIntegrity);
     if (dbStatus == DistributedDB::DBStatus::INVALID_FILE && info.encrypt) {
         ZLOGI("Use the key from server to restore");
-        auto retryStatus = ImportWithSecretKeyFromService(info, dbStore, fullName, info.isCheckIntegrity);
+        auto retryStatus = ImportWithSecretKeyFromService(info, dbStore, fullName);
         return retryStatus == SUCCESS ? SUCCESS : CRYPT_ERROR;
     }
     return StoreUtil::ConvertStatus(dbStatus);
@@ -220,7 +220,7 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &n
             return dbPassword;
         }
         std::vector<std::vector<uint8_t>> pwds;
-        service->GetBackupPassword({ info.appId }, { info.storeId }, info.subUser, pwds,
+        service->GetBackupPassword({ info.appId }, { info.storeId }, info, pwds,
             KVDBService::PasswordType::BACKUP_SECRET_KEY);
         if (pwds.size() != 0) {
             // When obtaining the key for automatic backup, there is only one element in the list
@@ -236,7 +236,7 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &n
 }
 
 Status BackupManager::GetSecretKeyFromService(const AppId &appId, const StoreId &storeId,
-    std::vector<std::vector<uint8_t>> &keys, int32_t subUser)
+    std::vector<std::vector<uint8_t>> &keys, const BackupInfo &info)
 {
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
@@ -244,7 +244,7 @@ Status BackupManager::GetSecretKeyFromService(const AppId &appId, const StoreId 
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
         return Status::SERVER_UNAVAILABLE;
     }
-    auto status = service->GetBackupPassword(appId, storeId, subUser, keys, KVDBService::PasswordType::SECRET_KEY);
+    auto status = service->GetBackupPassword(appId, storeId, info, keys, KVDBService::PasswordType::SECRET_KEY);
     if (status != Status::SUCCESS) {
         ZLOGE("Get password from service failed! status:%{public}d, appId:%{public}s storeId:%{public}s",
             status, appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
@@ -259,11 +259,11 @@ Status BackupManager::GetSecretKeyFromService(const AppId &appId, const StoreId 
 }
 
 Status BackupManager::ImportWithSecretKeyFromService(const BackupInfo &info, std::shared_ptr<DBStore> dbStore,
-    std::string &fullName, bool isCheckIntegrity)
+    std::string &fullName)
 {
     Status status = NOT_FOUND;
     std::vector<std::vector<uint8_t>> keys;
-    if (GetSecretKeyFromService({ info.appId }, { info.storeId }, keys, info.subUser) != Status::SUCCESS) {
+    if (GetSecretKeyFromService({ info.appId }, { info.storeId }, keys, info) != Status::SUCCESS) {
         for (auto &key : keys) {
             key.assign(key.size(), 0);
         }
@@ -272,7 +272,7 @@ Status BackupManager::ImportWithSecretKeyFromService(const BackupInfo &info, std
     for (auto &key : keys) {
         SecurityManager::DBPassword dbPassword;
         dbPassword.SetValue(key.data(), key.size());
-        auto dbStatus = dbStore->Import(fullName, dbPassword.password, isCheckIntegrity);
+        auto dbStatus = dbStore->Import(fullName, dbPassword.password, info.isCheckIntegrity);
         status = StoreUtil::ConvertStatus(dbStatus);
         if (status == SUCCESS) {
             ZLOGI("Import with secretKey from service success!");

@@ -150,6 +150,23 @@ public:
         int32_t subUser = 0);
 
     /**
+     * @brief Delete kvstore file with the given storeId.
+     *
+     * client should first close all connections to it and then delete it,
+     * otherwise delete may return error.
+     * after this call, kvstore and kvstoresnapshot become invalid.
+     * call to it will return error.
+     *
+     * @param appId   The name of the application.
+     * @param storeId The name of the kvstore.
+     * @param path    The base directory of the kvstore, it must be available.
+     * @param options The options of the kvstore.
+     * @return Return SUCCESS for success, others for failure.
+    */
+    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options,
+        const std::string &path = "");
+
+    /**
      * @brief Delete all kvstore for this appId.
      *
      * delete all kvstore belong to this appId unless the kvstore is opened or not.

@@ -54,7 +54,7 @@ Status KVDBServiceClient::AfterCreate(
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser)
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser, const Options &options)
 {
     return KVDBServiceClientMock::status;
 }
@@ -141,7 +141,7 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
+Status KVDBServiceClient::GetBackupPassword(const AppId &appId, const StoreId &storeId, const BackupInfo &info,
     std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
 {
     return KVDBServiceClientMock::status;

@@ -23,20 +23,13 @@
 #include "store_util.h"
 #include "task_scheduler.h"
 #include "task_executor.h"
+#include "types.h"
 namespace OHOS::DistributedKv {
 class BackupManager {
 public:
     using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBPassword = DistributedKv::SecurityManager::DBPassword;
-    struct BackupInfo {
-        std::string name;
-        std::string baseDir;
-        std::string appId;
-        std::string storeId;
-        bool encrypt = false;
-        bool isCheckIntegrity = false;
-        int32_t subUser = 0;
-    };
+
     struct ResidueInfo {
         size_t tmpBackupSize;
         size_t tmpKeySize;
@@ -60,7 +53,7 @@ public:
     Status DeleteBackup(std::map<std::string, Status> &deleteList,
         const std::string &baseDir, const std::string &storeId);
     Status GetSecretKeyFromService(const AppId &appId, const StoreId &storeId, std::vector<std::vector<uint8_t>> &keys,
-        int32_t subUser = 0);
+        const BackupInfo &info);
 private:
     BackupManager();
     ~BackupManager();
@@ -84,7 +77,7 @@ private:
     bool IsEndWith(const std::string &fullString, const std::string &end);
     bool IsBeginWith(const std::string &fullString, const std::string &begin);
     Status ImportWithSecretKeyFromService(const BackupInfo &info, std::shared_ptr<DBStore> dbStore,
-        std::string &fullName, bool isCheckIntegrity);
+        std::string &fullName);
     static constexpr int MAX_BACKUP_NUM = 5;
 };
 } // namespace OHOS::DistributedKv

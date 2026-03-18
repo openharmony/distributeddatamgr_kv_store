@@ -78,7 +78,8 @@ Status StoreManager::CloseAllKVStore(const AppId &appId, int32_t subUser)
     return StoreFactory::GetInstance().Close(appId, { "" }, subUser, true);
 }
 
-Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser,
+    const Options &options)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
         StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(path).c_str());

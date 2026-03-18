@@ -132,8 +132,8 @@ Status DistributedKvDataManager::CloseAllKvStore(const AppId &appId, int32_t sub
     return StoreManager::GetInstance().CloseAllKVStore(appId, subUser);
 }
 
-Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId,
-    const std::string &path, int32_t subUser)
+Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path,
+    int32_t subUser)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
@@ -148,6 +148,23 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
     KvStoreServiceDeathNotifier::SetAppId(appId);
 
     return StoreManager::GetInstance().Delete(appId, storeId, path, subUser);
+}
+
+Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options,
+    const std::string &path)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
+        TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
+    if (!storeId.IsValid()) {
+        ZLOGE("Invalid storeId.");
+        return Status::INVALID_ARGUMENT;
+    }
+    if (path.empty()) {
+        ZLOGE("This path is empty");
+        return Status::INVALID_ARGUMENT;
+    }
+    KvStoreServiceDeathNotifier::SetAppId(appId);
+    return StoreManager::GetInstance().Delete(appId, storeId, path, 0, options);
 }
 
 Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std::string &path, int32_t subUser)

@@ -289,6 +289,42 @@ bool Unmarshalling(StoreConfig &output, MessageParcel &data)
     return Unmarshal(data, output.cloudConfig);
 }
 
+template<>
+bool Marshalling(const BackupInfo &input, MessageParcel &data)
+{
+    if (!ITypesUtil::Marshal(data, input.name, input.baseDir, input.appId, input.storeId)) {
+        ZLOGE("Write policies failed");
+        return false;
+    }
+
+    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(sizeof(input));
+    BackupInfo *target = reinterpret_cast<BackupInfo *>(buffer.get());
+    target->encrypt = input.encrypt;
+    target->isCheckIntegrity = input.isCheckIntegrity;
+    target->subUser = input.subUser;
+    target->isCustomDir = input.isCustomDir;
+    return data.WriteRawData(buffer.get(), sizeof(input));
+}
+
+template<>
+bool Unmarshalling(BackupInfo &output, MessageParcel &data)
+{
+    if (!ITypesUtil::Unmarshal(data, output.name, output.baseDir, output.appId, output.storeId)) {
+        ZLOGE("Read policies failed");
+        return false;
+    }
+
+    const BackupInfo *source = reinterpret_cast<const BackupInfo *>(data.ReadRawData(sizeof(output)));
+    if (source == nullptr) {
+        return false;
+    }
+    output.encrypt = source->encrypt;
+    output.isCheckIntegrity = source->isCheckIntegrity;
+    output.subUser = source->subUser;
+    output.isCustomDir = source->isCustomDir;
+    return true;
+}
+
 int64_t GetTotalSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 1;

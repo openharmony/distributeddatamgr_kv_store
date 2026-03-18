@@ -172,7 +172,7 @@ public:
      * @param baseDir Root path of store manager.
      * @return Return SUCCESS for success, others for failure.
     */
-    virtual Status Restore(const std::string &file, const std::string &baseDir) = 0;
+    virtual Status Restore(const std::string &file, const std::string &baseDir, bool isCustomDir = false) = 0;
 
     /**
      * @brief Delete the backup files.

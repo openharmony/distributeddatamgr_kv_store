@@ -99,6 +99,16 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
     return SUCCESS;
 }
 
+Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options,
+    const std::string &path)
+{
+    if (!path.empty()) {
+        return StoreManager::GetInstance().Delete(appId, storeId, path, 0, options);
+    }
+
+    return SUCCESS;
+}
+
 Status DistributedKvDataManager::DeleteAllKvStore(const AppId &appId, const std::string &path, int32_t subUser)
 {
     if (!path.empty()) {

@@ -22,6 +22,7 @@
 #include "kvstore_death_recipient.h"
 #include "single_kvstore.h"
 #include "types.h"
+
 namespace OHOS::DistributedKv {
 class KVDBService {
 public:
@@ -51,7 +52,7 @@ public:
     virtual Status BeforeCreate(const AppId &appId, const StoreId &storeId, const Options &options) = 0;
     virtual Status AfterCreate(
         const AppId &appId, const StoreId &storeId, const Options &options, const std::vector<uint8_t> &password) = 0;
-    virtual Status Delete(const AppId &appId, const StoreId &storeId, int32_t subUser) = 0;
+    virtual Status Delete(const AppId &appId, const StoreId &storeId, int32_t subUser, const Options &options = {}) = 0;
     virtual Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo) = 0;
     virtual Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) = 0;
@@ -72,7 +73,7 @@ public:
         sptr<IKvStoreObserver> observer) = 0;
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
         sptr<IKvStoreObserver> observer) = 0;
-    virtual Status GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    virtual Status GetBackupPassword(const AppId &appId, const StoreId &storeId, const BackupInfo &info,
         std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType) = 0;
     virtual Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) = 0;
     virtual Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) = 0;
