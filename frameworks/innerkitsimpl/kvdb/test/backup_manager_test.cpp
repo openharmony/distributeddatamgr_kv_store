@@ -144,6 +144,9 @@ HWTEST_F(BackupManagerTest, BackUp, TestSize.Level0)
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     auto status = kvStore_->Backup("testbackup", baseDir);
     ASSERT_EQ(status, SUCCESS);
+    std::string errPath = "/datass/service/el1/public/database/BackupManagerTest";
+    status = kvStore_->Backup("testbackup1", errPath);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
 }
 /**
  * @tc.name: BackUpInvalidArguments
@@ -666,6 +669,8 @@ HWTEST_F(BackupManagerTest, GetSecretKeyFromServiceInvalid, TestSize.Level0)
     auto status = BackupManager::GetInstance().GetSecretKeyFromService({}, {}, keys);
     ASSERT_NE(status, SUCCESS);
 
+    std::string errPath = "/datass/service/el1/public/database/rekey";
+    BackupManager::GetInstance().Prepare(errPath, storeId);
     status = BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys);
     ASSERT_EQ(keys.size(), 0);
 }

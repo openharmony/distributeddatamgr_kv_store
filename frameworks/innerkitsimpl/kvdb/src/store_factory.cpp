@@ -81,6 +81,10 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         std::string path = options.GetDatabaseDir();
         auto dbManager = GetDBManager(path, appId, options.subUser);
+        if (dbManager == nullptr) {
+            status = INVALID_ARGUMENT;
+            return false;
+        }
         auto dbPassword =
             SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
@@ -134,6 +138,9 @@ Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const st
 {
     Close(appId, storeId, subUser, true);
     auto dbManager = GetDBManager(path, appId, subUser);
+    if (dbManager == nullptr) {
+        return INVALID_ARGUMENT;
+    }
     Status status = StoreUtil::ConvertStatus(dbManager->DeleteKvStore(storeId));
     if (status == SUCCESS) {
         SecurityManager::GetInstance().DelDBPassword(storeId.storeId, path);
@@ -183,16 +190,24 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
     std::shared_ptr<DBManager> dbManager;
     dbManagers_.Compute(path, [&dbManager, &appId, &subUser](const auto &path, std::shared_ptr<DBManager> &manager) {
         std::string fullPath = path + "/kvdb";
-        auto result = StoreUtil::InitPath(fullPath);
-        if (manager != nullptr && result) {
+        if (!StoreUtil::InitPath(fullPath)) {
+            ZLOGE("Init fullPath:%{public}s failed", StoreUtil::Anonymous(fullPath).c_str());
+            return false;
+        }
+        if (manager != nullptr) {
             dbManager = manager;
             return true;
         }
         dbManager = std::make_shared<DBManager>(appId.appId, std::to_string(subUser));
-        dbManager->SetKvStoreConfig({ fullPath });
+        auto dbStatus = dbManager->SetKvStoreConfig({ fullPath });
+        if (dbStatus != DBStatus::OK) {
+            ZLOGE("SetKvStoreConfig failed status:%{public}d", dbStatus);
+            dbManager = nullptr;
+            return false;
+        }
         manager = dbManager;
         BackupManager::GetInstance().Init(path);
-        return result;
+        return true;
     });
     return dbManager;
 }

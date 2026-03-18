@@ -243,7 +243,10 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     }
     keyContent.assign(keyContent.size(), 0);
     auto keyPath = path + KEY_DIR;
-    StoreUtil::InitPath(keyPath);
+    if (!StoreUtil::InitPath(keyPath)) {
+        ZLOGE("Init keyPath:%{public}s failed", StoreUtil::Anonymous(keyPath).c_str());
+        return false;
+    }
     auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY_V1;
     auto fd = open(keyFullPath.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd < 0) {

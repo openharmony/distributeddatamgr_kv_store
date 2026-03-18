@@ -1283,4 +1283,24 @@ HWTEST_F(DeviceKvStoreTest, UnSubscribeWithQuery001, TestSize.Level1)
     auto unSubscribeStatus = kvStore_->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
+
+/**
+ * @tc.name: GetKvStoreErrPath
+ * @tc.desc: GetKvStoreErrPath.
+ * @tc.type: FUNC
+ */
+HWTEST_F(DeviceKvStoreTest, GetKvStoreErrPath, TestSize.Level1)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    DistributedKvDataManager manager;
+    Options options;
+    options.encrypt = false;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.baseDir = std::string("/datass/service/el1/public/database/odmf");
+    AppId appId = { "odmf" };
+    StoreId storeId = { "schema_device_id002" };
+    manager.GetSingleKvStore(options, appId, storeId, kvStore);
+    ASSERT_EQ(kvStore, nullptr);
+}
 } // namespace OHOS::Test

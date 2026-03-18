@@ -318,6 +318,11 @@ ohos_unittest("StoreFactoryTest") {
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
+
+  cflags = [
+    "-Dprivate=public",
+    "-Dprotected=public",
+  ]
 }
 
 ohos_unittest("SecurityManagerTest") {
