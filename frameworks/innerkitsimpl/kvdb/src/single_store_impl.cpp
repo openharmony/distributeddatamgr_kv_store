@@ -805,6 +805,31 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
     return status;
 }
 
+Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    auto service = KVDBServiceClient::GetInstance();
+    if (service != nullptr) {
+        service->Close({ appId_ }, { storeId_ }, subUser_);
+    }
+    BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_,
+        .encrypt = encrypt_, .isCheckIntegrity = isCheckIntegrity_, .subUser = subUser_ };
+    auto status = BackupManager::GetInstance().Restore(info, dbStore_);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
+            StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
+    }
+    if (syncable_ || autoBackup_) {
+        SetAcl(storeId_, path_);
+    }
+    Options options = { .encrypt = encrypt_, .autoSync = autoSync_, .securityLevel = securityLevel_,
+        .area = area_, .hapName = hapName_ };
+    ReportInfo reportInfo = { .options = options, .errorCode = status, .systemErrorNo = errno,
+        .appId = appId_, .storeId = storeId_, .functionName = __FUNCTION__ };
+    KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
+    return status;
+}
+
 Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir, bool isCustomDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
