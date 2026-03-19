@@ -1067,7 +1067,7 @@ public:
 
     void BackupExSync(TaiheBackupConfig backupConfig)
     {
-        if (nativeStore_ == nullptr) {
+        if (nativeStore_ == nullptr || (std::string(backupConfig.fileName).find('/') != std::string::npos)) {
             ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
         }
@@ -1091,7 +1091,7 @@ public:
 
     void RestoreExSync(TaiheBackupConfig backupConfig)
     {
-        if (nativeStore_ == nullptr) {
+        if (nativeStore_ == nullptr || (std::string(backupConfig.fileName).find('/') != std::string::npos)) {
             ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
         }
@@ -1123,7 +1123,7 @@ public:
 
     void DeleteBackupExSync(TaiheBackupConfig backupConfig)
     {
-        if (nativeStore_ == nullptr) {
+        if (nativeStore_ == nullptr || (std::string(backupConfig.fileName).find('/') != std::string::npos)) {
             ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
         }
