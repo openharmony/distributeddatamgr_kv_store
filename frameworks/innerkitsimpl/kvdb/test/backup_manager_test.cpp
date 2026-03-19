@@ -675,7 +675,7 @@ HWTEST_F(BackupManagerTest, GetSecretKeyFromServiceInvalid, TestSize.Level0)
 
     std::string errPath = "/datass/service/el1/public/database/rekey";
     BackupManager::GetInstance().Prepare(errPath, storeId);
-    BackupInfo info = { .name = "BackupManagerTest", .baseDir = errPath, .appId = appId.appId,
+    info = { .name = "BackupManagerTest", .baseDir = errPath, .appId = appId.appId,
         .storeId = storeId.storeId };
     status = BackupManager::GetInstance().GetSecretKeyFromService(appId, storeId, keys, info);
     ASSERT_EQ(keys.size(), 0);
