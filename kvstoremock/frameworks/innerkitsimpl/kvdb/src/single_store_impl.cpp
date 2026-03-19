@@ -379,11 +379,6 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
     return SERVER_UNAVAILABLE;
 }
 
-Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir)
-{
-    return SERVER_UNAVAILABLE;
-}
-
 Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir, bool isCustomDir)
 {
     return SERVER_UNAVAILABLE;

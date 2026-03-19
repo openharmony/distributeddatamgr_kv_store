@@ -74,8 +74,7 @@ public:
     Status GetSecurityLevel(SecurityLevel &secLevel) const override;
     Status RemoveDeviceData(const std::string &device) override;
     Status Backup(const std::string &file, const std::string &baseDir) override;
-    Status Restore(const std::string &file, const std::string &baseDir) override;
-    Status Restore(const std::string &file, const std::string &baseDir, bool isCustomDir) override;
+    Status Restore(const std::string &file, const std::string &baseDir, bool isCustomDir = false) override;
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
     void OnRemoteDied() override;
