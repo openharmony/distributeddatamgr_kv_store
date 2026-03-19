@@ -685,8 +685,7 @@ napi_value JsSingleKVStore::RestoreEx(napi_env env, napi_callback_info info)
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
-        Status status = jsKvStore->kvStore_->Restore(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath,
-            ctxt->isCustomDir);
+        Status status = jsKvStore->kvStore_->Restore(ctxt->backupConfig.fileName, ctxt->backupConfig.filePath);
         ZLOGD("kvStore->Restore return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error, ctxt->isCustomDir) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
