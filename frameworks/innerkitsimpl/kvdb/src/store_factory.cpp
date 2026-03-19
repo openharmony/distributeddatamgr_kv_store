@@ -80,7 +80,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             return !stores.empty();
         }
         std::string path = options.GetDatabaseDir();
-        auto dbManager = GetDBManager(path, appId, options.subUser);
+        auto dbManager = GetDBManager(path, appId, options.subUser, options.role);
         if (dbManager == nullptr) {
             status = INVALID_ARGUMENT;
             return false;
@@ -185,12 +185,13 @@ Status StoreFactory::CloseInner(const AppId &appId, const StoreId &storeId, cons
 }
 
 std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId,
-    int32_t subUser)
+    int32_t subUser, uint32_t roleType)
 {
     std::shared_ptr<DBManager> dbManager;
-    dbManagers_.Compute(path, [&dbManager, &appId, &subUser](const auto &path, std::shared_ptr<DBManager> &manager) {
+    dbManagers_.Compute(path,
+        [&dbManager, &appId, &subUser, &roleType](const auto &path, std::shared_ptr<DBManager> &manager) {
         std::string fullPath = path + "/kvdb";
-        if (!StoreUtil::InitPath(fullPath)) {
+        if (!StoreUtil::InitPath(fullPath) && roleType == RoleType::OWNER) {
             ZLOGE("Init fullPath:%{public}s failed", StoreUtil::Anonymous(fullPath).c_str());
             return false;
         }
