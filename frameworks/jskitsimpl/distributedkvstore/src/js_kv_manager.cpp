@@ -262,9 +262,9 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         StoreId storeId { ctxt->storeId };
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
         ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
-        std::string databaseDir = ctxt->options.isCustomDir ? ctxt->options.baseDir : kvm->param_->baseDir;
-        ZLOGD("DeleteKVStore databaseDir is: %{public}s", JSUtil::Anonymous(databaseDir).c_str());
-        Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, ctxt->options, databaseDir);
+        ctxt->options.baseDir = ctxt->options.isCustomDir ? ctxt->options.baseDir : kvm->param_->baseDir;
+        ZLOGD("DeleteKVStore databaseDir is: %{public}s", JSUtil::Anonymous(ctxt->options.baseDir).c_str());
+        Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, ctxt->options);
         ZLOGD("DeleteKvStore status:%{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;

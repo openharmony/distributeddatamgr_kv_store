@@ -158,8 +158,7 @@ Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &store
     return service->GetStoreIds(appId, subUser, storeIds);
 }
 
-Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser,
-    const Options &options)
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
         StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(path).c_str());
@@ -168,10 +167,32 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
     }
     auto service = KVDBServiceClient::GetInstance();
     if (service != nullptr) {
-        service->Delete(appId, storeId, subUser, options);
-    }
+    service->Delete(appId, storeId, subUser);
+}
     auto status = StoreFactory::GetInstance().Delete(appId, storeId, path, subUser);
     ReportInfo reportInfo = { .options = { .baseDir = path }, .errorCode = status, .systemErrorNo = errno,
+            .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
+    if (status != SUCCESS) {
+        KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);
+    } else {
+        KVDBFaultHiViewReporter::ReportKVRebuildEvent(reportInfo);
+    }
+    return status;
+}
+
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const Options &options)
+{
+    ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
+        StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(options.baseDir).c_str());
+    if (!appId.IsValid() || !storeId.IsValid()) {
+        return INVALID_ARGUMENT;
+    }
+    auto service = KVDBServiceClient::GetInstance();
+    if (service != nullptr) {
+        service->Delete(appId, storeId, options);
+    }
+    auto status = StoreFactory::GetInstance().Delete(appId, storeId, options.baseDir, options.subUser);
+    ReportInfo reportInfo = { .options = { .baseDir = options.baseDir }, .errorCode = status, .systemErrorNo = errno,
         .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
     if (status != SUCCESS) {
         KVDBFaultHiViewReporter::ReportKVFaultEvent(reportInfo);

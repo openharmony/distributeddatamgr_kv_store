@@ -163,8 +163,7 @@ public:
      * @param options The options of the kvstore.
      * @return Return SUCCESS for success, others for failure.
     */
-    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options,
-        const std::string &path = "");
+    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options);
 
     /**
      * @brief Delete all kvstore for this appId.

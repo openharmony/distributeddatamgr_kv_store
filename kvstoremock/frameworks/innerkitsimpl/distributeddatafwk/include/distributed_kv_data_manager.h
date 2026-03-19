@@ -106,8 +106,7 @@ public:
     // storeId: the name of the kvstore.
     API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const std::string &path = "",
         int32_t subUser = 0);
-    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options,
-        const std::string &path = "");
+    API_EXPORT Status DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options);
 
     // delete all kvstore.
     API_EXPORT Status DeleteAllKvStore(const AppId &appId, const std::string &path = "", int32_t subUser = 0);

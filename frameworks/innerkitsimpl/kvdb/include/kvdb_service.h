@@ -52,7 +52,8 @@ public:
     virtual Status BeforeCreate(const AppId &appId, const StoreId &storeId, const Options &options) = 0;
     virtual Status AfterCreate(
         const AppId &appId, const StoreId &storeId, const Options &options, const std::vector<uint8_t> &password) = 0;
-    virtual Status Delete(const AppId &appId, const StoreId &storeId, int32_t subUser, const Options &options = {}) = 0;
+    virtual Status Delete(const AppId &appId, const StoreId &storeId, int32_t subUser) = 0;
+    virtual Status Delete(const AppId &appId, const StoreId &storeId, const Options &options) = 0;
     virtual Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser) = 0;
     virtual Status Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo) = 0;
     virtual Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) = 0;

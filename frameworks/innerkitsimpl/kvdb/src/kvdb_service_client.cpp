@@ -140,11 +140,23 @@ Status KVDBServiceClient::AfterCreate(
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser, const Options &options)
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_DELETE),
-                              reply, appId, storeId, subUser, options);
+                              reply, appId, storeId, subUser);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
+            StoreUtil::Anonymous(storeId.storeId).c_str());
+    }
+    return static_cast<Status>(status);
+}
+
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, const Options &options)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_DELETE),
+                              reply, appId, storeId, options);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
             StoreUtil::Anonymous(storeId.storeId).c_str());

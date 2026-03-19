@@ -54,7 +54,12 @@ Status KVDBServiceClient::AfterCreate(
     return KVDBServiceClientMock::status;
 }
 
-Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser, const Options &options)
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int32_t subUser)
+{
+    return KVDBServiceClientMock::status;
+}
+
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, const Options &options)
 {
     return KVDBServiceClientMock::status;
 }
