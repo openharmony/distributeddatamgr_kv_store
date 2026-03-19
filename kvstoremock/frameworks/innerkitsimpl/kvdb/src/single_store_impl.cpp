@@ -384,6 +384,11 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     return SERVER_UNAVAILABLE;
 }
 
+Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir, bool isCustomDir)
+{
+    return SERVER_UNAVAILABLE;
+}
+
 Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
     std::map<std::string, DistributedKv::Status> &results)
 {

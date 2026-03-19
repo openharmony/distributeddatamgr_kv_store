@@ -65,6 +65,7 @@ public:
     int32_t AddRef();
     Status Backup(const std::string &file, const std::string &baseDir) override;
     Status Restore(const std::string &file, const std::string &baseDir) override;
+    Status Restore(const std::string &file, const std::string &baseDir, bool isCustomDir) override;
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
     // IPC interface
