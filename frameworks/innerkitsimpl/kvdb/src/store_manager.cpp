@@ -167,8 +167,8 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
     }
     auto service = KVDBServiceClient::GetInstance();
     if (service != nullptr) {
-    service->Delete(appId, storeId, subUser);
-}
+        service->Delete(appId, storeId, subUser);
+    }
     auto status = StoreFactory::GetInstance().Delete(appId, storeId, path, subUser);
     ReportInfo reportInfo = { .options = { .baseDir = path }, .errorCode = status, .systemErrorNo = errno,
             .appId = appId.appId, .storeId = storeId.storeId, .functionName = std::string(__FUNCTION__) };
