@@ -96,7 +96,7 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const Op
     if (!appId.IsValid() || !storeId.IsValid()) {
         return INVALID_ARGUMENT;
     }
-    return StoreFactory::GetInstance().Delete(appId, storeId, options);
+    return StoreFactory::GetInstance().Delete(appId, storeId, options.baseDir);
 }
 
 Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser)
