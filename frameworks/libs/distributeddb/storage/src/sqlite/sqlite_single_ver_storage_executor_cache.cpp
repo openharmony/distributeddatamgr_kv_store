@@ -858,7 +858,7 @@ int SQLiteSingleVerStorageExecutor::ProcessTimestampForSyncDataInCacheDB(std::ve
     // Set real timestamp for DataItem in dataItems and get the max timestamp in these dataitems.
     Timestamp maxTimeInDataItems = 0;
     for (auto &item : dataItems) {
-        item.timestamp -= migrateTimeOffset_;
+        item.timestamp -= static_cast<uint64_t>(migrateTimeOffset_);
         maxTimeInDataItems = std::max(maxTimeInDataItems, item.timestamp);
     }
 

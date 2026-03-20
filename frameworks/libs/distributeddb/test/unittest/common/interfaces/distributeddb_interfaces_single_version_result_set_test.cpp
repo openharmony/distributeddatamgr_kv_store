@@ -533,6 +533,42 @@ HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultS
     EXPECT_EQ(entry.value, VALUE_1);
 }
 
+/**
+  * @tc.name: SingleVersionResultSetTest016
+  * @tc.desc: CursorWindow Class: Test buffer size overflow check in MoveToPosition.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBInterfacesSingleVersionResultSetTest, SingleVersionResultSetTest016, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Initialize result window.
+     * @tc.expected: step1. Expect return OK.
+     */
+    ResultEntriesWindow resultWindow;
+    double scale = 1;
+    int windowSize = 100;
+    EXPECT_EQ(resultWindow.Init(g_rawCursor, windowSize, scale), E_OK);
+
+    /**
+     * @tc.steps:step2. Get entry to populate buffer_.
+     * @tc.expected: step2. Expect return OK.
+     */
+    Entry entry;
+    EXPECT_EQ(resultWindow.GetEntry(entry), E_OK);
+    EXPECT_EQ(entry.key, LOCAL_KEY_1);
+    EXPECT_EQ(entry.value, VALUE_1);
+
+    /**
+     * @tc.steps:step3. Move to position to test the overflow check branch.
+     * @tc.expected: step3. Expect return true (normal case).
+     */
+    int position = 1;
+    EXPECT_EQ(resultWindow.MoveToPosition(position), true);
+    EXPECT_EQ(resultWindow.GetCurrentPosition(), position);
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name: SingleVerNaturalStoreTest

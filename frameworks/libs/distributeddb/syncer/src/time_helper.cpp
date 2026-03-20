@@ -58,10 +58,11 @@ int TimeHelper::Initialize(const ISyncInterface *inStorage, const std::shared_pt
     Timestamp currentSysTime = GetSysCurrentTime();
     TimeOffset localTimeOffset = GetLocalTimeOffset();
     Timestamp maxItemTime = GetMaxDataItemTime();
-    if (currentSysTime > MAX_VALID_TIME || maxItemTime > MAX_VALID_TIME) {
+    if (currentSysTime > MAX_VALID_TIME || maxItemTime > MAX_VALID_TIME ||
+        static_cast<int64_t>(currentSysTime) + localTimeOffset < 0) {
         return -E_INVALID_TIME;
     }
-    Timestamp virtualSysTime = static_cast<Timestamp>(currentSysTime + localTimeOffset);
+    Timestamp virtualSysTime = static_cast<Timestamp>(static_cast<int64_t>(currentSysTime) + localTimeOffset);
     if (virtualSysTime <= maxItemTime || virtualSysTime > BUFFER_VALID_TIME) {
         localTimeOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + MS_TO_100_NS); // 1ms
         // cal timeOffset without time tick, should not be written into db

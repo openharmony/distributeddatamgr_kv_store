@@ -177,7 +177,7 @@ uint32_t GenericSingleVerKvEntry::CalculateLens(const std::vector<SingleVerKvEnt
 }
 
 // this func should do compatible
-int GenericSingleVerKvEntry::DeSerializeData(Parcel &parcel)
+uint64_t GenericSingleVerKvEntry::DeSerializeData(Parcel &parcel)
 {
     uint32_t version = VERSION_INVALID;
     uint64_t len = parcel.ReadUInt32(version);

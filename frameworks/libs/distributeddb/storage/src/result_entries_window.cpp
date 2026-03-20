@@ -78,7 +78,10 @@ bool ResultEntriesWindow::MoveToPosition(int position)
         }
         return true;
     }
-    int last = begin_ + buffer_.size() - 1;
+    if (buffer_.size() > static_cast<size_t>(std::min(INT_MAX, INT_MAX - begin_ + 1))) {
+        return false;
+    }
+    int last = static_cast<int>(buffer_.size()) - 1 + begin_;
     if (position > last) {
         buffer_.clear();
         buffer_.shrink_to_fit();
@@ -180,7 +183,7 @@ int ResultEntriesWindow::LoadData(int begin, int target) const
         if (next.key.size() > DBConstant::MAX_KEY_SIZE || next.value.size() > DBConstant::MAX_SET_VALUE_SIZE) {
             continue;
         }
-        bufferSize += next.key.size() + next.value.size();
+        bufferSize += static_cast<int64_t>(next.key.size() + next.value.size());
         buffer_.push_back(std::move(next));
     }
     if (buffer_.size() == static_cast<size_t>(totalCount_)) {

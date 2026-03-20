@@ -1190,6 +1190,47 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 }
 
 /**
+  * @tc.name: ExecutorCache007
+  * @tc.desc: Test ProcessTimestampForSyncDataInCacheDB with various scenarios.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Copy normal db, attach cache
+     * @tc.expected: step1. Expect E_OK
+     */
+    string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
+    EXPECT_EQ(g_handle->ForceCheckPoint(), E_OK);
+    EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
+    CipherPassword password;
+    EXPECT_EQ(g_handle->AttachMainDbAndCacheDb(
+        CipherType::DEFAULT, password, cacheDir, EngineState::MAINDB), E_OK);
+
+    /**
+     * @tc.steps: step2. Call ProcessTimestampForSyncDataInCacheDB with empty dataItems.
+     * @tc.expected: step2. return -E_INVALID_ARGS.
+     */
+    std::vector<DataItem> dataItems;
+    NotifyMigrateSyncData syncData;
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, dataItems), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Call ProcessTimestampForSyncDataInCacheDB with valid dataItems.
+     * @tc.expected: step3. return -E_INVALID_ARGS.
+     */
+    DataItem item;
+    item.key = KEY_1;
+    item.value = VALUE_1;
+    item.timestamp = 1000;
+    dataItems.push_back(item);
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, dataItems), -E_INVALID_ARGS);
+}
+
+/**
   * @tc.name: AbnormalSqlExecutorTest001
   * @tc.desc: Check SQLiteStorageExecutor interfaces abnormal scene.
   * @tc.type: FUNC

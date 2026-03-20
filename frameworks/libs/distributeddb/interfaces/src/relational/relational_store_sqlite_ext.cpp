@@ -245,7 +245,7 @@ public:
             // time skew detected
             Timestamp localTimeOffset = getLocalTimeOffsetFromDB();
             Timestamp currentSysTime = GetSysCurrentTime();
-            Timestamp currentLocalTime = currentSysTime + timeOffset + localTimeOffset;
+            Timestamp currentLocalTime = currentSysTime + static_cast<uint64_t>(timeOffset) + localTimeOffset;
             auto virtualTimeOffset = static_cast<int64_t>(currentLocalTime - lastLocalTime_);
             auto changedOffset = static_cast<int64_t>(virtualTimeOffset - monotonicTimeOffset * TO_100_NS);
             if (std::abs(changedOffset) > static_cast<int64_t>(MAX_NOISE * TO_100_NS)) { // LCOV_EXCL_BR_LINE

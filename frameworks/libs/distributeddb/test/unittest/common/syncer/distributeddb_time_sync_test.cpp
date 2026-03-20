@@ -556,3 +556,49 @@ HWTEST_F(DistributedDBTimeSyncTest, TimeHelper001, TestSize.Level0)
     g_syncInterfaceA->GetMetaData(key, after);
     EXPECT_EQ(after, before);
 }
+
+/**
+  * @tc.name: TimeHelper002
+  * @tc.desc: Verify time helper handles time calculation overflow.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBTimeSyncTest, TimeHelper002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Initialize metadata
+     * @tc.expected: step1. Initialize successfully
+     */
+    EXPECT_EQ(g_metadataA->Initialize(g_syncInterfaceA), E_OK);
+
+    /**
+     * @tc.steps: step2. Set large localTimeOffset that could cause overflow
+     * @tc.expected: step2. TimeHelper should handle overflow gracefully
+     */
+    TimeOffset largeOffset = INT64_MAX;
+    g_metadataA->SaveLocalTimeOffset(largeOffset);
+    ASSERT_EQ(g_syncInterfaceA->PutData({'k'}, {'v'}, INT64_MAX, 0), E_OK);
+    TimeHelper timeHelper;
+    int errTimeHelper = timeHelper.Initialize(g_syncInterfaceA, g_metadataA);
+    EXPECT_EQ(errTimeHelper, -E_INVALID_TIME);
+
+    /**
+     * @tc.steps: step3. Set large maxItemTime that could cause overflow
+     * @tc.expected: step3. TimeHelper should handle overflow gracefully
+     */
+    TimeOffset offset = 0;
+    g_metadataA->SaveLocalTimeOffset(offset);
+    ASSERT_EQ(g_syncInterfaceA->PutData({'k'}, {'v'}, INT64_MIN, 0), E_OK);
+    errTimeHelper = timeHelper.Initialize(g_syncInterfaceA, g_metadataA);
+    EXPECT_EQ(errTimeHelper, -E_INVALID_TIME);
+
+    /**
+     * @tc.steps: step3. Set large localTimeOffset and large maxItemTime that could cause overflow
+     * @tc.expected: step3. TimeHelper should handle overflow gracefully
+     */
+    g_metadataA->SaveLocalTimeOffset(largeOffset);
+    ASSERT_EQ(g_syncInterfaceA->PutData({'k'}, {'v'}, INT64_MIN, 0), E_OK);
+    errTimeHelper = timeHelper.Initialize(g_syncInterfaceA, g_metadataA);
+    EXPECT_EQ(errTimeHelper, -E_INVALID_TIME);
+}
