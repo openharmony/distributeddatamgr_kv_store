@@ -101,7 +101,7 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
 
 Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId &storeId, const Options &options)
 {
-    if (!path.empty()) {
+    if (!options.baseDir.empty()) {
         return StoreManager::GetInstance().Delete(appId, storeId, options);
     }
 

@@ -78,8 +78,7 @@ Status StoreManager::CloseAllKVStore(const AppId &appId, int32_t subUser)
     return StoreFactory::GetInstance().Close(appId, { "" }, subUser, true);
 }
 
-Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser,
-    const Options &options)
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path, int32_t subUser)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
         StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(path).c_str());
@@ -88,6 +87,16 @@ Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const st
     }
 
     return StoreFactory::GetInstance().Delete(appId, storeId, path);
+}
+
+Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const Options &options)
+{
+    ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
+        StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(options.baseDir).c_str());
+    if (!appId.IsValid() || !storeId.IsValid()) {
+        return INVALID_ARGUMENT;
+    }
+    return StoreFactory::GetInstance().Delete(appId, storeId, options);
 }
 
 Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds, int32_t subUser)
