@@ -48,6 +48,7 @@ enum class KVDBServiceInterfaceCode : uint32_t {
     TRANS_UNSUBSCRIBE_SWITCH_DATA,
     TRANS_CLOSE,
     TRANS_REMOVE_DEVICE_DATA,
+    TRANS_DELETEEX,
     TRANS_BUTT
 };
 
