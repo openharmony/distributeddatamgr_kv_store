@@ -293,7 +293,7 @@ template<>
 bool Marshalling(const BackupInfo &input, MessageParcel &data)
 {
     if (!ITypesUtil::Marshal(data, input.name, input.baseDir, input.appId, input.storeId)) {
-        ZLOGE("Write policies failed");
+        ZLOGE("Write failed");
         return false;
     }
 
@@ -310,7 +310,7 @@ template<>
 bool Unmarshalling(BackupInfo &output, MessageParcel &data)
 {
     if (!ITypesUtil::Unmarshal(data, output.name, output.baseDir, output.appId, output.storeId)) {
-        ZLOGE("Read policies failed");
+        ZLOGE("Read failed");
         return false;
     }
 
