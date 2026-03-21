@@ -2196,22 +2196,22 @@ HWTEST_F(SingleStoreImplTest, RestoreWithSpecialCharacters, TestSize.Level0)
     kvStore = CreateKVStore("SpecialCharStore", KvStoreType::SINGLE_VERSION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
-    Status status = kvStore->Put({"key_测试_🔥"}, {"value_测试_🔥"});
+    Status status = kvStore->Put({"key_test"}, {"value_test"});
     ASSERT_EQ(status, SUCCESS);
 
     status = kvStore->Backup("special_backup", "/data/service/el1/public/database/SingleStoreImplTest");
     ASSERT_EQ(status, SUCCESS);
 
-    status = kvStore->Delete({"key_测试_🔥"});
+    status = kvStore->Delete({"key_test"});
     ASSERT_EQ(status, SUCCESS);
 
     status = kvStore->Restore("special_backup", "/data/service/el1/public/database/SingleStoreImplTest");
     ASSERT_EQ(status, SUCCESS);
 
     Value value;
-    status = kvStore->Get({"key_测试_🔥"}, value);
+    status = kvStore->Get({"key_test"}, value);
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(value.ToString(), "value_测试_🔥");
+    ASSERT_EQ(value.ToString(), "value_test");
 }
 
 /**

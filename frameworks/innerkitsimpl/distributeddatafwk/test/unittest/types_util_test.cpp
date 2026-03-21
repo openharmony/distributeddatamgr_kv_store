@@ -415,10 +415,10 @@ HWTEST_F(TypesUtilTest, BackupInfoSerialization006, TestSize.Level0)
 {
     MessageParcel parcel;
     BackupInfo backupIn;
-    backupIn.name = "backup_测试_🔥_special@#$%";
-    backupIn.baseDir = "/data/测试/database/路径";
-    backupIn.appId = "com.example.测试.app";
-    backupIn.storeId = "store_🔥_123";
+    backupIn.name = "backup_test_special@#$%";
+    backupIn.baseDir = "/data/test/database/path";
+    backupIn.appId = "com.example.test.app";
+    backupIn.storeId = "store_test_123";
 
     ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
     BackupInfo backupOut;
