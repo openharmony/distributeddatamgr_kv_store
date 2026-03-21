@@ -159,7 +159,7 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
         return Status::INVALID_ARGUMENT;
     }
     if (options.baseDir.empty()) {
-        ZLOGE("This path is empty");
+        ZLOGE("baseDir is empty");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);

@@ -264,6 +264,8 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
         ctxt->options.baseDir = ctxt->options.isCustomDir ? ctxt->options.baseDir : kvm->param_->baseDir;
         ctxt->options.area = kvm->param_->area + 1;
+        ctxt->options.hapName = kvm->param_->hapName;
+        ctxt->options.apiVersion = kvm->param_->apiVersion;
         Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, ctxt->options);
         ZLOGD("DeleteKvStore status:%{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
