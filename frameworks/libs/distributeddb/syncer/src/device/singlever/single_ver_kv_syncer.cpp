@@ -154,6 +154,10 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     }
     // db online again ,trigger subscribe
     // if remote device online, subscribequery num is 0
+    if (syncEngine_ == nullptr) {
+        LOGE("[SingleVerKVSyncer][RemoteDataChanged] Sync engine has not Init");
+        return;
+    }
     std::vector<QuerySyncObject> syncQueries;
     static_cast<SingleVerSyncEngine *>(syncEngine_)->GetLocalSubscribeQueries(device, syncQueries);
     if (syncQueries.empty()) {

@@ -61,7 +61,7 @@ public:
 
     int SerializeData(Parcel &parcel, uint32_t targetVersion) override;
 
-    int DeSerializeData(Parcel &parcel) override;
+    uint64_t DeSerializeData(Parcel &parcel) override;
 
     uint32_t CalculateLen(uint32_t targetVersion) override;
 

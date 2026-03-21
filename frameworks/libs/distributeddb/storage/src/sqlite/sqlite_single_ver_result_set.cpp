@@ -273,9 +273,13 @@ int SQLiteSingleVerResultSet::MoveToForCacheEntryIdMode(int position) const
     int newCacheStartPos = position;
     // cacheMaxSize is within [1,16], rowId is of type int64_t
     uint32_t cacheLimit = option_.cacheMaxSize * (WINDOW_SIZE_MB_UNIT / sizeof(int64_t));
+    if (cacheLimit > INT_MAX) {
+        LOGE("[SqlSinResSet][MoveToForCacheEntryIdMode] Invalid cache limit: %u", cacheLimit);
+        return -E_UNEXPECTED_DATA;
+    }
     if (position > cacheStartPosition_) {
         // Move Forward
-        int newCacheEndPos = newCacheStartPos + cacheLimit;
+        int newCacheEndPos = newCacheStartPos + static_cast<int>(cacheLimit);
         if (newCacheEndPos > count_) {
             // Since startPos in [0, count_), So the right in (0, cacheLimit), So position still in range
             newCacheStartPos -= (newCacheEndPos - count_);

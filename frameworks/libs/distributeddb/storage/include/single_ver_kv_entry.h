@@ -32,7 +32,7 @@ public:
     virtual void SetWriteTimestamp(Timestamp timestamp) = 0;
     virtual uint64_t GetFlag() const = 0;
     virtual int SerializeData(Parcel &parcel, uint32_t softWareVersion) = 0;
-    virtual int DeSerializeData(Parcel &parcel) = 0;
+    virtual uint64_t DeSerializeData(Parcel &parcel) = 0;
     virtual uint32_t CalculateLen(uint32_t softWareVersion) = 0;
     virtual const Key &GetKey() const = 0;
     virtual const Value &GetValue() const = 0;

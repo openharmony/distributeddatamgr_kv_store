@@ -272,6 +272,35 @@ HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetMoveTo001, Test
 }
 
 /**
+  * @tc.name: ResultSetMoveTo002
+  * @tc.desc: Test the SQLiteSingleVerResultSet MoveTo And GetPosition function.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetMoveTo002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a SQLiteSingleVerResultSet.
+     */
+    const SQLiteSingleVerResultSet::Option option = {ResultSetCacheMode::CACHE_ENTRY_ID_ONLY, 0};
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet =
+        std::make_unique<SQLiteSingleVerResultSet>(g_store, EMPTY_KEY, option);
+
+    /**
+     * @tc.steps: step2. Call SQLiteSingleVerResultSet MoveTo INSERT_NUMBER - 1
+     * @tc.expected: step2. Expect return E_OK.
+     */
+    EXPECT_EQ(resultSet->Open(false), E_OK);
+    EXPECT_EQ(resultSet->MoveTo(INSERT_NUMBER - 1), E_OK);
+
+    /**
+     * @tc.steps: step3. Close the ResultSet.
+     */
+    resultSet->Close();
+}
+
+/**
   * @tc.name: ResultSetGetEntry001
   * @tc.desc: Test the SQLiteSingleVerResultSet GetEntry function.
   * @tc.type: FUNC
