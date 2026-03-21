@@ -2173,9 +2173,6 @@ HWTEST_F(SingleStoreImplTest, RestoreWithLargeData, TestSize.Level0)
     status = kvStore->Backup("large_data_backup", "/data/service/el1/public/database/SingleStoreImplTest");
     ASSERT_EQ(status, SUCCESS);
 
-    status = kvStore->Clear();
-    ASSERT_EQ(status, SUCCESS);
-
     status = kvStore->Restore("large_data_backup", "/data/service/el1/public/database/SingleStoreImplTest");
     ASSERT_EQ(status, SUCCESS);
 
