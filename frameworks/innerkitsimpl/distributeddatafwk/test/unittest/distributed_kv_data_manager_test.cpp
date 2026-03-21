@@ -848,6 +848,27 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore010, TestSize.Level1)
 }
 
 /**
+* @tc.name: DeleteKvStore011
+* @tc.desc: Delete a KvStore with empty path
+* return INVALID_ARGUMENT.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore011, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore010 begin.");
+    Options err;
+    err.createIfMissing = true;
+    err.encrypt = false;
+    err.securityLevel = S1;
+    err.autoSync = true;
+    err.kvStoreType = SINGLE_VERSION;
+    err.area = EL1;
+    err.baseDir = "";
+    Status stat = manager.DeleteKvStore(appId, storeId65, err);
+    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
+}
+
+/**
 * @tc.name: DeleteAllKvStore001
 * @tc.desc: Delete all KvStores after closing all of them, and the callback function should return SUCCESS.
 * @tc.type: FUNC
