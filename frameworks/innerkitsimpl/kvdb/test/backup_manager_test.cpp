@@ -652,8 +652,8 @@ HWTEST_F(BackupManagerTest, RestoreEncryptWithKeyFromService, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
-    AppId appId = { "" };
-    StoreId storeId = { "" };
+    appId = { "" };
+    storeId = { "" };
     status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
