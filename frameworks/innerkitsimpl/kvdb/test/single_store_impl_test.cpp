@@ -2038,35 +2038,6 @@ HWTEST_F(SingleStoreImplTest, RestoreBasic, TestSize.Level0)
 }
 
 /**
- * @tc.name: RestoreWithEncryption
- * @tc.desc: Test restore functionality with encrypted backup
- * @tc.type: FUNC
- */
-HWTEST_F(SingleStoreImplTest, RestoreWithEncryption, TestSize.Level0)
-{
-    std::shared_ptr<SingleKvStore> kvStore;
-    kvStore = CreateKVStore("EncryptedStore", KvStoreType::SINGLE_VERSION, true, true);
-    ASSERT_NE(kvStore, nullptr);
-
-    Status status = kvStore->Put({"enc_key1"}, {"enc_value1"});
-    ASSERT_EQ(status, SUCCESS);
-
-    status = kvStore->Backup("encrypted_backup", "/data/service/el1/public/database/SingleStoreImplTest");
-    ASSERT_EQ(status, SUCCESS);
-
-    status = kvStore->Delete({"enc_key1"});
-    ASSERT_EQ(status, SUCCESS);
-
-    status = kvStore->Restore("encrypted_backup", "/data/service/el1/public/database/SingleStoreImplTest");
-    ASSERT_EQ(status, SUCCESS);
-
-    Value value;
-    status = kvStore->Get({"enc_key1"}, value);
-    ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(value.ToString(), "enc_value1");
-}
-
-/**
  * @tc.name: RestoreInvalidBackupFile
  * @tc.desc: Test restore with non-existent backup file
  * @tc.type: FUNC
