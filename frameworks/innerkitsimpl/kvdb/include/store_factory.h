@@ -47,7 +47,8 @@ private:
     static constexpr uint64_t MAX_WAL_SIZE = 200 * 1024 * 1024; // the max size of WAL is 200MB
 
     StoreFactory();
-    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId, int32_t subUser = 0);
+    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId,
+        int32_t subUser = 0, uint32_t roleType = 0);
     DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
     void ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
         std::shared_ptr<DBManager> dbManager, const Options &options);
