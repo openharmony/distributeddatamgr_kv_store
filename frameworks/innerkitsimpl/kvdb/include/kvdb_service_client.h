@@ -21,6 +21,7 @@
 #include "kvdb_service.h"
 #include "kvdb_notifier_client.h"
 #include "task_executor.h"
+
 namespace OHOS::DistributedKv {
 class KVDBServiceProxy : public KVDBService, public IRemoteBroker {
 public:
@@ -35,6 +36,7 @@ public:
     Status AfterCreate(const AppId &appId, const StoreId &storeId, const Options &options,
         const std::vector<uint8_t> &password) override;
     Status Delete(const AppId &appId, const StoreId &storeId, int32_t subUser) override;
+    Status Delete(const AppId &appId, const StoreId &storeId, const Options &options) override;
     Status Close(const AppId &appId, const StoreId &storeId, int32_t subUser) override;
     Status Sync(const AppId &appId, const StoreId &storeId, int32_t subUser, SyncInfo &syncInfo) override;
     Status RegServiceNotifier(const AppId &appId, sptr<IKVDBNotifier> notifier) override;
@@ -54,7 +56,7 @@ public:
         sptr<IKvStoreObserver> observer) override;
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, int32_t subUser,
         sptr<IKvStoreObserver> observer) override;
-    Status GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
+    Status GetBackupPassword(const AppId &appId, const StoreId &storeId, const BackupInfo &info,
         std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType) override;
     Status CloudSync(const AppId &appId, const StoreId &storeId, const SyncInfo &syncInfo) override;
     Status NotifyDataChange(const AppId &appId, const StoreId &storeId, uint64_t delay) override;

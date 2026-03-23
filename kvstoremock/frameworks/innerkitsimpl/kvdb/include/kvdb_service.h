@@ -70,6 +70,7 @@ protected:
         TRANS_RMV_SUB,
         TRANS_SUB,
         TRANS_UNSUB,
+        TRANS_DELETE_BY_OPTIONS,
         TRANS_BUTT,
     };
 };

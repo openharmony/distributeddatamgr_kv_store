@@ -152,6 +152,18 @@ Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, int
     return static_cast<Status>(status);
 }
 
+Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId, const Options &options)
+{
+    MessageParcel reply;
+    int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_DELETE_BY_OPTIONS),
+                              reply, appId, storeId, options);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
+            StoreUtil::Anonymous(storeId.storeId).c_str());
+    }
+    return static_cast<Status>(status);
+}
+
 Status KVDBServiceClient::Close(const AppId &appId, const StoreId &storeId, int32_t subUser)
 {
     MessageParcel reply;
@@ -344,12 +356,12 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::GetBackupPassword(const AppId &appId, const StoreId &storeId, int32_t subUser,
-    std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
+Status KVDBServiceClient::GetBackupPassword(const AppId &appId, const StoreId &storeId,
+    const BackupInfo &info, std::vector<std::vector<uint8_t>> &passwords, int32_t passwordType)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(static_cast<uint32_t>(KVDBServiceInterfaceCode::TRANS_GET_PASSWORD),
-                              reply, appId, storeId, passwordType, subUser);
+                              reply, appId, storeId, info, passwordType);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status,
             appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());

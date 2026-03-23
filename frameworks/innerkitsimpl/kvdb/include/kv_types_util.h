@@ -19,6 +19,7 @@
 #include "kvdb_service.h"
 #include "itypes_util.h"
 #include "types.h"
+
 namespace OHOS::ITypesUtil {
 using Blob = DistributedKv::Blob;
 using Key = DistributedKv::Key;
@@ -40,6 +41,8 @@ using SwitchState = OHOS::DistributedKv::SwitchState;
 using CloudConfig = OHOS::DistributedKv::CloudConfig;
 using StoreConfig = OHOS::DistributedKv::StoreConfig;
 using AuthType = OHOS::DistributedKv::AuthType;
+using BackupInfo = OHOS::DistributedKv::BackupInfo;
+
 template<>
 API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
@@ -124,6 +127,11 @@ template<>
 API_EXPORT bool Marshalling(const AuthType &input, MessageParcel &data);
 template<>
 API_EXPORT bool Unmarshalling(AuthType &output, MessageParcel &data);
+
+template<>
+API_EXPORT bool Marshalling(const BackupInfo &input, MessageParcel &data);
+template<>
+API_EXPORT bool Unmarshalling(BackupInfo &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);

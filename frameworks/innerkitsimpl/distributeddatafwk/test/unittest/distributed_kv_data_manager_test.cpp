@@ -539,7 +539,7 @@ HWTEST_F(DistributedKvDataManagerTest, CloseKvStore006, TestSize.Level1)
     Status stat = manager.CloseKvStore(appId, storeId64, baseDir1);
     EXPECT_EQ(stat, Status::SUCCESS);
 
-    status = manager.DeleteKvStore(appId, storeId64, baseDir1);
+    status = manager.DeleteKvStore(appId, storeId64, options);
     EXPECT_EQ(status, Status::SUCCESS);
 
     (void)remove((baseDir1 + "/kvdb").c_str());
@@ -769,6 +769,102 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore005, TestSize.Level1)
 {
     ZLOGI("DeleteKvStore005 begin.");
     Status stat = manager.DeleteKvStore(appId, storeId65);
+    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: DeleteKvStore006
+* @tc.desc: Delete a closed KvStore, and the callback function should return SUCCESS.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore006, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore006 begin.");
+    std::shared_ptr<SingleKvStore> kvStore;
+    Status status = manager.GetSingleKvStore(create, appId, storeId64, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status stat = manager.CloseKvStore(appId, storeId64);
+    ASSERT_EQ(stat, Status::SUCCESS);
+
+    stat = manager.DeleteKvStore(appId, storeId64, create);
+    EXPECT_EQ(stat, Status::SUCCESS);
+}
+
+/**
+* @tc.name: DeleteKvStore007
+* @tc.desc: Delete an opened SingleKvStore, and the callback function should return SUCCESS.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore007, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore007 begin.");
+    std::shared_ptr<SingleKvStore> kvStore;
+    Status status = manager.GetSingleKvStore(create, appId, storeId64, kvStore);
+    ASSERT_EQ(status, Status::SUCCESS);
+    ASSERT_NE(kvStore, nullptr);
+
+    // first close it if opened, and then delete it.
+    Status stat = manager.DeleteKvStore(appId, storeId64, create);
+    EXPECT_EQ(stat, Status::SUCCESS);
+}
+
+/**
+* @tc.name: DeleteKvStore008
+* @tc.desc: Delete a non-existing KvStore, and the callback function should return DB_ERROR.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore008, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore008 begin.");
+    Status stat = manager.DeleteKvStore(appId, storeId64, create);
+    EXPECT_EQ(stat, Status::STORE_NOT_FOUND);
+}
+
+/**
+* @tc.name: DeleteKvStore009
+* @tc.desc: Delete a KvStore with an empty storeId, and the callback function should return INVALID_ARGUMENT.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore009, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore009 begin.");
+    Status stat = manager.DeleteKvStore(appId, storeIdEmpty, create);
+    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: DeleteKvStore010
+* @tc.desc: Delete a KvStore with 65 bytes long storeId (which exceed storeId length limit). Should
+* return INVALID_ARGUMENT.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore010, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore010 begin.");
+    Status stat = manager.DeleteKvStore(appId, storeId65, create);
+    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
+}
+
+/**
+* @tc.name: DeleteKvStore011
+* @tc.desc: Delete a KvStore with empty path
+* return INVALID_ARGUMENT.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DeleteKvStore011, TestSize.Level1)
+{
+    ZLOGI("DeleteKvStore010 begin.");
+    Options err;
+    err.createIfMissing = true;
+    err.encrypt = false;
+    err.securityLevel = S1;
+    err.autoSync = true;
+    err.kvStoreType = SINGLE_VERSION;
+    err.area = EL1;
+    err.baseDir = "";
+    Status stat = manager.DeleteKvStore(appId, storeId65, err);
     EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
 }
 

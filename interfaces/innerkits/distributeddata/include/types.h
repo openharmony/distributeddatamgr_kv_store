@@ -717,6 +717,20 @@ struct StoreConfig {
      */
     CloudConfig cloudConfig;
 };
+
+/**
+ * @brief backupInfo of kv store.
+ */
+struct BackupInfo {
+    std::string name;
+    std::string baseDir;
+    std::string appId;
+    std::string storeId;
+    bool encrypt = false;
+    bool isCheckIntegrity = false;
+    int32_t subUser = 0;
+    bool isCustomDir = false;
+};
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

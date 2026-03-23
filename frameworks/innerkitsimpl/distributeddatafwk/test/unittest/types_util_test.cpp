@@ -264,4 +264,276 @@ HWTEST_F(TypesUtilTest, UnmarshalFromBufferLimitTest002, TestSize.Level1)
     ASSERT_FALSE(ITypesUtil::UnmarshalFromBuffer(parcel, output));
     ASSERT_TRUE(output.empty());
 }
+
+/**
+ * @tc.name: BackupInfoSerialization001
+ * @tc.desc: test BackupInfo serialization with all fields set to default values
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization001, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "backup_file";
+    backupIn.baseDir = "/data/database";
+    backupIn.appId = "test.app";
+    backupIn.storeId = "test_store";
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_EQ(backupIn.encrypt, backupOut.encrypt);
+    ASSERT_EQ(backupIn.isCheckIntegrity, backupOut.isCheckIntegrity);
+    ASSERT_EQ(backupIn.subUser, backupOut.subUser);
+    ASSERT_EQ(backupIn.isCustomDir, backupOut.isCustomDir);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization002
+ * @tc.desc: test BackupInfo serialization with all boolean fields enabled
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization002, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "encrypted_backup";
+    backupIn.baseDir = "/data/custom/database";
+    backupIn.appId = "secure.app";
+    backupIn.storeId = "secure_store";
+    backupIn.encrypt = true;
+    backupIn.isCheckIntegrity = true;
+    backupIn.subUser = 100;
+    backupIn.isCustomDir = true;
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_EQ(backupIn.encrypt, backupOut.encrypt);
+    ASSERT_EQ(backupIn.isCheckIntegrity, backupOut.isCheckIntegrity);
+    ASSERT_EQ(backupIn.subUser, backupOut.subUser);
+    ASSERT_EQ(backupIn.isCustomDir, backupOut.isCustomDir);
+    ASSERT_TRUE(backupOut.encrypt);
+    ASSERT_TRUE(backupOut.isCheckIntegrity);
+    ASSERT_TRUE(backupOut.isCustomDir);
+    ASSERT_EQ(backupOut.subUser, 100);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization003
+ * @tc.desc: test BackupInfo serialization with large subUser value
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization003, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "large_user_backup";
+    backupIn.baseDir = "/data/large/user/database";
+    backupIn.appId = "large.app";
+    backupIn.storeId = "large_user_store";
+    backupIn.subUser = 2147483647; // INT32_MAX
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_EQ(backupIn.subUser, backupOut.subUser);
+    ASSERT_EQ(backupOut.subUser, 2147483647);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization004
+ * @tc.desc: test BackupInfo serialization with negative subUser value
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization004, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "negative_user_backup";
+    backupIn.baseDir = "/data/negative/user/database";
+    backupIn.appId = "negative.app";
+    backupIn.storeId = "negative_user_store";
+    backupIn.subUser = -1;
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_EQ(backupIn.subUser, backupOut.subUser);
+    ASSERT_EQ(backupOut.subUser, -1);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization005
+ * @tc.desc: test BackupInfo serialization with empty strings
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization005, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "";
+    backupIn.baseDir = "";
+    backupIn.appId = "";
+    backupIn.storeId = "";
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_TRUE(backupOut.name.empty());
+    ASSERT_TRUE(backupOut.baseDir.empty());
+    ASSERT_TRUE(backupOut.appId.empty());
+    ASSERT_TRUE(backupOut.storeId.empty());
+}
+
+/**
+ * @tc.name: BackupInfoSerialization006
+ * @tc.desc: test BackupInfo serialization with special characters in strings
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization006, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "backup_test_special@#$%";
+    backupIn.baseDir = "/data/test/database/path";
+    backupIn.appId = "com.example.test.app";
+    backupIn.storeId = "store_test_123";
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization007
+ * @tc.desc: test BackupInfo serialization with long path strings
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization007, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = std::string(256, 'a'); // Long file name
+    backupIn.baseDir = "/data/very/long/path/directory/" + std::string(100, 'b');
+    backupIn.appId = "com.very.long.application.name.testing";
+    backupIn.storeId = "store_with_very_long_name_for_testing_purposes";
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization008
+ * @tc.desc: test BackupInfo serialization with mixed boolean states
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization008, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "mixed_bool_backup";
+    backupIn.baseDir = "/data/mixed/database";
+    backupIn.appId = "mixed.app";
+    backupIn.storeId = "mixed_store";
+    backupIn.encrypt = true;
+    backupIn.isCheckIntegrity = false;
+    backupIn.isCustomDir = true;
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_TRUE(backupOut.encrypt);
+    ASSERT_FALSE(backupOut.isCheckIntegrity);
+    ASSERT_TRUE(backupOut.isCustomDir);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization009
+ * @tc.desc: test BackupInfo serialization with zero subUser
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization009, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "zero_user_backup";
+    backupIn.baseDir = "/data/zero/database";
+    backupIn.appId = "zero.app";
+    backupIn.storeId = "zero_store";
+    backupIn.subUser = 0;
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_EQ(backupIn.subUser, backupOut.subUser);
+    ASSERT_EQ(backupOut.subUser, 0);
+}
+
+/**
+ * @tc.name: BackupInfoSerialization010
+ * @tc.desc: test BackupInfo serialization with realistic production values
+ * @tc.type: FUNC
+ */
+HWTEST_F(TypesUtilTest, BackupInfoSerialization010, TestSize.Level0)
+{
+    MessageParcel parcel;
+    BackupInfo backupIn;
+    backupIn.name = "app_data_backup_20250321";
+    backupIn.baseDir = "/data/service/el2/100/database/com.example.app/kvstore";
+    backupIn.appId = "com.example.app";
+    backupIn.storeId = "user_preferences";
+    backupIn.encrypt = true;
+    backupIn.isCheckIntegrity = true;
+    backupIn.subUser = 100;
+    backupIn.isCustomDir = false;
+
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, backupIn));
+    BackupInfo backupOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcel, backupOut));
+    ASSERT_EQ(backupIn.name, backupOut.name);
+    ASSERT_EQ(backupIn.baseDir, backupOut.baseDir);
+    ASSERT_EQ(backupIn.appId, backupOut.appId);
+    ASSERT_EQ(backupIn.storeId, backupOut.storeId);
+    ASSERT_EQ(backupIn.encrypt, backupOut.encrypt);
+    ASSERT_EQ(backupIn.isCheckIntegrity, backupOut.isCheckIntegrity);
+    ASSERT_EQ(backupIn.subUser, backupOut.subUser);
+}
 }

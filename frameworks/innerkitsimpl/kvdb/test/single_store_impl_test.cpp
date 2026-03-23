@@ -2007,4 +2007,269 @@ HWTEST_F(SingleStoreImplTest, GenerateDbFiles, TestSize.Level0)
     auto res = kvStore->GenerateDbFiles("");
     ASSERT_EQ(res.size(), 0);
 }
+
+/**
+ * @tc.name: RestoreBasic
+ * @tc.desc: Test basic restore functionality with valid backup file
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreBasic, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("SingleKVStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"key1"}, {"value1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("backup_test", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"key1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("backup_test", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "value1");
+}
+
+/**
+ * @tc.name: RestoreInvalidBackupFile
+ * @tc.desc: Test restore with non-existent backup file
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreInvalidBackupFile, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("InvalidRestoreStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"test_key"}, {"test_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("non_existent_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_NE(status, SUCCESS);
+}
+
+/**
+ * @tc.name: RestoreEmptyBackup
+ * @tc.desc: Test restore from empty backup file
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreEmptyBackup, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("EmptyRestoreStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"original_key"}, {"original_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("empty_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"original_key"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("empty_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: RestoreMultipleTimes
+ * @tc.desc: Test restore operation multiple times
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreMultipleTimes, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("MultiRestoreStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"key1"}, {"value1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("backup1", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Put({"key2"}, {"value2"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("backup2", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"key1"});
+    status = kvStore->Delete({"key2"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("backup1", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "value1");
+
+    status = kvStore->Restore("backup2", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Get({"key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "value2");
+}
+
+/**
+ * @tc.name: RestoreWithLargeData
+ * @tc.desc: Test restore with large amount of data
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreWithLargeData, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("LargeDataStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    std::vector<Entry> entries;
+    for (int i = 0; i < 100; i++) {
+        entries.push_back({std::string("key") + std::to_string(i), std::string("value") + std::to_string(i)});
+    }
+
+    Status status = kvStore->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("large_data_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("large_data_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    std::vector<Entry> restoredEntries;
+    status = kvStore->GetEntries({"key"}, restoredEntries);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(restoredEntries.size(), 100);
+}
+
+/**
+ * @tc.name: RestoreWithSpecialCharacters
+ * @tc.desc: Test restore with keys and values containing special characters
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreWithSpecialCharacters, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("SpecialCharStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"key_test"}, {"value_test"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("special_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"key_test"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("special_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"key_test"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "value_test");
+}
+
+/**
+ * @tc.name: RestoreWithSubUser
+ * @tc.desc: Test restore functionality with subUser parameter
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreWithSubUser, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("SubUserStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    int32_t subUser = kvStore->GetSubUser();
+    ASSERT_GE(subUser, 0);
+
+    Status status = kvStore->Put({"subuser_key"}, {"subuser_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("subuser_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"subuser_key"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("subuser_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"subuser_key"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "subuser_value");
+}
+
+/**
+ * @tc.name: RestoreAfterBackupFailure
+ * @tc.desc: Test restore behavior after backup operation failure
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreAfterBackupFailure, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("BackupFailStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"test_key"}, {"test_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("valid_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"test_key"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("valid_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"test_key"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "test_value");
+}
+
+/**
+ * @tc.name: RestoreWithCustomDir
+ * @tc.desc: Test restore functionality with custom directory
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RestoreWithCustomDir, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("CustomDirStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"custom_key"}, {"custom_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Backup("custom_dir_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"custom_key"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Restore("custom_dir_backup", "/data/service/el1/public/database/SingleStoreImplTest");
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"custom_key"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "custom_value");
+}
+
 } // namespace OHOS::Test
