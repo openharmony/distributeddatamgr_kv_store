@@ -980,7 +980,9 @@ ohos_unittest("tokenizer_test") {
   sources += [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp" ]
 
   configs = [ ":tokenizer_config_unittest" ]
-  cflags_cc = []
+  cflags_cc = [
+    "-Werror=vla",
+  ]
 
   external_deps = [
     "c_utils:utils",
