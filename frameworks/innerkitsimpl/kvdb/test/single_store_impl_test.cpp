@@ -2272,4 +2272,440 @@ HWTEST_F(SingleStoreImplTest, RestoreWithCustomDir, TestSize.Level0)
     ASSERT_EQ(value.ToString(), "custom_value");
 }
 
+/**
+ * @tc.name: RekeyBasic
+ * @tc.desc: Test basic rekey functionality with encrypted store
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyBasic, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("RekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"rekey_key1"}, {"rekey_value1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"rekey_key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "rekey_value1");
+
+    status = kvStore->Put({"rekey_key2"}, {"rekey_value2"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Get({"rekey_key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "rekey_value2");
+}
+
+/**
+ * @tc.name: RekeyUnencryptedStore
+ * @tc.desc: Test rekey on unencrypted store should fail
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyUnencryptedStore, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("UnencryptedRekeyStore", KvStoreType::SINGLE_VERSION, false, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"test_key"}, {"test_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, CRYPT_ERROR);
+}
+
+/**
+ * @tc.name: RekeyMultipleTimes
+ * @tc.desc: Test rekey operation multiple times
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyMultipleTimes, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("MultiRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"key1"}, {"value1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "value1");
+
+    status = kvStore->Put({"key2"}, {"value2"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Get({"key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "value2");
+}
+
+/**
+ * @tc.name: RekeyWithLargeData
+ * @tc.desc: Test rekey with large amount of data
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyWithLargeData, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("LargeDataRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    std::vector<Entry> entries;
+    for (int i = 0; i < 50; i++) {
+        entries.push_back({std::string("rekey_key") + std::to_string(i),
+                          std::string("rekey_value") + std::to_string(i)});
+    }
+
+    Status status = kvStore->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    std::vector<Entry> restoredEntries;
+    status = kvStore->GetEntries({"rekey_key"}, restoredEntries);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(restoredEntries.size(), 50);
+}
+
+/**
+ * @tc.name: RekeyAfterDelete
+ * @tc.desc: Test rekey after deleting some data
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyAfterDelete, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("DeleteRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"delete_key1"}, {"delete_value1"});
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore->Put({"delete_key2"}, {"delete_value2"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Delete({"delete_key1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"delete_key1"}, value);
+    ASSERT_EQ(status, KEY_NOT_FOUND);
+
+    status = kvStore->Get({"delete_key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "delete_value2");
+}
+
+/**
+ * @tc.name: RekeyWithTransaction
+ * @tc.desc: Test rekey after transaction operations
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyWithTransaction, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("TransactionRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->StartTransaction();
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Put({"trans_key1"}, {"trans_value1"});
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore->Put({"trans_key2"}, {"trans_value2"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Commit();
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"trans_key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "trans_value1");
+
+    status = kvStore->Get({"trans_key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "trans_value2");
+}
+
+/**
+ * @tc.name: RekeyClosedStore
+ * @tc.desc: Test rekey on closed store should fail with ALREADY_CLOSED
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyClosedStore, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("ClosedRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Put({"close_key"}, {"close_value"});
+    ASSERT_EQ(status, SUCCESS);
+
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "ClosedRekeyStore" };
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, ALREADY_CLOSED);
+}
+
+/**
+ * @tc.name: RekeyEmptyStore
+ * @tc.desc: Test rekey on empty encrypted store succeeds
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyEmptyStore, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("EmptyRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: RekeyThreeConsecutiveTimes
+ * @tc.desc: Test rekey three consecutive times with data verification
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyThreeConsecutiveTimes, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("ThreeRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    for (int i = 0; i < 3; i++) {
+        Status status = kvStore->Put({"key" + std::to_string(i)}, {"value" + std::to_string(i)});
+        ASSERT_EQ(status, SUCCESS);
+
+        status = kvStore->Rekey();
+        ASSERT_EQ(status, SUCCESS);
+
+        Value value;
+        for (int j = 0; j <= i; j++) {
+            status = kvStore->Get({"key" + std::to_string(j)}, value);
+            ASSERT_EQ(status, SUCCESS);
+            ASSERT_EQ(value.ToString(), "value" + std::to_string(j));
+        }
+    }
+}
+
+/**
+ * @tc.name: RekeyWithDeleteBatch
+ * @tc.desc: Test rekey after batch delete operations
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyWithDeleteBatch, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("DeleteBatchRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    std::vector<Entry> entries;
+    std::vector<Key> keysToDelete;
+    for (int i = 0; i < 10; i++) {
+        entries.push_back({std::string("batch_key") + std::to_string(i),
+                          std::string("batch_value") + std::to_string(i)});
+        if (i < 5) {
+            keysToDelete.push_back(std::string("batch_key") + std::to_string(i));
+        }
+    }
+
+    Status status = kvStore->PutBatch(entries);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->DeleteBatch(keysToDelete);
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    for (int i = 0; i < 10; i++) {
+        Value value;
+        status = kvStore->Get({"batch_key" + std::to_string(i)}, value);
+        if (i < 5) {
+            ASSERT_EQ(status, KEY_NOT_FOUND);
+        } else {
+            ASSERT_EQ(status, SUCCESS);
+            ASSERT_EQ(value.ToString(), "batch_value" + std::to_string(i));
+        }
+    }
+}
+
+/**
+ * @tc.name: RekeyWithGetResultSet
+ * @tc.desc: Test rekey and verify data accessible via ResultSet
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyWithGetResultSet, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("ResultSetRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    for (int i = 0; i < 10; i++) {
+        Status status = kvStore->Put({"rs_key" + std::to_string(i)}, {"rs_value" + std::to_string(i)});
+        ASSERT_EQ(status, SUCCESS);
+    }
+
+    Status status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    std::shared_ptr<KvStoreResultSet> resultSet;
+    status = kvStore->GetResultSet({"rs_key"}, resultSet);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(resultSet, nullptr);
+    ASSERT_EQ(resultSet->GetCount(), 10);
+
+    status = kvStore->CloseResultSet(resultSet);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: RekeyPreservesLargeEntries
+ * @tc.desc: Test rekey preserves entries with large values
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyPreservesLargeEntries, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("LargeValRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    std::string largeValue(1024, 'A');
+    Status status = kvStore->Put({"large_key1"}, {largeValue});
+    ASSERT_EQ(status, SUCCESS);
+
+    std::string largeValue2(2048, 'B');
+    status = kvStore->Put({"large_key2"}, {largeValue2});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"large_key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), largeValue);
+
+    status = kvStore->Get({"large_key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), largeValue2);
+}
+
+/**
+ * @tc.name: RekeyThenPutGetVerify
+ * @tc.desc: Test put and get various data after rekey
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyThenPutGetVerify, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("PutGetRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Put({"after_key1"}, {"after_value1"});
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore->Put({"after_key2"}, {"after_value2"});
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore->Put({"after_key3"}, {"after_value3"});
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"after_key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "after_value1");
+
+    status = kvStore->Get({"after_key2"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "after_value2");
+
+    status = kvStore->Get({"after_key3"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "after_value3");
+}
+
+/**
+ * @tc.name: RekeyBeforeAndAfterPut
+ * @tc.desc: Test rekey before putting data and after putting data
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyBeforeAndAfterPut, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("BeforeAfterRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    Status status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Put({"mid_key1"}, {"mid_value1"});
+    ASSERT_EQ(status, SUCCESS);
+
+    status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    Value value;
+    status = kvStore->Get({"mid_key1"}, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(value.ToString(), "mid_value1");
+}
+
+/**
+ * @tc.name: RekeyWithGetEntriesVerify
+ * @tc.desc: Test rekey preserves all entry values accessible by GetEntries
+ * @tc.type: FUNC
+ */
+HWTEST_F(SingleStoreImplTest, RekeyWithGetEntriesVerify, TestSize.Level0)
+{
+    std::shared_ptr<SingleKvStore> kvStore;
+    kvStore = CreateKVStore("EntriesRekeyStore", KvStoreType::SINGLE_VERSION, true, true);
+    ASSERT_NE(kvStore, nullptr);
+
+    for (int i = 0; i < 20; i++) {
+        Status status = kvStore->Put(
+            {"entry_key_" + std::to_string(i)}, {"entry_value_" + std::to_string(i)});
+        ASSERT_EQ(status, SUCCESS);
+    }
+
+    Status status = kvStore->Rekey();
+    ASSERT_EQ(status, SUCCESS);
+
+    std::vector<Entry> entries;
+    status = kvStore->GetEntries({"entry_key_"}, entries);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(entries.size(), 20);
+
+    for (const auto &entry : entries) {
+        ASSERT_TRUE(entry.key.ToString().find("entry_key_") == 0);
+        ASSERT_TRUE(entry.value.ToString().find("entry_value_") == 0);
+    }
+}
+
 } // namespace OHOS::Test

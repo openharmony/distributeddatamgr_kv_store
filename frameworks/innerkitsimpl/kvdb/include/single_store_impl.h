@@ -77,6 +77,7 @@ public:
     Status Restore(const std::string &file, const std::string &baseDir) override;
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
+    Status Rekey() override;
     void OnRemoteDied() override;
     bool IsRebuild() override;
     // normal function

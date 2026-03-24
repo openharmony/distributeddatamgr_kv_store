@@ -1147,6 +1147,18 @@ public:
         }
     }
 
+    void RekeySync()
+    {
+        if (nativeStore_ == nullptr) {
+            ThrowAniError(Status::ILLEGAL_STATE, "");
+            return;
+        }
+        Status status = nativeStore_->Rekey();
+        if (status != Status::SUCCESS) {
+            ThrowAniError(status, "");
+        }
+    }
+
     void StartTransactionSync()
     {
         if (nativeStore_ == nullptr) {
