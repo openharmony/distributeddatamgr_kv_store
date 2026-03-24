@@ -66,6 +66,7 @@ public:
     static napi_value RestoreEx(napi_env env, napi_callback_info info);
     static napi_value DeleteBackup(napi_env env, napi_callback_info info);
     static napi_value DeleteBackupEx(napi_env env, napi_callback_info info);
+    static napi_value Rekey(napi_env env, napi_callback_info info);
     static napi_value StartTransaction(napi_env env, napi_callback_info info);
     static napi_value Commit(napi_env env, napi_callback_info info);
     static napi_value Rollback(napi_env env, napi_callback_info info);

@@ -370,6 +370,15 @@ public:
     {
         return 0;
     }
+
+    /**
+     * @brief Rekey the store with a new encryption key.
+     * @return Return SUCCESS for success, others for failure.
+     */
+    virtual Status Rekey() override
+    {
+        return Status::NOT_SUPPORT;
+    }
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
