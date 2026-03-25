@@ -1067,9 +1067,13 @@ public:
 
     void BackupExSync(TaiheBackupConfig backupConfig)
     {
-        if (nativeStore_ == nullptr || (std::string(backupConfig.fileName).find('/') != std::string::npos)) {
+        if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
+        }
+
+        if (std::string(backupConfig.fileName).find('/') != std::string::npos) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "", true);
         }
         Status status = nativeStore_->Backup(std::string(backupConfig.fileName), std::string(backupConfig.filePath));
         if (status != Status::SUCCESS) {
@@ -1091,9 +1095,13 @@ public:
 
     void RestoreExSync(TaiheBackupConfig backupConfig)
     {
-        if (nativeStore_ == nullptr || (std::string(backupConfig.fileName).find('/') != std::string::npos)) {
+        if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
+        }
+
+        if (std::string(backupConfig.fileName).find('/') != std::string::npos) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "", true);
         }
         Status status = nativeStore_->Restore(std::string(backupConfig.fileName), std::string(backupConfig.filePath));
         if (status != Status::SUCCESS) {
@@ -1123,9 +1131,12 @@ public:
 
     void DeleteBackupExSync(TaiheBackupConfig backupConfig)
     {
-        if (nativeStore_ == nullptr || (std::string(backupConfig.fileName).find('/') != std::string::npos)) {
+        if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "", true);
             return;
+        }
+        if (std::string(backupConfig.fileName).find('/') != std::string::npos) {
+            ThrowAniError(Status::INVALID_ARGUMENT, "", true);
         }
         std::vector<std::string> files;
         std::map<std::string, DistributedKv::Status> results;
@@ -1971,8 +1982,11 @@ public:
                 return;
             }
         }
-        std::string databaseDir = kvOptions.isCustomDir ? kvOptions.baseDir : contextParam_.baseDir;
-        Status status = kvDataManager_->DeleteKvStore(kvappId, kvStoreId, databaseDir);
+        kvOptions.baseDir = kvOptions.isCustomDir ? kvOptions.baseDir : contextParam_.baseDir;
+        kvOptions.area = contextParam_.area + 1;
+        kvOptions.hapName = contextParam_.hapName;
+        kvOptions.apiVersion = contextParam_.apiVersion;
+        Status status = kvDataManager_->DeleteKvStore(kvappId, kvStoreId, kvOptions);
         ZLOGE("DeleteKVStoreSync 3, status %{public}d, DISTRIBUTEDDATAMGR_ERR_OFFSET %{public}d", status,
             DistributedKv::DISTRIBUTEDDATAMGR_ERR_OFFSET);
         if (status != Status::SUCCESS) {
