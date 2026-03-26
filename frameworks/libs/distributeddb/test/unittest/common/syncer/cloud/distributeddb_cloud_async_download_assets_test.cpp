@@ -1023,17 +1023,16 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, Test
     auto schema = GetSchema();
     int threadNum = 10;
     CloudSyncOption option = GetAsyncCloudSyncOption();
-    thread *syncThreads[threadNum];
+    std::vector<std::thread> syncThreads;
     for (int i = 0; i < threadNum; i++) {
-        syncThreads[i] = new thread([&]() {
+        syncThreads.emplace_back([&]() {
             EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
             RelationalTestUtils::CloudBlockSync(option, delegate_);
             DeleteLocalData(db_, "AsyncDownloadAssetsTest");
         });
     }
     for (auto &thread : syncThreads) {
-        thread->join();
-        delete thread;
+        thread.join();
     }
     auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
     ASSERT_NE(manager, nullptr);

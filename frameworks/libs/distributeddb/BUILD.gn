@@ -117,6 +117,7 @@ ohos_shared_library("distributeddb") {
     "-Os",
     "-D_FORTIFY_SOURCE=2",
     "-flto",
+    "-Werror=vla",
   ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 
@@ -177,6 +178,7 @@ ohos_shared_library("customtokenizer") {
     "-fvisibility=hidden",
     "-Os",
     "-D_FORTIFY_SOURCE=2",
+    "-Werror=vla",
   ]
 
   external_deps = [
@@ -273,6 +275,7 @@ ohos_shared_library("distributeddb_client") {
     "-Os",
     "-D_FORTIFY_SOURCE=2",
     "-flto",
+    "-Werror=vla",
   ]
 
   external_deps = [
