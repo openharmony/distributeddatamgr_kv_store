@@ -1891,5 +1891,54 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, MergeDownloadAssetTest001, T
     EXPECT_EQ(downloadAssets["key1"][0].name, "asset1");
     EXPECT_EQ(downloadAssets["key1"][1].name, "asset2");
 }
+
+/**
+ * @tc.name: SyncWithPrimaryKeyOnly001
+ * @tc.desc: Test sync when local gid and hashkey are invalid, only primary key is valid.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithPrimaryKeyOnly001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Insert local data with primary key.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 3;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+
+    /**
+     * @tc.steps:step2. Clear gid and hash_key in log table to simulate invalid gid and hashkey.
+     * @tc.expected: step2. ok.
+     */
+    std::string clearGidSql = "UPDATE " + DBCommon::GetLogTableName(tableName_) +
+        " SET cloud_gid = '', hash_key = X'' WHERE data_key = (SELECT rowid FROM " + tableName_ + " WHERE id = '0');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, clearGidSql), SQLITE_OK);
+
+    /**
+     * @tc.steps:step3. Sync and verify data can be matched by primary key.
+     * @tc.expected: step3. Data matched by primary key and assets updated.
+     */
+    BlockSync(query, delegate_);
+
+    /**
+     * @tc.steps:step4. Verify log table has correct gid after sync.
+     * @tc.expected: step4. Gid is updated.
+     */
+    std::string checkGidSql = "SELECT cloud_gid FROM " + DBCommon::GetLogTableName(tableName_) +
+        " WHERE data_key = (SELECT rowid FROM " + tableName_ + " WHERE id = '0');";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db_, checkGidSql, stmt), E_OK);
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string gid;
+        SQLiteUtils::GetColumnTextValue(stmt, 0, gid);
+        EXPECT_EQ(gid, std::string("0"));
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
 }
 #endif

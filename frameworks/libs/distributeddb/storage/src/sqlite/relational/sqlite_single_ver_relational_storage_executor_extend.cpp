@@ -35,14 +35,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const Tab
     const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
     std::string querySql;
-    std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
     std::vector<Field> assetFields = CloudStorageUtils::GetCloudAsset(tableSchema);
-    int errCode = GetQueryInfoSql(tableSchema.name, vBucket, pkSet, assetFields, querySql);
+    int errCode = GetQueryInfoSql(tableSchema.name, vBucket, pkMap, assetFields, querySql);
     if (errCode != E_OK) {
         LOGE("Get query log sql fail, %d", errCode);
         return errCode;
     }
-    if (!pkSet.empty()) {
+    if (!pkMap.empty()) {
         errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, dataInfoWithLog.logInfo.hashKey, true);
         if (errCode != E_OK) {
             LOGE("calc hash fail when get query log statement, errCode = %d", errCode);
@@ -66,7 +66,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const Tab
                 break;
             }
             alreadyFound = true;
-            std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
             errCode = GetInfoByStatement(selectStmt, assetFields, pkMap, dataInfoWithLog, assetInfo);
             if (errCode != E_OK) {
                 LOGE("Get info by statement fail, %d", errCode);
@@ -218,12 +217,25 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
     if (errCode != E_OK) {
         LOGE("Bind hash key to query log statement failed. %d", errCode);
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
+        return errCode;
+    }
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
+    if (CloudStorageUtils::IsDownloadDataContainsPrimaryKey(vBucket, pkMap)) {
+        for (auto &item : std::as_const(pkMap)) {
+            index++;
+            errCode = BindOneField(index, vBucket, item.second, selectStmt);
+            if (errCode != E_OK) {
+                LOGE("Bind primary key to query log statement failed. %d", errCode);
+                SQLiteUtils::ResetStatement(selectStmt, true, ret);
+                return errCode;
+            }
+        }
     }
     return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &tableName, const VBucket &vBucket,
-    const std::set<std::string> &pkSet, std::string &querySql)
+    std::string &querySql)
 {
     std::string cloudGid;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
@@ -232,7 +244,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
         return errCode;
     }
 
-    if (pkSet.empty() && cloudGid.empty()) {
+    if (cloudGid.empty()) {
         LOGE("query log table failed because of both primary key and gid are empty.");
         return -E_CLOUD_ERROR;
     }

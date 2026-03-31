@@ -2071,5 +2071,20 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckTableExists(const std::string
 {
     return SQLiteUtils::CheckTableExists(dbHandle_, tableName, isCreated);
 }
+
+bool SQLiteSingleVerRelationalStorageExecutor::CheckUpdateHashKeyCondition(const VBucket &vBucket, const OpType op,
+    const Key &hashKey) const
+{
+    // if the hashKey exists, it needs to be updated during insertion
+    if ((op == OpType::INSERT && hashKey.empty()) || op == OpType::DELETE) {
+        return false;
+    }
+    bool isDeleted = false;
+    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::DELETE_FIELD, vBucket, isDeleted);
+    std::string gid;
+    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
+    // if DELETE_FIELD is not present, it indicates tha the data is not deleted. deleted data cannot be updated
+    return !isDeleted && !gid.empty();
+}
 } // namespace DistributedDB
 #endif

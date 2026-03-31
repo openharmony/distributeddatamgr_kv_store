@@ -394,11 +394,10 @@ private:
     int GetQueryLogStatement(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &querySql,
         const Key &hashKey, sqlite3_stmt *&selectStmt);
 
-    int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, const std::set<std::string> &pkSet,
-        std::string &querySql);
+    int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, std::string &querySql);
 
-    int GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
-        std::vector<Field> &assetFields, std::string &querySql);
+    int GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket,
+        const std::map<std::string, Field> &pkMap, std::vector<Field> &assetFields, std::string &querySql);
 
     int GetFillDownloadAssetStatement(const std::string &tableName, const VBucket &vBucket,
         const std::vector<Field> &fields, sqlite3_stmt *&statement);
