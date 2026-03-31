@@ -33,10 +33,10 @@ static constexpr const char *FLAG_NOT_LOGIC_DELETE = "FLAG & 0x08 = 0"; // see i
 using PairStringVector = std::pair<std::vector<std::string>, std::vector<std::string>>;
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket,
-    std::set<std::string> &pkSet, std::vector<Field> &assetFields, std::string &querySql)
+    const std::map<std::string, Field> &pkMap, std::vector<Field> &assetFields, std::string &querySql)
 {
-    if (assetFields.empty() && pkSet.empty()) {
-        return GetQueryLogSql(tableName, vBucket, pkSet, querySql);
+    if (assetFields.empty() && pkMap.empty()) {
+        return GetQueryLogSql(tableName, vBucket, querySql);
     }
     std::string gid;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
@@ -45,7 +45,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         return errCode;
     }
 
-    if (pkSet.empty() && gid.empty()) {
+    if (pkMap.empty() && gid.empty()) {
         LOGE("query log table failed because of both primary key and gid are empty.");
         return -E_CLOUD_ERROR;
     }
@@ -54,14 +54,26 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
     }
-    for (const auto &pk : pkSet) {
-        sql += ", b." + pk;
+    for (const auto &pk : pkMap) {
+        sql += ", b." + pk.first;
     }
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName) + " WHERE ";
     if (!gid.empty()) {
         sql += " a.cloud_gid = ? or ";
     }
     sql += "a.hash_key = ?";
+    if (!pkMap.empty() && CloudStorageUtils::IsDownloadDataContainsPrimaryKey(vBucket, pkMap)) {
+        sql += " or (";
+        bool first = true;
+        for (const auto &pk : pkMap) {
+            if (!first) {
+                sql += " and ";
+            }
+            sql += "b." + pk.first + " = ?";
+            first = false;
+        }
+        sql += ")";
+    }
     querySql = sql;
     return E_OK;
 }
@@ -2074,21 +2086,6 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateHashKeyBeforePutCloudData(co
         }
     }
     return E_OK;
-}
-
-bool SQLiteSingleVerRelationalStorageExecutor::CheckUpdateHashKeyCondition(const VBucket &vBucket, const OpType op,
-    const Key &hashKey) const
-{
-    // if the hashKey exists, it needs to be updated during insertion
-    if ((op == OpType::INSERT && hashKey.empty()) || op == OpType::DELETE) {
-        return false;
-    }
-    bool isDeleted = false;
-    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::DELETE_FIELD, vBucket, isDeleted);
-    std::string gid;
-    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
-    // if DELETE_FIELD is not present, it indicates tha the data is not deleted. deleted data cannot be updated
-    return !isDeleted && !gid.empty();
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CalculateAndCompareHashKey(const VBucket &vBucket,

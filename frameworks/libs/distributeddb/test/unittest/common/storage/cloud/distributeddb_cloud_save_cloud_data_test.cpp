@@ -1746,4 +1746,57 @@ namespace {
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), -E_INTERNAL_ERROR);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
+
+    void GetInfoByPKOrGidWithConflict(PrimaryKeyType pkType, const std::vector<OpType> &opType)
+    {
+        /**
+         * @tc.steps:step1. create db, create table, prepare data.
+         * @tc.expected: step1. success.
+         */
+        PrepareDataBase(g_tableName, pkType);
+
+        /**
+         * @tc.steps:step2. build downloaddata with different singlePk and hashKey
+         * @tc.expected: step2. return ok.
+         */
+        DownloadData downloadData;
+        BuildDownloadDataWithConfictPK(downloadData, opType);
+        DataInfoWithLog dataInfoWithLog;
+        VBucket assetInfo;
+
+        /**
+         * @tc.steps:step3. call PutCloudSyncData
+         * @tc.expected: step3. return ok.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(
+            g_tableName, downloadData.data[0], true, dataInfoWithLog, assetInfo), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+    }
+
+    /**
+     * @tc.name: GetInfoByPKOrGidWithConflictTest001
+     * @tc.desc: Test get info by pk (composite primary key)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPKOrGidWithConflictTest001, TestSize.Level1)
+    {
+        GetInfoByPKOrGidWithConflict(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, { OpType::UPDATE });
+    }
+
+    /**
+     * @tc.name: GetInfoByPKOrGidWithConflictTest002
+     * @tc.desc: Test get info by pk (no primary key)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xiefengzhu
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPKOrGidWithConflictTest002, TestSize.Level1)
+    {
+        GetInfoByPKOrGidWithConflict(PrimaryKeyType::NO_PRIMARY_KEY, { OpType::UPDATE });
+    }
 }
