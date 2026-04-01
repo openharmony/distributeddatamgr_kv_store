@@ -81,11 +81,11 @@ int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, co
     return SQLITE_OK;
 }
 }
-SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable,
-    DistributedTableMode mode)
+SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecutor(
+    sqlite3 *dbHandle, bool writable, DistributedTableMode mode)
     : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode), isLogicDelete_(false),
-      assetLoader_(nullptr), putDataMode_(PutDataMode::SYNC), markFlagOption_(MarkFlagOption::DEFAULT),
-      maxUploadCount_(0), maxUploadSize_(0)
+      isDeviceSyncLogicDelete_(false), assetLoader_(nullptr), putDataMode_(PutDataMode::SYNC),
+      markFlagOption_(MarkFlagOption::DEFAULT), maxUploadCount_(0), maxUploadSize_(0)
 {
     bindCloudFieldFuncMap_[TYPE_INDEX<int64_t>] = &CloudStorageUtils::BindInt64;
     bindCloudFieldFuncMap_[TYPE_INDEX<bool>] = &CloudStorageUtils::BindBool;
@@ -819,6 +819,9 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &d
             LOGE("[SaveSyncDataItem] Failed to get primary data before deletion, errCode: %d", errCode);
             return errCode;
         }
+        if (mode_ == DistributedTableMode::COLLABORATION && isDeviceSyncLogicDelete_) {
+            return E_OK;
+        }
         saveVals[DBConstant::ROWID] = static_cast<int64_t>(-1);
         return DeleteSyncDataItem(dataItem, inserter, saveStmt.rmDataStmt);
     }
@@ -895,7 +898,10 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const Da
     auto &isExist = saveDataInfo.isExist;
     auto &isDefeated = saveDataInfo.isDefeated;
     rowId = logInfoGet.dataKey;
-    isExist = (errCode != -E_NOT_FOUND) && ((logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) == 0);
+    isExist =
+        (errCode != -E_NOT_FOUND) && (((logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) == 0) ||
+                                      (logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) ==
+                                          static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE));
     if ((dataItem.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != DataItem::REMOTE_DEVICE_DATA_MISS_QUERY &&
         mode_ == DistributedTableMode::SPLIT_BY_DEVICE) {
         isDefeated = false; // no need to solve conflict except miss query data

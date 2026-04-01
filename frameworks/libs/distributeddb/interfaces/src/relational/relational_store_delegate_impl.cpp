@@ -465,7 +465,7 @@ DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableN
 
 DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
 {
-    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA) {
+    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA && cmd != LOGIC_DELETE_DEVICE_SYNC_DATA) {
         return NOT_SUPPORT;
     }
     if (conn_ == nullptr) {

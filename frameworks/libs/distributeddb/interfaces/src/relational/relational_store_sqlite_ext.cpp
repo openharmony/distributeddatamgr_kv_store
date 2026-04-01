@@ -1986,7 +1986,7 @@ DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::stri
         if (ret != DistributedDB::E_OK) {
             LOGE("rollback failed when drop logic deleted data. %d", ret);
         }
-        return DistributedDB::TransferDBErrno(errCode);
+        return DistributedDB::TransferDBErrno(SQLiteUtils::MapSQLiteErrno(errCode));
     }
     int ret = SQLiteUtils::CommitTransaction(db);
     if (ret != DistributedDB::E_OK) {

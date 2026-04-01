@@ -1679,7 +1679,7 @@ int SQLiteRelationalStore::ReFillSyncInfoTable(const std::vector<std::string> &a
 
 int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
 {
-    if (cmd != LOGIC_DELETE_SYNC_DATA) {
+    if (cmd != LOGIC_DELETE_SYNC_DATA && cmd != LOGIC_DELETE_DEVICE_SYNC_DATA) {
         return -E_NOT_SUPPORT;
     }
     if (pragmaData == nullptr) {
@@ -1690,7 +1690,12 @@ int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
         LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    storageEngine_->SetLogicDelete(logicDelete);
+    if (cmd == LOGIC_DELETE_SYNC_DATA) {
+        storageEngine_->SetLogicDelete(logicDelete);
+    }
+    if (cmd == LOGIC_DELETE_DEVICE_SYNC_DATA) {
+        storageEngine_->SetDeviceSyncLogicDelete(logicDelete);
+    }
     return E_OK;
 }
 

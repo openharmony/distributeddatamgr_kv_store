@@ -536,14 +536,13 @@ int RelationalSyncAbleStorage::PutSyncDataWithQuery(const QueryObject &object,
 int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems,
     const std::string &deviceName)
 {
-    int errCode = E_OK;
     LOGD("[RelationalSyncAbleStorage::SaveSyncDataItems] Get write handle.");
     QueryObject query = object;
     auto localSchema = storageEngine_->GetSchema();
     query.SetSchema(localSchema);
 
     RelationalSchemaObject filterSchema;
-    errCode = GetRemoteDeviceSchema(deviceName, filterSchema);
+    int errCode = GetRemoteDeviceSchema(deviceName, filterSchema);
     if (errCode != E_OK) {
         LOGE("Find remote schema failed. err=%d", errCode);
         return errCode;
@@ -560,11 +559,12 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     SchemaInfo schemaInfo = {storageEngine_->GetSchema(), storageEngine_->GetTrackerSchema()};
     auto inserter = RelationalSyncDataInserter::CreateInserter(
         deviceName, query, schemaInfo, filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
-    inserter.Init(dataItems, GetLocalHashDevId());
+    inserter.Init(dataItems, GetLocalHashDevId(), IsCurrentDeviceSyncLogicDelete());
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
     }
+    handle->SetDeviceSyncLogicDelete(deviceSyncLogicDelete_);
 
     // To prevent certain abnormal scenarios from deleting the table,
     // check if the table exists before each synchronization.
@@ -1749,9 +1749,20 @@ void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
     LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
 }
 
+void RelationalSyncAbleStorage::SetDeviceSyncLogicDelete(bool logicDelete)
+{
+    deviceSyncLogicDelete_ = logicDelete;
+    LOGI("[RelationalSyncAbleStorage] set device sync logic delete %d", static_cast<int>(logicDelete));
+}
+
 bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
 {
     return logicDelete_;
+}
+
+bool RelationalSyncAbleStorage::IsCurrentDeviceSyncLogicDelete() const
+{
+    return deviceSyncLogicDelete_;
 }
 
 std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,

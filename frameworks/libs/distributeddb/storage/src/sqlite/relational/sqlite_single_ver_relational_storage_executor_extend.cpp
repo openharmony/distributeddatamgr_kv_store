@@ -1283,6 +1283,11 @@ void SQLiteSingleVerRelationalStorageExecutor::SetLogicDelete(bool isLogicDelete
     isLogicDelete_ = isLogicDelete;
 }
 
+void SQLiteSingleVerRelationalStorageExecutor::SetDeviceSyncLogicDelete(bool isDeviceSyncLogicDelete)
+{
+    isDeviceSyncLogicDelete_ = isDeviceSyncLogicDelete;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordStatus(const std::string &tableName,
     const std::string &status, const Key &hashKey)
 {

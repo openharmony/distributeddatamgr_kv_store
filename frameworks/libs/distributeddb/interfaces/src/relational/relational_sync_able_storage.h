@@ -210,6 +210,8 @@ public:
     std::map<std::string, std::string> GetSharedTableOriginNames();
 
     void SetLogicDelete(bool logicDelete);
+    
+    void SetDeviceSyncLogicDelete(bool logicDelete);
 
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets) override;
@@ -250,6 +252,8 @@ public:
     int GetCursor(const std::string &tableName, uint64_t &cursor) override;
 
     bool IsCurrentLogicDelete() const override;
+
+    bool IsCurrentDeviceSyncLogicDelete() const override;
 
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
 
@@ -410,6 +414,7 @@ private:
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
 
     std::atomic<bool> logicDelete_ = false;
+    std::atomic<bool> deviceSyncLogicDelete_ = false;
 
     std::function<void (void)> syncFinishFunc_;
     std::function<void (void)> uploadStartFunc_;
