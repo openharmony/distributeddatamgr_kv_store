@@ -187,6 +187,7 @@ public:
 #endif
 
     void SetLogicDelete(bool isLogicDelete);
+    void SetDeviceSyncLogicDelete(bool isDeviceSyncLogicDelete);
     int RenewTableTrigger(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity = "");
 
@@ -597,6 +598,7 @@ private:
     std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
 
     std::atomic<bool> isLogicDelete_;
+    std::atomic<bool> isDeviceSyncLogicDelete_;
     std::shared_ptr<IAssetLoader> assetLoader_;
 
     PutDataMode putDataMode_;
