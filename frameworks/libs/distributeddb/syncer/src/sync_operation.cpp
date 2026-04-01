@@ -464,6 +464,10 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
         { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
         { static_cast<int>(OP_DB_CLOSING),                    OK },
         { static_cast<int>(OP_NEED_CORRECT_TARGET_USER),      NEED_CORRECT_TARGET_USER },
+        { static_cast<int>(OP_DISTRIBUTED_SCHEMA_NOT_FOUND), DISTRIBUTED_SCHEMA_NOT_FOUND },
+        { static_cast<int>(OP_TABLE_FIELD_MISMATCH),         TABLE_FIELD_MISMATCH },
+        { static_cast<int>(OP_DISTRIBUTED_SCHEMA_MISMATCH),  DISTRIBUTED_SCHEMA_MISMATCH },
+        { static_cast<int>(OP_CONSTRAINT_FAILURE),           CONSTRAINT },
         { static_cast<int>(OP_FAILED),                        DB_ERROR },
     };
     const auto &result = std::find_if(std::begin(syncOperationStatusNodes), std::end(syncOperationStatusNodes),

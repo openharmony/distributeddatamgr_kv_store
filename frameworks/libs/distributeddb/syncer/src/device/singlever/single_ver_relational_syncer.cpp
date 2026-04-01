@@ -191,7 +191,7 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParam &param, const 
     const std::vector<DistributedTable> &sTable = schemaObj.GetDistributedSchema().tables;
     if (schemaObj.GetTableMode() == DistributedTableMode::COLLABORATION && sTable.empty()) {
         LOGE("[SingleVerRelationalSyncer] Distributed schema not set in COLLABORATION mode");
-        return -E_SCHEMA_MISMATCH;
+        return -E_DISTRIBUTED_SCHEMA_MISMATCH;
     }
     for (auto &item : queryList) {
         int errCode = static_cast<RelationalDBSyncInterface *>(storage)->CheckAndInitQueryCondition(item);

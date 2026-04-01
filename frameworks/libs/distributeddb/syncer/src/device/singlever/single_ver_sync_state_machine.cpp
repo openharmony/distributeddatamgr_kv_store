@@ -899,7 +899,10 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_DENIED_SQL,                      SyncOperation::OP_DENIED_SQL },
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
         { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED },
-        { -E_DISTRIBUTED_SCHEMA_NOT_FOUND,    SyncOperation::OP_SCHEMA_INCOMPATIBLE },
+        { -E_DISTRIBUTED_SCHEMA_NOT_FOUND,    SyncOperation::OP_DISTRIBUTED_SCHEMA_NOT_FOUND },
+        { -E_TABLE_FIELD_MISMATCH,            SyncOperation::OP_TABLE_FIELD_MISMATCH },
+        { -E_DISTRIBUTED_SCHEMA_MISMATCH,     SyncOperation::OP_DISTRIBUTED_SCHEMA_MISMATCH },
+        { -E_CONSTRAINT,                      SyncOperation::OP_CONSTRAINT_FAILURE },
         { -E_FEEDBACK_DB_CLOSING,             SyncOperation::OP_DB_CLOSING },
         { -E_NEED_CORRECT_TARGET_USER,        SyncOperation::OP_NEED_CORRECT_TARGET_USER },
     };
@@ -1155,6 +1158,7 @@ void SingleVerSyncStateMachine::DataRecvErrCodeHandle(uint32_t sessionId, int er
                 PushPullDataRequestEvokeErrHandle();
                 break;
             case -E_BUSY:
+            case -E_CONSTRAINT:
             case -E_DISTRIBUTED_SCHEMA_CHANGED:
             case -E_DISTRIBUTED_SCHEMA_NOT_FOUND:
             case -E_FEEDBACK_COMMUNICATOR_NOT_FOUND:
@@ -1209,6 +1213,7 @@ void SingleVerSyncStateMachine::DataAckRecvErrCodeHandle(int errCode, bool handl
             }
             break;
         case -E_BUSY:
+        case -E_CONSTRAINT:
         case -E_DISTRIBUTED_SCHEMA_CHANGED:
         case -E_DISTRIBUTED_SCHEMA_NOT_FOUND:
         case -E_EKEYREVOKED:
