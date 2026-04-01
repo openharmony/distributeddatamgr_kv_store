@@ -17,9 +17,6 @@
 #include "ani_observer_utils.h"
 #include "ani_kvstore_utils.h"
 #include "ani_utils.h"
-#include <algorithm>
-#include <endian.h>
-
 #include "log_print.h"
 
 using namespace ::ohos::data::distributedkvstore;
@@ -27,45 +24,7 @@ using namespace OHOS::DistributedKVStore;
 
 namespace AniObserverUtils {
 
-bool IsSameTaiheCallback(TaiheVariantCallbackType callbackType1, TaiheVariantCallbackType callbackType2)
-{
-    if (std::holds_alternative<std::monostate>(callbackType1) && std::holds_alternative<std::monostate>(callbackType2)) {
-        return true;
-    }
-    if (std::holds_alternative<JsDataChangeCallbackType>(callbackType1) &&
-        std::holds_alternative<JsDataChangeCallbackType>(callbackType2)) {
-        JsDataChangeCallbackType *callback1 = std::get_if<JsDataChangeCallbackType>(&callbackType1);
-        JsDataChangeCallbackType *callback2 = std::get_if<JsDataChangeCallbackType>(&callbackType2);
-        if (callback1 != nullptr && callback2 != nullptr) {
-            return (*callback1 == *callback2);
-        } else {
-            return false;
-        }
-    }
-    if (std::holds_alternative<JsSyncCompleteCallbackType>(callbackType1) &&
-        std::holds_alternative<JsSyncCompleteCallbackType>(callbackType2)) {
-        JsSyncCompleteCallbackType *callback1 = std::get_if<JsSyncCompleteCallbackType>(&callbackType1);    
-        JsSyncCompleteCallbackType *callback2 = std::get_if<JsSyncCompleteCallbackType>(&callbackType2);
-        if (callback1 != nullptr && callback2 != nullptr) {
-            return (*callback1 == *callback2);
-        } else {
-            return false;
-        }
-    }
-    if (std::holds_alternative<JsServiceDeathType>(callbackType1) &&
-        std::holds_alternative<JsServiceDeathType>(callbackType2)) {
-        JsServiceDeathType *callback1 = std::get_if<JsServiceDeathType>(&callbackType1);
-        JsServiceDeathType *callback2 = std::get_if<JsServiceDeathType>(&callbackType2);
-        if (callback1 != nullptr && callback2 != nullptr) {
-            return (*callback1 == *callback2);
-        } else {
-            return false;
-        }
-    }
-    return false;
-}
-
-AniDataChangeObserver::AniDataChangeObserver(TaiheVariantCallbackType callback)
+AniDataChangeObserver::AniDataChangeObserver(JsDataChangeCallbackType callback)
 {
     ZLOGI("AniDataChangeObserver");
     jsCallback_ = callback;
@@ -80,7 +39,7 @@ void AniDataChangeObserver::Release()
 {
     ZLOGI("AniDataChangeObserver::Release");
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    jsCallback_ = std::monostate();
+    jsCallback_.reset();
 }
 
 void AniDataChangeObserver::SetIsSchemaStore(bool isSchemaStore)
@@ -91,16 +50,16 @@ void AniDataChangeObserver::SetIsSchemaStore(bool isSchemaStore)
 void AniDataChangeObserver::OnChange(const DistributedKv::ChangeNotification& info)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    auto pTaiheCallback = std::get_if<AniObserverUtils::JsDataChangeCallbackType>(&jsCallback_);
-    if (pTaiheCallback == nullptr) {
-        ZLOGE("pTaiheCallback == nullptr");
+    if (!jsCallback_.has_value()) {
+        ZLOGE("jsCallback_ == nullptr");
         return;
     }
+    auto &taiheCallback = jsCallback_.value();
     auto jspara = ani_kvstoreutils::KvChangeNotificationToTaihe(info, isSchemaStore_);
-    (*pTaiheCallback)(jspara);
+    taiheCallback(jspara);
 }
 
-AniSyncCallback::AniSyncCallback(TaiheVariantCallbackType callback)
+AniSyncCallback::AniSyncCallback(JsSyncCompleteCallbackType callback)
 {
     ZLOGI("AniSyncCallback");
     jsCallback_ = callback;
@@ -127,7 +86,7 @@ void AniSyncCallback::Release()
 {
     ZLOGI("AniSyncCallback::Release");
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    jsCallback_ = std::monostate();
+    jsCallback_.reset();
 }
 
 void AniSyncCallback::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
@@ -137,18 +96,18 @@ void AniSyncCallback::SyncCompleted(const std::map<std::string, DistributedKv::S
         return;
     }
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    auto pTaiheCallback = std::get_if<AniObserverUtils::JsSyncCompleteCallbackType>(&jsCallback_);
-    if (pTaiheCallback == nullptr) {
-        ZLOGE("pTaiheCallback == nullptr");
+    if (!jsCallback_.has_value()) {
+        ZLOGE("jsCallback_ == nullptr");
         return;
     }
-    ani_utils::AniExecuteFunc(vm_, [pTaiheCallback, &results](ani_env* aniEnv) {
+    auto &taiheCallback = jsCallback_.value();
+    ani_utils::AniExecuteFunc(vm_, [taiheCallback, &results](ani_env* aniEnv) {
         auto jspara = ani_kvstoreutils::KvStatusMapToTaiheArray(aniEnv, results);
-        (*pTaiheCallback)(jspara);
+        taiheCallback(jspara);
     });
 }
 
-AniServiceDeathObserver::AniServiceDeathObserver(TaiheVariantCallbackType cb)
+AniServiceDeathObserver::AniServiceDeathObserver(JsServiceDeathType cb)
 {
     ZLOGI("AniServiceDeathObserver");
     jsCallback_ = cb;
@@ -163,19 +122,19 @@ void AniServiceDeathObserver::Release()
 {
     ZLOGI("AniServiceDeathObserver::Release");
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    jsCallback_ = std::monostate();
+    jsCallback_.reset();
 }
 
 void AniServiceDeathObserver::OnRemoteDied()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    auto pTaiheCallback = std::get_if<AniObserverUtils::JsServiceDeathType>(&jsCallback_);
-    if (pTaiheCallback == nullptr) {
-        ZLOGE("pTaiheCallback == nullptr");
+    if (!jsCallback_.has_value()) {
+        ZLOGE("jsCallback_ == nullptr");
         return;
     }
+    auto &taiheCallback = jsCallback_.value();
     auto undefined = ::ohos::data::distributedkvstore::OneUndef::make_UNDEFINED();
-    (*pTaiheCallback)(undefined);
+    taiheCallback(undefined);
 }
 
 } // namespace AniObserverUtils

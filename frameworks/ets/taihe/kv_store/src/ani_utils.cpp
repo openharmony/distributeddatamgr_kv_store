@@ -177,7 +177,7 @@ bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value 
         ZLOGE("FindClass std.core.Tuple2 failed");
         return false;
     }
-    if (ANI_OK != env->Class_FindMethod(tupleCls, "<ctor>", "C{std.core.Object}C{std.core.Object}:", &tupleCtorMethod)) {
+    if (ANI_OK != env->Class_FindMethod(tupleCls, "<ctor>", nullptr, &tupleCtorMethod)) {
         ZLOGE("Class_FindMethod ctor failed");
         return false;
     }

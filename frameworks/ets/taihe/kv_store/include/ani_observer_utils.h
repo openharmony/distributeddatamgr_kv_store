@@ -14,13 +14,13 @@
  */
 #ifndef OHOS_ANI_OBSERVER_UTILS_H
 #define OHOS_ANI_OBSERVER_UTILS_H
-#include "taihe/runtime.hpp"
-#include "ohos.data.distributedkvstore.proj.hpp"
-#include "ohos.data.distributedkvstore.impl.hpp"
 #include <string>
 #include <optional>
 #include <variant>
 
+#include "taihe/runtime.hpp"
+#include "ohos.data.distributedkvstore.proj.hpp"
+#include "ohos.data.distributedkvstore.impl.hpp"
 #include "event_handler.h"
 #include "event_runner.h"
 #include "single_kvstore.h"
@@ -29,9 +29,6 @@
 #include "kvstore_sync_callback.h"
 #include "kvstore_death_recipient.h"
 
-static constexpr const char* DATA_CHANGE_EVENT = "dataChange";
-static constexpr const char* SYNC_COMPLETE_EVENT = "syncComplete";
-
 namespace AniObserverUtils {
 
 using namespace OHOS;
@@ -39,52 +36,62 @@ using namespace OHOS;
 using JsDataChangeCallbackType = ::taihe::callback<void(::ohos::data::distributedkvstore::ChangeNotification const&)>;
 using JsSyncCompleteCallbackType = ::taihe::callback<void(::taihe::array_view<uintptr_t>)>;
 using JsServiceDeathType = ::taihe::callback<void(::ohos::data::distributedkvstore::OneUndef const&)>;
-using TaiheVariantCallbackType = std::variant<std::monostate,
-    JsServiceDeathType, JsSyncCompleteCallbackType, JsDataChangeCallbackType>;
 
-bool IsSameTaiheCallback(TaiheVariantCallbackType callbackType1, TaiheVariantCallbackType callbackType2);
+template<typename T>
+bool IsSameTaiheCallback(T srcOptCallback, T otherOptCallback)
+{
+    if (!srcOptCallback.has_value() && !otherOptCallback.has_value()) {
+        return true;
+    }
+    if (srcOptCallback.has_value() && otherOptCallback.has_value()) {
+        const T& srcCallback = srcOptCallback.value();
+        const T& otherCallback = otherOptCallback.value();
+        return srcCallback == otherCallback;
+    }
+    return false;
+}
 
 class AniDataChangeObserver : public DistributedKv::KvStoreObserver {
 public:
-    AniDataChangeObserver(TaiheVariantCallbackType callback);
+    AniDataChangeObserver(JsDataChangeCallbackType callback);
     ~AniDataChangeObserver();
-    TaiheVariantCallbackType& GetJsCallback() { return jsCallback_; }
+    std::optional<JsDataChangeCallbackType>& GetJsCallback() { return jsCallback_; }
     void Release();
     void SetIsSchemaStore(bool isSchemaStore);
     void OnChange(const DistributedKv::ChangeNotification& info) override;
 
 protected:
     std::recursive_mutex mutex_;
-    TaiheVariantCallbackType jsCallback_;
+    std::optional<JsDataChangeCallbackType> jsCallback_;
     bool isSchemaStore_ = false;
 };
 
 class AniSyncCallback : public DistributedKv::KvStoreSyncCallback {
 public:
-    AniSyncCallback(TaiheVariantCallbackType callback);
+    AniSyncCallback(JsSyncCompleteCallbackType callback);
     ~AniSyncCallback();
     void GetVm();
-    TaiheVariantCallbackType& GetJsCallback() { return jsCallback_; }
+    std::optional<JsSyncCompleteCallbackType>& GetJsCallback() { return jsCallback_; }
     void Release();
     void SyncCompleted(const std::map<std::string, DistributedKv::Status>& results) override;
 
 protected:
     std::recursive_mutex mutex_;
-    TaiheVariantCallbackType jsCallback_;
+    std::optional<JsSyncCompleteCallbackType> jsCallback_;
     ani_vm* vm_ = nullptr;
 };
 
 class AniServiceDeathObserver : public DistributedKv::KvStoreDeathRecipient {
 public:
-    AniServiceDeathObserver(TaiheVariantCallbackType cb);
+    AniServiceDeathObserver(JsServiceDeathType cb);
     ~AniServiceDeathObserver();
-    TaiheVariantCallbackType& GetJsCallback() { return jsCallback_; }
+    std::optional<JsServiceDeathType>& GetJsCallback() { return jsCallback_; }
     void Release();
     void OnRemoteDied() override;
 
 private:
     std::recursive_mutex mutex_;
-    TaiheVariantCallbackType jsCallback_;
+    std::optional<JsServiceDeathType> jsCallback_;
 };
 
 }  // namespace AniObserverUtils

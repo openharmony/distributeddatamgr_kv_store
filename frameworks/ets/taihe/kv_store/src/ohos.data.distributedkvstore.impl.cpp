@@ -52,6 +52,13 @@ static std::map<uint32_t, std::string> valueTypeToString_ = {
     { ani_kvstoreutils::LONG, std::string("LONG") }
 };
 
+distributedkvstore::SubscribeType taiheLocalSubscribeType =
+    distributedkvstore::SubscribeType(distributedkvstore::SubscribeType::key_t::SUBSCRIBE_TYPE_LOCAL);
+distributedkvstore::SubscribeType taiheRemoteSubscribeType =
+    distributedkvstore::SubscribeType(distributedkvstore::SubscribeType::key_t::SUBSCRIBE_TYPE_REMOTE);
+distributedkvstore::SubscribeType taiheAllSubscribeType =
+    distributedkvstore::SubscribeType(distributedkvstore::SubscribeType::key_t::SUBSCRIBE_TYPE_ALL);
+
 namespace {
 class FieldNodeImpl {
 public:
@@ -1253,29 +1260,30 @@ public:
     }
 
     std::vector<std::shared_ptr<AniObserverUtils::AniDataChangeObserver>>* GetChangeObserverArray(
-        int32_t index)
+        distributedkvstore::SubscribeType type)
     {
-        if (index == ani_kvstoreutils::SUBSCRIBE_LOCAL ||
-            index == ani_kvstoreutils::SUBSCRIBE_REMOTE ||
-            index == ani_kvstoreutils::SUBSCRIBE_LOCAL_REMOTE) {
-            return &jsChangeMap_[index];
+        if (type.get_key() == distributedkvstore::SubscribeType::key_t::SUBSCRIBE_TYPE_LOCAL) {
+            return &jsChangeMap_[ani_kvstoreutils::SUBSCRIBE_LOCAL];
+        } else if (type.get_key() == distributedkvstore::SubscribeType::key_t::SUBSCRIBE_TYPE_REMOTE) {
+            return &jsChangeMap_[ani_kvstoreutils::SUBSCRIBE_REMOTE];
+        } else if (type.get_key() == distributedkvstore::SubscribeType::key_t::SUBSCRIBE_TYPE_ALL) {
+            return &jsChangeMap_[ani_kvstoreutils::SUBSCRIBE_LOCAL_REMOTE];
         } else {
-            ZLOGE("GetChangeObserverArray, index out of bounds");
+            ZLOGE("GetChangeObserverArray, type out of bounds");
             return nullptr;
         }
     }
 
-    bool IsChangeCallbackDuplicated(
-        std::vector<std::shared_ptr<AniObserverUtils::AniDataChangeObserver>> const& callbackList,
-        AniObserverUtils::TaiheVariantCallbackType const& callback)
+    template<typename ArrayItemType, typename CallbackType>
+    bool IsTaiheCallbackDuplicatedInArray(std::vector<ArrayItemType> const& callbackList, CallbackType const& callback)
     {
-        std::lock_guard<std::recursive_mutex> lock(changeMapMutex_);
         bool isDuplicate = std::any_of(callbackList.begin(), callbackList.end(),
-            [&callback](std::shared_ptr<AniObserverUtils::AniDataChangeObserver> const& item) {
+            [&callback](ArrayItemType const& item) {
                 if (item == nullptr) {
                     return false;
                 }
-                return AniObserverUtils::IsSameTaiheCallback(callback, item->GetJsCallback());
+                return AniObserverUtils::IsSameTaiheCallback(
+                    std::make_optional<CallbackType>(callback), item->GetJsCallback());
             });
         return isDuplicate;
     }
@@ -1287,19 +1295,19 @@ public:
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
-        auto changeObserverArray = GetChangeObserverArray(static_cast<int32_t>(type));
+        auto changeObserverArray = GetChangeObserverArray(type);
         if (changeObserverArray == nullptr) {
             ThrowAniError(Status::INVALID_ARGUMENT, "");
             return;
         }
         auto kvsubscribeType = ani_kvstoreutils::SubscribeTypeToNative(type);
-        AniObserverUtils::TaiheVariantCallbackType callback = callbackFunction;
-        bool isDuplicate = IsChangeCallbackDuplicated(*changeObserverArray, callback);
+        AniObserverUtils::JsDataChangeCallbackType callback = callbackFunction;
+        std::lock_guard<std::recursive_mutex> lock(changeMapMutex_);
+        bool isDuplicate = IsTaiheCallbackDuplicatedInArray(*changeObserverArray, callback);
         if (isDuplicate) {
             ZLOGW("OnDataChange failed to register, duplicated, type: %{public}d", static_cast<int32_t>(type));
             return;
         }
-        std::lock_guard<std::recursive_mutex> lock(changeMapMutex_);
         auto observer = std::make_shared<AniObserverUtils::AniDataChangeObserver>(callback);
         observer->SetIsSchemaStore(isSchemaStore_);
         DistributedKv::Status status = nativeStore_->SubscribeKvStore(kvsubscribeType, observer);
@@ -1324,15 +1332,17 @@ public:
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
-        ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType> optVarCallback;
+        std::optional<AniObserverUtils::JsDataChangeCallbackType> stdOptCallback;
         if (optCallback.has_value()) {
-            optVarCallback = ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType>::make(optCallback.value());
+            stdOptCallback = optCallback.value();
         }
-        for (int32_t type = ani_kvstoreutils::SUBSCRIBE_LOCAL; type < ani_kvstoreutils::SUBSCRIBE_COUNT; type++) {
+        distributedkvstore::SubscribeType typelist[] = {
+            taiheLocalSubscribeType, taiheRemoteSubscribeType, taiheAllSubscribeType};
+        for (size_t index = 0; index < sizeof(typelist) / sizeof(distributedkvstore::SubscribeType); index++) {
             bool updated = false;
-            DistributedKv::Status status = UnRegisterChangeObserver(type, optVarCallback, updated);
+            DistributedKv::Status status = UnRegisterChangeObserver(typelist[index], stdOptCallback, updated);
             if (status != DistributedKv::Status::SUCCESS) {
-                ZLOGE("OffDataChange failed, type = %{public}d, status %{public}d", type, status);
+                ZLOGE("OffDataChange failed, index = %{public}zu, status %{public}d", index, status);
                 ThrowAniError(status, "");
                 return;
             }
@@ -1340,8 +1350,8 @@ public:
         ZLOGI("OffDataChange success");
     }
 
-    DistributedKv::Status UnRegisterChangeObserver(int32_t type,
-        ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType> optCallback, bool &isUpdateFlag)
+    DistributedKv::Status UnRegisterChangeObserver(distributedkvstore::SubscribeType type,
+        std::optional<AniObserverUtils::JsDataChangeCallbackType> stdOptCallback, bool &isUpdateFlag)
     {
         auto changeObserverArray = GetChangeObserverArray(type);
         if (nativeStore_ == nullptr || changeObserverArray == nullptr) {
@@ -1360,8 +1370,8 @@ public:
                 iter++;
                 continue;
             }
-            if (optCallback.has_value() &&
-                !AniObserverUtils::IsSameTaiheCallback(optCallback.value(), item->GetJsCallback())) {
+            if (stdOptCallback.has_value() &&
+                !AniObserverUtils::IsSameTaiheCallback(stdOptCallback, item->GetJsCallback())) {
                 iter++;
                 continue;
             }
@@ -1380,27 +1390,15 @@ public:
         return result;
     }
 
-    bool IsSyncCallbackDuplicated(AniObserverUtils::TaiheVariantCallbackType const& callback)
-    {
-        bool isDuplicate = std::any_of(jsSyncMap_.begin(), jsSyncMap_.end(),
-            [&callback](std::shared_ptr<AniObserverUtils::AniSyncCallback> const& item) {
-                if (item == nullptr) {
-                    return false;
-                }
-                return AniObserverUtils::IsSameTaiheCallback(callback, item->GetJsCallback());
-            });
-        return isDuplicate;
-    }
-
     void OnSyncComplete(::taihe::callback_view<void(::taihe::array_view<uintptr_t> info)> callbackFunction)
     {
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
-        AniObserverUtils::TaiheVariantCallbackType callback = callbackFunction;
+        AniObserverUtils::JsSyncCompleteCallbackType callback = callbackFunction;
         std::lock_guard<std::recursive_mutex> lock(syncMapMutex_);
-        bool isDuplicate = IsSyncCallbackDuplicated(callback);
+        bool isDuplicate = IsTaiheCallbackDuplicatedInArray(jsSyncMap_, callback);
         if (isDuplicate) {
             ZLOGW("OnSyncComplete failed to register, duplicated");
             return;
@@ -1427,12 +1425,12 @@ public:
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
-        ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType> optVarCallback;
+        std::optional<AniObserverUtils::JsSyncCompleteCallbackType> stdOptCallback;
         if (optCallback.has_value()) {
-            optVarCallback = ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType>::make(optCallback.value());
+            stdOptCallback = optCallback.value();
         }
         bool isUpdated = false;
-        Status status = UnRegisterSyncCompleteObserver(optVarCallback, isUpdated);
+        Status status = UnRegisterSyncCompleteObserver(stdOptCallback, isUpdated);
         if (status != Status::SUCCESS) {
             ZLOGE("UnregisterListener syncComplete failed, status %{public}d", status);
             ThrowAniError(status, "");
@@ -1442,7 +1440,7 @@ public:
     }
 
     DistributedKv::Status UnRegisterSyncCompleteObserver(
-        ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType> optCallback, bool &isUpdateFlag)
+        std::optional<AniObserverUtils::JsSyncCompleteCallbackType> stdOptCallback, bool &isUpdateFlag)
     {
         if (nativeStore_ == nullptr) {
             ZLOGW("UnRegisterSyncCompleteObserver, nativeStore_ is nullptr");
@@ -1459,8 +1457,8 @@ public:
                 iter++;
                 continue;
             }
-            if (optCallback.has_value() &&
-                !AniObserverUtils::IsSameTaiheCallback(optCallback.value(), item->GetJsCallback())) {
+            if (stdOptCallback.has_value() &&
+                !AniObserverUtils::IsSameTaiheCallback(stdOptCallback, item->GetJsCallback())) {
                 iter++;
                 continue;
             }
@@ -1478,15 +1476,18 @@ public:
     void UnRegisterAllObserver()
     {
         ZLOGI("UnRegisterAllObserver");
-        ::taihe::optional<AniObserverUtils::TaiheVariantCallbackType> empty;
         bool isUpdated = false;
         {
+            std::optional<AniObserverUtils::JsDataChangeCallbackType> empty;
             std::lock_guard<std::recursive_mutex> lock(changeMapMutex_);
-            for (int32_t type = ani_kvstoreutils::SUBSCRIBE_LOCAL; type < ani_kvstoreutils::SUBSCRIBE_COUNT; type++) {
-                UnRegisterChangeObserver(type, empty, isUpdated);
+            distributedkvstore::SubscribeType typelist[] = {
+                taiheLocalSubscribeType, taiheRemoteSubscribeType, taiheAllSubscribeType};
+            for (size_t index = 0; index < sizeof(typelist) / sizeof(distributedkvstore::SubscribeType); index++) {
+                UnRegisterChangeObserver(typelist[index], empty, isUpdated);
             }
         }
         {
+            std::optional<AniObserverUtils::JsSyncCompleteCallbackType> empty;
             std::lock_guard<std::recursive_mutex> lock(syncMapMutex_);
             UnRegisterSyncCompleteObserver(empty, isUpdated);
         }
@@ -1516,7 +1517,8 @@ public:
 protected:
     std::shared_ptr<OHOS::DistributedKv::SingleKvStore> nativeStore_;
     std::recursive_mutex changeMapMutex_;
-    std::vector<std::shared_ptr<AniObserverUtils::AniDataChangeObserver>> jsChangeMap_[ani_kvstoreutils::SUBSCRIBE_COUNT];
+    std::vector<std::shared_ptr<AniObserverUtils::AniDataChangeObserver>>
+        jsChangeMap_[ani_kvstoreutils::SUBSCRIBE_COUNT];
     std::recursive_mutex syncMapMutex_;
     std::vector<std::shared_ptr<AniObserverUtils::AniSyncCallback>> jsSyncMap_;
     ContextParam contextParam_;
@@ -1970,19 +1972,21 @@ public:
         return ::taihe::array<::taihe::string>(::taihe::copy_data_t{}, stringArray.data(), stringArray.size());
     }
 
-    void OnDistributedDataServiceDie(::taihe::callback_view<void(distributedkvstore::OneUndef const& para)> callbackFunction)
+    void OnDistributedDataServiceDie(::taihe::callback_view<void(distributedkvstore::OneUndef const& para)>
+        callbackFunction)
     {
         std::lock_guard<std::recursive_mutex> lock(cbDeathListMutex_);
-        AniObserverUtils::TaiheVariantCallbackType variantCallback = callbackFunction;
+        AniObserverUtils::JsServiceDeathType taiheCallback = callbackFunction;
         bool isDuplicate = std::any_of(jsDeathCbList_.begin(), jsDeathCbList_.end(),
-            [&variantCallback](std::shared_ptr<AniObserverUtils::AniServiceDeathObserver> const& item) {
-                return AniObserverUtils::IsSameTaiheCallback(variantCallback, item->GetJsCallback());
+            [&taiheCallback](std::shared_ptr<AniObserverUtils::AniServiceDeathObserver> const& item) {
+                return AniObserverUtils::IsSameTaiheCallback(
+                    std::make_optional<AniObserverUtils::JsServiceDeathType>(taiheCallback), item->GetJsCallback());
             });
         if (isDuplicate) {
             ZLOGW("OnDistributedDataServiceDie, Failed to register duplicated");
             return;
         }
-        auto observer = std::make_shared<AniObserverUtils::AniServiceDeathObserver>(variantCallback);
+        auto observer = std::make_shared<AniObserverUtils::AniServiceDeathObserver>(taiheCallback);
         kvDataManager_->RegisterKvStoreServiceDeathRecipient(observer);
         jsDeathCbList_.emplace_back(std::move(observer));
     }
@@ -1991,15 +1995,15 @@ public:
         ::taihe::callback<void(::ohos::data::distributedkvstore::OneUndef const& para)>> optCallback)
     {
         std::lock_guard<std::recursive_mutex> lock(cbDeathListMutex_);
-        AniObserverUtils::TaiheVariantCallbackType varcb;
+        std::optional<AniObserverUtils::JsServiceDeathType> stdOptCallback;
         if (optCallback.has_value()) {
-            varcb = optCallback.value();
+            stdOptCallback = optCallback.value();
         }
-        auto pred = [varcb](std::shared_ptr<AniObserverUtils::AniServiceDeathObserver> &obj) {
-            return AniObserverUtils::IsSameTaiheCallback(varcb, obj->GetJsCallback());
+        auto pred = [stdOptCallback](std::shared_ptr<AniObserverUtils::AniServiceDeathObserver> &obj) {
+            return AniObserverUtils::IsSameTaiheCallback(stdOptCallback, obj->GetJsCallback());
         };
         for (auto iter = jsDeathCbList_.begin(); iter != jsDeathCbList_.end();) {
-            if (std::holds_alternative<std::monostate>(varcb) || pred(*iter) == true) {
+            if (!stdOptCallback.has_value() || pred(*iter) == true) {
                 ZLOGI("jsDeathCbList_ erase item");
                 (*iter)->Release();
                 kvDataManager_->UnRegisterKvStoreServiceDeathRecipient(*iter);
