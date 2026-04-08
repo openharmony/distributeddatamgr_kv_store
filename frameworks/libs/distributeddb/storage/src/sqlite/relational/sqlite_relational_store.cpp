@@ -1692,8 +1692,7 @@ int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
     }
     if (cmd == LOGIC_DELETE_SYNC_DATA) {
         storageEngine_->SetLogicDelete(logicDelete);
-    }
-    if (cmd == LOGIC_DELETE_DEVICE_SYNC_DATA) {
+    } else if (cmd == LOGIC_DELETE_DEVICE_SYNC_DATA) {
         storageEngine_->SetDeviceSyncLogicDelete(logicDelete);
     }
     return E_OK;
