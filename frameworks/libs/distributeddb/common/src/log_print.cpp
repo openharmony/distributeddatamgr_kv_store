@@ -27,6 +27,7 @@
 namespace DistributedDB {
 std::shared_ptr<Logger> Logger::logHandler = nullptr;
 std::shared_mutex Logger::logMutex;
+std::atomic<bool> Logger::instanceDestroyed{false};
 const std::string Logger::PRIVATE_TAG = "s{private}";
 
 class HiLogger : public Logger {
@@ -66,31 +67,27 @@ public:
 
 std::shared_ptr<Logger> Logger::GetInstance()
 {
-    std::shared_ptr<Logger> inst = nullptr;
+    // Fast path: use shared_lock for read operation (allows concurrent readers)
     {
         std::shared_lock<std::shared_mutex> readLock(logMutex);
         if (logHandler != nullptr) {
-            inst = logHandler;
-            return inst;
+            return logHandler;
         }
     }
-    {
-        std::unique_lock<std::shared_mutex> writeLock(logMutex);
-        if (logHandler != nullptr) {
-            inst = logHandler;
-            return inst;
-        }
-        inst = std::make_shared<HiLogger>();
-        logHandler = inst;
+
+    std::unique_lock<std::shared_mutex> writeLock(logMutex);
+    if (logHandler == nullptr && !instanceDestroyed.load(std::memory_order_acquire)) {
+        logHandler = std::make_shared<HiLogger>();
     }
-    LOGI("[Logger] init");
     return logHandler;
 }
 
 void Logger::DeleteInstance()
 {
+    // Use unique_lock for write operation (exclusive access)
     std::unique_lock<std::shared_mutex> writeLock(logMutex);
     logHandler.reset();
+    instanceDestroyed.store(true, std::memory_order_release);
 }
 
 void Logger::Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...)
@@ -98,6 +95,11 @@ void Logger::Log(Level level, const std::string &tag, const char *func, int line
     (void)func;
     (void)line;
     if (format == nullptr) {
+        return;
+    }
+
+    // Early return if instance has been destroyed (e.g., during process shutdown)
+    if (instanceDestroyed.load(std::memory_order_acquire)) {
         return;
     }
 
@@ -115,7 +117,11 @@ void Logger::Log(Level level, const std::string &tag, const char *func, int line
         msg = logBuff;
     }
     va_end(argList);
-    Logger::GetInstance()->Print(level, tag, msg);
+
+    auto logger = GetInstance();
+    if (logger != nullptr) {
+        logger->Print(level, tag, msg);
+    }
 }
 
 void Logger::PreparePrivateLog(const char *format, std::string &outStrFormat)
@@ -129,5 +135,10 @@ void Logger::PreparePrivateLog(const char *format, std::string &outStrFormat)
         outStrFormat.replace(pos, PRIVATE_TAG.size(), ".3s");
 #endif
     }
+}
+
+void Logger::SetInstanceDestroyed(bool isDestroyed)
+{
+    instanceDestroyed.store(isDestroyed, std::memory_order_release);
 }
 } // namespace DistributedDB

@@ -95,7 +95,7 @@ void DistributedDBBasicRDBTest::PrepareRemoveDataStore(StoreInfo &info1, StoreIn
     BasicUnitTest::SetLocalDeviceId("dev3");
     BlockPush(info3, info2, g_defaultTable1);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
-    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count*2);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
 }
 
@@ -259,6 +259,32 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample002, TestSize.Level0)
     Query query = Query::Select().FromTable({g_defaultTable1});
     RDBGeneralUt::CloudBlockSync(info1, query);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 20);
+}
+
+/**
+ * @tc.name: RdbCloudSyncExample003
+ * @tc.desc: Test update data will change cursor.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. cloud insert data.
+     * @tc.expected: step1. Ok
+     */
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    auto ret = ExecuteSQL("INSERT INTO defaultTable1(id, name) VALUES(1, 'name1')", info1);
+    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1), "cursor >= 1"), 1);
+    ret = ExecuteSQL("UPDATE defaultTable1 SET name='name1' WHERE id=1", info1);
+    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1), "cursor >= 2"), 1);
+    ret = ExecuteSQL("UPDATE defaultTable1 SET name='name2' WHERE id=1", info1);
+    EXPECT_EQ(ret, E_OK);
+    EXPECT_EQ(CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1), "cursor >= 3"), 1);
 }
 
 /**

@@ -24,12 +24,26 @@
 #include "runtime_context.h"
 
 namespace DistributedDB {
+bool CloudStorageUtils::CheckIsNilType(const VBucket &vBucket, const Field &field, int errCode)
+{
+    Type entry;
+    bool isExisted = GetTypeCaseInsensitive(field.colName, vBucket, entry);
+    if (!isExisted || entry.index() == TYPE_INDEX<Nil> || errCode == -E_NOT_FOUND) {
+        if (!field.nullable) {
+            LOGW("field value is not allowed to be null");
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field &field,
     sqlite3_stmt *upsertStmt)
 {
     int64_t val = 0;
     int errCode = GetValueFromVBucket<int64_t>(field.colName, vBucket, val);
-    if (field.nullable && errCode == -E_NOT_FOUND) {
+    if (CheckIsNilType(vBucket, field, errCode)) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         if (errCode != E_OK) {
@@ -50,7 +64,7 @@ int CloudStorageUtils::BindBool(int index, const VBucket &vBucket, const Field &
 {
     bool val = false;
     int errCode = GetValueFromVBucket<bool>(field.colName, vBucket, val);
-    if (field.nullable && errCode == -E_NOT_FOUND) {
+    if (CheckIsNilType(vBucket, field, errCode)) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         if (errCode != E_OK) {
@@ -71,7 +85,7 @@ int CloudStorageUtils::BindDouble(int index, const VBucket &vBucket, const Field
 {
     double val = 0.0;
     int errCode = GetValueFromVBucket<double>(field.colName, vBucket, val);
-    if (field.nullable && errCode == -E_NOT_FOUND) {
+    if (CheckIsNilType(vBucket, field, errCode)) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         if (errCode != E_OK) {
@@ -92,7 +106,7 @@ int CloudStorageUtils::BindText(int index, const VBucket &vBucket, const Field &
 {
     std::string str;
     int errCode = GetValueFromVBucket<std::string>(field.colName, vBucket, str);
-    if (field.nullable && errCode == -E_NOT_FOUND) {
+    if (CheckIsNilType(vBucket, field, errCode)) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         if (errCode != E_OK) {
@@ -103,7 +117,7 @@ int CloudStorageUtils::BindText(int index, const VBucket &vBucket, const Field &
     }
 
     if (errCode != E_OK) {
-        LOGE("Bind string to insert statement failed, %d", errCode);
+        LOGE("Bind string to statement failed, %d", errCode);
     }
     return errCode;
 }
@@ -113,28 +127,29 @@ int CloudStorageUtils::BindBlob(int index, const VBucket &vBucket, const Field &
 {
     int errCode = E_OK;
     Bytes val;
+    bool isNilType = CheckIsNilType(vBucket, field, errCode);
     if (field.type == TYPE_INDEX<Bytes>) {
         errCode = GetValueFromVBucket<Bytes>(field.colName, vBucket, val);
-        if (!(IsFieldValid(field, errCode))) {
+        if (!(errCode == E_OK || isNilType)) {
             goto ERROR;
         }
     } else if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;
         errCode = GetValueFromVBucket(field.colName, vBucket, asset);
-        if (!(IsFieldValid(field, errCode))) {
+        if (!(errCode == E_OK || isNilType)) {
             goto ERROR;
         }
         RuntimeContext::GetInstance()->AssetToBlob(asset, val);
     } else {
         Assets assets;
         errCode = GetValueFromVBucket(field.colName, vBucket, assets);
-        if (!(IsFieldValid(field, errCode))) {
+        if (!(errCode == E_OK || isNilType)) {
             goto ERROR;
         }
         RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
     }
 
-    if (errCode == -E_NOT_FOUND) {
+    if (isNilType) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         errCode = SQLiteUtils::BindBlobToStatement(upsertStmt, index, val);
@@ -201,13 +216,22 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
     return errCode;
 }
 
+int CloudStorageUtils::BindNil(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt)
+{
+    (void)vBucket;
+    if (!field.nullable) {
+        LOGE("field value is not allowed to be null");
+        return -E_CLOUD_ERROR;
+    }
+    return SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
+}
+
 std::set<std::string> CloudStorageUtils::GetCloudPrimaryKey(const TableSchema &tableSchema)
 {
+    std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
     std::set<std::string> pkSet;
-    for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
-            pkSet.insert(field.colName);
-        }
+    for (const auto &field : pkVec) {
+        pkSet.insert(field.colName);
     }
     return pkSet;
 }
@@ -224,14 +248,27 @@ std::vector<Field> CloudStorageUtils::GetCloudAsset(const TableSchema &tableSche
     return assetFields;
 }
 
-std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName)
+std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema)
 {
     std::vector<Field> pkVec;
+    std::vector<Field> dupCheckColVec;
     for (const auto &field : tableSchema.fields) {
         if (field.primary) {
             pkVec.push_back(field);
         }
+        if (field.dupCheckCol) {
+            dupCheckColVec.push_back(field);
+        }
     }
+    if (dupCheckColVec.empty()) {
+        return pkVec;
+    }
+    return dupCheckColVec;
+}
+
+std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName)
+{
+    std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
     if (sortByName) {
         std::sort(pkVec.begin(), pkVec.end(), [](const Field &a, const Field &b) {
            return a.colName < b.colName;
@@ -243,14 +280,13 @@ std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema 
 std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
     bool sortByUpper)
 {
+    std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
     std::map<std::string, Field> pkMap;
-    for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
-            if (sortByUpper) {
-                pkMap[DBCommon::ToUpperCase(field.colName)] = field;
-            } else {
-                pkMap[field.colName] = field;
-            }
+    for (const auto &field : pkVec) {
+        if (sortByUpper) {
+            pkMap[DBCommon::ToUpperCase(field.colName)] = field;
+        } else {
+            pkMap[field.colName] = field;
         }
     }
     return pkMap;
@@ -387,7 +423,10 @@ int CloudStorageUtils::FillAssetAfterDownload(Asset &asset, Asset &dbAsset,
     if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
         return E_OK;
     }
+    // TEMP status only override by client
+    uint32_t status = dbAsset.status & static_cast<uint32_t>(AssetStatus::TEMP_PATH);
     dbAsset = asset;
+    dbAsset.status = dbAsset.status | status;
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     if (asset.status != AssetStatus::NORMAL) {
         return E_OK;
@@ -645,7 +684,8 @@ static bool IsViolationOfConstraints(const std::string &name, const std::vector<
 
 int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql)
 {
-    if (DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
+    if (table.GetCloudSyncDistributedPk().empty() &&
+        DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
         LOGE("[ConstraintsCheckForCloud] Not support create distributed table with 'UNIQUE' constraint.");
         return -E_NOT_SUPPORT;
     }
@@ -663,7 +703,7 @@ int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const st
 bool CloudStorageUtils::CheckAssetStatus(const Assets &assets)
 {
     for (const Asset &asset: assets) {
-        if (AssetOperationUtils::EraseBitMask(asset.status) > static_cast<uint32_t>(AssetStatus::UPDATE)) {
+        if (AssetOperationUtils::EraseBitMask(asset.status) > static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD)) {
             LOGE("assets contain invalid status:[%u]", asset.status);
             return false;
         }
@@ -1146,11 +1186,20 @@ int CloudStorageUtils::IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBuc
     return E_OK;
 }
 
-bool CloudStorageUtils::IsAssetNotDownload(const uint32_t &status)
+bool CloudStorageUtils::IsAssetLocalNotExist(uint32_t status)
 {
-    return status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-        status == static_cast<uint32_t>(AssetStatus::DOWNLOADING) ||
-        (status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0;
+    return AssetOperationUtils::IsAssetNotDownload(status) ||
+        ((status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0);
+}
+
+bool CloudStorageUtils::IsAssetContainsTempStatus(uint32_t status)
+{
+    return (status & static_cast<uint32_t>(AssetStatus::TEMP_PATH)) != 0;
+}
+
+bool CloudStorageUtils::IsAssetCannotUpload(uint32_t status)
+{
+    return IsAssetLocalNotExist(status) || IsAssetContainsTempStatus(status);
 }
 
 void CloudStorageUtils::CheckAbnormalDataInner(const bool isAsyncDownloading, VBucket &data,
@@ -1160,8 +1209,8 @@ void CloudStorageUtils::CheckAbnormalDataInner(const bool isAsyncDownloading, VB
     for (auto &item : data) {
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
         if (asset != nullptr) {
-            bool isAssetNotDownload = IsAssetNotDownload(asset->status);
-            if (!isAssetNotDownload) {
+            bool isAssetCannotUpload = IsAssetCannotUpload(asset->status);
+            if (!isAssetCannotUpload) {
                 continue;
             }
             if (!isAsyncDownloading) {
@@ -1178,8 +1227,8 @@ void CloudStorageUtils::CheckAbnormalDataInner(const bool isAsyncDownloading, VB
         }
         for (auto it = assets->begin(); it != assets->end();) {
             const auto &oneAsset = *it;
-            bool isOneAssetNotDownload = IsAssetNotDownload(oneAsset.status);
-            if (!isOneAssetNotDownload) {
+            bool isOneAssetCannotUpload = IsAssetCannotUpload(oneAsset.status);
+            if (!isOneAssetCannotUpload) {
                 ++it;
                 continue;
             }

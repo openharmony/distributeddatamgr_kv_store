@@ -12,13 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "cloud/cloud_merge_strategy.h"
+#include "cloud_merge_strategy.h"
 #include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
-
 OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
-    const LogInfo &cloudInfo)
+    const LogInfo &cloudInfo) const
 {
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);
@@ -55,13 +54,17 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin,
     return TagLoginUserAndUpdate(localInfo, cloudInfo);
 }
 
-bool CloudMergeStrategy::JudgeUpdateCursor()
+bool CloudMergeStrategy::JudgeUpdateCursor() const
 {
     return true;
 }
 
-bool CloudMergeStrategy::JudgeUpload()
+bool CloudMergeStrategy::JudgeUpload() const
 {
+    if (syncFlowType_ == SyncFlowType::DOWNLOAD_ONLY) {
+        LOGI("[CloudMergeStrategy] syncFlowType is DOWNLOAD_ONLY, skip upload");
+        return false;
+    }
     return true;
 }
 

@@ -47,7 +47,9 @@ RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingl
     : storageEngine_(std::move(engine)),
       reusedHandle_(nullptr),
       isCachedOption_(false)
-{}
+{
+    DBCommon::InitDefaultCloudSyncConfig(cloudSyncConfig_);
+}
 
 RelationalSyncAbleStorage::~RelationalSyncAbleStorage()
 {
@@ -536,14 +538,13 @@ int RelationalSyncAbleStorage::PutSyncDataWithQuery(const QueryObject &object,
 int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems,
     const std::string &deviceName)
 {
-    int errCode = E_OK;
     LOGD("[RelationalSyncAbleStorage::SaveSyncDataItems] Get write handle.");
     QueryObject query = object;
     auto localSchema = storageEngine_->GetSchema();
     query.SetSchema(localSchema);
 
     RelationalSchemaObject filterSchema;
-    errCode = GetRemoteDeviceSchema(deviceName, filterSchema);
+    int errCode = GetRemoteDeviceSchema(deviceName, filterSchema);
     if (errCode != E_OK) {
         LOGE("Find remote schema failed. err=%d", errCode);
         return errCode;
@@ -560,11 +561,12 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     SchemaInfo schemaInfo = {storageEngine_->GetSchema(), storageEngine_->GetTrackerSchema()};
     auto inserter = RelationalSyncDataInserter::CreateInserter(
         deviceName, query, schemaInfo, filterSchema.GetSyncFieldInfo(query.GetTableName()), info);
-    inserter.Init(dataItems, GetLocalHashDevId());
+    inserter.Init(dataItems, GetLocalHashDevId(), IsCurrentDeviceSyncLogicDelete());
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
     }
+    handle->SetDeviceSyncLogicDelete(deviceSyncLogicDelete_);
 
     // To prevent certain abnormal scenarios from deleting the table,
     // check if the table exists before each synchronization.
@@ -1167,7 +1169,7 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
     }
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     auto config = GetCloudSyncConfig();
-    handle->SetUploadConfig(config.maxUploadCount, config.maxUploadSize);
+    handle->SetUploadConfig(config.maxUploadCount.value_or(0), config.maxUploadSize.value_or(0));
     errCode = handle->GetSyncCloudData(uploadRecorder_, cloudDataResult, *token);
     LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
         cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
@@ -1293,7 +1295,11 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRela
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     handle->SetLocalSchema(localSchema);
-    return handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
+    errCode = handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return handle->GetLocalDataByRowid(localSchema.GetTable(tableSchema.name), tableSchema, dataInfoWithLog);
 }
 
 int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
@@ -1749,9 +1755,20 @@ void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
     LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
 }
 
+void RelationalSyncAbleStorage::SetDeviceSyncLogicDelete(bool logicDelete)
+{
+    deviceSyncLogicDelete_ = logicDelete;
+    LOGI("[RelationalSyncAbleStorage] set device sync logic delete %d", static_cast<int>(logicDelete));
+}
+
 bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
 {
     return logicDelete_;
+}
+
+bool RelationalSyncAbleStorage::IsCurrentDeviceSyncLogicDelete() const
+{
+    return deviceSyncLogicDelete_;
 }
 
 std::pair<int, uint32_t> RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,

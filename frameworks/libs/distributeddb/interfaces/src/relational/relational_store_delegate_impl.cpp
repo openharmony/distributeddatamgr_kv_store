@@ -96,7 +96,8 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceTableDataInner(const ClearDevi
     return NOT_SUPPORT;
 }
 
-DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
+DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
+    const CreateDistributedTableConfig &config)
 {
     LOGI("[RelationalStore Delegate] Create distributed table for [%s length[%u]], type[%d]",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), static_cast<int>(type));
@@ -109,6 +110,11 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
     if (!(type == DEVICE_COOPERATION || type == CLOUD_COOPERATION)) {
         LOGE("[RelationalStore Delegate] Invalid table sync type.");
         return INVALID_ARGS;
+    }
+
+    if (type != CLOUD_COOPERATION && config.isAsync) {
+        LOGE("[RelationalStore Delegate] Only supports create cloud distributed table asynchronously");
+        return NOT_SUPPORT;
     }
 
     if (type == DEVICE_COOPERATION) {
@@ -128,7 +134,7 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
         return DB_ERROR;
     }
 
-    int errCode = conn_->CreateDistributedTable(tableName, type);
+    int errCode = conn_->CreateDistributedTable(tableName, type, config.isAsync);
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
     if (duration > CloudDbConstant::DFX_TIME_THRESHOLD) {
         int64_t costTimeMs = duration.count();
@@ -465,7 +471,7 @@ DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableN
 
 DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
 {
-    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA) {
+    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA && cmd != LOGIC_DELETE_DEVICE_SYNC_DATA) {
         return NOT_SUPPORT;
     }
     if (conn_ == nullptr) {
@@ -615,6 +621,27 @@ DBStatus RelationalStoreDelegateImpl::ClearWatermark(const ClearMetaDataOption &
     return OK;
 }
 
+DBStatus RelationalStoreDelegateImpl::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for set cloud conflict handle");
+        return DB_ERROR;
+    }
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Get storeInfo failed %d when set cloud conflict handle", errCode);
+        return TransferDBErrno(errCode);
+    }
+    errCode = conn_->SetCloudConflictHandler(handler);
+    LOGI("[RelationalStore Delegate] appId:%s storeId:%s SetCloudConflictHandle errCode[%d]",
+        DBCommon::StringMiddleMaskingWithLen(appId).c_str(), DBCommon::StringMiddleMaskingWithLen(storeId).c_str(),
+        errCode);
+    return TransferDBErrno(errCode);
+}
+
 std::pair<DBStatus, int32_t> RelationalStoreDelegateImpl::GetDownloadingAssetsCount()
 {
     if (conn_ == nullptr) {
@@ -706,6 +733,30 @@ DBStatus RelationalStoreDelegateImpl::SetDistributedSchema(const DistributedSche
     LOGI("[RelationalStore Delegate] %s %s SetDistributedSchema errCode:%d, force upgrade: %d",
         DBCommon::StringMiddleMasking(appId).c_str(), DBCommon::StringMiddleMasking(storeId).c_str(), errCode,
         isForceUpgrade);
+    return TransferDBErrno(errCode);
+}
+#endif
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+DBStatus RelationalStoreDelegateImpl::StopTask(TaskType type)
+{
+    LOGW("[RelationalStore Delegate] Stop task by user, type: %u", type);
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for stop task.");
+        return DB_ERROR;
+    }
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Get storeInfo failed %d when stop task", errCode);
+        return TransferDBErrno(errCode);
+    }
+    errCode = conn_->StopTask(type);
+    LOGI("[RelationalStore Delegate][StopTask] appId:%s, storeId:%s, taskType: %u, errCode:%d",
+        DBCommon::StringMiddleMaskingWithLen(appId).c_str(), DBCommon::StringMiddleMaskingWithLen(storeId).c_str(),
+        type, errCode);
     return TransferDBErrno(errCode);
 }
 #endif

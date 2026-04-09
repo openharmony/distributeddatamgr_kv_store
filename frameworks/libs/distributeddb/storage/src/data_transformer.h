@@ -89,6 +89,8 @@ struct OptTableDataWithLog {
 struct DataInfoWithLog {
     LogInfo logInfo;
     VBucket primaryKeys;
+    VBucket localData;
+    bool isQueryLocalData = false;
 };
 
 struct UpdateRecordFlagStruct {

@@ -90,6 +90,11 @@ void RelationalSyncDataInserter::SetEntries(std::vector<DataItem> entries)
     entries_ = std::move(entries);
 }
 
+void RelationalSyncDataInserter::SetDeviceSyncLogicDelete(bool isDeviceSyncLogicDelete)
+{
+    isDeviceSyncLogicDelete_ = isDeviceSyncLogicDelete;
+}
+
 void RelationalSyncDataInserter::SetLocalTable(TableInfo localTable)
 {
     localTable_ = std::move(localTable);
@@ -486,7 +491,11 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataIte
     logInfoBind.device = dataItem.dev;
     logInfoBind.timestamp = dataItem.timestamp;
     logInfoBind.flag = dataItem.flag;
-
+    if (((logInfoBind.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
+            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) &&
+        isDeviceSyncLogicDelete_) {
+        logInfoBind.flag = logInfoBind.flag | static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE);
+    }
     if (!deviceSyncSaveDataInfo.isExist) { // insert
         logInfoBind.wTimestamp = dataItem.writeTimestamp;
         logInfoBind.originDev = dataItem.origDev;
@@ -592,8 +601,10 @@ std::string RelationalSyncDataInserter::ConvertOriDevice(const std::string &devi
     return device;
 }
 
-void RelationalSyncDataInserter::Init(const std::vector<DataItem> &dataItems, const std::string &localHashDevId)
+void RelationalSyncDataInserter::Init(
+    const std::vector<DataItem> &dataItems, const std::string &localHashDevId, bool isDeviceSyncLogicDelete)
 {
+    SetDeviceSyncLogicDelete(isDeviceSyncLogicDelete);
     SetEntries(dataItems);
     SetLocalHashDevId(localHashDevId);
 }
