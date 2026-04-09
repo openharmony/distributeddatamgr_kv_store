@@ -164,7 +164,7 @@ public:
         const Key &existDataHashKey, const Key &hashPrimaryKey);
 
     static int DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
-        const std::vector<std::string> &keepDevices);
+        const std::vector<std::string> &keepDevices, int64_t &changedRows);
 
     static int DeleteDistributedExceptDeviceTableLog(sqlite3 *db, const std::string &removedTable,
         const std::vector<std::string> &keepDevices);
@@ -181,7 +181,8 @@ private:
 
     static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &table, const std::string &modifyTime);
 
-    static int BindAndStepDevicesToStatement(sqlite3_stmt *stmt, const std::vector<std::string> &keepDevices);
+    static int BindAndStepDevicesToStatement(
+        sqlite3_stmt *stmt, const std::vector<std::string> &keepDevices, int64_t &changedRows);
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static int CheckUserCreateSharedTableInner(const TableSchema &oriTable, const TableInfo &sharedTableInfo);
 

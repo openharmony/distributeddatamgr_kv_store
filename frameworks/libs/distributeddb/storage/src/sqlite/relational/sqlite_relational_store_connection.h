@@ -93,7 +93,8 @@ public:
 
     int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) override;
 
-    int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap) override;
+    int RemoveExceptDeviceData(
+        const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows) override;
 #endif
 
     int OperateDataStatus(uint32_t dataOperator) override;

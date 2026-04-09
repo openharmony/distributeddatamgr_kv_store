@@ -204,7 +204,8 @@ public:
     }
 
     // tableMap: key is tableName, value is keepDevices
-    DB_API virtual DBStatus RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap)
+    DB_API virtual DBStatus RemoveExceptDeviceData(
+        const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
     {
         return OK;
     }

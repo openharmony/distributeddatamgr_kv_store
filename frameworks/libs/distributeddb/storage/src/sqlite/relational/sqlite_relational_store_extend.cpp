@@ -18,7 +18,8 @@
 
 namespace DistributedDB {
 #ifdef USE_DISTRIBUTEDDB_DEVICE
-int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap)
+int SQLiteRelationalStore::RemoveExceptDeviceData(
+    const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
 {
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetRelationalProperties().GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, static_cast<int>(DistributedTableMode::COLLABORATION)));
@@ -64,10 +65,11 @@ int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, st
             }
         }
     }
-    return RemoveExceptDeviceDataInner(remoteTableMap);
+    return RemoveExceptDeviceDataInner(remoteTableMap, changedRows);
 }
 
-int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::string, std::vector<std::string>> &tableMap)
+int SQLiteRelationalStore::RemoveExceptDeviceDataInner(
+    const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
 {
     SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
     int errCode = GetHandleAndStartTransaction(handle);
@@ -88,6 +90,7 @@ int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::strin
         return errCode;
     };
     bool hasTrackerTable = false;
+    auto storeId = GetProperties().GetStringProp(RelationalDBProperties::STORE_ID, "");
     for (const auto &iter : tableMap) {
         TrackerTable trackerTable = sqliteStorageEngine_->GetTrackerSchema().GetTrackerTable(iter.first);
         if (!trackerTable.IsEmpty()) {
@@ -97,10 +100,12 @@ int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::strin
                 return errCode;
             }
         }
-        errCode = handle->DeleteDistributedExceptDeviceTable(iter.first, iter.second);
+        int64_t changedRow = 0;
+        errCode = handle->DeleteDistributedExceptDeviceTable(iter.first, iter.second, changedRow);
         if (errCode != E_OK) {
             return errCode;
         }
+        changedRows += changedRow;
         errCode = handle->DeleteDistributedExceptDeviceTableLog(iter.first, iter.second, trackerTable);
         if (errCode != E_OK) {
             return errCode;
@@ -112,8 +117,7 @@ int SQLiteRelationalStore::RemoveExceptDeviceDataInner(const std::map<std::strin
             return errCode;
         }
     }
-    errCode = handle->SetLogTriggerStatus(true);
-    return errCode;
+    return handle->SetLogTriggerStatus(true);
 }
 #endif
 
