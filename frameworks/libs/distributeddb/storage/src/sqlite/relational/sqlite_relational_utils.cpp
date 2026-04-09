@@ -1310,7 +1310,7 @@ int SQLiteRelationalUtils::GetGidRecordCount(sqlite3 *db, const std::string &tab
 #endif
 
 int SQLiteRelationalUtils::BindAndStepDevicesToStatement(sqlite3_stmt *stmt,
-    const std::vector<std::string> &keepDevices)
+    const std::vector<std::string> &keepDevices, int64_t &changedRows)
 {
     if (stmt == nullptr) {
         return -E_INVALID_ARGS;
@@ -1332,13 +1332,13 @@ int SQLiteRelationalUtils::BindAndStepDevicesToStatement(sqlite3_stmt *stmt,
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
-        (void) SQLiteUtils::PrintChangeRows(stmt);
+        (void) SQLiteUtils::PrintChangeRows(stmt, changedRows);
     }
     return errCode;
 }
 
 int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const std::string &removedTable,
-    const std::vector<std::string> &keepDevices)
+    const std::vector<std::string> &keepDevices, int64_t &changedRows)
 {
     if (keepDevices.empty()) {
         return -E_INVALID_ARGS;
@@ -1367,7 +1367,7 @@ int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(sqlite3 *db, const
             LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when delete data", ret);
         }
     });
-    errCode = BindAndStepDevicesToStatement(stmt, keepDevices);
+    errCode = BindAndStepDevicesToStatement(stmt, keepDevices, changedRows);
     if (errCode != E_OK) {
         LOGE("[DeleteDistributedExceptDeviceTable] delete table failed, %s, %d",
             DBCommon::StringMiddleMaskingWithLen(removedTable).c_str(), errCode);
@@ -1404,7 +1404,8 @@ int SQLiteRelationalUtils::DeleteDistributedExceptDeviceTableLog(sqlite3 *db, co
             LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when delete log data", ret);
         }
     });
-    errCode = BindAndStepDevicesToStatement(stmt, keepDevices);
+    int64_t changeRows;
+    errCode = BindAndStepDevicesToStatement(stmt, keepDevices, changeRows);
     if (errCode != E_OK) {
         LOGE("[DeleteDistributedExceptDeviceTableLog] delete log table failed, %s, %d",
             DBCommon::StringMiddleMaskingWithLen(DBCommon::GetLogTableName(removedTable)).c_str(), errCode);
@@ -1441,7 +1442,8 @@ int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::
             LOGW("[SqliteCloudKvExecutorUtils] Reset stmt failed %d when update tracker data", ret);
         }
     });
-    errCode = BindAndStepDevicesToStatement(stmt, keepDevices);
+    int64_t changeRows;
+    errCode = BindAndStepDevicesToStatement(stmt, keepDevices, changeRows);
     if (errCode != E_OK) {
         LOGE("[UpdateTrackerTableSyncDelete] delete log table failed, %s, %d",
             DBCommon::StringMiddleMaskingWithLen(DBCommon::GetLogTableName(removedTable)).c_str(), errCode);

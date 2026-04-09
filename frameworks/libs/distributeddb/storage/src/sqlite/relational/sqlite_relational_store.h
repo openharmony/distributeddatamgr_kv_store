@@ -132,7 +132,8 @@ public:
 
     int SetDistributedSchema(const DistributedSchema &schema, bool isForceUpgrade);
 
-    int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap);
+    int RemoveExceptDeviceData(
+        const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows);
 #endif
 
     int OperateDataStatus(uint32_t dataOperator);
@@ -236,7 +237,8 @@ protected:
     int GetTargetDevices(const std::string &localDeviceId, const std::vector<std::string> &keepDevices,
         std::vector<std::string> &targetDevices);
 #ifdef USE_DISTRIBUTEDDB_DEVICE
-    int RemoveExceptDeviceDataInner(const std::map<std::string, std::vector<std::string>> &tableMap);
+    int RemoveExceptDeviceDataInner(
+        const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows);
 #endif
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
