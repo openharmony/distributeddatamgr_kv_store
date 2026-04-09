@@ -88,6 +88,10 @@ public:
     std::string GetRemoteDev() const;
 
     bool IsUseFromTables() const;
+
+    bool IsRelaxForDelete() const;
+
+    void SetRelaxForDelete(bool isRelaxForDelete);
 protected:
     explicit QueryObject(const QueryExpression &queryExpression);
     static std::vector<QueryExpression> GetQueryExpressions(const Query &query);
@@ -108,6 +112,7 @@ protected:
     AssetsGroupMap assetsGroupMap_;
     int assetsOnlyErrFlag_ = E_OK;
     bool isUseFromTables_ = false;
+    bool isRelaxForDelete_ = false;
 
 private:
     int Parse();

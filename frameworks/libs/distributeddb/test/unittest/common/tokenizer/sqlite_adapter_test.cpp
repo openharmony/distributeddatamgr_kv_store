@@ -407,7 +407,8 @@ HWTEST_F(SqliteAdapterTest, SqliteAdapterTest008, TestSize.Level0)
      * @tc.steps: step2. create table
      * @tc.expected: step2. OK.
      */
-    string sql = "CREATE VIRTUAL TABLE example USING fts5(content, tokenize = 'customtokenizer cut_mode short_words case_sensitive 0')";
+    string sql = "CREATE VIRTUAL TABLE example USING fts5(content, tokenize =" \
+        " 'customtokenizer cut_mode short_words case_sensitive 0')";
     rc = sqlite3_exec(g_sqliteDb, sql.c_str(), Callback, 0, &zErrMsg);
     HandleRc(g_sqliteDb, rc);
     /**

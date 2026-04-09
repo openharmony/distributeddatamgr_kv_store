@@ -30,6 +30,7 @@ namespace DistributedDB {
 SqliteCloudKvStore::SqliteCloudKvStore(KvStorageHandle *handle)
     : storageHandle_(handle), transactionHandle_(nullptr)
 {
+    DBCommon::InitDefaultCloudSyncConfig(config_);
 }
 
 int SqliteCloudKvStore::GetMetaData(const Key &key, Value &value) const
@@ -566,9 +567,7 @@ bool SqliteCloudKvStore::CheckSchema(std::map<std::string, DataBaseSchema> schem
 void SqliteCloudKvStore::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     std::lock_guard<std::mutex> autoLock(configMutex_);
-    config_ = config;
-    LOGI("[SqliteCloudKvStore] SetCloudSyncConfig value:[%" PRId32 ", %" PRId32 ", %" PRId32 ", %d]",
-        config_.maxUploadCount, config_.maxUploadSize, config_.maxRetryConflictTimes, config_.isSupportEncrypt);
+    DBCommon::SetCloudSyncConfigProperty(config, config_);
 }
 
 CloudSyncConfig SqliteCloudKvStore::GetCloudSyncConfig() const
@@ -768,6 +767,11 @@ int SqliteCloudKvStore::GetLocalDataCount(const std::string &tableName, int &dat
     }
     storageHandle_->RecycleStorageExecutor(handle);
     return errCode;
+}
+
+int SqliteCloudKvStore::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables)
+{
+    return E_OK;
 }
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD

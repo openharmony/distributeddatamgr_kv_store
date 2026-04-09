@@ -840,6 +840,18 @@ void CloudDBProxy::CancelDownload()
     }
 }
 
+void CloudDBProxy::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    std::unique_lock<std::shared_mutex> writeLock(handlerMutex_);
+    conflictHandler_ = handler;
+}
+
+std::weak_ptr<ICloudConflictHandler> CloudDBProxy::GetCloudConflictHandler()
+{
+    std::shared_lock<std::shared_mutex> writeLock(handlerMutex_);
+    return std::weak_ptr<ICloudConflictHandler>(conflictHandler_);
+}
+
 int CloudDBProxy::QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
@@ -849,6 +861,19 @@ int CloudDBProxy::QueryAllGid(const std::string &tableName, VBucket &extend, std
     auto ret = iCloudDb_->QueryAllGid(tableName, extend, data);
     if (ret != DBStatus::OK && ret != DBStatus::QUERY_END) {
         LOGE("[CloudDBProxy] QueryAllGid failed[%d]", ret);
+    }
+    return GetInnerErrorCode(ret);
+}
+
+int CloudDBProxy::StopCloudSync()
+{
+    std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
+    if (iCloudDb_ == nullptr) {
+        return -E_CLOUD_ERROR;
+    }
+    auto ret = iCloudDb_->StopCloudSync();
+    if (ret != DBStatus::OK) {
+        LOGE("[CloudDBProxy] StopCloudSync failed[%d]", ret);
     }
     return GetInnerErrorCode(ret);
 }

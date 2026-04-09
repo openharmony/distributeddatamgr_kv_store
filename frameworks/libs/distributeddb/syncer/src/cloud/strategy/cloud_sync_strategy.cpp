@@ -30,25 +30,61 @@ void CloudSyncStrategy::SetConflictResolvePolicy(SingleVerConflictResolvePolicy 
     policy_ = policy;
 }
 
+SingleVerConflictResolvePolicy CloudSyncStrategy::GetConflictResolvePolicy() const
+{
+    return policy_;
+}
+
+void CloudSyncStrategy::SetSyncFlowType(const SyncFlowType syncFlowType)
+{
+    syncFlowType_ = syncFlowType;
+}
+
+OpType CloudSyncStrategy::TagSyncDataStatus(const DataStatusInfo &statusInfo,
+    const LogInfo &localInfo, [[gnu::unused]]  const VBucket &localData,
+    const LogInfo &cloudInfo, [[gnu::unused]] VBucket &cloudData) const
+{
+    return TagSyncDataStatus(statusInfo.isExistInLocal, statusInfo.isCloudWin, localInfo, cloudInfo);
+}
+
 OpType CloudSyncStrategy::TagSyncDataStatus([[gnu::unused]] bool existInLocal, [[gnu::unused]] bool isCloudWin,
-    [[gnu::unused]] const LogInfo &localInfo, [[gnu::unused]] const LogInfo &cloudInfo)
+    [[gnu::unused]] const LogInfo &localInfo, [[gnu::unused]] const LogInfo &cloudInfo) const
 {
     return OpType::NOT_HANDLE;
 }
 
-bool CloudSyncStrategy::JudgeUpdateCursor()
+bool CloudSyncStrategy::JudgeUpdateCursor() const
 {
     return false;
 }
 
-bool CloudSyncStrategy::JudgeUpload()
+bool CloudSyncStrategy::JudgeUpload() const
 {
     return false;
+}
+
+bool CloudSyncStrategy::JudgeDownload() const
+{
+    return true;
+}
+
+bool CloudSyncStrategy::JudgeLocker() const
+{
+    return true;
 }
 
 bool CloudSyncStrategy::JudgeKvScene() const
 {
     return isKvScene_;
+}
+
+bool CloudSyncStrategy::JudgeQueryLocalData() const
+{
+    return false;
+}
+
+void CloudSyncStrategy::SetCloudConflictHandler([[gnu::unused]] const std::weak_ptr<ICloudConflictHandler> &handler)
+{
 }
 
 bool CloudSyncStrategy::IsDelete(const LogInfo &info)
@@ -60,14 +96,6 @@ bool CloudSyncStrategy::IsDelete(const LogInfo &info)
 bool CloudSyncStrategy::IsLogNeedUpdate(const LogInfo &cloudInfo, const LogInfo &localInfo)
 {
     return (cloudInfo.sharingResource != localInfo.sharingResource) || (cloudInfo.version != localInfo.version);
-}
-
-bool CloudSyncStrategy::IsSameVersion(const LogInfo &cloudInfo, const LogInfo &localInfo)
-{
-    if (cloudInfo.version.empty() || localInfo.version.empty()) {
-        return false;
-    }
-    return (cloudInfo.version == localInfo.version);
 }
 
 bool CloudSyncStrategy::IsIgnoreUpdate(const LogInfo &localInfo) const
@@ -99,5 +127,11 @@ bool CloudSyncStrategy::IsSameRecord(const LogInfo &cloudInfo, const LogInfo &lo
         !localInfo.version.empty() && localInfo.version == cloudInfo.version &&
         std::abs(static_cast<int64_t>(cloudInfo.timestamp - localInfo.timestamp)) <
         static_cast<int64_t>(CloudDbConstant::ONE_SECOND);
+}
+
+bool CloudSyncStrategy::IsNeedDownloadByMode(QueryMode queryMode)
+{
+    //check is UPLOAD_AND_DOWNLOAD to download with query
+    return queryMode == QueryMode::UPLOAD_AND_DOWNLOAD;
 }
 }

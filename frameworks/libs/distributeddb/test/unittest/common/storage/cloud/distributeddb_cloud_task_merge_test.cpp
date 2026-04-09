@@ -76,10 +76,12 @@ void CreateUserDBAndTable(sqlite3 *&db)
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_TABLE_D_SQL), SQLITE_OK);
 }
 
-void PrepareOption(CloudSyncOption &option, const Query &query, bool merge = false)
+void PrepareOption(CloudSyncOption &option, const Query &query, bool merge = false,
+    SyncFlowType flowType = SyncFlowType::NORMAL)
 {
     option.devices = { "CLOUD" };
     option.mode = SYNC_MODE_CLOUD_MERGE;
+    option.syncFlowType = flowType;
     option.query = query;
     option.waitTime = SYNC_WAIT_TIME;
     option.priorityTask = false;
@@ -499,6 +501,79 @@ HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest004, TestSize.Le
     callbackCv.wait(callbackLock, [&finishCount]() {
         return (finishCount >= 2u); // download 2 times
     });
+}
+
+/**
+ * @tc.name: CloudSyncMergeTaskTest005
+ * @tc.desc: test merge sync task with DOWNLOAD_ONLY mode, verify tasks are merged correctly.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudTaskMergeTest, CloudSyncMergeTaskTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. insert user table record.
+     * @tc.expected: step1. ok.
+     */
+    const int actualCount = 10; // 10 is count of records
+    InsertUserTableRecord(tableNameA_, actualCount);
+    Query normalQuery1 = Query::Select().FromTable({ tableNameA_ });
+    CloudSyncOption option;
+    PrepareOption(option, normalQuery1, true, SyncFlowType::DOWNLOAD_ONLY);
+
+    /**
+     * @tc.steps:step2. set 2s block time for sync task 1st, and start sync task 2nd.
+     * @tc.expected: step2. ok.
+     */
+    virtualCloudDb_->SetBlockTime(2000); // block 1st sync task 2s.
+    std::thread syncThread1([&]() {
+        ASSERT_EQ(delegate_->Sync(option, nullptr), OK);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+    std::thread syncThread2([&]() {
+        ASSERT_EQ(delegate_->Sync(option, nullptr), OK);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+
+    /**
+     * @tc.steps:step3. start sync task 3rd.
+     * @tc.expected: task OK because it cannot be merged.
+     */
+    PrepareOption(option, normalQuery1, true, SyncFlowType::NORMAL);
+    auto callback3 = [](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            ASSERT_EQ(item.second.errCode, OK);
+        }
+    };
+    std::thread syncThread3([&]() {
+        option.merge = false;
+        ASSERT_EQ(delegate_->Sync(option, callback3), OK);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100ms
+
+    /**
+     * @tc.steps:step4. start sync task 4th.
+     * @tc.expected: task CLOUD_SYNC_TASK_MERGED because it was merged into Task 2.
+     */
+    PrepareOption(option, normalQuery1, true, SyncFlowType::DOWNLOAD_ONLY);
+    auto callback4 = [](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            ASSERT_EQ(item.second.errCode, CLOUD_SYNC_TASK_MERGED);
+            EXPECT_EQ(item.second.tableProcess.size(), 1u);
+            for (const auto &table : item.second.tableProcess) {
+                EXPECT_EQ(table.second.process, ProcessStatus::FINISHED);
+            }
+        }
+    };
+    std::thread syncThread4([&]() {
+        ASSERT_EQ(delegate_->Sync(option, callback4), OK);
+    });
+
+    syncThread1.join();
+    syncThread2.join();
+    syncThread3.join();
+    syncThread4.join();
 }
 }
 #endif

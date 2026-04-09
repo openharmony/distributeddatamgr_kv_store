@@ -173,14 +173,13 @@ AssetOperationUtils::AssetOpType AssetOperationUtils::CheckWithDownload(bool bef
         if (dbAsset.name != cacheAsset.name) {
             continue;
         }
-        if (EraseBitMask(dbAsset.status) == AssetStatus::DOWNLOADING ||
-            EraseBitMask(dbAsset.status) == AssetStatus::ABNORMAL) {
+        if (IsAssetNeedDownload(dbAsset)) {
             return AssetOpType::HANDLE;
         }
         return AssetOpType::NOT_HANDLE;
     }
     if (before) {
-        if (cacheAsset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL) ||
+        if (IsFirstDownloadAsset(cacheAsset) ||
             EraseBitMask(cacheAsset.status) == AssetStatus::ABNORMAL) {
             return AssetOpType::NOT_HANDLE;
         }
@@ -258,7 +257,7 @@ void AssetOperationUtils::MergeAssetsFlag(const Assets &from, Type &target)
     }
 }
 
-std::map<std::string, Assets> AssetOperationUtils::FilterNeedDownloadAsset(VBucket &record)
+std::map<std::string, Assets> AssetOperationUtils::FilterNeedDownloadAsset(bool ignoredToDownload, VBucket &record)
 {
     std::map<std::string, Assets> res;
     for (const auto &[field, value] : record) {
@@ -268,20 +267,23 @@ std::map<std::string, Assets> AssetOperationUtils::FilterNeedDownloadAsset(VBuck
         if (value.index() == TYPE_INDEX<Assets>) {
             Assets assets = std::get<Assets>(value);
             for (const auto &asset : assets) {
-                FillDownloadAssetIfNeed(field, asset, res);
+                FillDownloadAssetIfNeed(field, asset, ignoredToDownload, res);
             }
-        } else {
+        } else if (value.index() == TYPE_INDEX<Asset>) {
             Asset asset = std::get<Asset>(value);
-            FillDownloadAssetIfNeed(field, asset, res);
+            FillDownloadAssetIfNeed(field, asset, ignoredToDownload, res);
         }
     }
     return res;
 }
 
-void AssetOperationUtils::FillDownloadAssetIfNeed(const std::string &field, const Asset &asset,
+void AssetOperationUtils::FillDownloadAssetIfNeed(const std::string &field, const Asset &asset, bool ignoredToDownload,
     std::map<std::string, Assets> &beFilledAssets)
 {
     if (!IsAssetNeedDownload(asset)) {
+        return;
+    }
+    if (ignoredToDownload && IsAssetToDownload(asset)) {
         return;
     }
     Asset tempAsset = asset;
@@ -298,8 +300,15 @@ void AssetOperationUtils::FillDownloadAssetIfNeed(const std::string &field, cons
 bool AssetOperationUtils::IsAssetNeedDownload(const Asset &asset)
 {
     auto rawStatus = AssetOperationUtils::EraseBitMask(asset.status);
+    return IsAssetNotDownload(rawStatus);
+}
+
+bool AssetOperationUtils::IsAssetNotDownload(const uint32_t &status)
+{
+    auto rawStatus = AssetOperationUtils::EraseBitMask(status);
     return rawStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-        rawStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING);
+        rawStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING) ||
+        rawStatus == static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD);
 }
 
 bool AssetOperationUtils::IsAssetsNeedDownload(const Assets &assets)
@@ -315,5 +324,44 @@ bool AssetOperationUtils::IsAssetsNeedDownload(const Assets &assets)
 bool AssetOperationUtils::IsFirstDownloadAsset(const Asset &asset)
 {
     return (asset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0;
+}
+
+void AssetOperationUtils::SetToDownload(bool isSkipDownloadAssets, VBucket &record)
+{
+    if (!isSkipDownloadAssets) {
+        return;
+    }
+    for (auto &[_, value] : record) {
+        if (value.index() == TYPE_INDEX<Asset>) {
+            auto &asset = std::get<Asset>(value);
+            SetToDownloadIfDownloading(asset);
+        } else if (value.index() == TYPE_INDEX<Assets>) {
+            auto &assets = std::get<Assets>(value);
+            for (auto &item : assets) {
+                SetToDownloadIfDownloading(item);
+            }
+        }
+    }
+}
+
+void AssetOperationUtils::SetToDownloadIfDownloading(Asset &asset)
+{
+    auto lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
+    auto lowFlag = AssetOperationUtils::EraseBitMask(asset.flag);
+    if ((lowStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) &&
+        (lowFlag != static_cast<uint32_t>(DistributedDB::AssetOpType::DELETE))) {
+        asset.status = GetHighBitMask(asset.status) | static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD);
+    }
+}
+
+uint32_t AssetOperationUtils::GetHighBitMask(uint32_t status)
+{
+    return ((status >> BIT_MASK_COUNT) << BIT_MASK_COUNT);
+}
+
+bool AssetOperationUtils::IsAssetToDownload(const Asset &asset)
+{
+    auto lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
+    return lowStatus == static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD);
 }
 }

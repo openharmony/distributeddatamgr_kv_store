@@ -19,8 +19,9 @@
 #include <cstdint>
 #include <functional>
 #include <map>
-#include <variant>
+#include <optional>
 #include <string>
+#include <variant>
 
 #include "query.h"
 #include "store_types.h"
@@ -71,10 +72,12 @@ struct Field {
     int32_t type; // get value from TYPE_INDEX;
     bool primary = false;
     bool nullable = true;
+    bool dupCheckCol = false; // use for calculate hash_key when it was true
     bool operator==(const Field &comparedField) const
     {
         return (colName == comparedField.colName) && (type == comparedField.type) &&
-            (primary == comparedField.primary) && (nullable == comparedField.nullable);
+            (primary == comparedField.primary) && (nullable == comparedField.nullable) &&
+            (dupCheckCol == comparedField.dupCheckCol);
     }
 };
 
@@ -101,6 +104,16 @@ enum class LockAction : uint32_t {
     DOWNLOAD = 0x8
 };
 
+enum class QueryMode : uint32_t {
+    UPLOAD_AND_DOWNLOAD = 0,
+    UPLOAD_ONLY = 1
+};
+
+enum class SyncFlowType : uint32_t {
+    NORMAL = 0, // upload and download
+    DOWNLOAD_ONLY = 1
+};
+
 struct CloudSyncOption {
     std::vector<std::string> devices;
     SyncMode mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
@@ -115,16 +128,24 @@ struct CloudSyncOption {
     LockAction lockAction = LockAction::INSERT;
     std::string prepareTraceId;
     bool asyncDownloadAssets = false;
+    QueryMode queryMode = QueryMode::UPLOAD_AND_DOWNLOAD;
+    SyncFlowType syncFlowType = SyncFlowType::NORMAL;
 };
 
 enum class QueryNodeType : uint32_t {
     ILLEGAL = 0,
     IN = 1,
+    NOT_IN = 2,
     OR = 0x101,
     AND,
     EQUAL_TO = 0x201,
+    NOT_EQUAL_TO,
     BEGIN_GROUP = 0x301,
-    END_GROUP
+    END_GROUP,
+    GREATER_THAN = 0x401,
+    LESS_THAN,
+    GREATER_THAN_OR_EQUAL_TO,
+    LESS_THAN_OR_EQUAL_TO
 };
 
 struct QueryNode {
@@ -152,16 +173,31 @@ enum class LockStatus : uint32_t {
     BUTT,
 };
 
+enum class AssetConflictPolicy : uint32_t {
+    CONFLICT_POLICY_DEFAULT = 0,
+    CONFLICT_POLICY_TIME_FIRST,
+    CONFLICT_POLICY_TEMP_PATH,
+    BUTT,
+};
+
 struct CloudSyncConfig {
-    int32_t maxUploadCount = 30;             // default max upload 30 records
-    int32_t maxUploadSize  = 1024 * 512 * 3; // default max upload 1024 * 512 * 3 = 1.5m
-    int32_t maxRetryConflictTimes = -1;      // default max retry -1 is unlimited retry times
-    bool isSupportEncrypt = false;           // default encryption is not supported
+    std::optional<int32_t> maxUploadCount;          // default max upload 30 records
+    std::optional<int32_t> maxUploadSize;           // default max upload 1024 * 512 * 3 = 1.5m
+    std::optional<int32_t> maxRetryConflictTimes;   // default max retry -1 is unlimited retry times
+    std::optional<bool> isSupportEncrypt;           // default false encryption is not supported
+    std::optional<bool> skipDownloadAssets;         // default false
+    std::optional<AssetConflictPolicy> assetPolicy; // default CONFLICT_POLICY_DEFAULT
 };
 
 struct AsyncDownloadAssetsConfig {
     uint32_t maxDownloadTask = 1; // valid range in [1, 12] max async download task in process
     uint32_t maxDownloadAssetsCount = 100; // valid range in [1, 2000] max async download assets count in one batch
+};
+
+enum class TaskType : uint32_t {
+    BACKGROUND_TASK = 0,
+    ONLY_CLOUD_SYNC_TASK,
+    BUTT
 };
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

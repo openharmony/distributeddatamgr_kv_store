@@ -210,6 +210,8 @@ public:
     std::map<std::string, std::string> GetSharedTableOriginNames();
 
     void SetLogicDelete(bool logicDelete);
+    
+    void SetDeviceSyncLogicDelete(bool logicDelete);
 
     std::pair<int, uint32_t> GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
         const Bytes &hashKey, VBucket &assets) override;
@@ -251,6 +253,8 @@ public:
 
     bool IsCurrentLogicDelete() const override;
 
+    bool IsCurrentDeviceSyncLogicDelete() const override;
+
     int GetLocalDataCount(const std::string &tableName, int &dataCount, int &logicDeleteDataCount) override;
 
     std::pair<int, std::vector<std::string>> GetDownloadAssetTable() override;
@@ -278,7 +282,17 @@ public:
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids) override;
 
+    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) override;
+
+    int ResetGenLogTaskStatus();
+
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) override;
+
+    bool IsSkipDownloadAssets() const override;
+
+    std::vector<std::string> GetLocalPkNames(const std::string &tableName) override;
+
+    AssetConflictPolicy GetAssetConflictPolicy() const override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int DropTempTable(const std::string &tableName) override;
 
@@ -409,6 +423,7 @@ private:
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
 
     std::atomic<bool> logicDelete_ = false;
+    std::atomic<bool> deviceSyncLogicDelete_ = false;
 
     std::function<void (void)> syncFinishFunc_;
     std::function<void (void)> uploadStartFunc_;

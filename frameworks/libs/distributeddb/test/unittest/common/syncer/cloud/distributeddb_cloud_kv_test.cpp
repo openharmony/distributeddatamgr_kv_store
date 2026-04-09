@@ -2629,7 +2629,7 @@ HWTEST_F(DistributedDBCloudKvTest, KvSupportEncryptTest003, TestSize.Level1)
     SQLiteSingleVerNaturalStore store;
     EXPECT_EQ(store.GetCloudKvStore(), nullptr);
     CloudSyncConfig config = store.GetCloudSyncConfig();
-    EXPECT_EQ(config.isSupportEncrypt, false);
+    EXPECT_EQ(config.isSupportEncrypt, std::nullopt);
 }
 
 /**

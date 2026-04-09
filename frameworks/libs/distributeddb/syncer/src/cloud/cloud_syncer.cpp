@@ -30,7 +30,6 @@
 #include "runtime_context.h"
 #include "storage_proxy.h"
 #include "store_types.h"
-#include "strategy_factory.h"
 #include "version.h"
 
 namespace DistributedDB {
@@ -129,7 +128,7 @@ void CloudSyncer::Close()
     SetTaskFailed(currentTask, -E_DB_CLOSED);
     UnlockIfNeed();
     cloudDB_.Close();
-    WaitCurTaskFinished();
+    IfNeedWaitCurTaskFinished(true);
 
     // copy all task from queue
     std::vector<CloudTaskInfo> infoList = CopyAndClearTaskInfos();
@@ -194,10 +193,12 @@ void CloudSyncer::DoSyncIfNeed()
         CancelBackgroundDownloadAssetsTaskIfNeed();
         // do sync logic
         std::vector<std::string> usersList;
+        std::vector<std::string> tables;
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             usersList = cloudTaskInfos_[triggerTaskId].users;
             currentContext_.currentUserIndex = 0;
+            tables = cloudTaskInfos_[triggerTaskId].table;
         }
         int errCode = E_OK;
         if (usersList.empty()) {
@@ -216,6 +217,12 @@ void CloudSyncer::DoSyncIfNeed()
 
 int CloudSyncer::DoSync(TaskId taskId)
 {
+    int errCode = WaitAsyncGenLogTaskFinished(taskId);
+    if (errCode != E_OK) {
+        SyncMachineDoFinished();
+        LOGE("[CloudSyncer] Wait async gen log task finished failed: %d", errCode);
+        return errCode;
+    }
     std::lock_guard<std::mutex> lock(syncMutex_);
     ResetCurrentTableUploadBatchIndex();
     CloudTaskInfo taskInfo;
@@ -231,9 +238,7 @@ int CloudSyncer::DoSync(TaskId taskId)
     bool isLockAction = IsLockInDownload();
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (currentContext_.strategy != nullptr) {
-            needUpload = currentContext_.strategy->JudgeUpload();
-        }
+        needUpload = strategyProxy_.JudgeUpload();
         // 1. if the locker is already exist, directly reuse the lock, no need do the first download
         // 2. if the task(resume task) is already be tagged need upload data, no need do the first download
         isNeedFirstDownload = (currentContext_.locker == nullptr) && (!currentContext_.isNeedUpload) &&
@@ -242,23 +247,10 @@ int CloudSyncer::DoSync(TaskId taskId)
     bool isFirstDownload = true;
     if (isNeedFirstDownload) {
         // do first download
-        int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
-        SetTaskFailed(taskId, errCode);
-        if (errCode != E_OK) {
-            SyncMachineDoFinished();
-            return errCode;
+        auto [ret, isFinished] = DoFirstDownload(taskId, taskInfo, needUpload, isNeedFirstDownload);
+        if (isFinished) {
+            return ret;
         }
-        bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            isActuallyNeedUpload = currentContext_.isNeedUpload;
-        }
-        if (!isActuallyNeedUpload) {
-            LOGI("[CloudSyncer] no table need upload!");
-            SyncMachineDoFinished();
-            return E_OK;
-        }
-        isFirstDownload = false;
     }
 
     {
@@ -267,6 +259,35 @@ int CloudSyncer::DoSync(TaskId taskId)
         currentContext_.isRealNeedUpload = needUpload;
     }
     return DoSyncInner(taskInfo);
+}
+
+std::pair<int, bool> CloudSyncer::DoFirstDownload(TaskId taskId, const CloudTaskInfo &taskInfo, bool needUpload,
+    bool &isFirstDownload)
+{
+    std::pair<int, bool> res;
+    auto &[errCode, isFinished] = res;
+    isFinished = false;
+    errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
+    SetTaskFailed(taskId, errCode);
+    if (errCode != E_OK) {
+        isFinished = true;
+        SyncMachineDoFinished();
+        LOGE("[CloudSyncer] first download failed[%d]", errCode);
+        return res;
+    }
+    bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        isActuallyNeedUpload = currentContext_.isNeedUpload;
+    }
+    if (!isActuallyNeedUpload) {
+        LOGI("[CloudSyncer] no table need upload!");
+        SyncMachineDoFinished();
+        isFinished = true;
+        return res;
+    }
+    isFirstDownload = false;
+    return res;
 }
 
 int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
@@ -482,6 +503,9 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode)
 */
 int CloudSyncer::UpdateChangedData(SyncParam &param, DownloadList &assetsDownloadList)
 {
+    if (!param.dupLocalPkNames.empty()) {
+        return CloudSyncUtils::SaveDupChangedData(param);
+    }
     if (param.withoutRowIdData.insertData.empty() && param.withoutRowIdData.updateData.empty()) {
         return E_OK;
     }
@@ -559,15 +583,11 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &cove
 {
     // Define a map to store the result
     std::map<std::string, Assets> res = {};
-    std::vector<Field> assetFields;
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        assetFields = currentContext_.assetFields[currentContext_.tableName];
-    }
+    std::vector<Field> assetFields = GetCurrentAssetFields();
     // For every column contain asset or assets, assetFields are in context
     TagAssetsInfo tagAssetsInfo = {coveredData, beCoveredData, setNormalStatus, isForcePullAseets};
     for (const Field &assetField : assetFields) {
-        Assets assets = TagAssetsInSingleCol(tagAssetsInfo, assetField, errCode);
+        Assets assets = CloudSyncTagAssets::TagAssetsInSingleCol(tagAssetsInfo, assetField, errCode);
         if (!assets.empty()) {
             res[assetField.colName] = assets;
         }
@@ -683,9 +703,9 @@ int CloudSyncer::CloudDbDownloadAssets(TaskId taskId, InnerProcessInfo &info, co
 }
 
 int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
-    const std::set<Key> &dupHashKeySet, ChangedData &changedAssets)
+    const std::set<Key> &dupHashKeySet, ChangedData &changedAssets, bool isNeedDownloadAssets)
 {
-    if (!IsDataContainAssets()) {
+    if (!IsDataContainAssets() || hasKvRemoveTask) {
         return E_OK;
     }
     // update changed data info
@@ -699,14 +719,18 @@ int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::s
 
     // Get AssetDownloadList
     DownloadList changeList;
-    TaskId taskId;
+    DownloadList downloadList;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        changeList = currentContext_.assetDownloadList;
-        taskId = currentContext_.currentTaskId;
+        downloadList = currentContext_.assetDownloadList;
+    }
+    CloudSyncUtils::GetDownloadListIfNeed(changeList, downloadList, isNeedDownloadAssets);
+    if (changeList.empty()) {
+        return E_OK;
     }
     // Download data (include deleting) will handle return Code in this situation
     int ret = E_OK;
+    TaskId taskId = GetCurrentTaskId();
     if (RuntimeContext::GetInstance()->IsBatchDownloadAssets()) {
         ret = CloudDbBatchDownloadAssets(taskId, changeList, dupHashKeySet, info, changedAssets);
     } else {
@@ -750,27 +774,19 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
 {
     Type prefix;
     std::vector<Type> pkVals;
-    OpType strategy = param.downloadData.opType[idx];
-    bool isDelStrategy = (strategy == OpType::DELETE);
-    int ret = CloudSyncUtils::GetCloudPkVals(isDelStrategy ? dataInfo.localInfo.primaryKeys :
-        param.downloadData.data[idx], param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pkVals);
+    auto ret = CloudSyncTagAssets::GetRecordPrefix(idx, param, dataInfo, prefix, pkVals);
     if (ret != E_OK) {
-        LOGE("[CloudSyncer] HandleTagAssets cannot get primary key value list. %d", ret);
         return ret;
-    }
-    prefix = param.isSinglePrimaryKey ? pkVals[0] : prefix;
-    if (param.isSinglePrimaryKey && prefix.index() == TYPE_INDEX<Nil>) {
-        LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
-        return -E_INTERNAL_ERROR;
     }
     AssetOperationUtils::FilterDeleteAsset(param.downloadData.data[idx]);
     std::map<std::string, Assets> assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo,
         false, param.isForcePullAseets, ret);
+    AssetOperationUtils::SetToDownload(IsCurrentSkipDownloadAssets(), param.downloadData.data[idx]);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] TagAssetsInSingleRecord report ERROR in download data");
         return ret;
     }
-    strategy = CloudSyncUtils::CalOpType(param, idx);
+    auto strategy = CloudSyncUtils::CalOpType(param, idx);
     if (!param.isSinglePrimaryKey && strategy == OpType::INSERT) {
         param.withoutRowIdData.assetInsertData.push_back(std::make_tuple(idx, param.assetsDownloadList.size()));
     }
@@ -799,8 +815,6 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         LOGE("[CloudSyncer] Cannot get info by primary key or gid: %d.", ret);
         return ret;
     }
-    // Get cloudLogInfo from cloud data
-    dataInfo.cloudLogInfo = CloudSyncUtils::GetCloudLogInfo(param.downloadData.data[idx]);
     // Tag datum to get opType
     ret = TagStatus(isExist, param, idx, dataInfo, localAssetInfo);
     if (ret != E_OK) {
@@ -809,7 +823,6 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
     }
     CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
         localLogInfoCache);
-    
     if (param.isAssetsOnly && param.downloadData.opType[idx] != OpType::LOCKED_NOT_HANDLE) {
         // if data is lock, not need to save the local info.
         auto findGid = param.downloadData.data[idx].find(CloudDbConstant::GID_FIELD);
@@ -900,10 +913,6 @@ int CloudSyncer::PreCheck(CloudSyncer::TaskId &taskId, const TableName &tableNam
             return -E_INVALID_ARGS;
         }
     }
-    if (currentContext_.strategy == nullptr) {
-        LOGE("[CloudSyncer] Strategy has not been initialized");
-        return -E_INVALID_ARGS;
-    }
     ret = storageProxy_->CheckSchema(tableName);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] A schema error occurred on the table to be synced, %d", ret);
@@ -958,7 +967,7 @@ void CloudSyncer::NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param,
         return;
     }
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    if (currentContext_.strategy->JudgeUpload()) {
+    if (strategyProxy_.JudgeUpload()) {
         currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], param.info);
     } else {
         if (param.isLastBatch) {
@@ -989,7 +998,7 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
     (void)storageProxy_->SetCursorIncFlag(true);
     if (!IsModeForcePush(taskId)) {
         param.changedData.tableName = param.info.tableName;
-        param.changedData.field = param.pkColNames;
+        param.changedData.field = param.dupLocalPkNames.empty() ? param.pkColNames : param.dupLocalPkNames;
         param.changedData.type = ChangedDataType::DATA;
     }
     ret = SaveData(taskId, param);
@@ -1020,7 +1029,8 @@ int CloudSyncer::DoDownloadAssets(SyncParam &param)
 {
     // Begin downloading assets
     ChangedData changedAssets;
-    int ret = DownloadAssets(param.info, param.pkColNames, param.dupHashKeySet, changedAssets);
+    bool isNeedDownloadAssets = param.isAssetsOnly || !IsCurrentSkipDownloadAssets();
+    int ret = DownloadAssets(param.info, param.pkColNames, param.dupHashKeySet, changedAssets, isNeedDownloadAssets);
     bool isSharedTable = false;
     int errCode = storageProxy_->IsSharedTable(param.tableName, isSharedTable);
     if (errCode != E_OK) {
@@ -1127,7 +1137,7 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
 void CloudSyncer::NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcessInfo &info)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    if (currentContext_.strategy->JudgeUpload()) {
+    if (strategyProxy_.JudgeUpload()) {
         currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], info);
     } else {
         info.tableStatus = FINISHED;
@@ -1141,25 +1151,7 @@ void CloudSyncer::NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcess
 
 int CloudSyncer::PreCheckUpload(CloudSyncer::TaskId &taskId, const TableName &tableName, Timestamp &localMark)
 {
-    int ret = PreCheck(taskId, tableName);
-    if (ret != E_OK) {
-        return ret;
-    }
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (cloudTaskInfos_.find(taskId) == cloudTaskInfos_.end()) {
-            LOGE("[CloudSyncer] Cloud Task Info does not exist taskId: %" PRIu64 ".", taskId);
-            return -E_INVALID_ARGS;
-        }
-        if ((cloudTaskInfos_[taskId].mode < SYNC_MODE_CLOUD_MERGE) ||
-            (cloudTaskInfos_[taskId].mode > SYNC_MODE_CLOUD_FORCE_PUSH)) {
-            LOGE("[CloudSyncer] Upload failed, invalid sync mode: %d.",
-                static_cast<int>(cloudTaskInfos_[taskId].mode));
-            return -E_INVALID_ARGS;
-        }
-    }
-
-    return ret;
+    return PreCheck(taskId, tableName);
 }
 
 int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &deleteInfo, CloudSyncData &uploadData,
@@ -1330,7 +1322,7 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId tas
             return E_OK;
         }
         cloudWaterMark = currentContext_.cloudWaterMarks[currentContext_.currentUserIndex][tableName];
-        isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
+        isUpdateCloudCursor = strategyProxy_.JudgeUpdateCursor();
     }
     isUpdateCloudCursor = isUpdateCloudCursor && !(IsPriorityTask(taskId) && !IsNeedProcessCloudCursor(taskId));
     if (isUpdateCloudCursor) {
@@ -1415,6 +1407,7 @@ int CloudSyncer::QueryCloudData(TaskId taskId, const std::string &tableName, std
     }
     ret = cloudDB_.Query(tableName, extend, downloadData.data);
     storageProxy_->FilterDownloadRecordNotFound(tableName, downloadData);
+    storageProxy_->FilterDownloadRecordNoneSchemaField(tableName, downloadData);
     if ((ret == E_OK || ret == -E_QUERY_END) && downloadData.data.empty()) {
         if (extend[CloudDbConstant::CURSOR_FIELD].index() != TYPE_INDEX<std::string>) {
             LOGE("[CloudSyncer] cursor type is not valid=%d", extend[CloudDbConstant::CURSOR_FIELD].index());
@@ -1515,12 +1508,12 @@ int CloudSyncer::PrepareSync(TaskId taskId)
         currentContext_.locker = tempLocker;
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-        currentContext_.strategy =
-            StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode, isKvScene_, policy_);
         currentContext_.notifier->Init(cloudTaskInfos_[taskId].table, cloudTaskInfos_[taskId].devices,
             cloudTaskInfos_[taskId].users);
         currentContext_.processRecorder = std::make_shared<ProcessRecorder>();
     }
+    strategyProxy_.UpdateStrategy(cloudTaskInfos_[taskId].mode, cloudTaskInfos_[taskId].syncFlowType, isKvScene_,
+        policy_, cloudDB_.GetCloudConflictHandler());
     LOGI("[CloudSyncer] exec storeId %.3s taskId %" PRIu64 " priority[%d] compensated[%d] logicDelete[%d]",
         cloudTaskInfos_[taskId].storeId.c_str(), taskId, static_cast<int>(cloudTaskInfos_[taskId].priorityTask),
         static_cast<int>(cloudTaskInfos_[taskId].compensatedTask),
@@ -1739,35 +1732,10 @@ std::string CloudSyncer::GetIdentify() const
     return id_;
 }
 
-int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult)
-{
-    strategyOpResult = OpType::NOT_HANDLE;
-    // ignore same record with local generate data
-    if (dataInfo.localInfo.logInfo.device.empty() &&
-        !CloudSyncUtils::NeedSaveData(dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo)) {
-        // not handle same data
-        return E_OK;
-    }
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (!currentContext_.strategy) {
-            LOGE("[CloudSyncer] strategy has not been set when tag status, %d.", -E_INTERNAL_ERROR);
-            return -E_INTERNAL_ERROR;
-        }
-        bool isCloudWin = storageProxy_->IsTagCloudUpdateLocal(dataInfo.localInfo.logInfo,
-            dataInfo.cloudLogInfo, policy_);
-        strategyOpResult = currentContext_.strategy->TagSyncDataStatus(isExist, isCloudWin,
-            dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo);
-    }
-    if (strategyOpResult == OpType::DELETE) {
-        param.deletePrimaryKeySet.insert(dataInfo.localInfo.logInfo.hashKey);
-    }
-    return E_OK;
-}
-
 int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
+    logInfo.isQueryLocalData = strategyProxy_.JudgeQueryLocalData();
     int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index], true,
         logInfo, localAssetInfo);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
@@ -1842,12 +1810,14 @@ void CloudSyncer::SetCurrentTaskFailedWithoutLock(int errCode)
 
 int CloudSyncer::LockCloudIfNeed(TaskId taskId)
 {
+    bool lockCloud = false;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (currentContext_.locker != nullptr) {
             LOGD("[CloudSyncer] lock exist");
             return E_OK;
         }
+        lockCloud = strategyProxy_.JudgeLocker();
     }
     std::shared_ptr<CloudLocker> locker = nullptr;
     int errCode = CloudLocker::BuildCloudLock([taskId, this]() {
@@ -1857,7 +1827,7 @@ int CloudSyncer::LockCloudIfNeed(TaskId taskId)
         if (unlockCode != E_OK) {
             SetCurrentTaskFailedWithoutLock(unlockCode);
         }
-    }, locker);
+    }, lockCloud, locker);
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentContext_.locker = locker;
@@ -1883,7 +1853,7 @@ void CloudSyncer::ClearCurrentContextWithoutLock()
     failedHeartbeatCount_.erase(currentContext_.currentTaskId);
     currentContext_.currentTaskId = INVALID_TASK_ID;
     currentContext_.notifier = nullptr;
-    currentContext_.strategy = nullptr;
+    strategyProxy_.ResetStrategy();
     currentContext_.processRecorder = nullptr;
     currentContext_.tableName.clear();
     currentContext_.assetDownloadList.clear();
@@ -1944,12 +1914,12 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     }
     // generate compensated sync
     // if already have compensated sync task in queue, no need to generate new compensated sync task
-    if (!info.compensatedTask && !IsAlreadyHaveCompensatedSyncTask() &&
-        !CloudSyncUtils::NotNeedToCompensated(info.errCode)) {
+    auto config = storageProxy_->GetCloudSyncConfig();
+    if (CloudSyncUtils::NeedCompensated(info, config) && !IsAlreadyHaveCompensatedSyncTask()) {
         CloudTaskInfo taskInfo = CloudSyncUtils::InitCompensatedSyncTaskInfo(info);
         GenerateCompensatedSync(taskInfo);
     }
-    if (CloudSyncUtils::NotNeedToCompensated(info.errCode)) {
+    if (CloudSyncUtils::IsCloudErrorNotNeedCompensated(info.errCode)) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         for (auto &cloudTaskInfoIter : cloudTaskInfos_) {
             if (cloudTaskInfoIter.second.compensatedTask) {
@@ -2034,6 +2004,12 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
     return errorCode;
 }
 
+bool CloudSyncer::IsForcePullAsset(const TaskId taskId, QuerySyncObject queryObject)
+{
+    return IsModeForcePull(taskId) && queryObject.IsContainQueryNodes() &&
+        GetQueryMode(taskId) == QueryMode::UPLOAD_AND_DOWNLOAD;
+}
+
 int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
 {
     if (IsCurrentTableResume(taskId, false)) {
@@ -2056,7 +2032,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
     param.info.tableName = param.tableName;
     std::vector<Field> assetFields;
     // only no primary key and composite primary key contains rowid.
-    ret = storageProxy_->GetPrimaryColNamesWithAssetsFields(param.tableName, param.pkColNames, assetFields);
+    ret = storageProxy_->GetPkAndAssetsFields(param.tableName, param.pkColNames, assetFields, param.dupLocalPkNames);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot get primary column names: %d", ret);
         return ret;
@@ -2083,7 +2059,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
     param.groupNum = queryObject.GetGroupNum();
     param.assetsGroupMap = queryObject.GetAssetsOnlyGroupMap();
     param.isVaildForAssetsOnly = queryObject.AssetsOnlyErrFlag() == E_OK;
-    param.isForcePullAseets = IsModeForcePull(taskId) && queryObject.IsContainQueryNodes();
+    param.isForcePullAseets = IsForcePullAsset(taskId, queryObject);
     return ret;
 }
 

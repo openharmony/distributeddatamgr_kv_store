@@ -215,9 +215,13 @@ HWTEST_F(DistributedDBBasicKVTest, LocalPut001, TestSize.Level0)
     EXPECT_EQ(v1, actualValue);
     Key k2 = {'k', '2'};
     Value v2 = {'v', '2'};
+    std::shared_ptr<KvStoreObserverUnitTest> observer = std::make_shared<KvStoreObserverUnitTest>();
+    ASSERT_TRUE(observer != nullptr);
+    EXPECT_EQ(store1->RegisterObserver({}, OBSERVER_CHANGES_NATIVE, observer), OK);
     EXPECT_EQ(store1->PutLocal(k2, v2), OK);
     EXPECT_EQ(store1->GetLocal(k2, actualValue), OK);
     EXPECT_EQ(v2, actualValue);
+    EXPECT_EQ(store1->UnRegisterObserver(observer), OK);
 }
 
 /**

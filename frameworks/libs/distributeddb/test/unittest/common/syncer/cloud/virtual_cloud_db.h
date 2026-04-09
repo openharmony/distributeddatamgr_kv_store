@@ -53,6 +53,8 @@ public:
 
     DBStatus Close() override;
 
+    DBStatus StopCloudSync() override;
+
     DBStatus QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data) override;
 
     void SetCloudError(bool cloudError);
@@ -112,6 +114,8 @@ public:
     void SetUploadRecordStatus(DBStatus status);
 
     void ForkQueryAllGid(const std::function<DBStatus(const std::string &, VBucket &, std::vector<VBucket> &)> &func);
+
+    size_t GetUpdateCount() const;
 private:
     DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend);
@@ -154,6 +158,7 @@ private:
     std::atomic<int32_t> lockCount_ = 0;
     std::atomic<int32_t> insertFailedCount_ = 0;
     std::atomic<int32_t> missingExtendCount_ = 0;
+    std::atomic<size_t> updateCount_ = 0;
     bool cloudSpaceInsufficient_ = false;
     std::mutex cloudDataMutex_;
     std::map<std::string, std::vector<CloudData>> cloudData_;

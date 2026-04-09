@@ -13,10 +13,69 @@
  * limitations under the License.
  */
 #ifdef RELATIONAL_STORE
-#include <unordered_set>
 #include "sqlite_relational_store.h"
 
 namespace DistributedDB {
+void SQLiteRelationalStore::StopAllBackgroundTask(TaskType type)
+{
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+    if (type == DistributedDB::TaskType::BACKGROUND_TASK) {
+        if (sqliteStorageEngine_ == nullptr) {
+            LOGW("[RelationalStore] Storage engine was not initialized when stop all background task");
+        } else {
+            sqliteStorageEngine_->StopGenLogTask();
+        }
+    }
+    if (cloudSyncer_ == nullptr) {
+        LOGW("[RelationalStore] cloudSyncer was not initialized when stop all task, type: %u", type);
+    } else {
+        (void) cloudSyncer_->StopSyncTask(nullptr, -E_TASK_INTERRUPTED);
+    }
+#endif
+}
+
+#ifdef USE_DISTRIBUTEDDB_CLOUD
+int SQLiteRelationalStore::StopGenLogTask(const std::vector<std::string> &tableList)
+{
+    if (sqliteStorageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return sqliteStorageEngine_->StopGenLogTaskWithTables(tableList);
+}
+
+SyncProcess SQLiteRelationalStore::GetCloudTaskStatus(uint64_t taskId) const
+{
+    return cloudSyncer_->GetCloudTaskStatus(taskId);
+}
+
+std::pair<int, DataBaseSchema> SQLiteRelationalStore::FilterCloudDbSchema(const DataBaseSchema &schema)
+{
+    std::pair<int, DataBaseSchema> res;
+    auto &[errCode, databaseSchema] = res;
+    if (sqliteStorageEngine_ == nullptr) {
+        errCode = -E_INVALID_DB;
+        return res;
+    }
+    for (const auto &item : schema.tables) {
+        auto [ret, tableInfo] = sqliteStorageEngine_->AnalyzeTable(item.name);
+        if (ret == -E_NOT_FOUND) {
+            databaseSchema.tables.emplace_back(item);
+            continue;
+        }
+        if (ret != E_OK) {
+            LOGW("[SQLiteRelationalStore] FilterCloudDbSchema analyze table[%s] errCode[%d]",
+                DBCommon::StringMiddleMaskingWithLen(item.name).c_str(), ret);
+            errCode = ret;
+            return res;
+        }
+        TableSchema tableSchema = item;
+        SQLiteRelationalUtils::FilterTableSchema(tableInfo, tableSchema);
+        databaseSchema.tables.emplace_back(tableSchema);
+    }
+    return res;
+}
+#endif
+
 #ifdef USE_DISTRIBUTEDDB_DEVICE
 int SQLiteRelationalStore::RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap)
 {
