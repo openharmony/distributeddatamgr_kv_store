@@ -67,7 +67,7 @@ public:
 ani_status AniCreateInt(ani_env* env, int32_t value, ani_object& result);
 bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value &tuple);
 
-bool AniIsInstanceOf(ani_env* aniEnv, ani_ref aniRef, const std::string& cls_name);
+void AniExecuteFunc(ani_vm* vm, const std::function<void(ani_env*)> func);
 
 } //namespace ani_utils
 #endif
