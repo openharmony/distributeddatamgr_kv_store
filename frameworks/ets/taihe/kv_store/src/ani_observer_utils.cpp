@@ -30,11 +30,6 @@ AniDataChangeObserver::AniDataChangeObserver(JsDataChangeCallbackType callback)
     jsCallback_ = callback;
 }
 
-AniDataChangeObserver::~AniDataChangeObserver()
-{
-    ZLOGI("~AniDataChangeObserver");
-}
-
 void AniDataChangeObserver::Release()
 {
     ZLOGI("AniDataChangeObserver::Release");
@@ -64,11 +59,6 @@ AniSyncCallback::AniSyncCallback(JsSyncCompleteCallbackType callback)
     ZLOGI("AniSyncCallback");
     jsCallback_ = callback;
     GetVm();
-}
-
-AniSyncCallback::~AniSyncCallback()
-{
-    ZLOGI("~AniSyncCallback");
 }
 
 void AniSyncCallback::GetVm()
@@ -107,15 +97,10 @@ void AniSyncCallback::SyncCompleted(const std::map<std::string, DistributedKv::S
     });
 }
 
-AniServiceDeathObserver::AniServiceDeathObserver(JsServiceDeathType cb)
+AniServiceDeathObserver::AniServiceDeathObserver(JsServiceDeathType callback)
 {
     ZLOGI("AniServiceDeathObserver");
-    jsCallback_ = cb;
-}
-
-AniServiceDeathObserver::~AniServiceDeathObserver()
-{
-    ZLOGI("~AniServiceDeathObserver");
+    jsCallback_ = callback;
 }
 
 void AniServiceDeathObserver::Release()

@@ -38,15 +38,15 @@ using JsSyncCompleteCallbackType = ::taihe::callback<void(::taihe::array_view<ui
 using JsServiceDeathType = ::taihe::callback<void(::ohos::data::distributedkvstore::OneUndef const&)>;
 
 template<typename T>
-bool IsSameTaiheCallback(T srcOptCallback, T otherOptCallback)
+bool IsSameTaiheCallback(T oldOptCallback, T newOptCallback)
 {
-    if (!srcOptCallback.has_value() && !otherOptCallback.has_value()) {
+    if (!oldOptCallback.has_value() && !newOptCallback.has_value()) {
         return true;
     }
-    if (srcOptCallback.has_value() && otherOptCallback.has_value()) {
-        const T& srcCallback = srcOptCallback.value();
-        const T& otherCallback = otherOptCallback.value();
-        return srcCallback == otherCallback;
+    if (oldOptCallback.has_value() && newOptCallback.has_value()) {
+        auto const& oldCallback = oldOptCallback.value();
+        auto const& newCallback = newOptCallback.value();
+        return oldCallback == newCallback;
     }
     return false;
 }
@@ -54,7 +54,6 @@ bool IsSameTaiheCallback(T srcOptCallback, T otherOptCallback)
 class AniDataChangeObserver : public DistributedKv::KvStoreObserver {
 public:
     AniDataChangeObserver(JsDataChangeCallbackType callback);
-    ~AniDataChangeObserver();
     std::optional<JsDataChangeCallbackType>& GetJsCallback() { return jsCallback_; }
     void Release();
     void SetIsSchemaStore(bool isSchemaStore);
@@ -69,7 +68,6 @@ protected:
 class AniSyncCallback : public DistributedKv::KvStoreSyncCallback {
 public:
     AniSyncCallback(JsSyncCompleteCallbackType callback);
-    ~AniSyncCallback();
     void GetVm();
     std::optional<JsSyncCompleteCallbackType>& GetJsCallback() { return jsCallback_; }
     void Release();
@@ -83,8 +81,7 @@ protected:
 
 class AniServiceDeathObserver : public DistributedKv::KvStoreDeathRecipient {
 public:
-    AniServiceDeathObserver(JsServiceDeathType cb);
-    ~AniServiceDeathObserver();
+    AniServiceDeathObserver(JsServiceDeathType callback);
     std::optional<JsServiceDeathType>& GetJsCallback() { return jsCallback_; }
     void Release();
     void OnRemoteDied() override;
