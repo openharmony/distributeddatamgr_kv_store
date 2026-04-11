@@ -227,6 +227,7 @@ DBStatus RelationalStoreDelegateImpl::RemoteQuery(const std::string &device, con
 DBStatus RelationalStoreDelegateImpl::RemoveExceptDeviceData(
     const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
 {
+    changedRows = 0;
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate][RemoveExceptDeviceData] Invalid connection for operation!");
         return DB_ERROR;
