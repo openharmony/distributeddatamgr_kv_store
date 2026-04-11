@@ -90,7 +90,6 @@ int SQLiteRelationalStore::RemoveExceptDeviceDataInner(
         return errCode;
     };
     bool hasTrackerTable = false;
-    auto storeId = GetProperties().GetStringProp(RelationalDBProperties::STORE_ID, "");
     for (const auto &iter : tableMap) {
         TrackerTable trackerTable = sqliteStorageEngine_->GetTrackerSchema().GetTrackerTable(iter.first);
         if (!trackerTable.IsEmpty()) {
