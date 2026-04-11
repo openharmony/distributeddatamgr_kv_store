@@ -79,16 +79,18 @@ public:
     static int InitDatabaseWithSchemaInfo(const UtDateBaseSchemaInfo &schemaInfo, sqlite3 &db);
 
     static int InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo, sqlite3 &db);
+
+    static int GetAssetsBySQL(sqlite3 *db, const std::string &sql, std::vector<DistributedDB::Assets> &res);
+
+    static DistributedDB::Asset GenerateAsset(int64_t index, const DistributedDB::Field &field);
+
+    static DistributedDB::Assets GenerateAssets(int64_t index, const DistributedDB::Field &field);
 private:
     static std::string GetTypeText(int type);
 
     static void FillColValueByType(int64_t index, const DistributedDB::Field &field, DistributedDB::VBucket &vBucket);
 
     static DistributedDB::Type GetColValueByType(int64_t index, const DistributedDB::Field &field);
-
-    static DistributedDB::Asset GenerateAsset(int64_t index, const DistributedDB::Field &field);
-
-    static DistributedDB::Assets GenerateAssets(int64_t index, const DistributedDB::Field &field);
 
     static int BindOneRowStmt(int64_t index, sqlite3_stmt *stmt, int cid, bool withoutPk,
         const std::vector<DistributedDB::Field> &fields);

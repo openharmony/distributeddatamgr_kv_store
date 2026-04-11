@@ -532,7 +532,8 @@ void PriorityLevelSync(int32_t priorityLevel, const Query &query, const CloudSyn
     });
 }
 
-void PriorityLevelSync(int32_t priorityLevel, const Query &query, SyncMode mode, DBStatus expectResult = DBStatus::OK)
+void PriorityLevelSync(int32_t priorityLevel, const Query &query, SyncMode mode,
+    SyncFlowType flowType = SyncFlowType::NORMAL, DBStatus expectResult = DBStatus::OK)
 {
     std::mutex processMutex;
     std::vector<SyncProcess> expectProcess;
@@ -554,6 +555,33 @@ void PriorityLevelSync(int32_t priorityLevel, const Query &query, SyncMode mode,
     option.mode = mode;
     option.priorityTask = true;
     option.priorityLevel = priorityLevel;
+    option.syncFlowType = flowType;
+    DBStatus syncResult = g_delegate->Sync(option, callback);
+    EXPECT_EQ(syncResult, expectResult);
+
+    std::unique_lock<std::mutex> lock(processMutex);
+    cv.wait(lock, [&finish]() {
+        return finish;
+    });
+}
+
+void PriorityLevelSyncWithOption(int32_t priorityLevel, const CloudSyncOption &option,
+    DBStatus expectResult = DBStatus::OK)
+{
+    std::mutex processMutex;
+    std::vector<SyncProcess> expectProcess;
+    std::condition_variable cv;
+    bool finish = expectResult == DBStatus::OK ? false : true;
+    auto callback = [&cv, &finish, &processMutex]
+        (const std::map<std::string, SyncProcess> &process) {
+        for (auto &item : process) {
+            if (item.second.process == FINISHED) {
+                std::unique_lock<std::mutex> lock(processMutex);
+                finish = true;
+                cv.notify_one();
+            }
+        }
+    };
     DBStatus syncResult = g_delegate->Sync(option, callback);
     EXPECT_EQ(syncResult, expectResult);
 
@@ -1350,14 +1378,14 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly017, 
     assets["assets"] = {ASSET_COPY.name + "0"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
         EndGroup();
-    PriorityLevelSync(0, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
+    PriorityLevelSync(0, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, SyncFlowType::NORMAL, DBStatus::INVALID_ARGS);
 
     /**
      * @tc.steps:step3. priority sync with error priority level.
      * @tc.expected: step3. return INVALID_ARGS.
      */
     query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).EndGroup();
-    PriorityLevelSync(3, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
+    PriorityLevelSync(3, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, SyncFlowType::NORMAL, DBStatus::INVALID_ARGS);
 }
 
 /**
@@ -1551,7 +1579,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly022, 
     assets1["assets"] = {ASSET_COPY.name + "0_copy"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).AssetsOnly(assets).
         EndGroup().Or().BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::INVALID_ARGS);
+    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, SyncFlowType::NORMAL, DBStatus::INVALID_ARGS);
 }
 
 /**
@@ -1581,7 +1609,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly023, 
     assets1["assets"] = {ASSET_COPY.name + "0_copy"};
     Query query = Query::Select().From(ASSETS_TABLE_NAME).BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets).
         EndGroup().And().BeginGroup().EqualTo("id", 0).And().AssetsOnly(assets1).EndGroup();
-    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, DBStatus::OK);
+    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, SyncFlowType::NORMAL, DBStatus::OK);
 }
 
 /**
@@ -1640,6 +1668,65 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly024, 
 }
 
 /**
+  * @tc.name: DownloadAssetsOnly025
+  * @tc.desc: Test download specified assets when downloadOnly mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, DownloadAssetsOnly025, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    for (int i = 0; i < dataCount; i++) {
+        Asset asset = ASSET_COPY;
+        asset.name += std::to_string(i);
+        asset.status = AssetStatus::UPDATE;
+        asset.hash = "local_new";
+        Assets assets = {asset};
+        asset.name += "_new";
+        assets.push_back(asset);
+        UpdateLocalData(db, ASSETS_TABLE_NAME, assets, i, i);
+    }
+    /**
+     * @tc.steps:step2. Download specified assets
+     * @tc.expected: step2. return OK.
+     */
+    std::vector<int64_t> inValue = {0};
+    std::map<std::string, std::set<std::string>> assets;
+    assets["assets"] = {ASSET_COPY.name + "0"};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue).And().AssetsOnly(assets);
+    PriorityLevelSync(2, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, SyncFlowType::DOWNLOAD_ONLY, DBStatus::OK);
+
+    Asset assetCloud = ASSET_COPY;
+    assetCloud.name += std::to_string(0);
+    Asset assetLocal = ASSET_COPY;
+    assetLocal.name +=std::to_string(0) + "_new";
+    assetLocal.hash = "local_new";
+    assetLocal.status = AssetStatus::UPDATE;
+    CheckAsset(db, ASSETS_TABLE_NAME, 0, assetCloud, true);
+    CheckAsset(db, ASSETS_TABLE_NAME, 0, assetLocal, true);
+
+    for (int i = 1; i < dataCount; i++) {
+        Asset assetLocal1 = ASSET_COPY;
+        assetLocal1.name += std::to_string(i);
+        Asset assetLocal2 = ASSET_COPY;
+        assetLocal2.name +=std::to_string(i) + "_new";
+        assetLocal1.hash = "local_new";
+        assetLocal2.hash = "local_new";
+        assetLocal1.status = AssetStatus::UPDATE;
+        assetLocal2.status = AssetStatus::UPDATE;
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal1, true);
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal2, true);
+    }
+}
+
+/**
  * @tc.name: SetAssetsConfig001
  * @tc.desc: Test set async download assets config
  * @tc.type: FUNC
@@ -1655,6 +1742,51 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, SetAssetsConfig001, Tes
     AsyncDownloadAssetsConfig config;
     config.maxDownloadTask = 10;
     EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+}
+
+/**
+  * @tc.name: UploadOnlyAssetTest001
+  * @tc.desc: Test sync when uploadOnly mode and force pull
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: wangxiangdong
+  */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsOnlyTest, UploadOnlyAssetTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data
+     * @tc.expected: step1. return OK.
+     */
+    int dataCount = 10;
+    InsertCloudDBData(0, dataCount, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::OK);
+    /**
+     * @tc.steps:step2. Sync by query uploadOnly and force_pull
+     * @tc.expected: step2. return OK.
+     */
+    std::vector<int64_t> inValue = {0};
+    Query query = Query::Select().From(ASSETS_TABLE_NAME).In("id", inValue);
+    CloudSyncOption option;
+    option.devices = {DEVICE_CLOUD};
+    option.query = query;
+    option.mode = SyncMode::SYNC_MODE_CLOUD_FORCE_PULL;
+    option.priorityTask = true;
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    PriorityLevelSyncWithOption(2, option, DBStatus::OK);
+    /**
+     * @tc.steps:step3. Check asset result.
+     * @tc.expected: step3. return OK.
+     */
+    for (int i = 1; i < dataCount; i++) {
+        Asset assetLocal1 = ASSET_COPY;
+        assetLocal1.name += std::to_string(i);
+        Asset assetLocal2 = ASSET_COPY;
+        assetLocal2.name +=std::to_string(i) + "_copy";
+        assetLocal1.status = AssetStatus::NORMAL;
+        assetLocal2.status = AssetStatus::NORMAL;
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal1, true);
+        CheckAsset(db, ASSETS_TABLE_NAME, i, assetLocal2, true);
+    }
 }
 } // namespace
 #endif // RELATIONAL_STORE

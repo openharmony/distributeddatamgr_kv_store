@@ -59,6 +59,7 @@ public:
     // Set remote fields in cid order
     void SetRemoteFields(std::vector<FieldInfo> remoteFields);
     void SetEntries(std::vector<DataItem> entries);
+    void SetDeviceSyncLogicDelete(bool isDeviceSyncLogicDelete);
 
     void SetLocalTable(TableInfo localTable);
     const TableInfo &GetLocalTable() const;
@@ -93,9 +94,10 @@ public:
     void IncNonExistDelCnt();
     void DfxPrintLog() const;
 
-    void Init(const std::vector<DataItem> &dataItems, const std::string &localHashDevId);
-private:
+    void Init(const std::vector<DataItem> &dataItems, const std::string &localHashDevId,
+        bool isDeviceSyncLogicDelete = false);
 
+private:
     int GetInsertStatement(sqlite3 *db, sqlite3_stmt *&stmt);
 
     int GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt);
@@ -113,6 +115,8 @@ private:
     std::string localHashDevId_;
     std::vector<FieldInfo> remoteFields_;
     std::vector<DataItem> entries_;
+    bool isDeviceSyncLogicDelete_ = false;
+
     TableInfo localTable_;
     QueryObject query_;
     std::string insertTableName_; // table name to save sync data

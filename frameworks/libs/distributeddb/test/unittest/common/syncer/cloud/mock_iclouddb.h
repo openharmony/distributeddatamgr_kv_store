@@ -32,6 +32,7 @@ public:
     MOCK_METHOD0(UnLock, DBStatus(void));
     MOCK_METHOD0(HeartBeat, DBStatus(void));
     MOCK_METHOD0(Close, DBStatus(void));
+    MOCK_METHOD0(StopCloudSync, DBStatus(void));
 };
 }
 #endif // #define MOCK_ICLOUD_DB_H

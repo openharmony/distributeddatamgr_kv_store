@@ -128,6 +128,7 @@ void DistributedDBCloudInterfacesRelationalExtTest::TearDown()
 {
     g_alreadyNotify = false;
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+    Logger::SetInstanceDestroyed(false);
 }
 
 void DistributedDBCloudInterfacesRelationalExtTest::CheckTriggerObserverTest002(const std::string &tableName,
@@ -1952,7 +1953,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, CleanTest001, TestSize.L
     Clean(false);
     loggerInstance = nullptr;
     auto newLoggerInstance = Logger::GetInstance();
-    ASSERT_NE(newLoggerInstance, nullptr);
+    ASSERT_EQ(newLoggerInstance, nullptr);
 }
 
 /**

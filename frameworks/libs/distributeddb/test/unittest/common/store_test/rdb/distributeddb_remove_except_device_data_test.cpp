@@ -118,6 +118,101 @@ void DistributedDBRemoveExceptDeviceDataTest::PrepareRemoveDataStore(
 
 #ifdef USE_DISTRIBUTEDDB_DEVICE
 /**
+ * @tc.name: RdbSetDeviceSyncLogicDeleteTest001
+ * @tc.desc: SetDeviceSyncLogicDelete after sync delete count is 4.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangdi
+ */
+HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbSetDeviceSyncLogicDeleteTest001, TestSize.Level1)
+{
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1(); // dev1 as A
+    auto info2 = GetStoreInfo2(); // dev2 as B
+    auto info3 = GetStoreInfo3(); // dev3 as C
+    /**
+     * @tc.steps: step1.  prepare remove info and data
+     * @tc.expected: step1. Ok
+     */
+    constexpr int count = DEFAULT_TEST_COUNT;
+    PrepareRemoveDataStore(info1, info2, info3, count);
+
+    /**
+     * @tc.steps: step2. A delete all data and sync to B, B is LOGIC_DELETE_DEVICE_SYNC_DATA.
+     * @tc.expected: step2. Ok
+     */
+    auto delegateB = GetDelegate(info2);
+    ASSERT_NE(delegateB, nullptr);
+    bool isManualCleanDevice = true;
+    PragmaData data =
+            static_cast<PragmaData>(const_cast<void *>(static_cast<const void *>(&isManualCleanDevice)));
+    delegateB->Pragma(PragmaCmd::LOGIC_DELETE_DEVICE_SYNC_DATA, data);
+    BasicUnitTest::SetLocalDeviceId("localDevice");
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
+    std::string sql = "DELETE from " + g_defaultTable1;
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    BlockPush(info1, info2, g_defaultTable1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), ZERO);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
+    EXPECT_EQ(
+        RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA, "flag = 9"),
+        count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
+}
+
+/**
+ * @tc.name: RdbSetDeviceSyncLogicDeleteTest002
+ * @tc.desc: not SetDeviceSyncLogicDelete after sync delete count is 2.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangdi
+ */
+HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbSetDeviceSyncLogicDeleteTest002, TestSize.Level1)
+{
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1(); // dev1 as A
+    auto info2 = GetStoreInfo2(); // dev2 as B
+    auto info3 = GetStoreInfo3(); // dev3 as C
+    /**
+     * @tc.steps: step1.  prepare remove info and data
+     * @tc.expected: step1. Ok
+     */
+    constexpr int count = DEFAULT_TEST_COUNT;
+    PrepareRemoveDataStore(info1, info2, info3, count);
+
+    /**
+     * @tc.steps: step2. A delete all data and sync to B, B is LOGIC_DELETE_DEVICE_SYNC_DATA.
+     * @tc.expected: step2. Ok
+     */
+    auto delegateB = GetDelegate(info2);
+    ASSERT_NE(delegateB, nullptr);
+    BasicUnitTest::SetLocalDeviceId("localDevice");
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
+    std::string sql = "DELETE from " + g_defaultTable1;
+    EXPECT_EQ(ExecuteSQL(sql, info1), E_OK);
+    BlockPush(info1, info2, g_defaultTable1);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), ZERO);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(
+        info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA, "data_key = -1"), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
+}
+
+/**
  * @tc.name: RdbRemoveDataForOtherDevicesTest001
  * @tc.desc: Local clean should NOT delete data for other device.
  * @tc.type: FUNC

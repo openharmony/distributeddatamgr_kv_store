@@ -82,7 +82,6 @@ taihe_shared_library("distributedkvstore_ani") {
     "cJSON:cjson",
     "data_share:datashare_common",
     "data_share:datashare_common_lite",
-    "eventhandler:libeventhandler",
     "hilog:libhilog",
     "napi:ace_napi",
   ]

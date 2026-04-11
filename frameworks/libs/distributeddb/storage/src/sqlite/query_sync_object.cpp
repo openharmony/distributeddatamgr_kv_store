@@ -504,6 +504,9 @@ int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &n
         case QueryObjType::IN:
             node.type = QueryNodeType::IN;
             break;
+        case QueryObjType::NOT_IN:
+            node.type = QueryNodeType::NOT_IN;
+            break;
         case QueryObjType::OR:
             node.type = QueryNodeType::OR;
             break;
@@ -512,6 +515,18 @@ int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &n
             break;
         case QueryObjType::EQUALTO:
             node.type = QueryNodeType::EQUAL_TO;
+            break;
+        case QueryObjType::GREATER_THAN:
+            node.type = QueryNodeType::GREATER_THAN;
+            break;
+        case QueryObjType::LESS_THAN:
+            node.type = QueryNodeType::LESS_THAN;
+            break;
+        case QueryObjType::GREATER_THAN_OR_EQUALTO:
+            node.type = QueryNodeType::GREATER_THAN_OR_EQUAL_TO;
+            break;
+        case QueryObjType::LESS_THAN_OR_EQUALTO:
+            node.type = QueryNodeType::LESS_THAN_OR_EQUAL_TO;
             break;
         case QueryObjType::BEGIN_GROUP:
             node.type = QueryNodeType::BEGIN_GROUP;
@@ -522,6 +537,9 @@ int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &n
         case QueryObjType::IN_KEYS:
             node.fieldName = CloudDbConstant::CLOUD_KV_FIELD_KEY;
             node.type = QueryNodeType::IN;
+            break;
+        case QueryObjType::NOT_EQUALTO:
+            node.type = QueryNodeType::NOT_EQUAL_TO;
             break;
         default:
             LOGE("[Query] not support type %d", static_cast<int>(objNode.operFlag));

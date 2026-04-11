@@ -250,7 +250,7 @@ void SyncTaskContext::MoveToNextTarget(uint32_t timeout)
         }
         SyncOperation *tmpOperation = nullptr;
         tmpTarget->GetSyncOperation(tmpOperation);
-        if ((tmpOperation != nullptr) && tmpOperation->IsKilled()) {
+        if ((tmpOperation != nullptr) && (tmpOperation->IsKilled() || tmpOperation->CheckIsAllFinished())) {
             // if killed skip this syncOperation_.
             delete tmpTarget;
             tmpTarget = nullptr;
