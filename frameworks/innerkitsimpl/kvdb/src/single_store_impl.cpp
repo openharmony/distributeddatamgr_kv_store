@@ -25,6 +25,7 @@
 #include "ipc_skeleton.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
+#include "security_manager.h"
 #include "store_result_set.h"
 #include "store_util.h"
 #include "task_executor.h"
@@ -842,6 +843,63 @@ Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, cons
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     return status;
+}
+
+Status SingleStoreImpl::Rekey()
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (dbStore_ == nullptr) {
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
+        return ALREADY_CLOSED;
+    }
+
+    if (!encrypt_) {
+        ZLOGE("store is not encrypted, db:%{public}s", StoreUtil::Anonymous(storeId_).c_str());
+        return CRYPT_ERROR;
+    }
+
+    std::string rekeyPath = path_ + "/rekey";
+    std::string rekeyName = rekeyPath + "/key/" + storeId_ + ".new.key_v1";
+    if (!StoreUtil::InitPath(rekeyPath)) {
+        ZLOGE("Init keyPath:%{public}s failed", StoreUtil::Anonymous(rekeyPath).c_str());
+        return CRYPT_ERROR;
+    }
+
+    auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId_ + ".new", rekeyPath, true);
+    if (!newDbPassword.IsValid()) {
+        ZLOGE("Failed to generate new key.");
+        newDbPassword.Clear();
+        StoreUtil::Remove(rekeyName);
+        return CRYPT_ERROR;
+    }
+
+    auto dbStatus = dbStore_->Rekey(newDbPassword.password);
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("Failed to rekey the database, status:0x%{public}x", status);
+        StoreUtil::Remove(rekeyName);
+        newDbPassword.Clear();
+        return status;
+    }
+
+    if (!SecurityManager::GetInstance().SaveDBPassword(storeId_, path_, newDbPassword.password)) {
+        ZLOGE("Save new password failed");
+        auto oldPassword = SecurityManager::GetInstance().GetDBPassword(storeId_, path_, false);
+        if (oldPassword.IsValid()) {
+            dbStore_->Rekey(oldPassword.password);
+        }
+        StoreUtil::Remove(rekeyName);
+        oldPassword.Clear();
+        newDbPassword.Clear();
+        return CRYPT_ERROR;
+    }
+
+    newDbPassword.Clear();
+    StoreUtil::Remove(rekeyName);
+
+    ZLOGI("Rekey completed successfully for store:%{public}s", StoreUtil::Anonymous(storeId_).c_str());
+    return SUCCESS;
 }
 
 std::shared_ptr<ObserverBridge> SingleStoreImpl::PutIn(uint32_t &realType, std::shared_ptr<Observer> observer)

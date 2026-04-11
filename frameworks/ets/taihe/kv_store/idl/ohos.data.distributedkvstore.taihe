@@ -336,6 +336,10 @@ interface SingleKVStore {
     @gen_promise("deleteBackupEx")
     DeleteBackupExSync(backupConfig: BackupConfig): void;
 
+    @gen_async("rekey")
+    @gen_promise("rekey")
+    RekeySync(): void;
+
     @gen_async("startTransaction")
     @gen_promise("startTransaction")
     StartTransactionSync(): void;
