@@ -705,7 +705,8 @@ bool SQLiteUtils::IsStmtReadOnly(sqlite3_stmt *statement)
     return static_cast<bool>(isReadOnly);
 }
 
-int SQLiteUtils::UpdateLocalDataModifyTime(sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime)
+int SQLiteUtils::UpdateLocalDataModifyTime(
+    sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
@@ -767,13 +768,13 @@ int SQLiteUtils::UpdateLocalDataCloudFlag(sqlite3 *db)
     return errCode;
 }
 
-int SQLiteUtils::PrintChangeRows(sqlite3_stmt *statement)
+int SQLiteUtils::PrintChangeRows(sqlite3_stmt *statement, int64_t &changedRows)
 {
     sqlite3 *db = sqlite3_db_handle(statement);
     if (db == nullptr) {
         return -E_INVALID_DB;
     }
-    int64_t changedRows = sqlite3_changes64(db);
+    changedRows = sqlite3_changes64(db);
     LOGI("[SQLiteUtils] changed %lld rows", changedRows);
     return E_OK;
 }

@@ -231,8 +231,9 @@ DBStatus RelationalStoreDelegateImpl::RemoteQuery(const std::string &device, con
 }
 
 DBStatus RelationalStoreDelegateImpl::RemoveExceptDeviceData(
-    const std::map<std::string, std::vector<std::string>> &tableMap)
+    const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
 {
+    changedRows = 0;
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate][RemoveExceptDeviceData] Invalid connection for operation!");
         return DB_ERROR;
@@ -252,7 +253,7 @@ DBStatus RelationalStoreDelegateImpl::RemoveExceptDeviceData(
         LOGE("[RelationalStore Delegate] Get storeInfo failed %d when set cloud conflict handle", errCode);
         return TransferDBErrno(errCode);
     }
-    errCode = conn_->RemoveExceptDeviceData(filterTableMap);
+    errCode = conn_->RemoveExceptDeviceData(filterTableMap, changedRows);
     LOGI("[RelationalStore Delegate] appId:%s storeId:%s RemoveExceptDeviceData errCode[%d]",
         DBCommon::StringMiddleMaskingWithLen(appId).c_str(), DBCommon::StringMiddleMaskingWithLen(storeId).c_str(),
         errCode);

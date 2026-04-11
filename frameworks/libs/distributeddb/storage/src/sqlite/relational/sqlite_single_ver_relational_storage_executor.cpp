@@ -2081,9 +2081,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetGidRecordCount(const std::strin
 #endif
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedExceptDeviceTable(
-    const std::string &removedTable, const std::vector<std::string> &keepDevices) const
+    const std::string &removedTable, const std::vector<std::string> &keepDevices, int64_t &changedRows) const
 {
-    return SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(dbHandle_, removedTable, keepDevices);
+    return SQLiteRelationalUtils::DeleteDistributedExceptDeviceTable(dbHandle_, removedTable, keepDevices, changedRows);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedExceptDeviceTableLog(const std::string &removedTable,

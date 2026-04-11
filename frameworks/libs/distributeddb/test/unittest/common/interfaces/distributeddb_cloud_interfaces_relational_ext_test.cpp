@@ -1839,7 +1839,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, AbnormalDelegateImplTest
     const CloudSyncConfig config;
     EXPECT_EQ(delegateImpl->SetCloudSyncConfig(config), DB_ERROR);
     std::map<std::string, std::vector<std::string>> clearMap = {{"tableForTest", {"localDevice"}}};
-    EXPECT_EQ(delegateImpl->RemoveExceptDeviceData(clearMap), DB_ERROR);
+    int64_t changedRows;
+    EXPECT_EQ(delegateImpl->RemoveExceptDeviceData(clearMap, changedRows), DB_ERROR);
 
     /**
      * @tc.steps: step4. close store.

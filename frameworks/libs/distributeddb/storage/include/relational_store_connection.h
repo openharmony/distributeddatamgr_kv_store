@@ -111,7 +111,8 @@ public:
 
     virtual int SetDistributedDbSchema(const DistributedSchema &schema, bool isForceUpgrade) = 0;
 
-    virtual int RemoveExceptDeviceData(const std::map<std::string, std::vector<std::string>> &tableMap) = 0;
+    virtual int RemoveExceptDeviceData(
+        const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows) = 0;
 #endif
     virtual int OperateDataStatus(uint32_t dataOperator) = 0;
 
