@@ -501,17 +501,25 @@ void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, DBS
 void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, SyncMode mode, DBStatus exceptStatus,
     DBStatus callbackExpect)
 {
-    LOGI("[RDBGeneralUt] Begin cloud sync, app %s store %s user %s", from.appId.c_str(),
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = mode;
+    option.syncFlowType = SyncFlowType::NORMAL;
+    option.query = query;
+    option.priorityTask = true;
+    option.compensatedSyncOnly = false;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    CloudBlockSync(from, option, exceptStatus, callbackExpect);
+}
+
+void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const CloudSyncOption &option,
+    DBStatus expectStatus, DBStatus callbackExpect)
+{
+    LOGI("[RDBGeneralUt] Begin cloud sync with option, app %s store %s user %s", from.appId.c_str(),
         from.storeId.c_str(), from.userId.c_str());
     auto delegate = GetDelegate(from);
     ASSERT_NE(delegate, nullptr);
-    DistributedDB::CloudSyncOption option;
-    option.devices = { "CLOUD" };
-    option.mode = mode;
-    option.query = query;
-    option.priorityTask = true;
-    option.waitTime = DBConstant::MAX_TIMEOUT;
-    RelationalTestUtils::CloudBlockSync(option, delegate, exceptStatus, callbackExpect);
+    RelationalTestUtils::CloudBlockSync(option, delegate, expectStatus, callbackExpect);
 }
 
 int RDBGeneralUt::GetCloudDataCount(const std::string &tableName) const
@@ -641,5 +649,54 @@ int RDBGeneralUt::PutMetaData(const StoreInfo &store, const Key &key, const Valu
         return -E_INTERNAL_ERROR;
     }
     return SQLiteRelationalUtils::PutKvData(db, false, key, value);
+}
+
+void RDBGeneralUt::SetCloudConflictHandler(const StoreInfo &store, const ConflictCallback &callback)
+{
+    auto delegate = GetDelegate(store);
+    ASSERT_NE(delegate, nullptr);
+    auto handler = std::make_shared<TestCloudConflictHandler>();
+    handler->SetCallback(callback);
+    EXPECT_EQ(delegate->SetCloudConflictHandler(handler), OK);
+}
+
+void RDBGeneralUt::SetCloudSyncConfig(const StoreInfo &store, const CloudSyncConfig &config, DBStatus expectDBStatus)
+{
+    auto delegate = GetDelegate(store);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetCloudSyncConfig(config), expectDBStatus);
+}
+
+void RDBGeneralUt::GetAssetsBySQL(const StoreInfo &store, const std::string &sql, std::vector<Assets> &res)
+{
+    auto db = GetSqliteHandle(store);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RDBDataGenerator::GetAssetsBySQL(db, sql, res), E_OK);
+}
+
+void RDBGeneralUt::GetAssetsMap(const StoreInfo &store, const std::string &sql, const std::string &colName,
+    std::map<std::string, std::set<std::string>> &assetsMap)
+{
+    std::vector<Assets> assets;
+    EXPECT_NO_FATAL_FAILURE(GetAssetsBySQL(store, sql, assets));
+    for (const auto &item : assets) {
+        for (const auto &asset : item) {
+            assetsMap["assets"].insert(asset.name);
+        }
+    }
+}
+
+void RDBGeneralUt::CheckAssets(const StoreInfo &store, const std::string &sql, bool isEmpty,
+    const CheckAssetFunc &checkFunc)
+{
+    ASSERT_NE(checkFunc, nullptr);
+    std::vector<Assets> assets;
+    ASSERT_NO_FATAL_FAILURE(GetAssetsBySQL(store, sql, assets));
+    EXPECT_EQ(isEmpty, assets.empty());
+    for (const auto &item : assets) {
+        for (const auto &asset : item) {
+            checkFunc(asset);
+        }
+    }
 }
 }

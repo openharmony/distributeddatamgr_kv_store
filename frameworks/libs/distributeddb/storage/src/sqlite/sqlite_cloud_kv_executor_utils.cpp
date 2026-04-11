@@ -125,7 +125,8 @@ int SqliteCloudKvExecutorUtils::GetCloudDataForSync(const CloudSyncConfig &confi
         }
     }
 
-    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, config.maxUploadSize, config.maxUploadCount)) {
+    if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, config.maxUploadSize.value_or(0),
+        config.maxUploadCount.value_or(0))) {
         errCode = CloudStorageUtils::IdentifyCloudType(recorder, cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;

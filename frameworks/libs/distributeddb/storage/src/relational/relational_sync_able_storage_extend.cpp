@@ -554,10 +554,7 @@ CloudSyncConfig RelationalSyncAbleStorage::GetCloudSyncConfig() const
 void RelationalSyncAbleStorage::SetCloudSyncConfig(const CloudSyncConfig &config)
 {
     std::lock_guard<std::mutex> autoLock(configMutex_);
-    cloudSyncConfig_ = config;
-    LOGI("[RelationalSyncAbleStorage] SetCloudSyncConfig value:[%" PRId32 ", %" PRId32 ", %" PRId32 ", %d]",
-        cloudSyncConfig_.maxUploadCount, cloudSyncConfig_.maxUploadSize,
-        cloudSyncConfig_.maxRetryConflictTimes, cloudSyncConfig_.isSupportEncrypt);
+    DBCommon::SetCloudSyncConfigProperty(config, cloudSyncConfig_);
 }
 
 bool RelationalSyncAbleStorage::IsTableExistReference(const std::string &table)
@@ -693,6 +690,35 @@ int RelationalSyncAbleStorage::ConvertLogToLocal(const std::string &tableName, c
     errCode =  handle->ConvertLogToLocal(tableName, gids);
     ReleaseHandle(handle);
     return errCode;
+}
+
+int RelationalSyncAbleStorage::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[WaitAsyncGenLogTaskFinished] Storage is null");
+        return -E_INVALID_DB;
+    }
+    std::string localIdentity;
+    int errCode = syncAbleEngine_->GetLocalIdentity(localIdentity);
+    if (errCode != E_OK) {
+        LOGE("Get local identity failed: %d", errCode);
+        return errCode;
+    }
+    if (localIdentity.empty()) {
+        LOGE("Get empty local identity");
+        return -E_INVALID_ARGS;
+    }
+    return storageEngine_->WaitAsyncGenLogTaskFinished(tables, localIdentity);
+}
+
+int RelationalSyncAbleStorage::ResetGenLogTaskStatus()
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[SetGenLogTaskStatus] Storage is null");
+        return -E_INVALID_DB;
+    }
+    storageEngine_->ResetGenLogTaskStatus();
+    return E_OK;
 }
 
 int RelationalSyncAbleStorage::PutCloudGid(const std::string &tableName, std::vector<VBucket> &data)
@@ -936,6 +962,32 @@ std::string RelationalSyncAbleStorage::GetLocalHashDevId() const
 {
     std::lock_guard<std::mutex> lock(localDevMutex_);
     return localHashDevId_;
+}
+
+bool RelationalSyncAbleStorage::IsSkipDownloadAssets() const
+{
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return cloudSyncConfig_.skipDownloadAssets.value_or(false);
+}
+
+std::vector<std::string> RelationalSyncAbleStorage::GetLocalPkNames(const std::string &tableName)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[GetLocalPkNames] Storage is null");
+        return {};
+    }
+    TableInfo tableInfo = storageEngine_->GetSchema().GetTable(tableName);
+    if (!tableInfo.IsValid()) {
+        LOGE("[GetLocalPkNames] table %s is not valid", tableName.c_str());
+        return {};
+    }
+    return SQLiteRelationalUtils::GetLocalPkNames(tableInfo);
+}
+
+AssetConflictPolicy RelationalSyncAbleStorage::GetAssetConflictPolicy() const
+{
+    std::lock_guard<std::mutex> lock(configMutex_);
+    return cloudSyncConfig_.assetPolicy.value_or(AssetConflictPolicy::CONFLICT_POLICY_DEFAULT);
 }
 }
 #endif

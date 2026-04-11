@@ -245,11 +245,14 @@ public:
     static DistributedDB::Entry GetK1V1();
 
     static DistributedDB::Entry GetK2V2();
+
+    static void SetExpectSyncStatus(DistributedDB::DBStatus expectStatus);
 private:
     static int OpenMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 
     std::mutex syncLock_ {};
     std::condition_variable syncCondVar_ {};
+    static DistributedDB::DBStatus expectSyncStatus_;
 };
 
 class KvStoreObserverUnitTest : public DistributedDB::KvStoreObserver {

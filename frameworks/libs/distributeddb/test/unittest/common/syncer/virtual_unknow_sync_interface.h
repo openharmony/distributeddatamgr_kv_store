@@ -23,7 +23,9 @@ class VirtualUnknowSyncInterface : public VirtualSingleVerSyncDBInterface {
 public:
     VirtualUnknowSyncInterface() = default;
     ~VirtualUnknowSyncInterface() = default;
-    int GetInterfaceType() const override {
+
+    int GetInterfaceType() const override
+    {
         return ISyncInterface::SYNC_MVD;
     }
 };

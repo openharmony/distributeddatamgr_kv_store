@@ -159,9 +159,9 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbSetDeviceSyncLogicDeleteTes
     BlockPush(info1, info2, g_defaultTable1);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
-    EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(
-                  info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA, "flag = 9"),
-              count);
+    EXPECT_EQ(
+        RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA, "flag = 9"),
+        count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
 }
@@ -206,8 +206,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbSetDeviceSyncLogicDeleteTes
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(
-                  info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA, "data_key = -1"),
-              count);
+        info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA, "data_key = -1"), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
 }

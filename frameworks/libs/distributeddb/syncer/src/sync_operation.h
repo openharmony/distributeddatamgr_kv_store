@@ -60,6 +60,10 @@ public:
         OP_NOTADB_OR_CORRUPTED,
         OP_DB_CLOSING,
         OP_NEED_CORRECT_TARGET_USER,
+        OP_DISTRIBUTED_SCHEMA_NOT_FOUND,
+        OP_TABLE_FIELD_MISMATCH,
+        OP_DISTRIBUTED_SCHEMA_MISMATCH,
+        OP_CONSTRAINT_FAILURE,
     };
 
     using UserCallback = std::function<void(std::map<std::string, int>)>;
@@ -123,6 +127,8 @@ public:
 
     // Check if All devices sync finished.
     bool CheckIsAllFinished() const;
+
+    bool CheckIsFinished(const std::string &dev) const;
 
     bool IsRetryTask() const;
 

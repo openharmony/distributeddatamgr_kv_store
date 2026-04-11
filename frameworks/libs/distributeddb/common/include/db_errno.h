@@ -197,6 +197,10 @@ constexpr const int E_CLOUD_ASSET_NOT_FOUND = (E_BASE + 210); // Cloud download 
 constexpr const int E_TABLE_NOT_FOUND = (E_BASE + 211);
 constexpr const int E_SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT = (E_BASE + 212); // Upload failed by cloud space insufficient
 constexpr const int E_EXPIRED_CURSOR = (E_BASE + 213); // Cursor invalid in cloud
+constexpr const int E_TASK_INTERRUPTED = (E_BASE + 214); // Task(cloud sync, generate log) interrupted
+constexpr const int E_TABLE_FIELD_MISMATCH = (E_BASE + 215); // Table field mismatch between local and remote
+// Distributed schema mismatch between local and remote
+constexpr const int E_DISTRIBUTED_SCHEMA_MISMATCH = (E_BASE + 216);
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H

@@ -94,6 +94,7 @@ SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecut
     bindCloudFieldFuncMap_[TYPE_INDEX<Bytes>] = &CloudStorageUtils::BindBlob;
     bindCloudFieldFuncMap_[TYPE_INDEX<Asset>] = &CloudStorageUtils::BindAsset;
     bindCloudFieldFuncMap_[TYPE_INDEX<Assets>] = &CloudStorageUtils::BindAsset;
+    bindCloudFieldFuncMap_[TYPE_INDEX<Nil>] = &CloudStorageUtils::BindNil;
 }
 
 SQLiteSingleVerRelationalStorageExecutor::~SQLiteSingleVerRelationalStorageExecutor()
@@ -158,7 +159,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     return SQLiteRelationalUtils::GeneLogInfoForExistedData(identity, tableInfo, logMgrPtr, param);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(std::string &tableName)
+int SQLiteSingleVerRelationalStorageExecutor::ResetLogStatus(const std::string &tableName)
 {
     int errCode = SetLogTriggerStatus(false);
     if (errCode != E_OK) {
@@ -222,7 +223,7 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateTrackerTable(sqlite3 *db, co
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded,
-    const std::string &identity, TableInfo &table)
+    const std::string &identity, TableInfo &table, bool isAsync)
 {
     // create log table
     std::unique_ptr<SqliteLogTableManager> tableManager;
@@ -235,6 +236,15 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] create log table failed");
         return errCode;
+    }
+    // add trigger
+    errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, identity);
+    if (errCode != E_OK) {
+        LOGE("[CreateDistributedTable] Add relational log table trigger failed.");
+        return errCode;
+    }
+    if (isAsync) {
+        return SetLogTriggerStatus(true);
     }
     std::string tableName = table.GetTableName();
     bool isOnceDropped = false;
@@ -260,17 +270,11 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateRelationalLogTable(Distribut
         return errCode;
     }
 
-    // add trigger
-    errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, identity);
-    if (errCode != E_OK) {
-        LOGE("[CreateDistributedTable] Add relational log table trigger failed.");
-        return errCode;
-    }
     return SetLogTriggerStatus(true);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
-    const std::string &identity, TableInfo &table)
+    const std::string &identity, TableInfo &table, bool isAsync)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
@@ -303,7 +307,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
         return errCode;
     }
 
-    return CreateRelationalLogTable(mode, isUpgraded, identity, table);
+    return CreateRelationalLogTable(mode, isUpgraded, identity, table, isAsync);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const std::string &tableName)
@@ -332,18 +336,20 @@ int SQLiteSingleVerRelationalStorageExecutor::CompareSchemaTableColumns(const st
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const TableInfo &localTableInfo,
     DistributedTableMode mode, bool &schemaChanged, RelationalSchemaObject &schema, TableSyncType syncType)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
     }
     TableInfo newTableInfo;
+    auto tableName = localTableInfo.GetTableName();
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, newTableInfo);
     if (errCode != E_OK) {
         LOGE("[UpgradeDistributedTable] analysis table schema failed. %d", errCode);
         return errCode;
     }
+    newTableInfo.SetCloudTable(localTableInfo.GetCloudTable());
     if (CheckTableConstraint(newTableInfo, mode, syncType) != E_OK) {
         LOGE("[UpgradeDistributedTable] Not support create distributed table when violate constraints.");
         return -E_NOT_SUPPORT;
@@ -900,8 +906,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const Da
     rowId = logInfoGet.dataKey;
     isExist =
         (errCode != -E_NOT_FOUND) && (((logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) == 0) ||
-                                      (logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) ==
-                                          static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE));
+                                         (logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) ==
+                                             static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE));
     if ((dataItem.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != DataItem::REMOTE_DEVICE_DATA_MISS_QUERY &&
         mode_ == DistributedTableMode::SPLIT_BY_DEVICE) {
         isDefeated = false; // no need to solve conflict except miss query data
@@ -1589,10 +1595,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(const CloudUpl
     GetCloudLog(statement, log, totalSize, revisedTime, invalidTime);
     GetCloudExtraLog(statement, extraLog);
     if (revisedTime != 0) {
-        Bytes hashKey = std::get<Bytes>(extraLog[CloudDbConstant::HASH_KEY]);
-        cloudDataResult.revisedData.push_back({hashKey, revisedTime, invalidTime});
+        auto hashKeyPtr = std::get_if<Bytes>(&extraLog[CloudDbConstant::HASH_KEY]);
+        if (hashKeyPtr == nullptr) {
+            LOGE("[GetCloudDataForSync] Invalid args because of no hashKey!");
+            return -E_INVALID_ARGS;
+        }
+        cloudDataResult.revisedData.push_back({*hashKeyPtr, revisedTime, invalidTime});
     }
-
     VBucket data;
     int64_t flag = 0;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::FLAG, extraLog, flag);
@@ -1608,13 +1617,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(const CloudUpl
                 return errCode;
             }
             SQLiteRelationalUtils::CalCloudValueLen(cloudValue, totalSize);
-            errCode = PutVBucketByType(data, tableSchema_.fields[cid], cloudValue);
+            errCode = SQLiteRelationalUtils::PutVBucketByType(data, tableSchema_.fields[cid], cloudValue);
             if (errCode != E_OK) {
                 return errCode;
             }
         }
     }
-
     if (CloudStorageUtils::IsGetCloudDataContinue(stepNum, totalSize, maxUploadSize_, maxUploadCount_)) {
         errCode = CloudStorageUtils::IdentifyCloudType(uploadRecorder, cloudDataResult, data, log, extraLog);
     } else {
@@ -1880,7 +1888,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
                 return errCode;
             }
         } else {
-            updateLogSql += GetUpdateDataFlagSql(vBucket) + ", cloud_gid = ?";
+            updateLogSql += GetUpdateDataFlagSql(opType, vBucket) + ", cloud_gid = ?";
             updateColName.push_back(CloudDbConstant::GID_FIELD);
             CloudStorageUtils::AddUpdateColForShare(tableSchema, updateLogSql, updateColName);
         }
@@ -1996,6 +2004,20 @@ int SQLiteSingleVerRelationalStorageExecutor::ConvertLogToLocal(const std::strin
     const std::vector<std::string> &gids)
 {
     return CloudStorageUtils::ConvertLogToLocal(dbHandle_, tableName, gids);
+}
+
+std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetInsertFields(const VBucket &vBucket,
+    const TableSchema &tableSchema) const
+{
+    if (putDataMode_ == PutDataMode::SYNC) {
+        return SQLiteRelationalUtils::GetSaveSyncField(vBucket, tableSchema, true);
+    }
+    return tableSchema.fields;
+}
+
+std::pair<int, TableInfo> SQLiteSingleVerRelationalStorageExecutor::AnalyzeTable(const std::string &tableName) const
+{
+    return SQLiteRelationalUtils::AnalyzeTable(dbHandle_, tableName);
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD

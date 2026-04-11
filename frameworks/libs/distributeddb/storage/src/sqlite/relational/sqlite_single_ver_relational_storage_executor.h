@@ -58,16 +58,16 @@ public:
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerRelationalStorageExecutor);
 
-    int ResetLogStatus(std::string &tableName);
+    int ResetLogStatus(const std::string &tableName);
 
     int CreateRelationalLogTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
-        TableInfo &table);
+        TableInfo &table, bool isAsync);
 
     // The parameter "identity" is a hash string that identifies a device
     int CreateDistributedTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
-        TableInfo &table);
+        TableInfo &table, bool isAsync);
 
-    int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
+    int UpgradeDistributedTable(const TableInfo &localTableInfo, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema, TableSyncType syncType);
 
     int StartTransaction(TransactType type);
@@ -263,10 +263,6 @@ public:
 
     int CleanDownloadingFlagByGid(const std::string &tableName, const std::string &gid, VBucket dbAssets);
 
-    void CheckAndCreateTrigger(const TableInfo &table);
-
-    bool CheckNullExtendLog(const TrackerTable &table);
-
     int GetLockStatusByGid(const std::string &tableName, const std::string &gid, LockStatus &status);
 
     int CompareSchemaTableColumns(const std::string &tableName);
@@ -286,6 +282,14 @@ public:
         const std::set<std::string> &extendColNames, const std::string &sql);
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids);
+
+    int UpdateTrackerTable(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly);
+
+    int GetLocalDataByRowid(const TableInfo &table, const TableSchema &tableSchema,
+        DataInfoWithLog &dataInfoWithLog) const;
+
+    std::pair<int, TableInfo> AnalyzeTable(const std::string &tableName) const;
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) const;
@@ -380,14 +384,12 @@ private:
     int GetCloudDataForSync(const CloudUploadRecorder &uploadRecorder, sqlite3_stmt *statement,
         CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize);
 
-    int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
-
     int GetDownloadAsset(std::vector<VBucket> &assetsV, const Field &field, Type &cloudValue);
 
     int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, DownloadData &downloadData, std::map<int, int> &statisticMap);
 
-    std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
+    std::string GetInsertSqlForCloudSync(const std::vector<Field> &insertFields, const TableSchema &tableSchema);
 
     int GetPrimaryKeyHashValue(const VBucket &vBucket, const TableSchema &tableSchema, std::vector<uint8_t> &hashValue,
         bool allowEmpty = false);
@@ -439,7 +441,7 @@ private:
 
     int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
 
-    int UpdateCloudData(VBucket &vBucket, const TableSchema &tableSchema);
+    int UpdateCloudData(OpType op, const TableSchema &tableSchema, VBucket &vBucket);
 
     int GetUpdateLogRecordStatement(const TableSchema &tableSchema, const VBucket &vBucket, OpType opType,
         std::vector<std::string> &updateColName, sqlite3_stmt *&updateLogStmt);
@@ -454,10 +456,7 @@ private:
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
 
-    int UpdateTrackerTable(sqlite3 *db, const std::string &identity, const TableInfo &tableInfo,
-        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, bool isTimestampOnly);
-
-    int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
+    int DeleteCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
@@ -546,7 +545,7 @@ private:
 
     int64_t GetDataFlag();
 
-    std::string GetUpdateDataFlagSql(const VBucket &data);
+    std::string GetUpdateDataFlagSql(OpType opType, const VBucket &data);
 
     std::string GetDev();
 
@@ -568,6 +567,8 @@ private:
 
     int RecoverNullExtendLogInner(const std::string &tableName,
         const std::set<std::string> &extendColNames, const std::string &sql);
+
+    std::vector<Field> GetInsertFields(const VBucket &vBucket, const TableSchema &tableSchema) const;
 
     int CleanTableTmpMsg(const std::vector<std::string> &tableNameList);
 
@@ -606,6 +607,8 @@ private:
 
     std::atomic<int32_t> maxUploadCount_;
     std::atomic<int32_t> maxUploadSize_;
+
+    std::atomic<bool> isGenLogStop_ = false;
 };
 } // namespace DistributedDB
 #endif

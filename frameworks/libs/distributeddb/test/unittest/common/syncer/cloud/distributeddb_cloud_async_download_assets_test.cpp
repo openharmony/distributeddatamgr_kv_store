@@ -1121,7 +1121,7 @@ void DistributedDBCloudAsyncDownloadAssetsTest::CheckLogTable(sqlite3 *&db, cons
 {
     const string sql = "select COUNT(*) from " + DBCommon::GetLogTableName(tableName) + " where data_key>0;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
     LOGW("check log table finished");
 }
 
@@ -1477,7 +1477,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, TriggerAsyncTask001, TestSiz
         return res;
     });
     syncer->TriggerAsyncTask();
-    syncer->WaitTaskFinished();
+    syncer->IfNeedWaitCurTaskFinished(true);
     /**
      * @tc.steps: step3. Async trigger and wait finished.
      */
@@ -1488,7 +1488,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, TriggerAsyncTask001, TestSiz
     });
     std::thread t2([syncer]() {
         for (int i = 0; i < 1000; ++i) {
-            syncer->WaitTaskFinished();
+            syncer->IfNeedWaitCurTaskFinished(true);
         }
     });
     t1.join();
@@ -1607,9 +1607,48 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncAbnormalDownload012, Te
     virtualAssetLoader_->SetDownloadStatus(OK);
     RelationalTestUtils::CloudBlockSync(option, delegate_);
     std::this_thread::sleep_for(std::chrono::seconds(3)); // 3 is second to wait
-    int expCnt = 1;
+    int expCnt = 0;
     EXPECT_EQ(observer1->GetCloudCallCount(), expCnt);
     EXPECT_EQ(delegate_->UnRegisterObserver(observer1), OK);
     delete observer1;
+}
+
+/**
+ * @tc.name: StopAsyncDownloadTest001
+ * @tc.desc: Test stop complex async download.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, StopAsyncDownloadTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. prepare cloud data
+     * @tc.expected: step1. ok
+     */
+    AsyncDownloadAssetsConfig config;
+    config.maxDownloadTask = 1;
+    config.maxDownloadAssetsCount = 1;
+    EXPECT_EQ(RuntimeConfig::SetAsyncDownloadAssetsConfig(config), OK);
+
+    const int cloudCount = 10;
+    auto schema = GetSchema();
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
+
+    /**
+     * @tc.steps: step3. Async cloud data
+     * @tc.expected: step3. ok
+     */
+    CloudSyncOption option = GetAsyncCloudSyncOption();
+    RelationalTestUtils::CloudBlockSync(option, delegate_);
+
+    /**
+     * @tc.steps: step4. stop download cloud data
+     * @tc.expected: step4. ok
+     */
+    EXPECT_EQ(delegate_->StopTask(TaskType::ONLY_CLOUD_SYNC_TASK), OK);
+    auto [status, downloadCount] = delegate_->GetDownloadingAssetsCount();
+    EXPECT_EQ(status, OK);
+    EXPECT_NE(downloadCount, cloudCount);
 }
 }

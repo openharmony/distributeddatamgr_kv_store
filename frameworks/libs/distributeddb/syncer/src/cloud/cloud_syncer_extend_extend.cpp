@@ -29,7 +29,6 @@
 #include "res_finalizer.h"
 #include "runtime_context.h"
 #include "store_types.h"
-#include "strategy_factory.h"
 #include "version.h"
 
 namespace DistributedDB {
@@ -170,6 +169,58 @@ void CloudSyncer::ExecuteHeartBeatTask(TaskId taskId)
         RemoveHeartbeatData(taskId);
     }
     DecObjRef(this);
+}
+
+void CloudSyncer::SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler)
+{
+    cloudDB_.SetCloudConflictHandler(handler);
+}
+
+int CloudSyncer::WaitAsyncGenLogTaskFinished(TaskId triggerTaskId)
+{
+    if (storageProxy_ == nullptr) {
+        LOGE("[WaitAsyncGenLogTaskFinished] Invalid storage.");
+        return -E_INVALID_DB;
+    }
+    std::vector<std::string> tables;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (cloudTaskInfos_.find(triggerTaskId) == cloudTaskInfos_.end()) {
+            LOGW("[WaitAsyncGenLogTaskFinished] Abort wait because of invalid task id");
+            return -E_INVALID_DB;
+        }
+        tables = cloudTaskInfos_[triggerTaskId].table;
+    }
+    return storageProxy_->WaitAsyncGenLogTaskFinished(tables);
+}
+
+void CloudSyncer::RetainCurrentTaskInfo(TaskId taskId)
+{
+    std::multimap<int, TaskId, std::greater<int>> retainQueue;
+    for (const auto &kv : std::as_const(taskQueue_)) {
+        if (kv.second == taskId) {
+            retainQueue.emplace(kv.first, kv.second);
+            break;
+        }
+    }
+    taskQueue_ = std::move(retainQueue);
+    // clear task info and retain current taskinfo
+    auto cloudTaskIter = cloudTaskInfos_.find(taskId);
+    if (cloudTaskIter != cloudTaskInfos_.end()) {
+        const CloudTaskInfo cloudTaskInfo = cloudTaskIter->second;
+        cloudTaskInfos_.clear();
+        cloudTaskInfos_.emplace(taskId, cloudTaskInfo);
+    } else {
+        cloudTaskInfos_.clear();
+    }
+    auto resumeTaskIter = resumeTaskInfos_.find(taskId);
+    if (resumeTaskIter != resumeTaskInfos_.end()) {
+        const ResumeTaskInfo resumeTaskInfo = resumeTaskIter->second;
+        resumeTaskInfos_.clear();
+        resumeTaskInfos_.emplace(taskId, resumeTaskInfo);
+    } else {
+        resumeTaskInfos_.clear();
+    }
 }
 
 void CloudSyncer::SetCurrentTmpError(int errCode)
@@ -382,5 +433,120 @@ int CloudSyncer::SaveGIDCursor(SyncParam &param)
 int CloudSyncer::DropTempTable(const std::string &tableName)
 {
     return storageProxy_->DropTempTable(tableName);
+}
+
+int CloudSyncer::GetTableNameAndCheck(const std::string &tableName, std::string &table)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (currentContext_.processRecorder == nullptr) {
+        LOGE("[CloudSyncer] process recorder of current context is nullptr.");
+        return -E_INTERNAL_ERROR;
+    }
+    if (currentContext_.processRecorder->IsDownloadFinish(currentContext_.currentUserIndex, tableName)) {
+        return -E_FINISHED;
+    }
+    LOGI("[CloudSyncer] try download table, %s", DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+    currentContext_.tableName = tableName;
+    table = currentContext_.tableName;
+    return E_OK;
+}
+
+int CloudSyncer::DoFullDownloadAssetsInSync()
+{
+    auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
+    auto [errCode, listener] = manager->BeginDownloadWithListener(nullptr, nullptr);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncer] BeginDownloadWithListener failed in sync, errCode=%d", errCode);
+        return errCode;
+    }
+    ResFinalizer finalizer([manager]() {
+        manager->FinishDownload();
+    });
+    errCode = DoBackgroundDownloadAssets(false);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] do full download assets in sync failed, %d", errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
+int CloudSyncer::StopSyncTask(const std::function<int(void)> &removeFunc, int errCode)
+{
+    if (errCode == -E_TASK_INTERRUPTED) {
+        int ret = cloudDB_.StopCloudSync();
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] stop cloud sync failed errCode: %d.", ret);
+            return ret;
+        }
+    }
+    hasKvRemoveTask = true;
+    CloudSyncer::TaskId currentTask;
+    CloudSyncer::TaskId asyncCurrentTask;
+    {
+        // stop task if exist
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        currentTask = currentContext_.currentTaskId;
+        asyncCurrentTask = asyncTaskId_;
+    }
+    if (currentTask != INVALID_TASK_ID || asyncCurrentTask != INVALID_TASK_ID) {
+        StopAllTasks(errCode);
+    }
+    errCode = E_OK;
+    if (removeFunc != nullptr) {
+        std::lock_guard<std::mutex> lock(syncMutex_);
+        errCode = removeFunc();
+    }
+    hasKvRemoveTask = false;
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] removeFunc execute failed errCode: %d.", errCode);
+        return errCode;
+    }
+
+    return errCode;
+}
+
+bool CloudSyncer::IsCurrentSkipDownloadAssets()
+{
+    return storageProxy_ == nullptr ? false : storageProxy_->IsSkipDownloadAssets();
+}
+
+int CloudSyncer::TagDownloadAssetsWithPolicy(const Key &hashKey, size_t idx, SyncParam &param,
+    const DataInfo &dataInfo, VBucket &localAssetInfo)
+{
+    AssetConflictPolicy policy = GetAssetConflictPolicy();
+    AssetRecordInfo info = {IsCurrentSkipDownloadAssets(), idx, hashKey, dataInfo, GetCurrentAssetFields()};
+    switch (policy) {
+        case AssetConflictPolicy::CONFLICT_POLICY_TIME_FIRST:
+            return CloudSyncTagAssets::TagDownloadAssetsTimeFirst(info, param, localAssetInfo);
+        case AssetConflictPolicy::CONFLICT_POLICY_TEMP_PATH:
+            return CloudSyncTagAssets::TagDownloadAssetsTempPath(info, param, localAssetInfo);
+        case AssetConflictPolicy::CONFLICT_POLICY_DEFAULT:
+        default:
+            return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
+    };
+}
+
+std::vector<Field> CloudSyncer::GetCurrentAssetFields()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return currentContext_.assetFields[currentContext_.tableName];
+}
+
+AssetConflictPolicy CloudSyncer::GetAssetConflictPolicy()
+{
+    return storageProxy_ == nullptr ? AssetConflictPolicy::CONFLICT_POLICY_DEFAULT :
+        storageProxy_->GetAssetConflictPolicy();
+}
+
+int CloudSyncer::UpdateAssetStatus(const std::string &table, std::vector<VBucket> &assetInfo)
+{
+    for (auto &item : assetInfo) {
+        auto ret = storageProxy_->UpdateAssetStatusForAssetOnly(table, item);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Cannot save asset data due to error code %d", ret);
+            return ret;
+        }
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

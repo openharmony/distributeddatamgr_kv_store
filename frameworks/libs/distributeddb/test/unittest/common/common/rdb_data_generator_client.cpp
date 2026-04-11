@@ -60,18 +60,26 @@ int RDBDataGenerator::InitDatabaseWithSchemaInfo(const UtDateBaseSchemaInfo &sch
 int RDBDataGenerator::InitTableWithSchemaInfo(const UtTableSchemaInfo &tableInfo, sqlite3 &db)
 {
     std::string sql = "CREATE TABLE IF NOT EXISTS " + tableInfo.name + "(";
+    std::vector<std::string> pkCols;
     for (const auto &fieldInfo : tableInfo.fieldInfo) {
         sql += "'" + fieldInfo.field.colName + "' " + GetTypeText(fieldInfo.field.type);
-        if (fieldInfo.field.primary) {
-            sql += " PRIMARY KEY";
-            if (fieldInfo.isAutoIncrement) {
-                sql += " AUTOINCREMENT";
-            }
+        if (fieldInfo.isAutoIncrement) {
+            sql += " PRIMARY KEY AUTOINCREMENT";
+        } else if (fieldInfo.field.primary) {
+            pkCols.push_back(fieldInfo.field.colName);
         }
         if (!fieldInfo.field.nullable) {
             sql += " NOT NULL ON CONFLICT IGNORE";
         }
         sql += ",";
+    }
+    if (!pkCols.empty()) {
+        sql += " PRIMARY KEY (";
+        for (const auto &col : pkCols) {
+            sql += "'" + col + "',";
+        }
+        sql.pop_back();
+        sql += "),";
     }
     sql.pop_back();
     sql += ");";

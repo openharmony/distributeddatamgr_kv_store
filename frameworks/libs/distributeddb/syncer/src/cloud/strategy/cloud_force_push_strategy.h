@@ -20,11 +20,11 @@ namespace DistributedDB {
 class CloudForcePushStrategy : public CloudSyncStrategy {
 public:
     OpType TagSyncDataStatus(bool existInLocal, bool isCloudWin, const LogInfo &localInfo,
-        const LogInfo &cloudInfo) override;
+        const LogInfo &cloudInfo) const override;
 
-    bool JudgeUpdateCursor() override;
+    bool JudgeUpdateCursor() const override;
 
-    bool JudgeUpload() override;
+    bool JudgeUpload() const override;
 };
 }
 #endif // CLOUD_FORCE_PUSH_STRATEGY_H

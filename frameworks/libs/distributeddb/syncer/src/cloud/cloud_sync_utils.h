@@ -110,12 +110,12 @@ public:
     static bool IsNeedUpdateAsset(const VBucket &data);
 
     static std::tuple<int, DownloadList, ChangedData> GetDownloadListByGid(const std::shared_ptr<StorageProxy> &proxy,
-        const std::vector<std::string> &data, const std::string &table);
+        const std::vector<std::string> &data, const std::string &table, bool ignoredToDownload);
 
     static void UpdateMaxTimeWithDownloadList(const DownloadList &downloadList, const std::string &table,
         std::map<std::string, int64_t> &downloadBeginTime);
 
-    static bool IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit);
+    static bool IsContainNotDownload(const DownloadAssetUnit &downloadAssetUnit);
 
     static int GetDownloadAssetsOnlyMapFromDownLoadData(
         size_t idx, ICloudSyncer::SyncParam &param, std::map<std::string, Assets> &downloadAssetsMap);
@@ -152,17 +152,33 @@ public:
     
     static bool CanStartAsyncDownload(int scheduleCount);
 
-    static bool NotNeedToCompensated(int errCode);
+    static bool IsCloudErrorNotNeedCompensated(int errCode);
 
     static bool IsCloudErrorWithoutAbort(int errCode);
 
     static bool IsAssetsSpaceInsufficient(const std::vector<VBucket> &extend);
+
+    static bool NeedCompensated(const CloudSyncer::CloudTaskInfo &taskInfo,
+        const CloudSyncConfig &config);
 
     // if exist error but not abort sync task, return it errCode
     static int GetNoAbortErrorCode(bool isInsert, const CloudSyncData &uploadData);
 
     static bool IsIgnoreFailAction(const VBucket &extend, const CloudWaterType &type);
 
+    static int CheckSyncOptionParams(const CloudSyncOption &option);
+
+    static int CheckSyncOptionCompatibility(const CloudSyncOption &option);
+
+    static int SaveDupChangedData(ICloudSyncer::SyncParam &param);
+
+    static int SaveDupChangedDataByType(const VBucket &datum, ChangedData &changedData, ChangeType type);
+
+    static int GetDupCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames,
+        std::vector<Type> &cloudPkVals);
+
+    static void GetDownloadListIfNeed(DownloadList &changeList, const DownloadList &downloadList,
+        bool isNeedDownloadAssets);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);

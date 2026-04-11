@@ -47,6 +47,7 @@
 using namespace DistributedDB;
 
 namespace DistributedDBUnitTest {
+DistributedDB::DBStatus DistributedDBToolsUnitTest::expectSyncStatus_ = OK;
 namespace {
     const std::string CREATE_LOCAL_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS local_data(" \
@@ -630,7 +631,7 @@ void DistributedDBToolsUnitTest::BlockSync(RelationalStoreDelegate &delegate, co
         statusMap = devicesMap;
     };
     DBStatus callStatus = delegate.Sync(devices, syncMode, query, callBack, true);
-    EXPECT_EQ(callStatus, OK);
+    EXPECT_EQ(callStatus, expectSyncStatus_);
     QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
     std::vector<std::string> syncTables;
     if (queryExpression.IsUseFromTables()) {
@@ -1633,6 +1634,11 @@ DistributedDB::Entry DistributedDBToolsUnitTest::GetK2V2()
     entry.key = {'k', '2'};
     entry.value = {'v', '2'};
     return entry;
+}
+
+void DistributedDBToolsUnitTest::SetExpectSyncStatus(DistributedDB::DBStatus expectStatus)
+{
+    expectSyncStatus_ = expectStatus;
 }
 
 std::pair<int, uint64_t> RelationalTestUtils::GetMaxTimestamp(sqlite3 *db, const std::string &oriTable)

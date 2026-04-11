@@ -284,7 +284,7 @@ HWTEST_F(DistributedDBRDBDropTableTest, CleanDirtyLog001, TestSize.Level0)
 
 /**
  * @tc.name: NotADbTest001
- * @tc.desc: Test open corrupt db 
+ * @tc.desc: Test open corrupt db
  * @tc.type: FUNC
  * @tc.author: bty
  */

@@ -134,6 +134,7 @@ void VirtualAssetLoader::SetRemoveLocalAssetsCallback(const RemoveLocalAssetsCal
 void VirtualAssetLoader::BatchDownload(const std::string &tableName, std::vector<AssetRecord> &downloadAssets)
 {
     batchDownloadCount_++;
+    LOGI("BatchDownload table[%s] count[%" PRIu32 "]", tableName.c_str(), batchDownloadCount_.load());
     int index = 0;
     for (auto &[gid, prefix, assets, status] : downloadAssets) {
         if (batchDownloadCallback_) {

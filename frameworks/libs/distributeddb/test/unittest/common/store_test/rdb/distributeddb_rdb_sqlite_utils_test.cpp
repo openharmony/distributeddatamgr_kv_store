@@ -139,13 +139,14 @@ HWTEST_F(DistributedDBRDBSqliteUtilsTest, PutCloudGid002, TestSize.Level2)
 HWTEST_F(DistributedDBRDBSqliteUtilsTest, GetOneBatchCloudNotExistRecord001, TestSize.Level2)
 {
     std::vector<SQLiteRelationalUtils::CloudNotExistRecord> record;
-    EXPECT_EQ(SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(CLOUD_SYNC_TABLE_A, nullptr, record, {"id"}, {true, false}),
-        -E_INVALID_DB);
+    int errCode = SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(CLOUD_SYNC_TABLE_A,
+        nullptr, record, {"id"}, {true, false});
+    EXPECT_EQ(errCode, -E_INVALID_DB);
     auto db = GetSqliteHandle(info1_);
     ASSERT_NE(db, nullptr);
     std::string sql = "CREATE TABLE IF NOT EXISTS " + DBCommon::GetTmpLogTableName(CLOUD_SYNC_TABLE_A) +
                       "(ID integer primary key autoincrement, cloud_gid TEXT UNIQUE ON CONFLICT IGNORE)";
-    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
     ASSERT_EQ(errCode, E_OK);
     sql = std::string("INSERT INTO ") + CLOUD_SYNC_TABLE_A + " VALUES(1, 1, 'str1', 'asset')";
     errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
@@ -154,8 +155,9 @@ HWTEST_F(DistributedDBRDBSqliteUtilsTest, GetOneBatchCloudNotExistRecord001, Tes
     errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
     ASSERT_EQ(errCode, E_OK);
     RuntimeContext::GetInstance()->SetCloudTranslate(nullptr);
-    EXPECT_EQ(SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(CLOUD_SYNC_TABLE_A, db, record, {"stringCol2"}, {true, false}),
-        -E_NOT_INIT);
+    errCode = SQLiteRelationalUtils::GetOneBatchCloudNotExistRecord(CLOUD_SYNC_TABLE_A,
+        db, record, {"stringCol2"}, {true, false});
+    EXPECT_EQ(errCode, -E_NOT_INIT);
 }
 
 /**

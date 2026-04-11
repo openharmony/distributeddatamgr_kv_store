@@ -100,6 +100,9 @@ enum DBStatus {
     TABLE_NOT_FOUND,
     SKIP_WHEN_CLOUD_SPACE_INSUFFICIENT, // Whitelist for contact, skip when cloud space insufficient
     EXPIRED_CURSOR, // Cursor is out of date in cloud
+    TASK_INTERRUPTED, // Task(cloud sync) interrupted
+    TABLE_FIELD_MISMATCH, // Table field mismatch between local and remote
+    DISTRIBUTED_SCHEMA_MISMATCH, // Distributed schema mismatch between local and remote
     BUTT_STATUS = 27394048 // end of status
 };
 
@@ -154,6 +157,8 @@ enum SyncMode {
     SYNC_MODE_CLOUD_MERGE = 4,
     SYNC_MODE_CLOUD_FORCE_PUSH,
     SYNC_MODE_CLOUD_FORCE_PULL,
+    SYNC_MODE_CLOUD_CUSTOM_PUSH,
+    SYNC_MODE_CLOUD_CUSTOM_PULL,
 };
 
 enum ConflictResolvePolicy {
@@ -356,7 +361,9 @@ enum AssetStatus : uint32_t {
     INSERT, // INSERT/DELETE/UPDATE are for client use
     DELETE,
     UPDATE,
+    TO_DOWNLOAD,
     // high 16 bit USE WITH BIT MASK
+    TEMP_PATH = 0x10000000, // asset download with temp path conflict policy
     HIDDEN = 0x20000000,
     DOWNLOAD_WITH_NULL = 0x40000000,
     UPLOADING = 0x80000000,
