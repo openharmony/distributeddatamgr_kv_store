@@ -93,8 +93,8 @@ public:
 
     int CheckSchema(std::vector<std::string> &tables);
 
-    int GetPrimaryColNamesWithAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
-        std::vector<Field> &assetFields);
+    int GetPkAndAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
+        std::vector<Field> &assetFields, std::vector<std::string> &localPkNames);
 
     int NotifyChangedData(const std::string &deviceName, ChangedData &&changedData);
 
@@ -195,6 +195,10 @@ public:
 
     void FilterDownloadRecordNotFound(const std::string &tableName, DownloadData &downloadData);
 
+    void FilterDownloadRecordNoneSchemaField(const std::string &tableName, DownloadData &downloadData);
+
+    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) const;
+
     // gid contain in data with key #_gid
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data);
 
@@ -213,6 +217,10 @@ public:
     int DeleteCloudNoneExistRecord(const std::string &tableName, std::pair<bool, bool> isNeedDeleted = {false, true});
 
     int GetGidRecordCount(const std::string &tableName, uint64_t &count) const;
+
+    bool IsSkipDownloadAssets() const;
+
+    AssetConflictPolicy GetAssetConflictPolicy() const;
 protected:
     void Init();
 private:

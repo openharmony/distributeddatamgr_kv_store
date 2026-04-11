@@ -508,8 +508,12 @@ void QueryExpression::SetNotSupportIfNeed(QueryObjType type)
     if (validStatus_ != E_OK) {
         return;
     }
-    if (type != QueryObjType::IN && type != QueryObjType::EQUALTO && type != QueryObjType::AND &&
-        type != QueryObjType::OR) {
+    static const std::set<QueryObjType> SUPPORT_TYPES = {
+        QueryObjType::IN, QueryObjType::EQUALTO, QueryObjType::AND, QueryObjType::OR, QueryObjType::NOT_EQUALTO,
+        QueryObjType::GREATER_THAN, QueryObjType::LESS_THAN, QueryObjType::GREATER_THAN_OR_EQUALTO,
+        QueryObjType::LESS_THAN_OR_EQUALTO, QueryObjType::NOT_IN, QueryObjType::BEGIN_GROUP, QueryObjType::END_GROUP
+    };
+    if (SUPPORT_TYPES.find(type) == SUPPORT_TYPES.end()) {
         validStatus_ = -E_NOT_SUPPORT;
     }
     if (validStatus_ != E_OK) {

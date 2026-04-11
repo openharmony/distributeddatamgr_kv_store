@@ -53,7 +53,7 @@ const char *g_createNonPrimaryKeySQL =
     "photo BLOB," \
     "age INT);";
 const int64_t g_syncWaitTime = 60;
-
+int64_t g_taskId = 0;
 const Asset g_cloudAsset = {
     .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
     .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
@@ -103,6 +103,35 @@ void BlockSync(const Query &query, RelationalStoreDelegate *delegate, std::vecto
     option.waitTime = g_syncWaitTime;
     option.priorityTask = prioritySync;
     ASSERT_EQ(delegate->Sync(option, callback), OK);
+    std::unique_lock<std::mutex> uniqueLock(dataMutex);
+    cv.wait(uniqueLock, [&finish]() {
+        return finish;
+    });
+}
+
+void BlockQuerySyncWithOption(RelationalStoreDelegate *delegate, std::vector<DBStatus> &actualDBStatus,
+    CloudSyncOption option, DBStatus retCode = OK)
+{
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [&actualDBStatus, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            actualDBStatus.push_back(item.second.errCode);
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                cv.notify_one();
+            }
+        }
+    };
+    g_taskId++;
+    ASSERT_EQ(delegate->Sync(option, callback, g_taskId), retCode);
+    if (retCode != OK) {
+        return;
+    }
     std::unique_lock<std::mutex> uniqueLock(dataMutex);
     cv.wait(uniqueLock, [&finish]() {
         return finish;
@@ -196,7 +225,8 @@ protected:
     DataBaseSchema GetSchema();
     void CloseDb();
     void InitDataAndSync();
-    void InsertUserTableRecord(const std::string &tableName, int64_t recordCounts, int64_t begin = 0);
+    void InsertUserTableRecord(const std::string &tableName, int64_t recordCounts, int64_t begin = 0,
+        bool ageChange = false);
     void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull);
     void InsertCloudTableRecord(const std::string &tableName, int64_t begin, int64_t count, int64_t photoSize,
         bool assetIsNull);
@@ -330,13 +360,15 @@ void DistributedDBCloudCheckSyncTest::CloseDb()
 }
 
 void DistributedDBCloudCheckSyncTest::InsertUserTableRecord(const std::string &tableName,
-    int64_t recordCounts, int64_t begin)
+    int64_t recordCounts, int64_t begin, bool ageChange)
 {
     ASSERT_NE(db_, nullptr);
     for (int64_t i = begin; i < begin + recordCounts; ++i) {
         string sql = "INSERT OR REPLACE INTO " + tableName
             + " (id, name, height, photo, age) VALUES ('" + std::to_string(i) + "', 'Local"
-            + std::to_string(i) + "', '155.10',  'text', '21');";
+            + std::to_string(i) + "', '155.10',  'text', ";
+        sql += ageChange? std::to_string(i) : "21";
+        sql += ");";
         ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
     }
 }
@@ -724,7 +756,6 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest003, TestSize.Level1)
     // prepare data
     const int actualCount = 1;
     InsertUserTableRecord(tableName_, actualCount);
-
     InsertCloudTableRecord(0, actualCount, 0, false);
     // delete local data
     DeleteUserTableRecord(0);
@@ -1138,7 +1169,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncTest010, TestSize.Level1)
     ASSERT_EQ(delegate_->SetCloudDB(virtualCloudDb_), DBStatus::OK);
     ASSERT_EQ(delegate_->SetIAssetLoader(virtualAssetLoader_), DBStatus::OK);
     DataBaseSchema dataBaseSchema = GetSchema();
-    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    ASSERT_EQ(delegate_->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
     communicatorAggregator_ = new (std::nothrow) VirtualCommunicatorAggregator();
     ASSERT_TRUE(communicatorAggregator_ != nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicatorAggregator_);
@@ -1490,11 +1521,11 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
 
     /**
      * @tc.steps:step4. query select and from without in then priority sync.
-     * @tc.expected: step4. invalid.
+     * @tc.expected: step4. OK.
      */
     query = Query::Select().From(tableName_);
-    BlockPrioritySync(query, delegate_, true, INVALID_ARGS);
-    CheckCloudTableCount(tableName_, 0);
+    BlockPrioritySync(query, delegate_, true, OK);
+    CheckCloudTableCount(tableName_, 1);
 
     /**
      * @tc.steps:step5. query select and fromtable then priority sync.
@@ -1502,7 +1533,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
      */
     query = Query::Select().From(tableName_).FromTable({tableName_});
     BlockPrioritySync(query, delegate_, true, NOT_SUPPORT);
-    CheckCloudTableCount(tableName_, 0);
+    CheckCloudTableCount(tableName_, 1);
 
     /**
      * @tc.steps:step6. query select and from with other predicates then priority sync.
@@ -1510,7 +1541,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
      */
     query = Query::Select().From(tableName_).IsNotNull("id");
     BlockPrioritySync(query, delegate_, true, NOT_SUPPORT);
-    CheckCloudTableCount(tableName_, 0);
+    CheckCloudTableCount(tableName_, 1);
 
     /**
      * @tc.steps:step7. query select and from with in and other predicates then priority sync.
@@ -1519,7 +1550,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
     std::vector<std::string> idValue = {"0"};
     query = Query::Select().From(tableName_).IsNotNull("id").In("id", idValue);
     BlockPrioritySync(query, delegate_, true, NOT_SUPPORT);
-    CheckCloudTableCount(tableName_, 0);
+    CheckCloudTableCount(tableName_, 1);
 
     /**
      * @tc.steps:step8. query select and from with in non-primary key then priority sync.
@@ -1528,7 +1559,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
     std::vector<std::string> heightValue = {"155.10"};
     query = Query::Select().From(tableName_).In("height", heightValue);
     BlockPrioritySync(query, delegate_, true, NOT_SUPPORT);
-    CheckCloudTableCount(tableName_, 0);
+    CheckCloudTableCount(tableName_, 1);
 
     /**
      * @tc.steps:step9. query in count greater than 100.
@@ -1537,7 +1568,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest002, TestSize.Lev
     idValue.resize(101); // 101 > 100
     query = Query::Select().From(tableName_).In("id", idValue);
     BlockPrioritySync(query, delegate_, true, OVER_MAX_LIMITS);
-    CheckCloudTableCount(tableName_, 0);
+    CheckCloudTableCount(tableName_, 1);
 }
 
 /**
@@ -3036,6 +3067,371 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SyncDataStatusTest001, TestSize.Level1
 HWTEST_F(DistributedDBCloudCheckSyncTest, SyncDataStatusTest002, TestSize.Level1)
 {
     SyncDataStatusTest(false);
+}
+
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest001
+ * @tc.desc: Test sync when queryMode is UPLOAD_ONLY.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local 1 record and sync to cloud.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, actualCount);
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    Query query = Query::Select().From(tableName_).In("id", idValue);
+    CloudSyncOption option;
+    PrepareOption(option, query, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    /**
+     * @tc.steps:step2. insert 2 records to cloud.
+     * @tc.expected: step2. OK
+     */
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    VBucket data;
+    std::vector<uint8_t> photo(0, 'v');
+    data.insert_or_assign("id", std::string("4"));
+    data.insert_or_assign("name", std::string("Cloud"));
+    data.insert_or_assign("height", 166.0); // 166.0 is random double value
+    data.insert_or_assign("married", false);
+    data.insert_or_assign("photo", photo);
+    data.insert_or_assign("age", static_cast<int64_t>(13L)); // 13 is random age
+    record.push_back(data);
+    data.insert_or_assign("age", static_cast<int64_t>(14L)); // 14 is random age
+    record.push_back(data);
+    VBucket log;
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
+        now / CloudDbConstant::TEN_THOUSAND));
+    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
+        now / CloudDbConstant::TEN_THOUSAND));
+    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("1"));
+    extend.push_back(log);
+    log.insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("2"));
+    extend.push_back(log);
+    ASSERT_EQ(virtualCloudDb_->BatchInsert(tableName_, std::move(record), extend), DBStatus::OK);
+ 
+    /**
+     * @tc.steps:step3. sync from cloud and check record.
+     * @tc.expected: step3. The record with age of 14 has been updated locally.
+     */
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    std::string sql = "SELECT age FROM " + tableName_ + " where id=4;";
+    int64_t actualAge = 0;
+    int64_t expectAge = 14L;
+    RelationalTestUtils::ExecSql(db_, sql, nullptr, [&actualAge](sqlite3_stmt *stmt) {
+        actualAge = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(actualAge, expectAge);
+    int64_t expectCount = 3;
+    CheckCloudTableCount(tableName_, expectCount);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest002
+ * @tc.desc: Test muti sync when queryMode is UPLOAD_ONLY.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local 10 record and sync to cloud with query.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    const int beginInt = 0;
+    InsertUserTableRecord(tableName_, actualCount, beginInt, true);
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    Query query = Query::Select().From(tableName_).In("id", idValue);
+    CloudSyncOption option;
+    PrepareOption(option, query, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    int64_t expectCount = 3;
+    CheckCloudTableCount(tableName_, expectCount);
+    /**
+     * @tc.steps:step2. sync to cloud with range query.
+     * @tc.expected: step2. OK
+     */
+    int64_t smallNum = 5;
+    int64_t bigNum = 7;
+    option.query = Query::Select().From(tableName_).GreaterThan("age", smallNum).And().LessThan("age", bigNum);
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    expectCount = 4;
+    CheckCloudTableCount(tableName_, expectCount);
+    /**
+     * @tc.steps:step3. sync to cloud with range query.
+     * @tc.expected: step3. OK
+     */
+    option.query =
+        Query::Select().From(tableName_).GreaterThanOrEqualTo("age", smallNum).And().LessThanOrEqualTo("age", bigNum);
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    expectCount = 6;
+    CheckCloudTableCount(tableName_, expectCount);
+    /**
+     * @tc.steps:step4. sync to cloud with NotIn query.
+     * @tc.expected: step4. OK
+     */
+    idValue = {"9"};
+    bigNum = 7;
+    option.query = Query::Select()
+                .From(tableName_)
+                .BeginGroup()
+                .NotIn("id", idValue)
+                .And()
+                .GreaterThanOrEqualTo("age", bigNum)
+                .EndGroup();
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    expectCount = 7;
+    CheckCloudTableCount(tableName_, expectCount);
+    /**
+     * @tc.steps:step5. sync to cloud with NotIn query.
+     * @tc.expected: step5. OK
+     */
+    smallNum = 4;
+    option.query = Query::Select()
+                .From(tableName_)
+                .BeginGroup()
+                .NotIn("id", idValue)
+                .Or()
+                .GreaterThanOrEqualTo("age", smallNum)
+                .EndGroup();
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    expectCount = 10;
+    CheckCloudTableCount(tableName_, expectCount);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest003
+ * @tc.desc: Test muti table muti condition sync when queryMode is UPLOAD_ONLY.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local records and sync to cloud.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    const int beginInt = 0;
+    InsertUserTableRecord(tableName_, actualCount, beginInt, true);
+    InsertUserTableRecord(tableWithoutPrimaryName_, actualCount, beginInt, true);
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    int64_t smallNum = 7;
+    Query query = Query::Select()
+                      .From(tableName_)
+                      .In("id", idValue)
+                      .From(tableWithoutPrimaryName_)
+                      .GreaterThanOrEqualTo("age", smallNum);
+    CloudSyncOption option;
+    PrepareOption(option, query, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    int64_t expectCount = 3;
+    CheckCloudTableCount(tableName_, expectCount);
+    CheckCloudTableCount(tableWithoutPrimaryName_, expectCount);
+    /**
+     * @tc.steps:step2. sync with another query.
+     * @tc.expected: step2. OK
+     */
+    std::string name = "Local5";
+    double height = 155.1;
+    option.query = Query::Select()
+                .From(tableName_)
+                .NotEqualTo("name", name)
+                .From(tableWithoutPrimaryName_)
+                .EqualTo("height", height);
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    expectCount = 9;
+    CheckCloudTableCount(tableName_, expectCount);
+    expectCount = 10;
+    CheckCloudTableCount(tableWithoutPrimaryName_, expectCount);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest004
+ * @tc.desc: Test sync after modify data with queryMode UPLOAD_ONLY.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local 1 record and sync to cloud.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    const int beginInt = 0;
+    InsertUserTableRecord(tableName_, actualCount, beginInt, true);
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    Query query = Query::Select().From(tableName_).In("id", idValue);
+    CloudSyncOption option;
+    PrepareOption(option, query, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    int64_t expectCount = 3;
+    CheckCloudTableCount(tableName_, expectCount);
+    /**
+     * @tc.steps:step2. modify records with the same primary key.
+     * @tc.expected: step2. OK
+     */
+    string sql = "UPDATE " + tableName_ + " SET name = 'Local008', height = '158.1' where age < 5";
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+    idValue = {"Local008"};
+    option.query = Query::Select().From(tableName_).In("name", idValue);
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    expectCount = 5;
+    CheckCloudTableCount(tableName_, expectCount);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest005
+ * @tc.desc: Test sync with unsupport query.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local 10 record and sync to cloud with not support query Like.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    const int beginInt = 0;
+    InsertUserTableRecord(tableName_, actualCount, beginInt, true);
+    Query query = Query::Select().From(tableName_).Like("id", std::string("11"));
+    CloudSyncOption option;
+    PrepareOption(option, query, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
+    int64_t expectCount = 0;
+    CheckCloudTableCount(tableName_, expectCount);
+    /**
+     * @tc.steps:step2. sync with not support query NotLike.
+     * @tc.expected: step2. OK
+     */
+    option.query = Query::Select().From(tableName_).NotLike("id", std::string("11"));
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
+    /**
+     * @tc.steps:step3. sync with not support query IsNull.
+     * @tc.expected: step3. OK
+     */
+    option.query = Query::Select().From(tableName_).IsNull("id");
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
+    /**
+     * @tc.steps:step3. sync with not support query IsNotNull.
+     * @tc.expected: step3. OK
+     */
+    option.query = Query::Select().From(tableName_).IsNotNull("age");
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest006
+ * @tc.desc: Test sync without query.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local records and sync to cloud.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    const int beginInt = 0;
+    InsertUserTableRecord(tableName_, actualCount, beginInt, true);
+    Query query = Query::Select().From(tableName_);
+    CloudSyncOption option;
+    PrepareOption(option, query, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, OK);
+    int64_t expectCount = 10;
+    CheckCloudTableCount(tableName_, expectCount);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest007
+ * @tc.desc: Test sync with query and priorityTask is false.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local records.
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    const int beginInt = 0;
+    InsertUserTableRecord(tableName_, actualCount, beginInt, true);
+    /**
+     * @tc.steps:step2. sync to cloud with priotityTask is false.
+     * @tc.expected: step2. OK
+     */
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    Query query = Query::Select().From(tableName_);
+    CloudSyncOption option;
+    PrepareOption(option, query, false);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
+}
+ 
+/**
+ * @tc.name: RDBQueryUploadModeSyncTest008
+ * @tc.desc: Test sync with query and compensatedSyncOnly.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert local records.
+     * @tc.expected: step1. OK
+     */
+    const int localCount = 20; // 20 is count of local
+    const int cloudCount = 10; // 10 is count of cloud
+    InsertUserTableRecord(tableName_, localCount);
+    std::string sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 1 where data_key in (1,11);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 2 where data_key in (2,12);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    sql = "update " + DBCommon::GetLogTableName(tableName_) + " SET status = 3 where data_key in (3,13);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    InsertCloudTableRecord(tableName_, 0, cloudCount, 0, false);
+ 
+    /**
+     * @tc.steps:step2. check count
+     * @tc.expected: step2. ok.
+     */
+    std::vector<std::string> idValue = {"0", "1", "2"};
+    CloudSyncOption option;
+    Query query = Query::Select().From(tableName_).In("id", idValue);
+    PrepareOption(option, query, true, true);
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
+    int64_t expectCount = 10;
+    CheckCloudTableCount(tableName_, expectCount);
 }
 }
 #endif

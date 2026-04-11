@@ -398,8 +398,8 @@ int StorageProxy::CheckSchema(std::vector<std::string> &tables)
     return E_OK;
 }
 
-int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
-    std::vector<Field> &assetFields)
+int StorageProxy::GetPkAndAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
+    std::vector<Field> &assetFields, std::vector<std::string> &localPkNames)
 {
     if (!colNames.empty()) {
         // output parameter should be empty
@@ -417,9 +417,13 @@ int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName,
         LOGE("Cannot get cloud table schema: %d", ret);
         return ret;
     }
+    bool hasDupCheckCol = false;
     for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
+        if (field.primary || field.dupCheckCol) {
             colNames.push_back(field.colName);
+        }
+        if (field.dupCheckCol) {
+            hasDupCheckCol = true;
         }
         if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
             assetFields.push_back(field);
@@ -427,6 +431,9 @@ int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName,
     }
     if (colNames.empty() || colNames.size() > 1) {
         (void)colNames.insert(colNames.begin(), DBConstant::ROWID);
+    }
+    if (hasDupCheckCol) {
+        localPkNames = store_->GetLocalPkNames(tableName);
     }
     return E_OK;
 }
@@ -876,6 +883,48 @@ void StorageProxy::FilterDownloadRecordNotFound(const std::string &tableName, Do
     (void)store_->ConvertLogToLocal(tableName, gids);
 }
 
+void StorageProxy::FilterDownloadRecordNoneSchemaField(const std::string &tableName, DownloadData &downloadData)
+{
+    std::shared_ptr<DataBaseSchema> schema;
+    int errCode = GetCloudDbSchema(schema);
+    if (errCode != E_OK || schema == nullptr) {
+        LOGW("[StorageProxy] Not found database schema, errCode %d", errCode);
+        return;
+    }
+    auto find = std::find_if(schema->tables.begin(), schema->tables.end(),
+        [&tableName](const TableSchema &tableSchema) {
+        return DBCommon::CaseInsensitiveCompare(tableSchema.name, tableName);
+    });
+    if (find == schema->tables.end()) {
+        LOGW("[StorageProxy] Not found table schema");
+        return;
+    }
+    std::set<std::string, CaseInsensitiveComparator> fieldNames;
+    std::for_each(find->fields.begin(), find->fields.end(), [&fieldNames](const Field &field) {
+        fieldNames.insert(field.colName);
+    });
+    for (auto &row : downloadData.data) {
+        for (auto data = row.begin(); data != row.end();) {
+            if (fieldNames.find(data->first) == fieldNames.end() &&
+                !data->first.empty() && data->first.at(0) != '#') {
+                // remove no exists col
+                data = row.erase(data);
+            } else {
+                ++data;
+            }
+        }
+    }
+}
+
+int StorageProxy::WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) const
+{
+    if (store_ == nullptr) {
+        LOGE("[WaitAsyncGenLogTaskFinished] store is null");
+        return -E_INVALID_DB;
+    }
+    return store_->WaitAsyncGenLogTaskFinished(tables);
+}
+
 int StorageProxy::PutCloudGid(const std::string &tableName, std::vector<VBucket> &data)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -964,5 +1013,25 @@ int StorageProxy::GetGidRecordCount(const std::string &tableName, uint64_t &coun
         return -E_INVALID_DB;
     }
     return store_->GetGidRecordCount(tableName, count);
+}
+
+bool StorageProxy::IsSkipDownloadAssets() const
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[IsSkipDownloadAssets] store is null");
+        return false;
+    }
+    return store_->IsSkipDownloadAssets();
+}
+
+AssetConflictPolicy StorageProxy::GetAssetConflictPolicy() const
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[GetAssetConflictPolicy] store is null");
+        return AssetConflictPolicy::CONFLICT_POLICY_DEFAULT;
+    }
+    return store_->GetAssetConflictPolicy();
 }
 }

@@ -258,6 +258,11 @@ DBStatus VirtualCloudDb::Close()
     return OK;
 }
 
+DBStatus VirtualCloudDb::StopCloudSync()
+{
+    return OK;
+}
+
 std::pair<DBStatus, std::string> VirtualCloudDb::GetEmptyCursor(const std::string &tableName)
 {
     return { OK, "0" };
@@ -465,6 +470,7 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
     std::vector<VBucket> &extend, bool isDelete)
 {
     DBStatus res = OK;
+    updateCount_ += record.size();
     for (size_t i = 0; i < record.size(); ++i) {
         if (extend[i].find(g_gidField) == extend[i].end()) {
             LOGE("[VirtualCloudDb] Update data should have gid");
@@ -745,5 +751,10 @@ void VirtualCloudDb::ForkQueryAllGid(
     const std::function<DBStatus(const std::string &, VBucket &, std::vector<VBucket> &)> &func)
 {
     forkQueryAllGid_ = func;
+}
+
+size_t VirtualCloudDb::GetUpdateCount() const
+{
+    return updateCount_;
 }
 }

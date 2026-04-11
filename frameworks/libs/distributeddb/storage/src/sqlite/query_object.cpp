@@ -538,7 +538,8 @@ int QueryObject::CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) 
     }
     std::set<std::string> queryPkSet;
     for (const auto &queryObjNode : queryObjNodes_) {
-        if (queryObjNode.operFlag != QueryObjType::IN && queryObjNode.operFlag != QueryObjType::EQUALTO) {
+        if (queryObjNode.operFlag != QueryObjType::IN && queryObjNode.operFlag != QueryObjType::EQUALTO &&
+            queryObjNode.operFlag != QueryObjType::NOT_EQUALTO) {
             continue;
         }
         std::string field = queryObjNode.fieldName;
@@ -608,6 +609,16 @@ void QueryObject::SetRemoteDev(const std::string &dev)
 bool QueryObject::IsUseFromTables() const
 {
     return isUseFromTables_;
+}
+
+void QueryObject::SetRelaxForDelete(bool isRelaxForDelete)
+{
+    isRelaxForDelete_ = isRelaxForDelete;
+}
+
+bool QueryObject::IsRelaxForDelete() const
+{
+    return isRelaxForDelete_;
 }
 }
 

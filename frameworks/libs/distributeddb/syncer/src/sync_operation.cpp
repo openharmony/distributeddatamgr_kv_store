@@ -353,6 +353,16 @@ bool SyncOperation::CheckIsAllFinished() const
     return true;
 }
 
+bool SyncOperation::CheckIsFinished(const std::string &dev) const
+{
+    AutoLock lockGuard(this);
+    auto status = statuses_.find(dev);
+    if (status == statuses_.end()) {
+        return true;
+    }
+    return status->second >= OP_FINISHED_ALL;
+}
+
 void SyncOperation::Finalize()
 {
     if ((syncId_ > 0) && onFinalize_) {

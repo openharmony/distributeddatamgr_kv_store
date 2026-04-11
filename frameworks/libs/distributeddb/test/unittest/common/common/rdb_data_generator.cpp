@@ -18,6 +18,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
 #include "res_finalizer.h"
+#include "sqlite_relational_utils.h"
 namespace DistributedDBUnitTest {
 using namespace DistributedDB;
 int RDBDataGenerator::InitDatabase(const DataBaseSchema &schema, sqlite3 &db)
@@ -144,6 +145,8 @@ Asset RDBDataGenerator::GenerateAsset(int64_t index, const DistributedDB::Field 
     asset.name = field.colName + "_" + std::to_string(index);
     asset.hash = "default_hash";
     asset.status = AssetStatus::INSERT;
+    asset.createTime = "1";
+    asset.modifyTime = "1";
     return asset;
 }
 
@@ -478,5 +481,44 @@ Bytes RDBDataGenerator::GenerateBytes(int64_t index)
 {
     std::string str = std::to_string(index);
     return std::vector<uint8_t>(str.begin(), str.end());
+}
+
+int RDBDataGenerator::GetAssetsBySQL(sqlite3 *db, const std::string &sql, std::vector<DistributedDB::Assets> &res)
+{
+    sqlite3_stmt *stmt = nullptr;
+    auto errCode = SQLiteUtils::GetStatement(db, sql + " LIMIT 100", stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *releaseStmt = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(releaseStmt, true, ret);
+    });
+    do {
+        errCode = SQLiteUtils::StepNext(stmt);
+        if (errCode != E_OK) {
+            break;
+        }
+        Type cloudValue;
+        errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (cloudValue.index() != TYPE_INDEX<Bytes>) {
+            LOGE("the cloud value[%zu] is not bytes", cloudValue.index());
+            return -E_INVALID_ARGS;
+        }
+        Assets assets;
+        errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        res.push_back(assets);
+    } while (true);
+    if (errCode == -E_FINISHED) {
+        errCode = E_OK;
+    }
+    return errCode;
 }
 }

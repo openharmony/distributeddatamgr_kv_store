@@ -22,6 +22,7 @@
 namespace DistributedDB {
 SyncTarget::~SyncTarget()
 {
+    RefObject::DecObjRef(operation_);
     operation_ = nullptr;
 }
 
@@ -55,6 +56,8 @@ int SyncTarget::GetMode() const
 
 void SyncTarget::SetSyncOperation(SyncOperation *operation)
 {
+    RefObject::IncObjRef(operation);
+    RefObject::DecObjRef(operation_);
     if ((operation != nullptr) && !operation->IsKilled()) {
         operation_ = operation;
         mode_ = operation->GetMode();

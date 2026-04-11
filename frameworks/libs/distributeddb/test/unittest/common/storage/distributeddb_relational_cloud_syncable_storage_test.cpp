@@ -1003,7 +1003,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
     InitLogData(insCount, insCount, insCount, insCount, g_logTblName);
     CreateAndInitUserTable(2 * insCount, photoSize, g_localAsset); // 2 is insert,update type data
     Asset asset = g_localAsset;
-    asset.status = static_cast<uint32_t>(AssetStatus::UPDATE) + 1;
+    asset.status = static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD) + 1;
     UpdateLocalAsset(g_tableName, asset, 2L); // 2 is rowid
     SetDbSchema(g_tableSchema);
 

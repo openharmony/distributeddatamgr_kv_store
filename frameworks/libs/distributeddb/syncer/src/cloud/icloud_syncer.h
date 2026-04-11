@@ -38,7 +38,9 @@ public:
         bool asyncDownloadAssets = false;
         int errCode = 0;
         int tempErrCode = 0;
+        QueryMode queryMode = QueryMode::UPLOAD_AND_DOWNLOAD;
         SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
+        SyncFlowType syncFlowType = SyncFlowType::NORMAL;
         ProcessStatus status = ProcessStatus::PREPARED;
         LockAction lockAction = LockAction::INSERT;
         TaskId taskId = 0u;
@@ -81,6 +83,7 @@ public:
         DownloadList assetsDownloadList;
         std::string cloudWaterMark;
         std::vector<std::string> pkColNames;
+        std::vector<std::string> dupLocalPkNames;
         std::set<Key> deletePrimaryKeySet;
         std::set<Key> dupHashKeySet;
         std::string tableName;

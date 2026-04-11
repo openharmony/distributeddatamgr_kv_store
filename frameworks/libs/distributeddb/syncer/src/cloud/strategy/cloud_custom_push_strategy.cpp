@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,17 +13,30 @@
  * limitations under the License.
  */
 
-#ifndef STRATEGY_FACTORY_H
-#define STRATEGY_FACTORY_H
-#include "cloud_sync_strategy.h"
-#include "db_common.h"
-#include "store_types.h"
+#include "cloud_custom_push_strategy.h"
+
 namespace DistributedDB {
-class StrategyFactory {
-public:
-    static std::shared_ptr<CloudSyncStrategy> BuildSyncStrategy(SyncMode mode, bool isKvScene = false,
-        SingleVerConflictResolvePolicy policy = SingleVerConflictResolvePolicy::DEFAULT_LAST_WIN);
-};
+bool CloudCustomPushStrategy::JudgeUpdateCursor() const
+{
+    return false;
 }
 
-#endif // STRATEGY_FACTORY_H
+bool CloudCustomPushStrategy::JudgeUpload() const
+{
+    if (syncFlowType_ == SyncFlowType::DOWNLOAD_ONLY) {
+        LOGI("[CloudCustomPushStrategy] syncFlowType is DOWNLOAD_ONLY, skip upload");
+        return false;
+    }
+    return true;
+}
+
+bool CloudCustomPushStrategy::JudgeDownload() const
+{
+    return false;
+}
+
+bool CloudCustomPushStrategy::JudgeLocker() const
+{
+    return false;
+}
+} // DistributedDB
