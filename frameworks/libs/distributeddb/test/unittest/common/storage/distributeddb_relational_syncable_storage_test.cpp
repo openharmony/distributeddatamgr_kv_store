@@ -139,7 +139,8 @@ HWTEST_F(DistributedDBRelationalSyncableStorageTest, FuncExceptionTest001, TestS
     EXPECT_EQ(conn->CreateDistributedTable("", {}, false), -E_INVALID_CONNECTION);
     EXPECT_EQ(conn->RemoveDeviceData(), -E_INVALID_CONNECTION);
     std::map<std::string, std::vector<std::string>> tableMap;
-    EXPECT_EQ(conn->RemoveExceptDeviceData(tableMap), -E_INVALID_CONNECTION);
+    int64_t changedRows;
+    EXPECT_EQ(conn->RemoveExceptDeviceData(tableMap, changedRows), -E_INVALID_CONNECTION);
 
 #ifdef USE_DISTRIBUTEDB_CLOUD
     EXPECT_EQ(conn->GetCloudSyncTaskCount(), -1);

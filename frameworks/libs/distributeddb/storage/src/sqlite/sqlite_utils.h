@@ -217,7 +217,8 @@ public:
 
     static bool IsStmtReadOnly(sqlite3_stmt *statement);
 
-    static int UpdateLocalDataModifyTime(sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime);
+    static int UpdateLocalDataModifyTime(
+        sqlite3 *db, const std::string &virtualTime, const std::string &modifyTime);
 
     static int UpdateLocalDataCloudFlag(sqlite3 *db);
 
@@ -225,7 +226,7 @@ public:
 
     static void DumpSqliteHeader(sqlite3 *db);
 
-    static int PrintChangeRows(sqlite3_stmt *statement);
+    static int PrintChangeRows(sqlite3_stmt *statement, int64_t &changedRows);
 
     static int BindType(sqlite3_stmt *statement, const Type &type, int cid);
 private:

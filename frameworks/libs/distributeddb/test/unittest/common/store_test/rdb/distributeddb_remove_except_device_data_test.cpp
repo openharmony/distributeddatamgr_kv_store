@@ -51,6 +51,7 @@ public:
 protected:
     void ExecuteTest031();
     static constexpr const char *DEVICE_SYNC_TABLE = "DEVICE_SYNC_TABLE";
+    int64_t changedRows_ = -1;
 };
 
 void DistributedDBRemoveExceptDeviceDataTest::SetUp()
@@ -241,7 +242,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice", g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
@@ -286,7 +287,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice", g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
@@ -336,7 +337,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap =
         {{g_defaultTable1, {"localDevice", g_deviceC}}, {g_defaultTable2, {"localDevice", g_deviceA}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info3, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
@@ -377,7 +378,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice", g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), NOT_SUPPORT);
 
     InsertLocalDBData(0, count, info1);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
@@ -391,27 +392,27 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
      */
     BasicUnitTest::SetLocalDeviceId("localDevice");
     clearMap = {{g_defaultTable1 + "%log", {"localDevice", g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), INVALID_ARGS);
     clearMap = {{"", {"localDevice", g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), INVALID_ARGS);
     clearMap = {{"notExist", {"localDevice", g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), TABLE_NOT_FOUND);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), TABLE_NOT_FOUND);
     clearMap = {{g_defaultTable1, {""}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), INVALID_ARGS);
     std::string longInvalid(INVALID_DEVICE_NAME_LENGTH, 'a');
     clearMap = {{g_defaultTable1, {longInvalid}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), INVALID_ARGS);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), INVALID_ARGS);
     clearMap = {{g_defaultTable2, {"localDevice", g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), NOT_SUPPORT);
     clearMap = {{g_defaultTable1, {"localDevice", g_deviceA, g_deviceB, "dev4"}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
     clearMap = {{g_defaultTable1, {g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     clearMap = {{g_defaultTable1, {}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     clearMap = {};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
 }
 
 /**
@@ -452,7 +453,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice"}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), NOT_SUPPORT);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, distributedTableName, ""), count);
 }
 
@@ -492,7 +493,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateA, nullptr);
     BasicUnitTest::SetLocalDeviceId("localDevice");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"localDevice"}}};
-    EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap), NOT_SUPPORT);
+    EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap, changedRows_), NOT_SUPPORT);
 }
 #endif
 
@@ -545,7 +546,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateA, nullptr);
     BasicUnitTest::SetLocalDeviceId("dev1");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"dev1"}}};
-    EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
 }
 
@@ -594,7 +595,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("dev2");
     std::map<std::string, std::vector<std::string>> clearMap = {{DEVICE_SYNC_TABLE, {"dev2", "dev4"}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DEVICE_SYNC_TABLE), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(DEVICE_SYNC_TABLE), g_deviceA), count);
 }
@@ -636,7 +637,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     auto delegateB = GetDelegate(info2);
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData({}), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData({}, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DBCommon::GetLogTableName(g_defaultTable1), "flag&0x02!=0"), count);
     /**
@@ -652,7 +653,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
         .args = {std::string("update2")}
     };
     ASSERT_EQ(UpdateDataLog(db, updateOption), OK);
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData({}), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData({}, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DBCommon::GetLogTableName(g_defaultTable1)), ZERO);
 }
@@ -680,7 +681,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"dev1"}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
 }
 
@@ -705,7 +706,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("dev2");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceA, g_deviceC, g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
@@ -732,7 +733,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("dev2");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceA}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), ZERO);
@@ -759,7 +760,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("dev2");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceA, g_deviceA, g_deviceA}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), ZERO);
@@ -786,7 +787,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId("dev2");
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"not_exist_device"}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), ZERO);
@@ -822,7 +823,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {longDevice}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
 }
 
@@ -856,7 +857,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {specialDevice}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
 }
 
@@ -889,7 +890,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {"local"}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
 }
@@ -915,7 +916,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
 
     BlockPush(info3, info2, g_defaultTable1);
@@ -944,7 +945,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB, g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
@@ -984,7 +985,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
         {g_defaultTable1, {g_deviceB, g_deviceC}},
         {g_defaultTable2, {g_deviceB, g_deviceA}}
     };
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable2), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
@@ -1012,7 +1013,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB, g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceA), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), count);
@@ -1042,7 +1043,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB, g_deviceA}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), ZERO);
 }
@@ -1068,7 +1069,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB, g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
 }
 
@@ -1093,7 +1094,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
 }
 
@@ -1126,7 +1127,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
         {g_defaultTable1, {g_deviceC}},
         {g_defaultTable2, {g_deviceA}}
     };
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable2), count);
 }
@@ -1160,7 +1161,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB, g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), DEVICE_4_COUNT);
     std::string logTableName = DBCommon::GetLogTableName(g_defaultTable1);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, logTableName, g_deviceC), DEVICE_4_COUNT);
@@ -1189,7 +1190,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
 
     for (int i = ZERO; i < SMALL_TEST_COUNT; i++) {
         std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceC}}};
-        EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+        EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     }
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
 }
@@ -1215,7 +1216,7 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     ASSERT_NE(delegateB, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
 }
 
@@ -1241,17 +1242,17 @@ HWTEST_F(DistributedDBRemoveExceptDeviceDataTest, RdbRemoveDataForOtherDevicesTe
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
 
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceB, g_deviceA}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableDataByDev(info2, DBCommon::GetLogTableName(g_defaultTable1), g_deviceC), ZERO);
 
     clearMap = {{g_defaultTable1, {g_deviceB}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), ZERO);
 
     PrepareRemoveDataStore(info1, info2, info3, count);
     clearMap = {{g_defaultTable1, {g_deviceB, g_deviceA, g_deviceC}}};
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count + count);
 }
 
@@ -1279,7 +1280,7 @@ void DistributedDBRemoveExceptDeviceDataTest::ExecuteTest031()
     ASSERT_NE(delegateA, nullptr);
     BasicUnitTest::SetLocalDeviceId(g_deviceA);
     std::map<std::string, std::vector<std::string>> clearMap = {{g_defaultTable1, {g_deviceA}}};
-    EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap), OK);
+    EXPECT_EQ(delegateA->RemoveExceptDeviceData(clearMap, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), count);
     /**
      * @tc.steps: step4. A change ori_device to dev2 and remove again
@@ -1295,7 +1296,7 @@ void DistributedDBRemoveExceptDeviceDataTest::ExecuteTest031()
     };
     ASSERT_EQ(UpdateDataLog(db, updateOption), OK);
     BasicUnitTest::SetLocalDeviceId(g_deviceA);
-    EXPECT_EQ(delegateA->RemoveExceptDeviceData({}), OK);
+    EXPECT_EQ(delegateA->RemoveExceptDeviceData({}, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), ZERO);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, DBCommon::GetLogTableName(g_defaultTable1)), ZERO);
     /**
@@ -1313,7 +1314,7 @@ void DistributedDBRemoveExceptDeviceDataTest::ExecuteTest031()
     ASSERT_EQ(UpdateDataLog(db, updateOption), OK);
     BasicUnitTest::SetLocalDeviceId(g_deviceB);
     auto delegateB = GetDelegate(info2);
-    EXPECT_EQ(delegateB->RemoveExceptDeviceData({}), OK);
+    EXPECT_EQ(delegateB->RemoveExceptDeviceData({}, changedRows_), OK);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, g_defaultTable1), count);
     EXPECT_EQ(RDBGeneralUt::CountTableData(info2, DBCommon::GetLogTableName(g_defaultTable1)), count);
 }

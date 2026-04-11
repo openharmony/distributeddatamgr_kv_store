@@ -305,7 +305,7 @@ public:
     int GetGidRecordCount(const std::string &tableName, uint64_t &count) const;
 #endif
     int DeleteDistributedExceptDeviceTable(const std::string &removedTable,
-        const std::vector<std::string> &keepDevices) const;
+        const std::vector<std::string> &keepDevices, int64_t &changedRows) const;
     
     int DeleteDistributedExceptDeviceTableLog(const std::string &removedTable,
         const std::vector<std::string> &keepDevices, const TrackerTable &trackerTable) const;
