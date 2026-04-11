@@ -192,20 +192,6 @@ DistributedKv::SubscribeType SubscribeTypeToNative(::ohos::data::distributedkvst
     }
 }
 
-DistributedKv::SubscribeType SubscribeTypeToNative(uint8_t type)
-{
-    switch (type) {
-        case 0:  // 0 means SUBSCRIBE_TYPE_LOCAL
-            return DistributedKv::SubscribeType::SUBSCRIBE_TYPE_LOCAL;
-        case 1:  // 1 means SUBSCRIBE_TYPE_REMOTE
-            return DistributedKv::SubscribeType::SUBSCRIBE_TYPE_REMOTE;
-        case 2:  // 2 means SUBSCRIBE_TYPE_ALL
-            return DistributedKv::SubscribeType::SUBSCRIBE_TYPE_ALL;
-        default:
-            return DistributedKv::SubscribeType::SUBSCRIBE_TYPE_LOCAL;
-    }
-}
-
 ::ohos::data::distributedkvstore::ValueUnion Blob2TaiheValue(DistributedKv::Blob const& blob, uint8_t &resultType)
 {
     auto& data = blob.Data();

@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "irelational_store.h"
@@ -57,7 +58,8 @@ public:
         return storageEngine_;
     }
 
-    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool trackerSchemaChanged = false);
+    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync,
+        bool trackerSchemaChanged = false);
 
     int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
         const RelationalObserverAction &action);
@@ -112,7 +114,11 @@ public:
 
     int SetCloudSyncConfig(const CloudSyncConfig &config);
 
-    SyncProcess GetCloudTaskStatus(uint64_t taskId);
+    SyncProcess GetCloudTaskStatus(uint64_t taskId) const;
+
+    int SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler);
+
+    int StopGenLogTask(const std::vector<std::string> &tableList);
 #endif
 
 #ifdef USE_DISTRIBUTEDDB_DEVICE
@@ -139,6 +145,8 @@ public:
     int OperateDataStatus(uint32_t dataOperator);
 
     int SetProperty(const Property &property);
+
+    void StopAllBackgroundTask(TaskType type);
 protected:
     void ReleaseResources();
 
@@ -150,7 +158,7 @@ protected:
     int SaveTableModeToMeta(DistributedTableMode mode);
     int CheckProperties(RelationalDBProperties properties);
 
-    int SaveLogTableVersionToMeta();
+    int SaveLogTableVersionToMeta() const;
 
     int CleanDistributedDeviceTable();
 
@@ -178,7 +186,8 @@ protected:
 
     int CheckQueryValid(const CloudSyncOption &option);
 
-    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object, bool isFromTable);
+    int CheckObjectValid(const CloudSyncOption &option, const std::vector<QuerySyncObject> &object,
+        bool isFromTable);
 
     int CheckTableName(const std::vector<std::string> &tableNames);
 
@@ -219,6 +228,8 @@ protected:
         CloudSyncer::CloudTaskInfo &info);
 
     int CheckCloudSchema(const DataBaseSchema &schema);
+
+    std::pair<int, DataBaseSchema> FilterCloudDbSchema(const DataBaseSchema &schema);
 #endif
 
     int OperateDataStatusInner(const std::vector<std::string> &tables, uint64_t virtualTime) const;
@@ -231,6 +242,9 @@ protected:
     void TrackerRepairImpl(TrackerTable &trackerTable, const RelationalSchemaObject &obj);
 
     RelationalSchemaObject GetSchemaObj() const;
+
+    std::pair<int, CreateDistributedTableParam> GetCreateDisTableParam(const std::string &tableName,
+        const std::string &identity, TableSyncType syncType, bool isTrackerSchemaChanged) const;
 
     int CheckTableSyncType(const std::string &tableName, TableSyncType tableSyncType) const;
 

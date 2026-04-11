@@ -177,6 +177,14 @@ public:
         bool allowStoreIdWithDot);
 
     static uint32_t TransfDbVersionToSoftwareVersion(uint16_t dbVersion);
+
+    static bool IsStringAllDigit(const std::string &originStr);
+
+    static void InitDefaultCloudSyncConfig(CloudSyncConfig &config);
+
+    static void SetCloudSyncConfigProperty(const CloudSyncConfig &from, CloudSyncConfig &target);
+
+    static bool GreaterEqualThan(const std::string &left, const std::string &right);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

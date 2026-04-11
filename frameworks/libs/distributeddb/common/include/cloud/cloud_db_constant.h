@@ -84,9 +84,13 @@ public:
 
     static constexpr const int32_t MAX_UPLOAD_BATCH_COUNT = 2000;
     static constexpr const int32_t MIN_UPLOAD_BATCH_COUNT = 1;
+    static constexpr const int32_t DEFAULT_UPLOAD_BATCH_COUNT = 30;
     static constexpr const int32_t MAX_UPLOAD_SIZE = 128 * 1024 * 1024; // 128M
     static constexpr const int32_t MIN_UPLOAD_SIZE = 1024; // 1024Bytes
+    static constexpr const int32_t DEFAULT_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     static constexpr const int32_t MIN_RETRY_CONFLICT_COUNTS = -1; // unlimited
+    static constexpr const int32_t DEFAULT_RETRY_CONFLICT_COUNTS = MIN_RETRY_CONFLICT_COUNTS;
+    static constexpr const bool DEFAULT_SUPPORT_ENCRYPT = false;
 
     static constexpr const int32_t MAX_ASYNC_DOWNLOAD_TASK = 12; // max async download task in process
     static constexpr const int32_t MIN_ASYNC_DOWNLOAD_TASK = 1;
@@ -94,7 +98,7 @@ public:
     static constexpr const int32_t MIN_ASYNC_DOWNLOAD_ASSETS = 1;
 
     static constexpr const int32_t COMMON_TASK_PRIORITY_LEVEL = -1;
-    static constexpr const int32_t PRIORITY_TASK_DEFALUT_LEVEL = 0;
+    static constexpr const int32_t PRIORITY_TASK_DEFAULT_LEVEL = 0;
     static constexpr const int32_t PRIORITY_TASK_MAX_LEVEL = 2;
     static constexpr const int32_t MAX_CONDITIONS_SIZE = 100;
 
@@ -104,8 +108,16 @@ public:
     static constexpr const uint32_t ON_CHANGE_CLOUD = 0x8;
 
     static constexpr std::chrono::milliseconds DFX_TIME_THRESHOLD = std::chrono::milliseconds(1000);
+
+    static constexpr std::chrono::milliseconds ASYNC_GEN_LOG_INTERVAL = std::chrono::milliseconds(20);
     static constexpr std::chrono::milliseconds LONG_TIME_TRANSACTION = std::chrono::milliseconds(1000);
     static constexpr std::chrono::milliseconds LONG_TRANSACTION_INTERVAL = std::chrono::milliseconds(50);
+
+    // change local flag to :keep async download asset[0x1000]
+    //                       mark local last write[0x02]
+    //                       mark device cloud inconsistency[0x20]
+    //                       mark not cloud update local[~0x4000]
+    static constexpr const char *LOCAL_UPDATE_FLAG = "((flag&0x1000)|0x02|0x20)&~0x4000";
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

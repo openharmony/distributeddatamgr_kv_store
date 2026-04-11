@@ -21,6 +21,7 @@
 #include <optional>
 #include "distributeddb/result_set.h"
 #include "cloud/cloud_store_types.h"
+#include "cloud/icloud_conflict_handler.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_data_translate.h"
 #include "cloud/iAssetLoader.h"
@@ -50,14 +51,19 @@ public:
         std::optional<DistributedTableMode> tableMode;
     };
 
+    struct CreateDistributedTableConfig {
+        bool isAsync = false;
+    };
+
     DB_API virtual DBStatus SetStoreConfig(const StoreConfig &config)
     {
         return OK;
     }
 
-    DB_API DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType type = DEVICE_COOPERATION)
+    DB_API DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType type = DEVICE_COOPERATION,
+        CreateDistributedTableConfig config = {false})
     {
-        return CreateDistributedTableInner(tableName, type);
+        return CreateDistributedTableInner(tableName, type, config);
     }
 
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
@@ -203,6 +209,17 @@ public:
         return OK;
     }
 
+    DB_API virtual DBStatus SetCloudConflictHandler(
+        [[gnu::unused]] const std::shared_ptr<ICloudConflictHandler> &handler)
+    {
+        return OK;
+    }
+
+    DB_API virtual DBStatus StopTask([[gnu::unused]] TaskType type)
+    {
+        return OK;
+    }
+
     // tableMap: key is tableName, value is keepDevices
     DB_API virtual DBStatus RemoveExceptDeviceData(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
@@ -211,7 +228,8 @@ public:
     }
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
-    virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;
+    virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
+        const CreateDistributedTableConfig &config) = 0;
     virtual DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option)
     {
         return DBStatus::OK;

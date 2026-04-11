@@ -679,17 +679,18 @@ bool DBCommon::IsGrdLibLoaded(void)
 
 bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
 {
-    if (config.maxUploadCount < CloudDbConstant::MIN_UPLOAD_BATCH_COUNT ||
-        config.maxUploadCount > CloudDbConstant::MAX_UPLOAD_BATCH_COUNT) {
+    if (config.maxUploadCount.has_value() && (config.maxUploadCount < CloudDbConstant::MIN_UPLOAD_BATCH_COUNT ||
+        config.maxUploadCount > CloudDbConstant::MAX_UPLOAD_BATCH_COUNT)) {
         LOGE("[DBCommon] invalid upload count %" PRId32, config.maxUploadCount);
         return false;
     }
-    if (config.maxUploadSize < CloudDbConstant::MIN_UPLOAD_SIZE ||
-        config.maxUploadSize > CloudDbConstant::MAX_UPLOAD_SIZE) {
+    if (config.maxUploadSize.has_value() && (config.maxUploadSize < CloudDbConstant::MIN_UPLOAD_SIZE ||
+        config.maxUploadSize > CloudDbConstant::MAX_UPLOAD_SIZE)) {
         LOGE("[DBCommon] invalid upload size %" PRId32, config.maxUploadSize);
         return false;
     }
-    if (config.maxRetryConflictTimes < CloudDbConstant::MIN_RETRY_CONFLICT_COUNTS) {
+    if (config.maxRetryConflictTimes.has_value() &&
+        (config.maxRetryConflictTimes < CloudDbConstant::MIN_RETRY_CONFLICT_COUNTS)) {
         LOGE("[DBCommon] invalid retry conflict count %" PRId32, config.maxRetryConflictTimes);
         return false;
     }
@@ -787,5 +788,59 @@ std::string DBCommon::GetStoreIdentifier(const StoreInfo &info, const std::strin
 uint32_t DBCommon::TransfDbVersionToSoftwareVersion(uint16_t dbVersion)
 {
     return SOFTWARE_VERSION_EARLIEST + dbVersion;
+}
+
+void DBCommon::InitDefaultCloudSyncConfig(CloudSyncConfig &config)
+{
+    if (!config.maxUploadCount.has_value()) {
+        config.maxUploadCount = CloudDbConstant::DEFAULT_UPLOAD_BATCH_COUNT;
+    }
+    if (!config.maxUploadSize.has_value()) {
+        config.maxUploadSize = CloudDbConstant::DEFAULT_UPLOAD_SIZE;
+    }
+    if (!config.maxRetryConflictTimes.has_value()) {
+        config.maxRetryConflictTimes = CloudDbConstant::DEFAULT_RETRY_CONFLICT_COUNTS;
+    }
+    if (!config.isSupportEncrypt.has_value()) {
+        config.isSupportEncrypt = CloudDbConstant::DEFAULT_SUPPORT_ENCRYPT;
+    }
+    if (!config.assetPolicy.has_value()) {
+        config.assetPolicy = AssetConflictPolicy::CONFLICT_POLICY_DEFAULT;
+    }
+}
+
+void DBCommon::SetCloudSyncConfigProperty(const CloudSyncConfig &from, CloudSyncConfig &target)
+{
+    std::string changeLog;
+    if (from.maxUploadCount.has_value()) {
+        target.maxUploadCount = from.maxUploadCount;
+        changeLog.append(" maxUploadCount: ").append(std::to_string(from.maxUploadCount.value()));
+    }
+    if (from.maxUploadSize.has_value()) {
+        target.maxUploadSize = from.maxUploadSize;
+        changeLog.append(" maxUploadSize: ").append(std::to_string(from.maxUploadSize.value()));
+    }
+    if (from.maxRetryConflictTimes.has_value()) {
+        target.maxRetryConflictTimes = from.maxRetryConflictTimes;
+        changeLog.append(" maxRetryConflictTimes: ").append(std::to_string(from.maxRetryConflictTimes.value()));
+    }
+    if (from.isSupportEncrypt.has_value()) {
+        target.isSupportEncrypt = from.isSupportEncrypt;
+        changeLog.append(" isSupportEncrypt: ").append(std::to_string(from.isSupportEncrypt.value()));
+    }
+    if (from.skipDownloadAssets.has_value()) {
+        target.skipDownloadAssets = from.skipDownloadAssets;
+        changeLog.append(" skipDownloadAssets: ").append(std::to_string(from.skipDownloadAssets.value()));
+    }
+    if (from.assetPolicy.has_value()) {
+        target.assetPolicy = from.assetPolicy;
+        changeLog.append(" assetPolicy: ").append(std::to_string(static_cast<uint32_t>(from.assetPolicy.value())));
+    }
+    LOGI("[DBCommon] Change config[%s]", changeLog.c_str());
+}
+
+bool DBCommon::GreaterEqualThan(const std::string &left, const std::string &right)
+{
+    return CmpModifyTime(right, left);
 }
 } // namespace DistributedDB

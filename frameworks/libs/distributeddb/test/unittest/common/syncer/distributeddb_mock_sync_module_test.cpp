@@ -2737,5 +2737,134 @@ HWTEST_F(DistributedDBMockSyncModuleTest, IsNeedRetrySyncTest, TestSize.Level0)
     EXPECT_TRUE(context->IsNeedRetrySync(E_NEED_CORRECT_TARGET_USER, TYPE_RESPONSE));
     RefObject::KillAndDecObjRef(context);
 }
+
+/**
+ * @tc.name: SyncTargetRefCountTest001
+ * @tc.desc: Test SyncTarget operation reference count management
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTargetRefCountTest001, TestSize.Level0)
+{
+    auto operation = new (std::nothrow) SyncOperation(1u, {}, 0, nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    auto target = std::make_shared<SingleVerSyncTarget>();
+    ASSERT_NE(target, nullptr);
+    // Set operation to target - should increment operation ref count
+    target->SetSyncOperation(operation);
+    // Set new operation - should decrement old, increment new
+    auto operation2 = new (std::nothrow) SyncOperation(2u, {}, 0, nullptr, false);
+    ASSERT_NE(operation2, nullptr);
+    target->SetSyncOperation(operation2);
+    // Destructor should decrement operation2's ref count
+    target = nullptr;
+    RefObject::KillAndDecObjRef(operation);
+    RefObject::KillAndDecObjRef(operation2);
+}
+
+/**
+ * @tc.name: SyncTargetRefCountTest002
+ * @tc.desc: Test SyncTarget destructor decreases operation ref count
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTargetRefCountTest002, TestSize.Level0)
+{
+    auto operation = new (std::nothrow) SyncOperation(1u, {}, 0, nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    auto target = std::make_shared<SingleVerSyncTarget>();
+    ASSERT_NE(target, nullptr);
+    target->SetSyncOperation(operation);
+    // Destroy target - should decrease operation ref count
+    target = nullptr;
+    RefObject::KillAndDecObjRef(operation);
+}
+
+/**
+ * @tc.name: CheckIsFinishedTest001
+ * @tc.desc: Test CheckIsFinished with various device statuses
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, CheckIsFinishedTest001, TestSize.Level0)
+{
+    std::vector<std::string> devices = {"devA", "devB", "devC"};
+    auto operation = new (std::nothrow) SyncOperation(1u, devices, 0, nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    ASSERT_EQ(operation->Initialize(), E_OK);
+    // Check finished status for non-existent device - should return true
+    EXPECT_TRUE(operation->CheckIsFinished("nonExistentDev"));
+    // Check finished status for devices with default status (OP_WAITING < OP_FINISHED_ALL)
+    EXPECT_FALSE(operation->CheckIsFinished("devA"));
+    EXPECT_FALSE(operation->CheckIsFinished("devB"));
+    EXPECT_FALSE(operation->CheckIsFinished("devC"));
+    RefObject::KillAndDecObjRef(operation);
+}
+
+/**
+ * @tc.name: CheckIsFinishedTest002
+ * @tc.desc: Test CheckIsFinished when device status is OP_FINISHED_ALL
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, CheckIsFinishedTest002, TestSize.Level0)
+{
+    std::vector<std::string> devices = {"devA", "devB"};
+    auto operation = new (std::nothrow) SyncOperation(1u, devices, 0, nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    ASSERT_EQ(operation->Initialize(), E_OK);
+    // Set device A to finished
+    operation->SetStatus("devA", SyncOperation::OP_FINISHED_ALL);
+    EXPECT_TRUE(operation->CheckIsFinished("devA"));
+    EXPECT_FALSE(operation->CheckIsFinished("devB"));
+    // Set device B to finished
+    operation->SetStatus("devB", SyncOperation::OP_FINISHED_ALL);
+    EXPECT_TRUE(operation->CheckIsFinished("devA"));
+    EXPECT_TRUE(operation->CheckIsFinished("devB"));
+    RefObject::KillAndDecObjRef(operation);
+}
+
+/**
+ * @tc.name: CheckIsAllFinishedTest001
+ * @tc.desc: Test CheckIsAllFinished returns true when all devices finished
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, CheckIsAllFinishedTest001, TestSize.Level0)
+{
+    std::vector<std::string> devices = {"devA", "devB", "devC"};
+    auto operation = new (std::nothrow) SyncOperation(1u, devices, 0, nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    ASSERT_EQ(operation->Initialize(), E_OK);
+    // Initially not all finished
+    EXPECT_FALSE(operation->CheckIsAllFinished());
+    // Set all devices to finished
+    operation->SetStatus("devA", SyncOperation::OP_FINISHED_ALL);
+    operation->SetStatus("devB", SyncOperation::OP_FINISHED_ALL);
+    operation->SetStatus("devC", SyncOperation::OP_FINISHED_ALL);
+    // Now all should be finished
+    EXPECT_TRUE(operation->CheckIsAllFinished());
+    RefObject::KillAndDecObjRef(operation);
+}
+
+/**
+ * @tc.name: CheckIsAllFinishedTest002
+ * @tc.desc: Test CheckIsAllFinished returns false when any device not finished
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, CheckIsAllFinishedTest002, TestSize.Level0)
+{
+    std::vector<std::string> devices = {"devA", "devB", "devC"};
+    auto operation = new (std::nothrow) SyncOperation(1u, devices, 0, nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    ASSERT_EQ(operation->Initialize(), E_OK);
+    // Set only 2 out of 3 devices to finished
+    operation->SetStatus("devA", SyncOperation::OP_FINISHED_ALL);
+    operation->SetStatus("devB", SyncOperation::OP_FINISHED_ALL);
+    // Should return false since not all devices finished
+    EXPECT_FALSE(operation->CheckIsAllFinished());
+    RefObject::KillAndDecObjRef(operation);
+}
 }
 #endif

@@ -44,6 +44,10 @@ public:
     virtual DBStatus UnLock() = 0;
     virtual DBStatus HeartBeat() = 0;
     virtual DBStatus Close() = 0;
+    virtual DBStatus StopCloudSync()
+    {
+        return NOT_SUPPORT;
+    }
     virtual void SetPrepareTraceId(const std::string &traceId)
     {
         this->prepareTraceId = traceId;
