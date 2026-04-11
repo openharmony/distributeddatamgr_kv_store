@@ -324,10 +324,10 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable006, TestSize.Level1)
     ASSERT_EQ(SetTrackerTables(info2_, {DEVICE_SYNC_TABLE}), E_OK);
     /**
      * @tc.steps: step2. Insert data and sync.
-     * @tc.expected: step2. SCHEMA_MISMATCH
+     * @tc.expected: step2. DISTRIBUTED_SCHEMA_NOT_FOUND
      */
     InsertLocalDBData(0, 1, info1_);
-    BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, SCHEMA_MISMATCH);
+    BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, DISTRIBUTED_SCHEMA_NOT_FOUND);
 }
 
 /**
@@ -349,10 +349,10 @@ HWTEST_F(DistributedDBRDBDataStatusTest, CollaborationTable007, TestSize.Level1)
     ASSERT_EQ(SetTrackerTables(info2_, {DEVICE_SYNC_TABLE}), E_OK);
     /**
      * @tc.steps: step2. Insert data and sync.
-     * @tc.expected: step2. SCHEMA_MISMATCH
+     * @tc.expected: step2. DISTRIBUTED_SCHEMA_NOT_FOUND
      */
     InsertLocalDBData(0, 1, info1_);
-    BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, SCHEMA_MISMATCH);
+    BlockPush(info1_, info2_, DEVICE_SYNC_TABLE, DISTRIBUTED_SCHEMA_NOT_FOUND);
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD

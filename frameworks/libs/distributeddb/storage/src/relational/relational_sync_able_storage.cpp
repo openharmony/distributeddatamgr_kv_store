@@ -47,7 +47,9 @@ RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingl
     : storageEngine_(std::move(engine)),
       reusedHandle_(nullptr),
       isCachedOption_(false)
-{}
+{
+    DBCommon::InitDefaultCloudSyncConfig(cloudSyncConfig_);
+}
 
 RelationalSyncAbleStorage::~RelationalSyncAbleStorage()
 {
@@ -1167,7 +1169,7 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
     }
     cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     auto config = GetCloudSyncConfig();
-    handle->SetUploadConfig(config.maxUploadCount, config.maxUploadSize);
+    handle->SetUploadConfig(config.maxUploadCount.value_or(0), config.maxUploadSize.value_or(0));
     errCode = handle->GetSyncCloudData(uploadRecorder_, cloudDataResult, *token);
     LOGI("mode:%d upload data, ins:%zu, upd:%zu, del:%zu, lock:%zu", cloudDataResult.mode,
         cloudDataResult.insData.extend.size(), cloudDataResult.updData.extend.size(),
@@ -1293,7 +1295,11 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRela
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     handle->SetLocalSchema(localSchema);
-    return handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
+    errCode = handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return handle->GetLocalDataByRowid(localSchema.GetTable(tableSchema.name), tableSchema, dataInfoWithLog);
 }
 
 int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)

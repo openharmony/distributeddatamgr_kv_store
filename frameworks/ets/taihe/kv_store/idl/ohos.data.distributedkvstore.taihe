@@ -366,11 +366,11 @@ interface SingleKVStore {
     @overload("sync")
     SyncByQuery(deviceIds: Array<String>, query: Query, mode: SyncMode, delayMs: Optional<i32>): void;
 
-    OnDataChange(type: SubscribeType, f: (info: ChangeNotification) => void, @sts_last opq: Opaque): void;
-    OffDataChange(opq: Optional<@sts_type("Function1<String, void>") Opaque>): void;
+    OnDataChange(type: SubscribeType, f: (info: ChangeNotification) => void): void;
+    OffDataChange(opq: Optional<(info: ChangeNotification) => void>): void;
 
-    OnSyncComplete(f: (info: Array<Opaque>) => void, @sts_last opq: Opaque): void;
-    OffSyncComplete(opq: Optional<@sts_type("Function1<Array<[string, int]>, void>") Opaque>): void;
+    OnSyncComplete(f: (info: Array<Opaque>) => void): void;
+    OffSyncComplete(opq: Optional<(info: Array<Opaque>) => void>): void;
 
     @gen_async("getSecurityLevel")
     @gen_promise("getSecurityLevel")
@@ -436,6 +436,6 @@ interface KVManager {
     @gen_promise("getAllKVStoreId")
     GetAllKVStoreIdSync(appId: String): Array<String>;
 
-    OnDistributedDataServiceDie(f: (para: OneUndef) => void, @sts_last opq: Opaque): void;
-    OffDistributedDataServiceDie(opq: Optional<@sts_type("Function1<undefined, void>") Opaque>): void;
+    OnDistributedDataServiceDie(f: (para: OneUndef) => void): void;
+    OffDistributedDataServiceDie(opq: Optional<(para: OneUndef) => void>): void;
 }

@@ -46,6 +46,13 @@ namespace {
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         std::placeholders::_1, std::placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
 
+    // Constants for Logger tests
+    constexpr int LOGGER_THREAD_COUNT_HIGH = 100;
+    constexpr int LOGGER_THREAD_COUNT_LOW = 20;
+    constexpr int LOGGER_REPEAT_COUNT = 10;
+    constexpr int LOGGER_TEST_LINE_NUMBER = 100;
+    constexpr int LOGGER_DELETE_THREAD_RATIO = 3;
+
 class DistributedDBCommonTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -61,7 +68,9 @@ void DistributedDBCommonTest::SetUpTestCase(void)
     g_mgr.SetKvStoreConfig(g_config);
 }
 
-void DistributedDBCommonTest::TearDownTestCase(void) {}
+void DistributedDBCommonTest::TearDownTestCase()
+{
+}
 
 void DistributedDBCommonTest::SetUp(void)
 {
@@ -74,6 +83,8 @@ void DistributedDBCommonTest::TearDown(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGI("rm test db files error!");
     }
+    // set the instance destroyed flag to false, for next test case
+    Logger::SetInstanceDestroyed(false);
 }
 
 /**
@@ -957,5 +968,211 @@ HWTEST_F(DistributedDBCommonTest, PropertiesTest002, TestSize.Level0)
     const auto &copyProperties = properties2;
     properties2 = copyProperties;
     EXPECT_EQ(isEncrypted, properties2.IsEncrypted());
+}
+
+/**
+ * @tc.name: LoggerCallOnceTest
+ * @tc.desc: Test Logger only initializes once using std::call_once.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerCallOnceTest, TestSize.Level1)
+{
+    // Reset instance for clean test
+    Logger::DeleteInstance();
+
+    std::vector<std::shared_ptr<Logger>> instances;
+    const int threadCount = LOGGER_THREAD_COUNT_HIGH;
+
+    // Launch multiple threads calling GetInstance simultaneously
+    std::vector<std::thread> threads;
+    for (int i = 0; i < threadCount; ++i) {
+        threads.emplace_back([&instances]() {
+            auto logger = Logger::GetInstance();
+            instances.push_back(logger);
+        });
+    }
+
+    // Wait for all threads
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
+    // Verify all instances point to the same object (call_once ensures single initialization)
+    ASSERT_GT(instances.size(), 0);
+    for (size_t i = 1; i < instances.size(); ++i) {
+        EXPECT_EQ(instances[0], instances[i]);
+    }
+
+    Logger::DeleteInstance();
+}
+
+/**
+ * @tc.name: LoggerInstanceDestroyedFlagTest
+ * @tc.desc: Test instanceDestroyed atomic flag behavior.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerInstanceDestroyedFlagTest, TestSize.Level1)
+{
+    // Get instance - should not be destroyed
+    auto logger = Logger::GetInstance();
+    ASSERT_NE(logger, nullptr);
+
+    // Delete instance - should set destroyed flag
+    Logger::DeleteInstance();
+
+    // Get new instance after deletion
+    auto newLogger = Logger::GetInstance();
+    ASSERT_EQ(newLogger, nullptr);
+
+    // Cleanup
+    Logger::DeleteInstance();
+}
+
+/**
+ * @tc.name: LoggerLogAfterDestroyTest
+ * @tc.desc: Test Log function after instance is destroyed.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerLogAfterDestroyTest, TestSize.Level1)
+{
+    // Create and destroy instance
+    auto logger = Logger::GetInstance();
+    ASSERT_NE(logger, nullptr);
+    Logger::DeleteInstance();
+
+    // Log calls after DeleteInstance should be safe (early return)
+    // This simulates process exit scenario
+    Logger::Log(Logger::Level::LEVEL_INFO, "TestTag", "TestFunc", LOGGER_TEST_LINE_NUMBER,
+        "Test message after destroy");
+
+    // Cleanup
+    Logger::DeleteInstance();
+}
+
+/**
+ * @tc.name: LoggerConcurrentDeleteAndLogTest
+ * @tc.desc: Test concurrent DeleteInstance and Log calls.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerConcurrentDeleteAndLogTest, TestSize.Level1)
+{
+    // Create instance
+    auto logger = Logger::GetInstance();
+    ASSERT_NE(logger, nullptr);
+
+    std::vector<std::thread> threads;
+    const int threadCount = LOGGER_THREAD_COUNT_LOW;
+
+    // Launch mixed operations: some threads delete, some log
+    for (int i = 0; i < threadCount; ++i) {
+        if (i % LOGGER_DELETE_THREAD_RATIO == 0) {
+            // Delete threads
+            threads.emplace_back([]() {
+                Logger::DeleteInstance();
+            });
+        } else {
+            // Log threads
+            threads.emplace_back([]() {
+                Logger::Log(Logger::Level::LEVEL_INFO, "TestTag", "TestFunc", LOGGER_TEST_LINE_NUMBER,
+                    "Test message in concurrent scenario");
+            });
+        }
+    }
+
+    // Wait for all threads
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
+    // Cleanup
+    Logger::DeleteInstance();
+}
+
+/**
+ * @tc.name: LoggerRecreateAfterDestroyTest
+ * @tc.desc: Test Logger recreation after destruction.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerRecreateAfterDestroyTest, TestSize.Level1)
+{
+    // First instance
+    auto logger1 = Logger::GetInstance();
+    ASSERT_NE(logger1, nullptr);
+
+    // Destroy
+    Logger::DeleteInstance();
+    Logger::SetInstanceDestroyed(false);
+
+    // Recreate
+    auto logger2 = Logger::GetInstance();
+    ASSERT_NE(logger2, nullptr);
+
+    // Verify they are different instances
+    EXPECT_NE(logger1, logger2);
+
+    // Recreate again
+    Logger::DeleteInstance();
+    Logger::SetInstanceDestroyed(false);
+    auto logger3 = Logger::GetInstance();
+    ASSERT_NE(logger3, nullptr);
+
+    // Verify logger2 and logger3 are different
+    EXPECT_NE(logger2, logger3);
+
+    // Cleanup
+    Logger::DeleteInstance();
+}
+
+/**
+ * @tc.name: LoggerGetInstanceNullptrCheckTest
+ * @tc.desc: Test GetInstance returns valid pointer after initialization.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerGetInstanceNullptrCheckTest, TestSize.Level1)
+{
+    // Get instance should not return nullptr
+    auto logger = Logger::GetInstance();
+    ASSERT_NE(logger, nullptr);
+
+    // Multiple calls should also not return nullptr
+    for (int i = 0; i < LOGGER_REPEAT_COUNT; ++i) {
+        auto checkLogger = Logger::GetInstance();
+        EXPECT_NE(checkLogger, nullptr);
+        EXPECT_EQ(logger, checkLogger);
+    }
+
+    // Cleanup
+    Logger::DeleteInstance();
+}
+
+/**
+ * @tc.name: LoggerLogWithNullLoggerTest
+ * @tc.desc: Test Log function handles null logger gracefully.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBCommonTest, LoggerLogWithNullLoggerTest, TestSize.Level1)
+{
+    // Create instance first to ensure proper initialization
+    auto logger = Logger::GetInstance();
+    ASSERT_NE(logger, nullptr);
+
+    // Delete and simulate destroyed state
+    Logger::DeleteInstance();
+
+    // These log calls should be safe (early return on destroyed check)
+    Logger::Log(Logger::Level::LEVEL_DEBUG, "TestTag", "TestFunc", LOGGER_TEST_LINE_NUMBER, "Debug message");
+    Logger::Log(Logger::Level::LEVEL_INFO, "TestTag", "TestFunc", LOGGER_TEST_LINE_NUMBER, "Info message");
+    Logger::Log(Logger::Level::LEVEL_WARN, "TestTag", "TestFunc", LOGGER_TEST_LINE_NUMBER, "Warn message");
+    Logger::Log(Logger::Level::LEVEL_ERROR, "TestTag", "TestFunc", LOGGER_TEST_LINE_NUMBER, "Error message");
+
+    // Cleanup
+    Logger::DeleteInstance();
 }
 }

@@ -1437,7 +1437,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync002, TestSize.Level1)
      * @tc.expected: sync fail when abilitySync
      */
     PrepareEnvironment(dataMap, localFieldInfo, remoteFieldInfo, {g_deviceB});
-    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, SCHEMA_MISMATCH, {DEVICE_B});
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, TABLE_FIELD_MISMATCH, {DEVICE_B});
 }
 
 /**
@@ -1512,7 +1512,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AbilitySync004, TestSize.Level1)
         }
     };
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(DistributedDB::SYNC_MODE_PULL_ONLY, query, callBack, true), E_OK);
-    EXPECT_EQ(res, static_cast<int>(SyncOperation::Status::OP_SCHEMA_INCOMPATIBLE));
+    EXPECT_EQ(res, static_cast<int>(SyncOperation::Status::OP_DISTRIBUTED_SCHEMA_NOT_FOUND));
 }
 
 /**

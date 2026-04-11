@@ -26,6 +26,25 @@ const std::string g_defaultTable1 = "defaultTable1";
 const std::string g_defaultTable2 = "defaultTable2";
 const std::vector<uint8_t> PASSWD_VECTOR = {'P', 'a', 's', 's', 'w', 'o', 'r', 'd', '@', '1'};
 
+using ConflictCallback = std::function<ConflictRet(const std::string &, const VBucket &, const VBucket &, VBucket &)>;
+class TestCloudConflictHandler : public ICloudConflictHandler {
+public:
+    ConflictRet HandleConflict(const std::string &table, const VBucket &oldData, const VBucket &newData,
+        VBucket &upsert) override
+    {
+        if (callback_) {
+            return callback_(table, oldData, newData, upsert);
+        }
+        return ConflictRet::NOT_HANDLE;
+    }
+
+    void SetCallback(const ConflictCallback &callback)
+    {
+        callback_ = callback;
+    }
+protected:
+    ConflictCallback callback_;
+};
 class RDBGeneralUt : public BasicUnitTest {
 public:
     void SetUp() override;
@@ -86,6 +105,9 @@ protected:
     void CloudBlockSync(const StoreInfo &from, const Query &query, SyncMode mode, DBStatus exceptStatus,
         DBStatus callbackExpect);
 
+    void CloudBlockSync(const StoreInfo &from, const CloudSyncOption &option, DBStatus expectStatus,
+        DBStatus callbackExpect);
+
     void SetCloudDbConfig(const StoreInfo &info) const;
 
     int GetCloudDataCount(const std::string &tableName) const;
@@ -104,6 +126,16 @@ protected:
         std::shared_ptr<ResultSet> &resultSet);
 
     int PutMetaData(const StoreInfo &store, const Key &key, const Value &value);
+
+    void SetCloudConflictHandler(const StoreInfo &store, const ConflictCallback &callback);
+
+    void SetCloudSyncConfig(const StoreInfo &store, const CloudSyncConfig &config, DBStatus expectDBStatus = OK);
+
+    void GetAssetsBySQL(const StoreInfo &store, const std::string &sql, std::vector<Assets> &res);
+    void GetAssetsMap(const StoreInfo &store, const std::string &sql, const std::string &colName,
+        std::map<std::string, std::set<std::string>> &assetsMap);
+    using CheckAssetFunc = std::function<void(const Asset &asset)>;
+    void CheckAssets(const StoreInfo &store, const std::string &sql, bool isEmpty, const CheckAssetFunc &checkFunc);
 
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *> stores_;

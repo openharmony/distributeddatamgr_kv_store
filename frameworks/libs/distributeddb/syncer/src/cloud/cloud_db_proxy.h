@@ -20,6 +20,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include "cloud/cloud_db_types.h"
+#include "cloud/icloud_conflict_handler.h"
 #include "cloud/icloud_db.h"
 #include "cloud/iAssetLoader.h"
 
@@ -84,9 +85,15 @@ public:
 
     void CancelDownload();
 
+    void SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler);
+
+    std::weak_ptr<ICloudConflictHandler> GetCloudConflictHandler();
+
     int QueryAllGid(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data);
 
     static int GetInnerErrorCode(DBStatus status);
+
+    int StopCloudSync();
 protected:
     class CloudActionContext {
     public:
@@ -208,6 +215,8 @@ protected:
     std::map<std::string, std::shared_ptr<ICloudDb>> cloudDbs_;
     std::shared_ptr<IAssetLoader> iAssetLoader_;
     std::atomic<bool> isDownloading_;
+    mutable std::shared_mutex handlerMutex_;
+    std::shared_ptr<ICloudConflictHandler> conflictHandler_;
 
     mutable std::mutex genVersionMutex_;
     GenerateCloudVersionCallback genVersionCallback_;

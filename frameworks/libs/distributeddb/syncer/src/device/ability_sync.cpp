@@ -1256,8 +1256,9 @@ RelationalSyncOpinion AbilitySync::MakeRelationSyncOpinion(const AbilitySyncRequ
 {
     uint8_t remoteSchemaType = packet->GetSchemaType();
     RelationalSchemaObject localSchema = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
+    int errCode = E_OK;
     return SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType,
-        packet->GetSoftwareVersion());
+        packet->GetSoftwareVersion(), errCode);
 }
 
 int AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
@@ -1293,8 +1294,9 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     std::string remoteSchema = recvPacket->GetSchema();
     uint8_t remoteSchemaType = recvPacket->GetSchemaType();
     auto localSchema = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
+    int schemaErrCode = E_OK;
     auto localOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType,
-        recvPacket->GetSoftwareVersion());
+        recvPacket->GetSoftwareVersion(), schemaErrCode);
     auto localStrategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion,
         recvPacket->GetRelationalSyncOpinion());
     (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy, true);
@@ -1326,8 +1328,9 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     };
     if (permitSync) {
         RecordAbilitySyncFinish(recvPacket->GetSchemaVersion(), *context);
+        return errCode;
     }
-    return errCode;
+    return schemaErrCode != E_OK ? schemaErrCode : errCode;
 }
 
 int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext *context,
@@ -1354,6 +1357,7 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     }
     if (errCode != E_OK) {
         context->SetTaskErrCode(errCode);
+        LOGE("[AbilitySync][AckRecv] errCode=%d", errCode);
         return errCode;
     }
     if (!schemaSyncStatus.first) {

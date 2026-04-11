@@ -33,7 +33,8 @@ public:
 
     DBStatus RemoveDeviceTableDataInner(const ClearDeviceDataOption &option) override;
 
-    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;
+    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type,
+        const CreateDistributedTableConfig &config) override;
 
     // For connection
     DBStatus Close();
@@ -75,7 +76,11 @@ public:
 
     DBStatus ClearMetaData(const ClearMetaDataOption &option) override;
 
+    DBStatus SetCloudConflictHandler(const std::shared_ptr<ICloudConflictHandler> &handler) override;
+
     std::pair<DBStatus, int32_t> GetDownloadingAssetsCount() override;
+
+    DBStatus StopTask([[gnu::unused]] TaskType type) override;
 
     DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
 

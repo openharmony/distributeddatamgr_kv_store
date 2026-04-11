@@ -189,28 +189,33 @@ bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value 
     return true;
 }
 
-bool AniIsInstanceOf(ani_env* aniEnv, ani_ref aniRef, const std::string& cls_name)
+void AniExecuteFunc(ani_vm* vm, const std::function<void(ani_env*)> func)
 {
-    if (aniEnv == nullptr || aniRef == nullptr) {
-        return false;
+    if (vm == nullptr) {
+        ZLOGE("AniExecuteFunc, vm error");
+        return;
     }
-    ani_boolean isNull = false;
-    ani_boolean isUndefined = false;
-    aniEnv->Reference_IsNull(aniRef, &isNull);
-    aniEnv->Reference_IsUndefined(aniRef, &isUndefined);
-    if (isNull || isUndefined) {
-        return false;
+    ani_env *currentEnv = nullptr;
+    ani_status aniResult = vm->GetEnv(ANI_VERSION_1, &currentEnv);
+    if (aniResult == ANI_OK && currentEnv != nullptr) {
+        ZLOGI("AniExecuteFunc, env exist");
+        func(currentEnv);
+        return;
     }
-    ani_class cls;
-    if (ANI_OK != aniEnv->FindClass(cls_name.c_str(), &cls) || cls == nullptr) {
-        return false;
+
+    ani_env* newEnv = nullptr;
+    ani_options aniArgs { 0, nullptr };
+    aniResult = vm->AttachCurrentThread(&aniArgs, ANI_VERSION_1, &newEnv);
+    if (aniResult != ANI_OK || newEnv == nullptr) {
+        ZLOGE("AniExecuteFunc, AttachCurrentThread error");
+        return;
     }
-    ani_boolean ret;
-    ani_object aniObj = reinterpret_cast<ani_object>(aniRef);
-    if (ANI_OK != aniEnv->Object_InstanceOf(aniObj, cls, &ret)) {
-        return false;
+    func(newEnv);
+    aniResult = vm->DetachCurrentThread();
+    if (aniResult != ANI_OK) {
+        ZLOGE("AniExecuteFunc, DetachCurrentThread error");
+        return;
     }
-    return ret;
 }
 
 } //namespace ani_utils

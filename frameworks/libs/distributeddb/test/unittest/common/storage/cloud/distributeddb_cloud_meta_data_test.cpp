@@ -261,9 +261,12 @@ namespace {
         EXPECT_EQ(proxyObj.GetCloudGid(query, true, true, strVec), -E_INVALID_DB);
         EXPECT_EQ(proxyObj.CheckSchema(strVec), -E_INVALID_DB);
         std::vector<Field> assetFields;
-        EXPECT_EQ(proxyObj.GetPrimaryColNamesWithAssetsFields(TABLE_NAME_1, strVec, assetFields), -E_INVALID_DB);
+        std::vector<std::string> localPkNames;
+        EXPECT_EQ(proxyObj.GetPkAndAssetsFields(TABLE_NAME_1, strVec, assetFields, localPkNames),
+            -E_INVALID_DB);
         std::vector<std::string> colNames = {"testColName"};
-        EXPECT_EQ(proxyObj.GetPrimaryColNamesWithAssetsFields(TABLE_NAME_1, colNames, assetFields), -E_INVALID_ARGS);
+        EXPECT_EQ(proxyObj.GetPkAndAssetsFields(TABLE_NAME_1, colNames, assetFields, localPkNames),
+            -E_INVALID_ARGS);
         VBucket assetInfo;
         DataInfoWithLog log;
         EXPECT_EQ(proxyObj.GetInfoByPrimaryKeyOrGid(TABLE_NAME_1, assetInfo, true, log, assetInfo),
@@ -278,7 +281,7 @@ namespace {
         std::pair<int, CloudSyncData> ver = proxyObj.GetLocalCloudVersion();
         EXPECT_EQ(ver.first, -E_INTERNAL_ERROR);
         CloudSyncConfig cfg = proxyObj.GetCloudSyncConfig();
-        EXPECT_EQ(cfg.maxRetryConflictTimes, -1);
+        EXPECT_EQ(cfg.maxRetryConflictTimes, std::nullopt);
         std::string cloudMark = "test";
         EXPECT_EQ(proxyObj.GetCloudWaterMark(TABLE_NAME_1, cloudMark), -E_INVALID_DB);
         EXPECT_EQ(proxyObj.SetCloudWaterMark(TABLE_NAME_1, cloudMark), -E_INVALID_DB);

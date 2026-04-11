@@ -306,9 +306,9 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest001, 
     schemaObj2.ParseFromSchemaString(schemaObj.ToSchemaString());
     EXPECT_EQ(errCode, E_OK);
     EXPECT_EQ(schemaObj2.GetTable("FIRST").GetUniqueDefine().size(), 2u);
-
+    errCode = E_OK;
     RelationalSyncOpinion op = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, schemaObj2.ToSchemaString(),
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT, errCode);
 
     EXPECT_EQ(op.size(), 2u);
     EXPECT_EQ(op.at("FIRST").permitSync, true);
@@ -542,9 +542,9 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest001
     RelationalSchemaObject schemaObj;
     int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
     EXPECT_EQ(errCode, E_OK);
-
+    errCode = E_OK;
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT, errCode);
     EXPECT_EQ(opinion.at("FIRST").permitSync, true);
     EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
     EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
@@ -562,9 +562,9 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest002
     RelationalSchemaObject schemaObj;
     int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
     EXPECT_EQ(errCode, E_OK);
-
+    errCode = E_OK;
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT, errCode);
     EXPECT_EQ(opinion.at("FIRST").permitSync, true);
     EXPECT_EQ(opinion.at("FIRST").checkOnReceive, false);
     EXPECT_EQ(opinion.at("FIRST").requirePeerConvert, false);
@@ -582,9 +582,9 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest003
     RelationalSchemaObject schemaObj;
     int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
     EXPECT_EQ(errCode, E_OK);
-
+    errCode = E_OK;
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT, errCode);
     EXPECT_TRUE(opinion.empty());
 }
 
@@ -600,9 +600,9 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest004
     RelationalSchemaObject schemaObj;
     int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA);
     EXPECT_EQ(errCode, E_OK);
-
+    errCode = E_OK;
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT, errCode);
     EXPECT_TRUE(opinion.empty());
 }
 
@@ -619,9 +619,9 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaCompareTest005
     int errCode = schemaObj.ParseFromSchemaString(NORMAL_SCHEMA_V2_1);
     EXPECT_EQ(errCode, E_OK);
     schemaObj.SetTableMode(DistributedTableMode::COLLABORATION);
-
+    errCode = E_OK;
     RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(schemaObj, NORMAL_SCHEMA_V2_1,
-        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT);
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_CURRENT, errCode);
     EXPECT_TRUE(opinion.empty());
 }
 

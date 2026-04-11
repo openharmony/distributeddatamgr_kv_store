@@ -46,7 +46,7 @@ public:
     static SyncStrategy ConcludeSyncStrategy(const SyncOpinion &localOpinion, const SyncOpinion &remoteOpinion);
 
     static RelationalSyncOpinion MakeLocalSyncOpinion(const RelationalSchemaObject &localSchema,
-        const std::string &remoteSchema, uint8_t remoteSchemaType, uint32_t remoteSoftwareVersion);
+        const std::string &remoteSchema, uint8_t remoteSchemaType, uint32_t remoteSoftwareVersion, int &errCode);
 
     // The remoteOpinion.checkOnReceive is ignored
     static RelationalSyncStrategy ConcludeSyncStrategy(const RelationalSyncOpinion &localOpinion,
@@ -60,13 +60,20 @@ private:
     ~SchemaNegotiate() = default;
 
     static RelationalSyncOpinion MakeOpinionEachTable(const RelationalSchemaObject &localSchema,
-        const RelationalSchemaObject &remoteSchema);
+        const RelationalSchemaObject &remoteSchema, int &errCode);
 
     static bool IsDistributedSchemaInvalid(const RelationalSchemaObject &localSchema,
-        const RelationalSchemaObject &remoteSchema);
+        const RelationalSchemaObject &remoteSchema, int &errCode);
 
     static bool IsDistributedTableInvalid(const DistributedTable &local, const DistributedTable &remote,
         const TableInfo &localTable, const TableInfo &remoteTable);
+
+    static bool CheckSchemaTypeAndValidity(const RelationalSchemaObject &localSchema,
+        SchemaType remoteType, int &errCode);
+
+    static bool ParseAndCheckRemoteSchema(const RelationalSchemaObject &localSchema,
+        const std::string &remoteSchema, uint32_t remoteSoftwareVersion,
+        RelationalSchemaObject &remoteSchemaObj, int &errCode);
 };
 }
 

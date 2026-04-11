@@ -273,7 +273,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, GetCloudSyncConfigTest
 {
     ASSERT_NE(g_store, nullptr);
     CloudSyncConfig config = g_store->GetCloudSyncConfig();
-    EXPECT_EQ(config.isSupportEncrypt, false);
+    EXPECT_EQ(config.isSupportEncrypt, std::nullopt);
 }
 #endif
 }

@@ -1395,11 +1395,11 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync004, TestSize.Level0)
     EXPECT_EQ(delegate_->CreateDistributedTable(DEVICE_SYNC_TABLE, TableSyncType::DEVICE_COOPERATION), OK);
     /**
      * @tc.steps: step2. Sync to real device
-     * @tc.expected: step2. return SCHEMA_MISMATCH.
+     * @tc.expected: step2. return DISTRIBUTED_SCHEMA_MISMATCH.
      */
     Query query = Query::Select(tableSchema.name);
     DBStatus status = delegate_->Sync({UnitTestCommonConstant::DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, nullptr, true);
-    EXPECT_EQ(status, SCHEMA_MISMATCH);
+    EXPECT_EQ(status, DISTRIBUTED_SCHEMA_MISMATCH);
 }
 
 /**
@@ -1688,7 +1688,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync010, TestSize.Level0)
      */
     Query query = Query::Select(tableSchema.name);
     DBStatus callStatus = delegate_->Sync({deviceB_->GetDeviceId()}, SYNC_MODE_PULL_ONLY, query, nullptr, true);
-    EXPECT_EQ(callStatus, SCHEMA_MISMATCH);
+    EXPECT_EQ(callStatus, DISTRIBUTED_SCHEMA_MISMATCH);
     /**
      * @tc.steps: step4. Check if the distributed table exists
      * @tc.expected: step4.ok
@@ -2001,7 +2001,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync016, TestSize.Level1)
 
     /**
      * @tc.steps: step2. Test mark one specified one is field1 another is field2
-     * @tc.expected: step2. sync return SCHEMA_MISMATCH
+     * @tc.expected: step2. sync return DISTRIBUTED_SCHEMA_MISMATCH
      */
     DistributedSchema distributedSchema = {0, {{"table_int", {
         {"integer_field", false, false},
@@ -2015,9 +2015,9 @@ HWTEST_F(DistributedDBRDBCollaborationTest, NormalSync016, TestSize.Level1)
     deviceB_->SetDistributedSchema(distributedSchema);
     ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv("table_int", db_, deviceB_), E_OK);
     Query query = Query::Select("table_int");
-    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, SCHEMA_MISMATCH,
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, DISTRIBUTED_SCHEMA_MISMATCH,
         {deviceB_->GetDeviceId()});
-    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, SCHEMA_MISMATCH,
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, DISTRIBUTED_SCHEMA_MISMATCH,
         {deviceB_->GetDeviceId()});
 }
 
@@ -2667,10 +2667,10 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync001, TestSize.Level1)
     ASSERT_EQ(RDBDataGenerator::PrepareVirtualDeviceEnv(tableSchema.name, db_, deviceB_), E_OK);
     /**
      * @tc.steps: step3. Sync to real device
-     * @tc.expected: step3.SCHEMA_MISMATCH
+     * @tc.expected: step3.DISTRIBUTED_SCHEMA_MISMATCH
      */
     Query query = Query::Select(tableSchema.name);
-    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, SCHEMA_MISMATCH,
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, DISTRIBUTED_SCHEMA_MISMATCH,
         {deviceB_->GetDeviceId()});
     /**
      * @tc.steps: step4. Remove device data
@@ -2714,7 +2714,7 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync002, TestSize.Level0)
      * @tc.expected: step3.SCHEMA_MISMATCH
      */
     Query query = Query::Select(DEVICE_SYNC_TABLE);
-    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, SCHEMA_MISMATCH,
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PUSH_ONLY, DISTRIBUTED_SCHEMA_MISMATCH,
         {deviceB_->GetDeviceId()});
 }
 
@@ -2830,10 +2830,10 @@ HWTEST_F(DistributedDBRDBCollaborationTest, InvalidSync005, TestSize.Level1)
     deviceB_->SetGetSyncDataResult(-E_DISTRIBUTED_SCHEMA_NOT_FOUND);
     /**
      * @tc.steps: step4. Sync
-     * @tc.expected: step4. return SCHEMA_MISMATCH
+     * @tc.expected: step4. return DISTRIBUTED_SCHEMA_NOT_FOUND
      */
     Query query = Query::Select().FromTable({DEVICE_SYNC_TABLE});
-    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, SCHEMA_MISMATCH,
+    DistributedDBToolsUnitTest::BlockSync(*delegate_, query, SYNC_MODE_PULL_ONLY, DISTRIBUTED_SCHEMA_NOT_FOUND,
         {deviceB_->GetDeviceId()});
 }
 

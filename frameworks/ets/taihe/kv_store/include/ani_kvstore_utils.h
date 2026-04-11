@@ -92,7 +92,6 @@ bool IsStoreTypeSupported(DistributedKv::Options const& options);
 bool TaiheSecurityLevelToNative(int32_t level, int32_t &out);
 bool SecurityLevelToTaihe(int32_t level, int32_t &out);
 DistributedKv::SubscribeType SubscribeTypeToNative(::ohos::data::distributedkvstore::SubscribeType type);
-DistributedKv::SubscribeType SubscribeTypeToNative(uint8_t type);
 void TaiheValueUnionToNativeVariant(::ohos::data::distributedkvstore::ValueUnion const& value,
     ValueVariant &resultObj);
 void TaiheValueToVariant(::ohos::data::distributedkvstore::Value const& value,

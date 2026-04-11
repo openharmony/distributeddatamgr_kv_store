@@ -13,170 +13,113 @@
  * limitations under the License.
  */
 #define LOG_TAG "AniObserverUtils"
+#include "ani_error_utils.h"
 #include "ani_observer_utils.h"
 #include "ani_kvstore_utils.h"
-#include <algorithm>
-#include <endian.h>
-
+#include "ani_utils.h"
 #include "log_print.h"
 
 using namespace ::ohos::data::distributedkvstore;
 using namespace OHOS::DistributedKVStore;
 
-namespace ani_observerutils {
+namespace AniObserverUtils {
 
-std::shared_ptr<OHOS::AppExecFwk::EventHandler> JsBaseObserver::mainHandler_;
-static std::once_flag g_handlerOnceFlag;
-
-JsBaseObserver::JsBaseObserver(VarCallbackType cb, ani_ref jsCallbackRef)
-    : jsCallback_(cb), jsCallbackRef_(jsCallbackRef)
+AniDataChangeObserver::AniDataChangeObserver(JsDataChangeCallbackType callback)
 {
+    ZLOGI("AniDataChangeObserver");
+    jsCallback_ = callback;
 }
 
-bool JsBaseObserver::SendEventToMainThread(const std::function<void()> func)
+void AniDataChangeObserver::Release()
 {
-    if (func == nullptr) {
-        return false;
-    }
-    std::call_once(g_handlerOnceFlag, [] {
-        auto runner = OHOS::AppExecFwk::EventRunner::GetMainEventRunner();
-        if (runner) {
-            mainHandler_ = std::make_shared<OHOS::AppExecFwk::EventHandler>(runner);
-        }
-    });
-    if (!mainHandler_) {
-        ZLOGE("Failed to initialize event handler");
-        return false;
-    }
-    mainHandler_->PostTask(func, "", 0, OHOS::AppExecFwk::EventQueue::Priority::IMMEDIATE, {});
-    return true;
-}
-
-void JsBaseObserver::Release()
-{
-    ZLOGI("DataObserver::Release");
+    ZLOGI("AniDataChangeObserver::Release");
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    taihe::env_guard guard;
-    if (auto *env = guard.get_env()) {
-        env->GlobalReference_Delete(jsCallbackRef_);
-        jsCallbackRef_ = nullptr;
-    }
-    jsCallback_ = std::monostate();
+    jsCallback_.reset();
 }
 
-DataObserver::DataObserver(VarCallbackType cb, ani_ref jsCallbackRef)
-    : JsBaseObserver(cb, jsCallbackRef)
-{
-    ZLOGI("DataObserver");
-}
-
-DataObserver::~DataObserver()
-{
-    ZLOGI("~DataObserver");
-}
-
-void DataObserver::SetIsSchemaStore(bool isSchemaStore)
+void AniDataChangeObserver::SetIsSchemaStore(bool isSchemaStore)
 {
     isSchemaStore_ = isSchemaStore;
 }
 
-void DataObserver::OnChange(const DistributedKv::ChangeNotification& info)
+void AniDataChangeObserver::OnChange(const DistributedKv::ChangeNotification& info)
 {
-    auto sharedThis = shared_from_this();
-    SendEventToMainThread([info, sharedThis] {
-        sharedThis->OnChangeInMainThread(info);
-    });
-}
-
-void DataObserver::OnChangeInMainThread(const DistributedKv::ChangeNotification& info)
-{
-    std::optional<ani_observerutils::JsDataChangeCallbackType> callbackTemp;
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        if (jsCallbackRef_ == nullptr || std::holds_alternative<std::monostate>(jsCallback_)) {
-            return;
-        }
-        auto pTaiheCallback = std::get_if<ani_observerutils::JsDataChangeCallbackType>(&jsCallback_);
-        if (pTaiheCallback == nullptr) {
-            return;
-        }
-        callbackTemp = *pTaiheCallback;
-    }
-    auto jspara = ani_kvstoreutils::KvChangeNotificationToTaihe(info, isSchemaStore_);
-    if (callbackTemp.has_value()) {
-        callbackTemp.value()(jspara);
-    }
-}
-
-void DataObserver::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
-{
-    auto sharedThis = shared_from_this();
-    SendEventToMainThread([results, sharedThis] {
-        sharedThis->SyncCompletedInMainThread(results);
-    });
-}
-
-void DataObserver::SyncCompletedInMainThread(const std::map<std::string, DistributedKv::Status>& results)
-{
-    ani_env *env = taihe::get_env();
-    if (env == nullptr) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!jsCallback_.has_value()) {
+        ZLOGE("jsCallback_ == nullptr");
         return;
     }
-    std::optional<ani_observerutils::JsSyncCompleteCallbackType> callbackTemp;
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        if (jsCallbackRef_ == nullptr || std::holds_alternative<std::monostate>(jsCallback_)) {
-            return;
-        }
-        auto pTaiheCallback = std::get_if<ani_observerutils::JsSyncCompleteCallbackType>(&jsCallback_);
-        if (pTaiheCallback == nullptr) {
-            return;
-        }
-        callbackTemp = *pTaiheCallback;
+    auto &taiheCallback = jsCallback_.value();
+    auto jspara = ani_kvstoreutils::KvChangeNotificationToTaihe(info, isSchemaStore_);
+    taiheCallback(jspara);
+}
+
+AniSyncCallback::AniSyncCallback(JsSyncCompleteCallbackType callback)
+{
+    ZLOGI("AniSyncCallback");
+    jsCallback_ = callback;
+    GetVm();
+}
+
+void AniSyncCallback::GetVm()
+{
+    ani_env* env = taihe::get_env();
+    if (env != nullptr) {
+        env->GetVM(&vm_);
     }
-    auto jspara = ani_kvstoreutils::KvStatusMapToTaiheArray(env, results);
-    if (callbackTemp.has_value()) {
-        callbackTemp.value()(jspara);
+    if (vm_ == nullptr) {
+        ZLOGE("GetVm failed");
     }
 }
 
-ManagerObserver::ManagerObserver(VarCallbackType cb, ani_ref jsCallbackRef)
-    : JsBaseObserver(cb, jsCallbackRef)
+void AniSyncCallback::Release()
 {
-    ZLOGI("ManagerObserver");
+    ZLOGI("AniSyncCallback::Release");
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    jsCallback_.reset();
 }
 
-ManagerObserver::~ManagerObserver()
+void AniSyncCallback::SyncCompleted(const std::map<std::string, DistributedKv::Status>& results)
 {
-    ZLOGI("~ManagerObserver");
-}
-
-void ManagerObserver::OnRemoteDied()
-{
-    auto sharedThis = shared_from_this();
-    SendEventToMainThread([sharedThis] {
-        sharedThis->OnRemoteDiedInMainThread();
+    if (vm_ == nullptr) {
+        ZLOGW("SyncCompleted, vm_ nullptr");
+        return;
+    }
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!jsCallback_.has_value()) {
+        ZLOGE("jsCallback_ == nullptr");
+        return;
+    }
+    auto &taiheCallback = jsCallback_.value();
+    ani_utils::AniExecuteFunc(vm_, [taiheCallback, &results](ani_env* aniEnv) {
+        auto jspara = ani_kvstoreutils::KvStatusMapToTaiheArray(aniEnv, results);
+        taiheCallback(jspara);
     });
 }
 
-void ManagerObserver::OnRemoteDiedInMainThread()
+AniServiceDeathObserver::AniServiceDeathObserver(JsServiceDeathType callback)
 {
-    std::optional<ani_observerutils::JsServiceDeathType> callbackTemp;
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        if (jsCallbackRef_ == nullptr || std::holds_alternative<std::monostate>(jsCallback_)) {
-            return;
-        }
-        auto pTaiheCallback = std::get_if<ani_observerutils::JsServiceDeathType>(&jsCallback_);
-        if (pTaiheCallback == nullptr) {
-            return;
-        }
-        callbackTemp = *pTaiheCallback;
-    }
-    auto undefined = ::ohos::data::distributedkvstore::OneUndef::make_UNDEFINED();
-    if (callbackTemp.has_value()) {
-        callbackTemp.value()(undefined);
-    }
+    ZLOGI("AniServiceDeathObserver");
+    jsCallback_ = callback;
 }
 
-} // namespace ani_observerutils
+void AniServiceDeathObserver::Release()
+{
+    ZLOGI("AniServiceDeathObserver::Release");
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    jsCallback_.reset();
+}
+
+void AniServiceDeathObserver::OnRemoteDied()
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!jsCallback_.has_value()) {
+        ZLOGE("jsCallback_ == nullptr");
+        return;
+    }
+    auto &taiheCallback = jsCallback_.value();
+    auto undefined = ::ohos::data::distributedkvstore::OneUndef::make_UNDEFINED();
+    taiheCallback(undefined);
+}
+
+} // namespace AniObserverUtils

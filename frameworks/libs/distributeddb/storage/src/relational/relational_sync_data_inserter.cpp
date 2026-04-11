@@ -492,7 +492,7 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataIte
     logInfoBind.timestamp = dataItem.timestamp;
     logInfoBind.flag = dataItem.flag;
     if (((logInfoBind.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
-         static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) &&
+            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) &&
         isDeviceSyncLogicDelete_) {
         logInfoBind.flag = logInfoBind.flag | static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE);
     }
@@ -568,7 +568,7 @@ int RelationalSyncDataInserter::GetQueryLogByFieldStmt(sqlite3 *db, sqlite3_stmt
         .append(" AS data WHERE log.data_key = data._rowid_ AND ");
     for (size_t i = 0; i < syncPk.size(); ++i) {
         if (i != 0) {
-            sql.append(", ");
+            sql.append(" AND ");
         }
         sql.append("data.'").append(syncPk[i]).append("' = ?");
     }

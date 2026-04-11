@@ -282,8 +282,17 @@ public:
 
     int ConvertLogToLocal(const std::string &tableName, const std::vector<std::string> &gids) override;
 
+    int WaitAsyncGenLogTaskFinished(const std::vector<std::string> &tables) override;
+
+    int ResetGenLogTaskStatus();
+
     int PutCloudGid(const std::string &tableName, std::vector<VBucket> &data) override;
 
+    bool IsSkipDownloadAssets() const override;
+
+    std::vector<std::string> GetLocalPkNames(const std::string &tableName) override;
+
+    AssetConflictPolicy GetAssetConflictPolicy() const override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int DropTempTable(const std::string &tableName) override;
 
