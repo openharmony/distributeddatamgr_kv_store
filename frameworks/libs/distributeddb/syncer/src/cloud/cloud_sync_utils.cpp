@@ -174,7 +174,7 @@ int CloudSyncUtils::CheckParamValid(const std::vector<DeviceID> &devices, SyncMo
         LOGE("[CloudSyncer] not support mode %d", static_cast<int>(mode));
         return -E_NOT_SUPPORT;
     }
-    if (mode < SyncMode::SYNC_MODE_PUSH_ONLY || mode > SyncMode::SYNC_MODE_CLOUD_FORCE_PULL) {
+    if (mode < SyncMode::SYNC_MODE_PUSH_ONLY || mode > SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL) {
         LOGE("[CloudSyncer] invalid mode %d", static_cast<int>(mode));
         return -E_INVALID_ARGS;
     }
@@ -385,6 +385,9 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
 int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataIndex,
     const ICloudSyncer::DataInfo &dataInfo, std::vector<std::pair<Key, size_t>> &deletedList)
 {
+    if (!param.dupLocalPkNames.empty()) {
+        return E_OK;
+    }
     OpType opType = CalOpType(param, dataIndex);
     Key hashKey = dataInfo.localInfo.logInfo.hashKey;
     if (param.deletePrimaryKeySet.find(hashKey) != param.deletePrimaryKeySet.end()) {
@@ -700,8 +703,7 @@ bool CloudSyncUtils::IsNeedUpdateAsset(const VBucket &data)
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
         if (asset != nullptr) {
             uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset->status);
-            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+            if (AssetOperationUtils::IsAssetNotDownload(lowBitStatus)) {
                 return true;
             }
             continue;
@@ -712,8 +714,7 @@ bool CloudSyncUtils::IsNeedUpdateAsset(const VBucket &data)
         }
         for (const auto &oneAsset : *assets) {
             uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(oneAsset.status);
-            if (lowBitStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
-                lowBitStatus == static_cast<uint32_t>(AssetStatus::DOWNLOADING)) {
+            if (AssetOperationUtils::IsAssetNotDownload(lowBitStatus)) {
                 return true;
             }
         }
@@ -722,13 +723,15 @@ bool CloudSyncUtils::IsNeedUpdateAsset(const VBucket &data)
 }
 
 std::tuple<int, DownloadList, ChangedData> CloudSyncUtils::GetDownloadListByGid(
-    const std::shared_ptr<StorageProxy> &proxy, const std::vector<std::string> &data, const std::string &table)
+    const std::shared_ptr<StorageProxy> &proxy, const std::vector<std::string> &data, const std::string &table,
+    bool ignoredToDownload)
 {
     std::tuple<int, DownloadList, ChangedData> res;
     std::vector<std::string> pkColNames;
     std::vector<Field> assetFields;
     auto &[errCode, downloadList, changeData] = res;
-    errCode = proxy->GetPrimaryColNamesWithAssetsFields(table, pkColNames, assetFields);
+    std::vector<std::string> localPkNames;
+    errCode = proxy->GetPkAndAssetsFields(table, pkColNames, assetFields, localPkNames);
     if (errCode != E_OK) {
         LOGE("[CloudSyncUtils] Get %s pk names by failed %d", DBCommon::StringMiddleMasking(table).c_str(), errCode);
         return res;
@@ -748,15 +751,13 @@ std::tuple<int, DownloadList, ChangedData> CloudSyncUtils::GetDownloadListByGid(
         }
         Type prefix;
         std::vector<Type> pkVal;
-        OpType strategy;
+        OpType strategy = OpType::INSERT;
         if ((dataInfo.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)) ==
             static_cast<uint32_t>(LogInfoFlag::FLAG_CLOUD_UPDATE_LOCAL)) {
             strategy = OpType::UPDATE;
         } else if ((dataInfo.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
                    static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) {
             strategy = OpType::DELETE;
-        } else {
-            strategy = OpType::INSERT;
         }
         errCode = CloudSyncUtils::GetCloudPkVals(dataInfo.primaryKeys, pkColNames, dataInfo.logInfo.dataKey, pkVal);
         if (errCode != E_OK) {
@@ -766,7 +767,7 @@ std::tuple<int, DownloadList, ChangedData> CloudSyncUtils::GetDownloadListByGid(
         if (IsSinglePrimaryKey(pkColNames) && !pkVal.empty()) {
             prefix = pkVal[0];
         }
-        auto assetsMap = AssetOperationUtils::FilterNeedDownloadAsset(assetInfo);
+        auto assetsMap = AssetOperationUtils::FilterNeedDownloadAsset(ignoredToDownload, assetInfo);
         downloadList.push_back(
             std::make_tuple(dataInfo.logInfo.cloudGid, prefix, strategy, assetsMap, dataInfo.logInfo.hashKey,
                 pkVal, dataInfo.logInfo.timestamp));
@@ -787,13 +788,16 @@ void CloudSyncUtils::UpdateMaxTimeWithDownloadList(const DownloadList &downloadL
     }
 }
 
-bool CloudSyncUtils::IsContainDownloading(const DownloadAssetUnit &downloadAssetUnit)
+bool CloudSyncUtils::IsContainNotDownload(const DownloadAssetUnit &downloadAssetUnit)
 {
     auto &assets = std::get<CloudSyncUtils::ASSETS_INDEX>(downloadAssetUnit);
     for (const auto &item : assets) {
         for (const auto &asset : item.second) {
-            if ((AssetOperationUtils::EraseBitMask(asset.status) & static_cast<uint32_t>(AssetStatus::DOWNLOADING))
-                != 0) {
+            auto lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
+            auto lowFlag = AssetOperationUtils::EraseBitMask(asset.flag);
+            if ((((lowStatus & static_cast<uint32_t>(AssetStatus::DOWNLOADING)) != 0) ||
+                ((lowStatus & static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD)) != 0)) &&
+                (lowFlag != static_cast<uint32_t>(DistributedDB::AssetOpType::DELETE))) {
                 return true;
             }
         }
@@ -853,6 +857,17 @@ int CloudSyncUtils::GetDownloadAssetsOnlyMapFromDownLoadData(
 int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_ptr<StorageProxy> &proxy,
     ChangedData &&changedData)
 {
+    if (changedData.type == DistributedDB::ASSET) {
+        bool isEmpty = true;
+        for (auto eachData : changedData.primaryData) {
+            if (!eachData.empty()) {
+                isEmpty = false;
+            }
+        }
+        if (isEmpty) {
+            return E_OK;
+        }
+    }
     int ret = proxy->NotifyChangedData(dev, std::move(changedData));
     if (ret != E_OK) {
         DBDfxAdapter::ReportBehavior(
@@ -1075,7 +1090,7 @@ bool CloudSyncUtils::CanStartAsyncDownload(int scheduleCount)
     return scheduleCount <= 0;
 }
 
-bool CloudSyncUtils::NotNeedToCompensated(int errCode)
+bool CloudSyncUtils::IsCloudErrorNotNeedCompensated(int errCode)
 {
     if (errCode == -E_CLOUD_NETWORK_ERROR || errCode == -E_CLOUD_ASSET_SPACE_INSUFFICIENT) {
         LOGW("[CloudSyncer] errCode = %d, not need to compensation.", errCode);
@@ -1123,5 +1138,146 @@ bool CloudSyncUtils::IsIgnoreFailAction(const VBucket &extend, const CloudWaterT
 bool CloudSyncUtils::IsIgnoreFailAssetErr(const VBucket &extend)
 {
     return DBCommon::IsRecordAssetsMissing(extend) || DBCommon::IsRecordAssetsSpaceInsufficient(extend);
+}
+
+bool CloudSyncUtils::NeedCompensated(const CloudSyncer::CloudTaskInfo &taskInfo, const CloudSyncConfig &config)
+{
+    if (taskInfo.compensatedTask) {
+        return false;
+    }
+    if (CloudSyncUtils::IsCloudErrorNotNeedCompensated(taskInfo.errCode)) {
+        return false;
+    }
+    if (taskInfo.syncFlowType == SyncFlowType::DOWNLOAD_ONLY) {
+        return false;
+    }
+    if (taskInfo.queryMode != QueryMode::UPLOAD_AND_DOWNLOAD) {
+        return false;
+    }
+    if (config.skipDownloadAssets) {
+        return false;
+    }
+    return true;
+}
+
+int CloudSyncUtils::CheckSyncOptionParams(const CloudSyncOption &option)
+{
+    if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
+        return -E_INVALID_ARGS;
+    }
+    if (option.priorityLevel < CloudDbConstant::PRIORITY_TASK_DEFAULT_LEVEL ||
+        option.priorityLevel > CloudDbConstant::PRIORITY_TASK_MAX_LEVEL) {
+        LOGE("[CloudSyncUtils] priority level is invalid value:%d", option.priorityLevel);
+        return -E_INVALID_ARGS;
+    }
+    if (option.syncFlowType < SyncFlowType::NORMAL || option.syncFlowType > SyncFlowType::DOWNLOAD_ONLY) {
+        LOGE("[CloudSyncUtils] syncFlowType is invalid value:%d", option.syncFlowType);
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::CheckSyncOptionCompatibility(const CloudSyncOption &option)
+{
+    if (option.compensatedSyncOnly && option.asyncDownloadAssets) {
+        LOGE("[CloudSyncUtils] compensatedSyncOnly is not compatible with asyncDownloadAssets");
+        return -E_NOT_SUPPORT;
+    }
+    if (option.syncFlowType == SyncFlowType::DOWNLOAD_ONLY && option.compensatedSyncOnly) {
+        LOGE("[CloudSyncUtils] DOWNLOAD_ONLY mode is not compatible with compensatedSyncOnly");
+        return -E_NOT_SUPPORT;
+    }
+    if (option.syncFlowType == SyncFlowType::DOWNLOAD_ONLY && option.asyncDownloadAssets) {
+        LOGE("[CloudSyncUtils] DOWNLOAD_ONLY mode is not compatible with asyncDownloadAssets");
+        return -E_NOT_SUPPORT;
+    }
+    if (option.compensatedSyncOnly && option.queryMode == QueryMode::UPLOAD_ONLY) {
+        LOGE("[CloudSyncUtils] Do not support sync when compensatedSyncOnly and UPLOAD_ONLY");
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::SaveDupChangedData(ICloudSyncer::SyncParam &param)
+{
+    for (size_t dataIndex = 0; dataIndex < param.downloadData.data.size(); dataIndex++) {
+        OpType opType = CalOpType(param, dataIndex);
+        switch (opType) {
+            case OpType::INSERT:
+                if (CloudSyncUtils::SaveDupChangedDataByType(
+                    param.downloadData.data[dataIndex], param.changedData, ChangeType::OP_INSERT) == E_OK) {
+                    param.info.downLoadInfo.insertCount++;
+                }
+                param.info.retryInfo.downloadBatchOpCount++;
+                break;
+            case OpType::UPDATE:
+            case OpType::INTEGRATE:
+                if (CloudSyncUtils::SaveDupChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
+                    ChangeType::OP_UPDATE) == E_OK) {
+                    param.info.downLoadInfo.updateCount++;
+                }
+                param.info.retryInfo.downloadBatchOpCount++;
+                break;
+            case OpType::DELETE:
+                if (CloudSyncUtils::SaveDupChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
+                    ChangeType::OP_DELETE) == E_OK) {
+                    param.info.downLoadInfo.deleteCount++;
+                }
+                param.info.retryInfo.downloadBatchOpCount++;
+                break;
+            case OpType::UPDATE_TIMESTAMP:
+                param.info.retryInfo.downloadBatchOpCount++;
+                break;
+            default:
+                break;
+        }
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::SaveDupChangedDataByType(const VBucket &datum, ChangedData &changedData, ChangeType type)
+{
+    std::vector<Type> cloudPkVals;
+    int ret = CloudSyncUtils::GetDupCloudPkVals(datum, changedData.field, cloudPkVals);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncUtils] GetDupCloudPkVals failed, ret:%d", ret);
+        return ret;
+    }
+    InsertOrReplaceChangedDataByType(type, cloudPkVals, changedData);
+    return E_OK;
+}
+
+int CloudSyncUtils::GetDupCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames,
+    std::vector<Type> &cloudPkVals)
+{
+    if (!cloudPkVals.empty()) {
+        LOGE("[CloudSyncer] Output parameter should be empty");
+        return -E_INVALID_ARGS;
+    }
+    for (const auto &pkColName : pkColNames) {
+        Type type;
+        bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive(pkColName, datum, type);
+        if (!isExisted) {
+            LOGE("[CloudSyncer] Cloud data do not contain expected primary field value");
+            return -E_CLOUD_ERROR;
+        }
+        cloudPkVals.push_back(type);
+    }
+    return E_OK;
+}
+
+void CloudSyncUtils::GetDownloadListIfNeed(DownloadList &changeList, const DownloadList &downloadList,
+    bool isNeedDownloadAssets)
+{
+    if (isNeedDownloadAssets) {
+        changeList = downloadList;
+        return;
+    }
+
+    for (const auto &tuple : downloadList) {
+        if (!CloudSyncUtils::IsContainNotDownload(tuple)) {
+            changeList.push_back(tuple);
+        }
+    }
 }
 }

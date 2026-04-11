@@ -128,6 +128,8 @@ public:
     // Check if All devices sync finished.
     bool CheckIsAllFinished() const;
 
+    bool CheckIsFinished(const std::string &dev) const;
+
     bool IsRetryTask() const;
 
     // For query sync

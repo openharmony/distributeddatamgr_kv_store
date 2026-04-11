@@ -56,6 +56,11 @@ public:
     virtual int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) const = 0;
 
     virtual void ReleaseRemoteQueryContinueToken(ContinueToken &token) const = 0;
+
+    virtual bool IsCurrentDeviceSyncLogicDelete() const
+    {
+        return false;
+    }
 };
 }
 #endif // RELATIONAL_STORE

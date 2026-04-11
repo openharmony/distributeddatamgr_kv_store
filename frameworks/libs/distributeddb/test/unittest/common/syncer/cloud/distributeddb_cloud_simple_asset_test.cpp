@@ -83,7 +83,7 @@ HWTEST_F(DistributedDBCloudSimpleAssetTest, TagAsset001, TestSize.Level0)
     field.type = TYPE_INDEX<Assets>;
     int errCode = E_OK;
     TagAssetsInfo tagAssetsInfo = {covered, beCovered, false, false};
-    Assets res = TagAssetsInSingleCol(tagAssetsInfo, field, errCode);
+    Assets res = CloudSyncTagAssets::TagAssetsInSingleCol(tagAssetsInfo, field, errCode);
     for (const auto &item : res) {
         EXPECT_EQ(item.hash, asset.hash);
     }

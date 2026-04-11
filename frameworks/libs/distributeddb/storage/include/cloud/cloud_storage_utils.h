@@ -32,11 +32,7 @@ public:
     static int BindText(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindBlob(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindAsset(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
-
-    static inline bool IsFieldValid(const Field &field, int errCode)
-    {
-        return (errCode == E_OK || (field.nullable && errCode == -E_NOT_FOUND));
-    }
+    static int BindNil(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
 
     static int Int64ToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
         std::vector<uint8_t> &value);
@@ -50,7 +46,8 @@ public:
         std::vector<uint8_t> &value);
 
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
-    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName = false);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName);
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
         bool sortByUpper = false);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
@@ -234,10 +231,16 @@ private:
     static void PutSyncPkVec(const std::string &col, std::map<std::string, std::vector<Type>> &syncPk,
         std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec);
 
-    static bool IsAssetNotDownload(const uint32_t &status);
+    static bool IsAssetLocalNotExist(uint32_t status);
+
+    static bool IsAssetContainsTempStatus(uint32_t status);
+
+    static bool IsAssetCannotUpload(uint32_t status);
 
     static void CheckAbnormalDataInner(const bool isAsyncDownloading, VBucket &data, bool &isSyncAssetAbnormal,
         bool &isAsyncAssetAbnormal);
+
+    static bool CheckIsNilType(const VBucket &vBucket, const Field &field, int errCode);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

@@ -21,7 +21,9 @@
 #include <cstdio>
 #include <memory>
 #include <shared_mutex>
+#include <mutex>
 #include <string>
+#include <atomic>
 
 namespace DistributedDB {
 constexpr const char *LOG_TAG_KV = "DistributedDB";
@@ -40,12 +42,15 @@ public:
     static std::shared_ptr<Logger> GetInstance();
     static void DeleteInstance();
     static void Log(Level level, const std::string &tag, const char *func, int line, const char *format, ...);
+    // for test
+    static void SetInstanceDestroyed(bool isDestroyed);
 
 private:
     virtual void Print(Level level, const std::string &tag, const std::string &msg) = 0;
     static void PreparePrivateLog(const char *format, std::string &outStrFormat);
     static std::shared_ptr<Logger> logHandler;
     static std::shared_mutex logMutex;
+    static std::atomic<bool> instanceDestroyed;
     static const std::string PRIVATE_TAG;
 };
 
