@@ -390,6 +390,11 @@ Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, cons
     return SERVER_UNAVAILABLE;
 }
 
+Status SingleStoreImpl::Rekey()
+{
+    return SERVER_UNAVAILABLE;
+}
+
 Status SingleStoreImpl::GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);

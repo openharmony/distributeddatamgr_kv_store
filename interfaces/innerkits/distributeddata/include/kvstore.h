@@ -183,6 +183,12 @@ public:
     */
     virtual Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) = 0;
+
+    /**
+     * @brief Rekey the store with a new encryption key.
+     * @return Return SUCCESS for success, others for failure.
+     */
+    virtual Status Rekey() = 0;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

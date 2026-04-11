@@ -150,6 +150,7 @@ napi_value JsSingleKVStore::Constructor(napi_env env)
             DECLARE_NAPI_FUNCTION("restoreEx", JsSingleKVStore::RestoreEx),
             DECLARE_NAPI_FUNCTION("deleteBackup", JsSingleKVStore::DeleteBackup),
             DECLARE_NAPI_FUNCTION("deleteBackupEx", JsSingleKVStore::DeleteBackupEx),
+            DECLARE_NAPI_FUNCTION("rekey", JsSingleKVStore::Rekey),
             DECLARE_NAPI_FUNCTION("get", JsSingleKVStore::Get),
             DECLARE_NAPI_FUNCTION("getEntries", JsSingleKVStore::GetEntries),
             DECLARE_NAPI_FUNCTION("getResultSet", JsSingleKVStore::GetResultSet),
@@ -764,6 +765,31 @@ napi_value JsSingleKVStore::DeleteBackupEx(napi_env env, napi_callback_info info
             ctxt->backupConfig.filePath, results);
         ZLOGD("kvStore->DeleteBackupEx return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error, true) == Status::SUCCESS) ?
+            napi_ok : napi_generic_failure;
+    };
+    return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
+}
+
+/*
+ * [JS API Prototype]
+ * [AsyncCallback]
+ *      rekey(callback: AsyncCallback<void>):void;
+ * [Promise]
+ *      rekey(): Promise<void>;
+ */
+napi_value JsSingleKVStore::Rekey(napi_env env, napi_callback_info info)
+{
+    auto ctxt = std::make_shared<ContextBase>();
+    ctxt->GetCbInfo(env, info);
+
+    auto execute = [ctxt]() {
+        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
+        if (kvStore == nullptr) {
+            return;
+        }
+        Status status = kvStore->Rekey();
+        ZLOGD("kvStore->Rekey return %{public}d", status);
+        ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
