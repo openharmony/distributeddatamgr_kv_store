@@ -566,7 +566,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     if (handle == nullptr) {
         return errCode;
     }
-    handle->SetDeviceSyncLogicDelete(deviceSyncLogicDelete_);
+    handle->SetDeviceSyncLogicDelete(IsCurrentDeviceSyncLogicDelete());
 
     // To prevent certain abnormal scenarios from deleting the table,
     // check if the table exists before each synchronization.
