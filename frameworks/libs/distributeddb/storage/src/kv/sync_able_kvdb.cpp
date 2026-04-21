@@ -635,10 +635,7 @@ std::map<std::string, DataBaseSchema> SyncAbleKvDB::GetDataBaseSchemas()
 void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     CloudSyncer::CloudTaskInfo &info)
 {
-    QuerySyncObject query(Query::Select());
-    query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
-    info.queryList.push_back(query);
-    info.table.push_back(CloudDbConstant::CLOUD_KV_TABLE_NAME);
+    info.table.emplace_back(CloudDbConstant::CLOUD_KV_TABLE_NAME);
     info.callback = onProcess;
     info.devices = option.devices;
     info.mode = option.mode;
@@ -648,6 +645,15 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.storeId = MyProp().GetStringProp(DBProperties::STORE_ID, "");
     info.merge = option.merge;
     info.prepareTraceId = option.prepareTraceId;
+    if (option.queryMode == QueryMode::UPLOAD_ONLY) {
+        QuerySyncObject query(option.query);
+        query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
+        info.queryList.push_back(query);
+    } else {
+        QuerySyncObject query(Query::Select());
+        query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
+        info.queryList.push_back(query);
+    }
 }
 
 int SyncAbleKvDB::CheckSyncOption(const CloudSyncOption &option, const CloudSyncer &syncer)
@@ -681,6 +687,11 @@ int SyncAbleKvDB::CheckSyncOption(const CloudSyncOption &option, const CloudSync
         return -E_INVALID_ARGS;
     }
     if (!CheckSchemaSupportForCloudSync()) {
+        return -E_NOT_SUPPORT;
+    }
+    if (option.queryMode == QueryMode::UPLOAD_ONLY &&
+        QueryObject::IsContainOtherNodes(option.query, {QueryObjType::QUERY_BY_KEY_PREFIX})) {
+        LOGE("[SyncAbleKvDB][Sync] sync with not support query");
         return -E_NOT_SUPPORT;
     }
     return E_OK;

@@ -1328,10 +1328,10 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
         return res;
     }
     int index = BIND_CLOUD_TIMESTAMP + 1;
-    errCode = BindKeysToStmt(keys_, stmt, index);
+    errCode = BindConditionToCloudStmt(stmt, index);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(stmt, true, ret);
-        LOGE("[SqliteQueryHelper] Bind user failed %d reset %d", errCode, ret);
+        LOGE("[SqliteQueryHelper] Bind condition failed %d reset %d", errCode, ret);
     }
     return res;
 }
@@ -1393,9 +1393,9 @@ int SqliteQueryHelper::GetAndBindGidKvCloudQueryStatement(const std::string &use
         LOGE("[SqliteQueryHelper] Bind user failed %d when query gid", errCode);
         return errCode;
     }
-    errCode = BindKeysToStmt(keys_, stmt, index);
+    errCode = BindConditionToCloudStmt(stmt, index);
     if (errCode != E_OK) {
-        LOGE("[SqliteQueryHelper] Bind keys to query gid stmt failed %d", errCode);
+        LOGE("[SqliteQueryHelper] Bind condition to query gid stmt failed %d", errCode);
         SQLiteUtils::ResetStatement(stmt, true, ret);
     }
     return errCode;
@@ -1415,7 +1415,7 @@ int SqliteQueryHelper::GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush,
 }
 
 std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory,
-    const Timestamp &timestamp, const std::string &user, sqlite3_stmt *&stmt)
+    const Timestamp &timestamp, const std::string &user, sqlite3_stmt *&stmt) const
 {
     ResFinalizer finalizer([stmt]() {
         sqlite3_stmt *statement = stmt;
@@ -1438,9 +1438,9 @@ std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3
         return res;
     }
     int keysIndex = BIND_CLOUD_TIMESTAMP + 1;
-    errCode = BindKeysToStmt(keys_, stmt, keysIndex);
+    errCode = BindConditionToCloudStmt(stmt, keysIndex);
     if (errCode != E_OK) {
-        LOGE("[SqliteQueryHelper] Bind keys failed %d when get upload count", errCode);
+        LOGE("[SqliteQueryHelper] Bind condition failed %d when get upload count", errCode);
         return res;
     }
     errCode = SQLiteUtils::StepNext(stmt, isMemory);
@@ -1458,10 +1458,30 @@ void SqliteQueryHelper::AppendKvQueryObjectOnSql(std::string &sql)
     if (!keys_.empty()) {
         sql += " AND " + MapKeysInToSql(keys_.size());
     }
+    if (hasPrefixKey_) {
+        sql += " AND key >= ? AND key <= ? ";
+    }
 }
 
 void SqliteQueryHelper::SetAppendCondition(bool isAppendCondition)
 {
     isAppendCondition_ = isAppendCondition;
+}
+
+int SqliteQueryHelper::BindConditionToCloudStmt(sqlite3_stmt *&stmt, int &index) const
+{
+    int errCode = BindKeysToStmt(keys_, stmt, index);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Bind keys failed %d", errCode);
+        return errCode;
+    }
+    if (!hasPrefixKey_) {
+        return E_OK;
+    }
+    errCode = SQLiteUtils::BindPrefixKey(stmt, index++, prefixKey_);
+    if (errCode != E_OK) {
+        LOGE("[SqliteQueryHelper] Bind prefix key failed %d", errCode);
+    }
+    return errCode;
 }
 }

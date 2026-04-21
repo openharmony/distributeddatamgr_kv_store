@@ -216,15 +216,21 @@ DBStatus KVGeneralUt::GetDeviceEntries(KvStoreNbDelegate *delegate, const std::s
 void KVGeneralUt::BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectApiRet,
     DBStatus expectSyncRet)
 {
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(DistributedDBUnitTest::USER_ID);
+    syncOption.devices.emplace_back("cloud");
+    BlockCloudSync(from, deviceId, syncOption, expectApiRet, expectSyncRet);
+}
+
+void KVGeneralUt::BlockCloudSync(const StoreInfo &from, const std::string &deviceId, const CloudSyncOption &option,
+    DBStatus expectApiRet, DistributedDB::DBStatus expectSyncRet)
+{
     auto fromStore = GetDelegate(from);
     ASSERT_NE(fromStore, nullptr);
 
     communicatorAggregator_->SetLocalDeviceId(deviceId);
-    CloudSyncOption syncOption;
-    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
-    syncOption.users.push_back(DistributedDBUnitTest::USER_ID);
-    syncOption.devices.push_back("cloud");
-    tool_.BlockSync(fromStore, expectSyncRet, syncOption, expectApiRet);
+    EXPECT_NO_FATAL_FAILURE(tool_.BlockSync(fromStore, expectSyncRet, option, expectApiRet));
 }
 
 std::pair<DBStatus, uint64_t> KVGeneralUt::GetRemoteSoftwareVersion(const StoreInfo &info, const std::string &dev,
