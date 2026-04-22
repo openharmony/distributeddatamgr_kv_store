@@ -33,7 +33,7 @@ if (ohos_kernel_type == "liteos_m") {
       "${kv_store_api_path}/dbm_kv_store/include",
       "inc",
     ]
-    public_deps = [ "//third_party/bounds_checking_function:libsec_shared" ]
+    deps = [ "//third_party/bounds_checking_function:libsec_shared" ]
   }
 }
 

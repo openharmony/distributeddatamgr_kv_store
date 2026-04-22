@@ -85,7 +85,8 @@
         "data_share",
         "openssl",
         "sqlite",
-        "bounds_checking_function"
+        "bounds_checking_function",
+        "ets_frontend"
       ]
     },
     "build": {

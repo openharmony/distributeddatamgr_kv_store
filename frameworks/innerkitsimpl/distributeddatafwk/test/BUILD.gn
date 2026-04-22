@@ -100,6 +100,8 @@ ohos_source_set("distributeddatafwk_src_file") {
     "huks:libhukssdk",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
   ]
 
   if (dms_service_enable && qemu_disable) {
@@ -121,10 +123,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     ]
   }
 
-  public_external_deps = [
-    "data_share:datashare_common",
-    "data_share:datashare_provider",
-  ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
@@ -375,6 +373,8 @@ ohos_unittest("KvUtilTest") {
     "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
   ]
 
   defines = [
@@ -400,6 +400,8 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
     "googletest:gtest",
     "hilog:libhilog",
     "ipc:ipc_single",
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
   ]
 }
 

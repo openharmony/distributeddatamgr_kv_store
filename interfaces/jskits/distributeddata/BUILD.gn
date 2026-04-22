@@ -84,12 +84,10 @@ ohos_shared_library("distributeddata") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
-  ]
-
-  public_external_deps = [
     "data_share:datashare_common",
     "data_share:datashare_provider",
   ]
+
   cflags = [
     "-Wno-c99-designator",
     "-Werror=vla",
