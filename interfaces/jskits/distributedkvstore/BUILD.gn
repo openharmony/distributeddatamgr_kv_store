@@ -85,12 +85,10 @@ ohos_shared_library("distributedkvstore") {
     "ipc:ipc_single",
     "json:nlohmann_json_static",
     "napi:ace_napi",
-  ]
-
-  public_external_deps = [
     "data_share:datashare_common",
     "data_share:datashare_provider",
   ]
+
   cflags = [
     "-Wno-c99-designator",
     "-Werror=vla",

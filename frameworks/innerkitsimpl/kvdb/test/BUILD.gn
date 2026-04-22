@@ -35,7 +35,6 @@ config("module_private_config") {
   if (dm_service_enable) {
     include_dirs += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test/mock" ]
   }
-  lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }
 
 ###############################################################################
@@ -97,6 +96,8 @@ ohos_source_set("kvdb_src_file") {
     "huks:libhukssdk",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
   ]
   if (dms_service_enable && qemu_disable) {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
@@ -117,10 +118,6 @@ ohos_source_set("kvdb_src_file") {
     ]
   }
 
-  public_external_deps = [
-    "data_share:datashare_common",
-    "data_share:datashare_provider",
-  ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
@@ -402,6 +399,8 @@ ohos_unittest("StoreFactoryMockTest") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "googletest:gmock_main",
+    "googletest:gtest_main",
   ]
   if (dm_service_enable) {
     external_deps += [ "device_manager:devicemanagersdk" ]
@@ -412,11 +411,6 @@ ohos_unittest("StoreFactoryMockTest") {
   }
 
   cflags = [ "-Dprivate=public" ]
-
-  public_external_deps = [
-    "googletest:gmock_main",
-    "googletest:gtest_main",
-  ]
 
   use_exceptions = true
 }
@@ -487,6 +481,10 @@ ohos_unittest("SingleStoreImplMockTest") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
+    "googletest:gmock_main",
+    "googletest:gtest_main",
   ]
   if (dm_service_enable) {
     external_deps += [ "device_manager:devicemanagersdk" ]
@@ -495,13 +493,6 @@ ohos_unittest("SingleStoreImplMockTest") {
   if (dms_service_enable && qemu_disable) {
     external_deps += [ "dmsfwk:distributed_sdk" ]
   }
-
-  public_external_deps = [
-    "data_share:datashare_common",
-    "data_share:datashare_provider",
-    "googletest:gmock_main",
-    "googletest:gtest_main",
-  ]
 
   defines = [
     "private=public",
