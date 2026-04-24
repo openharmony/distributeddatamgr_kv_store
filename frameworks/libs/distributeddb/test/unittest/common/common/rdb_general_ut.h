@@ -137,6 +137,8 @@ protected:
     using CheckAssetFunc = std::function<void(const Asset &asset)>;
     void CheckAssets(const StoreInfo &store, const std::string &sql, bool isEmpty, const CheckAssetFunc &checkFunc);
 
+    void InsertLocalRecordBatch(const StoreInfo &info, const std::string &tableName, int64_t begin, int64_t count);
+
     mutable std::mutex storeMutex_;
     std::map<StoreInfo, RelationalStoreDelegate *> stores_;
     std::map<StoreInfo, sqlite3 *> sqliteDb_;

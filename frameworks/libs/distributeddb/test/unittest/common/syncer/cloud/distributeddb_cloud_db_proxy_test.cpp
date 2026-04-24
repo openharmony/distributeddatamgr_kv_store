@@ -517,7 +517,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest010, TestSize.Level0)
 }
 
 /**
- * @tc.name: CloudDBProxyTest008
+ * @tc.name: CloudDBProxyTest011
  * @tc.desc: Verify cloud db heartbeat with diff status.
  * @tc.type: FUNC
  * @tc.require:
@@ -889,6 +889,11 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest013, TestSize.Level0)
     EXPECT_EQ(res.first, -E_CLOUD_ERROR);
     std::pair<int, std::string> cursor = proxy.GetEmptyCursor(tableName);
     EXPECT_EQ(cursor.first, -E_CLOUD_ERROR);
+    ret = proxy.StopCloudSync();
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
+    bool hasCloudUpdate = false;
+    ret = proxy.HasCloudUpdate("", "", hasCloudUpdate);
+    EXPECT_EQ(ret, -E_CLOUD_ERROR);
 
     /**
      * @tc.steps: step2. call CloudDBProxy interfaces when para is err.

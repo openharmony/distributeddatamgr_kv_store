@@ -1398,10 +1398,20 @@ int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &p
 }
 
 int CloudSyncer::QueryCloudData(TaskId taskId, const std::string &tableName, std::string &cloudWaterMark,
-    DownloadData &downloadData)
+    DownloadData &downloadData, bool needCheckWaterMark)
 {
+    int ret = E_OK;
+    bool isNeedDownload = true;
+    if (needCheckWaterMark) {
+        needCheckWaterMark = false;
+        ret = IsNeedDownload(tableName, cloudWaterMark, isNeedDownload);
+    }
+    if (!isNeedDownload) {
+        LOGI("[CloudSyncer] cloudWaterMark no update, skip download.");
+        return -E_QUERY_END;
+    }
     VBucket extend;
-    int ret = FillDownloadExtend(taskId, tableName, cloudWaterMark, extend);
+    ret = FillDownloadExtend(taskId, tableName, cloudWaterMark, extend);
     if (ret != E_OK) {
         return ret;
     }
@@ -2089,12 +2099,14 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isF
     if (param.isAssetsOnly) {
         param.cloudWaterMarkForAssetsOnly = param.cloudWaterMark;
     }
-    int ret = QueryCloudData(taskId, param.info.tableName, param.cloudWaterMark, param.downloadData);
+    int ret = QueryCloudData(taskId, param.info.tableName, param.cloudWaterMark, param.downloadData,
+        param.needCheckWaterMark);
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         CloudSyncUtils::CheckQueryCloudData(
             cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
     }
+    FillCloudErrorActionFromExtend(param.downloadData.data, param.info);
     if (ret == -E_QUERY_END) {
         // Won't break here since downloadData may not be null
         param.isLastBatch = true;

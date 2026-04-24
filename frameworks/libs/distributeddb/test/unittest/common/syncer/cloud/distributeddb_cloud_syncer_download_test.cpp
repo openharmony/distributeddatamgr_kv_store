@@ -387,6 +387,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_idb, HasCloudUpdate(_, _)).WillRepeatedly(Return(true));
 
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
@@ -445,6 +446,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00302, TestS
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_idb, HasCloudUpdate(_, _)).WillRepeatedly(Return(true));
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
@@ -489,6 +491,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_idb, HasCloudUpdate(_, _)).WillRepeatedly(Return(true));
 
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
@@ -534,6 +537,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestS
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_idb, HasCloudUpdate(_, _)).WillRepeatedly(Return(true));
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
