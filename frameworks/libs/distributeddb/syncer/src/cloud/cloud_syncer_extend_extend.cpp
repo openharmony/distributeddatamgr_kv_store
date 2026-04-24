@@ -397,6 +397,7 @@ int CloudSyncer::DownloadGIDFromCloud(SyncParam &param)
         errCode = E_OK;
         param.isLastBatch = true;
     }
+    FillCloudErrorActionFromExtend(param.downloadData.data, param.info);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Query cloud gid failed[%d]", errCode);
     } else if (!param.downloadData.data.empty()) {
@@ -548,5 +549,29 @@ int CloudSyncer::UpdateAssetStatus(const std::string &table, std::vector<VBucket
         }
     }
     return E_OK;
+}
+
+int CloudSyncer::IsNeedDownload(const std::string &tableName, const std::string &previousCloudWaterMark,
+    bool &isNeedDownload)
+{
+    isNeedDownload = false;
+    int errCode = cloudDB_.HasCloudUpdate(tableName, previousCloudWaterMark, isNeedDownload);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] check IsNeedDownload failed for table %s, errCode=%d",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
+    }
+    return errCode;
+}
+
+void CloudSyncer::FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend, InnerProcessInfo &info) const
+{
+    for (const auto &item : extend) {
+        auto actionIt = item.find(CloudDbConstant::CLOUD_ERROR_ACTION_FIELD);
+        if (actionIt != item.end() && (actionIt->second.index() == TYPE_INDEX<int64_t>)) {
+            info.innerCloudErrorInfo.cloudAction =
+                static_cast<CloudErrorAction>(std::get<int64_t>(actionIt->second));
+            break;
+        }
+    }
 }
 } // namespace DistributedDB

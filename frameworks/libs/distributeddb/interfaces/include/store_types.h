@@ -200,10 +200,20 @@ struct TableProcessInfo {
     Info upLoadInfo;
 };
 
+enum class CloudErrorAction : uint32_t {
+    ACTION_DEFAULT = 0,
+    ACTION_RETRY_SYNC_TASK = 1,
+};
+
+struct CloudErrorInfo {
+    CloudErrorAction cloudAction = CloudErrorAction::ACTION_DEFAULT;
+};
+
 struct SyncProcess {
     ProcessStatus process = PREPARED;
     DBStatus errCode = OK;
     std::map<std::string, TableProcessInfo> tableProcess;
+    CloudErrorInfo cloudErrorInfo;
 };
 
 struct DeviceSyncOption {

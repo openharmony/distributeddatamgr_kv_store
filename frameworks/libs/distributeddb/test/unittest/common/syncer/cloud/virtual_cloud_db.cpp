@@ -757,4 +757,15 @@ size_t VirtualCloudDb::GetUpdateCount() const
 {
     return updateCount_;
 }
+
+bool VirtualCloudDb::HasCloudUpdate(const std::string &tableName, const std::string &localWaterMark)
+{
+    (void) ICloudDb::HasCloudUpdate(tableName, localWaterMark);
+    return hasCloudUpdate_;
+}
+
+void VirtualCloudDb::SetHasCloudUpdate(bool hasCloudUpdate)
+{
+    hasCloudUpdate_ = hasCloudUpdate;
+}
 }

@@ -200,6 +200,8 @@ int CloudSyncer::BatchInsertOrUpdate(Info &uploadInfo, CloudSyncData &uploadData
     }
     innerProcessInfo.upLoadInfo.successCount += uploadInfo.successCount;
     innerProcessInfo.upLoadInfo.failCount += uploadInfo.failCount;
+    const auto &extend = isInsert ? uploadData.insData.extend : uploadData.updData.extend;
+    FillCloudErrorActionFromExtend(extend, innerProcessInfo);
     int noAbortErrCode = CloudSyncUtils::GetNoAbortErrorCode(isInsert, uploadData);
     if (noAbortErrCode != E_OK) {
         SetCurrentTmpError(noAbortErrCode);
@@ -744,6 +746,7 @@ int CloudSyncer::BatchDelete(Info &deleteInfo, CloudSyncData &uploadData, InnerP
     innerProcessInfo.upLoadInfo.successCount += deleteInfo.successCount;
     innerProcessInfo.upLoadInfo.deleteCount += deleteInfo.successCount;
     innerProcessInfo.upLoadInfo.failCount += deleteInfo.failCount;
+    FillCloudErrorActionFromExtend(uploadData.delData.extend, innerProcessInfo);
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         ProcessVersionConflictInfo(innerProcessInfo, retryCount);
     }

@@ -70,6 +70,7 @@ void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &proces
     std::lock_guard<std::mutex> autoLock(processMutex_);
     auto &syncProcess = user_.empty() ? syncProcess_ : multiSyncProcess_[user_];
     syncProcess.tableProcess[process.tableName].process = process.tableStatus;
+    syncProcess.cloudErrorInfo = process.innerCloudErrorInfo;
     if (process.downLoadInfo.batchIndex != 0u) {
         LOGD("[ProcessNotifier] update download process index: %" PRIu32, process.downLoadInfo.batchIndex);
         syncProcess.tableProcess[process.tableName].downLoadInfo = process.downLoadInfo;
@@ -80,6 +81,18 @@ void ProcessNotifier::UpdateProcess(const ICloudSyncer::InnerProcessInfo &proces
     }
 }
 
+void ProcessNotifier::FillProcessInfo(const ICloudSyncer::CloudTaskInfo &taskInfo,
+    const ICloudSyncer::InnerProcessInfo &process)
+{
+    syncProcess_.errCode = TransferDBErrno(taskInfo.errCode, true);
+    syncProcess_.process = taskInfo.status;
+    syncProcess_.cloudErrorInfo = process.innerCloudErrorInfo;
+    multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode, true);
+    multiSyncProcess_[user_].process = taskInfo.status;
+    multiSyncProcess_[user_].cloudErrorInfo = process.innerCloudErrorInfo;
+    UpdateUploadInfoIfNeeded(process);
+}
+
 void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
     const ICloudSyncer::InnerProcessInfo &process, bool notifyWhenError)
 {
@@ -88,18 +101,12 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
     {
         std::lock_guard<std::mutex> autoLock(processMutex_);
         if (!notifyWhenError && taskInfo.errCode != E_OK) {
-            LOGD("[ProcessNotifier] task has error, do not notify now");
             return;
         }
-        syncProcess_.errCode = TransferDBErrno(taskInfo.errCode, true);
-        syncProcess_.process = taskInfo.status;
-        multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode, true);
-        multiSyncProcess_[user_].process = taskInfo.status;
-        UpdateUploadInfoIfNeeded(process);
+        FillProcessInfo(taskInfo, process);
         if (user_.empty()) {
             for (const auto &device : devices_) {
-                // make sure only one device
-                currentProcess[device] = syncProcess_;
+                currentProcess[device] = syncProcess_; // make sure only one device
             }
         } else {
             currentProcess = multiSyncProcess_;

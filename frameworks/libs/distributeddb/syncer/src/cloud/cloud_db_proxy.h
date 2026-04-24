@@ -94,6 +94,8 @@ public:
     static int GetInnerErrorCode(DBStatus status);
 
     int StopCloudSync();
+
+    int HasCloudUpdate(const std::string &tableName, const std::string &previousCloudWaterMark, bool &hasCloudUpdate);
 protected:
     class CloudActionContext {
     public:

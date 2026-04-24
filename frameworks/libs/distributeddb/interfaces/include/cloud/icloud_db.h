@@ -48,6 +48,10 @@ public:
     {
         return NOT_SUPPORT;
     }
+    virtual bool HasCloudUpdate(const std::string &tableName, const std::string &localWaterMark)
+    {
+        return true;
+    }
     virtual void SetPrepareTraceId(const std::string &traceId)
     {
         this->prepareTraceId = traceId;

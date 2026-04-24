@@ -68,6 +68,7 @@ public:
         Info upLoadInfo;
         UploadRetryInfo retryInfo;
         bool isAsyncDownload = false;
+        CloudErrorInfo innerCloudErrorInfo;
     };
 
     struct WithoutRowIdData {
@@ -98,6 +99,7 @@ public:
         std::string cloudWaterMarkForAssetsOnly;
         std::map<std::string, AssetsMap> gidAssetsMap; // only used for assets only.
         bool isForcePullAseets = false;
+        bool needCheckWaterMark = true;
     };
 
     struct DataInfo {
