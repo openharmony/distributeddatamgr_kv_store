@@ -1099,7 +1099,8 @@ void SingleStoreImpl::DoAutoSync()
 void SingleStoreImpl::OnRemoteDied()
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
-    if (taskId_ > 0) {
+    uint64_t expected = 0;
+    if (!taskId_.compare_exchange_strong(expected, 1)) {
         return;
     }
     observers_.ForEach([](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {

@@ -14,6 +14,7 @@
  */
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SINGLE_STORE_IMPL_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SINGLE_STORE_IMPL_H
+#include <atomic>
 #include <functional>
 #include <shared_mutex>
 
@@ -153,7 +154,7 @@ private:
     int32_t ref_ = 1;
     int32_t dataType_ = DataType::TYPE_DYNAMICAL;
     uint32_t roleType_ = 0;
-    uint64_t taskId_ = 0;
+    std::atomic<uint64_t> taskId_{0};
     bool isCheckIntegrity_ = false;
     bool isSchemaStore_ = false;
     bool syncable_ = false;
