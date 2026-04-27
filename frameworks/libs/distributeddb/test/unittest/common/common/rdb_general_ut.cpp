@@ -699,4 +699,15 @@ void RDBGeneralUt::CheckAssets(const StoreInfo &store, const std::string &sql, b
         }
     }
 }
+
+void RDBGeneralUt::InsertLocalRecordBatch(const StoreInfo &info, const std::string &tableName,
+    int64_t begin, int64_t count)
+{
+    for (int64_t i = begin; i < begin + count; ++i) {
+        std::string sql = "INSERT INTO " + tableName + " VALUES(" + std::to_string(i) +
+            ", 'local_insert_" + std::to_string(i) + "', " +
+            std::to_string(static_cast<double>(i) + 0.5) + ")";
+        EXPECT_EQ(ExecuteSQL(sql, info), E_OK);
+    }
+}
 }

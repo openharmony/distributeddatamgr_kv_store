@@ -217,7 +217,7 @@ protected:
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 
     int QueryCloudData(TaskId taskId, const std::string &tableName, std::string &cloudWaterMark,
-        DownloadData &downloadData);
+        DownloadData &downloadData, bool needCheckWaterMark);
 
     size_t GetCurrentCommonTaskNum();
 
@@ -379,6 +379,8 @@ protected:
     void NotifyUploadFailed(int errCode, InnerProcessInfo &info);
 
     void UpdateProcessWhenUploadFailed(InnerProcessInfo &info);
+
+    void FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend, InnerProcessInfo &info) const;
 
     int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
@@ -607,6 +609,9 @@ protected:
     AssetConflictPolicy GetAssetConflictPolicy();
 
     int UpdateAssetStatus(const std::string &table, std::vector<VBucket> &assetInfo);
+
+    int IsNeedDownload(const std::string &tableName, const std::string &previousCloudWaterMark,
+        bool &isNeedDownload);
 
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;

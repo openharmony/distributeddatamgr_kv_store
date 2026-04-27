@@ -33,6 +33,7 @@ public:
     MOCK_METHOD0(HeartBeat, DBStatus(void));
     MOCK_METHOD0(Close, DBStatus(void));
     MOCK_METHOD0(StopCloudSync, DBStatus(void));
+    MOCK_METHOD2(HasCloudUpdate, bool(const std::string &, const std::string &));
 };
 }
 #endif // #define MOCK_ICLOUD_DB_H
