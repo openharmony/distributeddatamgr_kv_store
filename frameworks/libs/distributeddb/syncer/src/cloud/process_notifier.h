@@ -59,6 +59,8 @@ protected:
     std::string user_;
     std::map<std::string, uint32_t> processRetryInfo_;
 private:
+    void FillProcessInfo(const ICloudSyncer::CloudTaskInfo &taskInfo, const ICloudSyncer::InnerProcessInfo &process);
+
     static void InitSyncProcess(const std::vector<std::string> &tableName, SyncProcess &syncProcess);
     bool IsMultiUser() const;
 

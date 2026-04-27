@@ -116,6 +116,10 @@ public:
     void ForkQueryAllGid(const std::function<DBStatus(const std::string &, VBucket &, std::vector<VBucket> &)> &func);
 
     size_t GetUpdateCount() const;
+
+    bool HasCloudUpdate(const std::string &tableName, const std::string &localWaterMark) override;
+
+    void SetHasCloudUpdate(bool hasCloudUpdate);
 private:
     DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend);
@@ -159,6 +163,7 @@ private:
     std::atomic<int32_t> insertFailedCount_ = 0;
     std::atomic<int32_t> missingExtendCount_ = 0;
     std::atomic<size_t> updateCount_ = 0;
+    bool hasCloudUpdate_ = true;
     bool cloudSpaceInsufficient_ = false;
     std::mutex cloudDataMutex_;
     std::map<std::string, std::vector<CloudData>> cloudData_;

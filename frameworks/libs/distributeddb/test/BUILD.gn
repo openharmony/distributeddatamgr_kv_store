@@ -939,6 +939,12 @@ distributeddb_unittest("DistributedDBRDBComplexCloudTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBRDBCloudErrorTest") {
+  sources = [
+    "unittest/common/store_test/rdb/distributeddb_rdb_cloud_error_test.cpp",
+  ]
+}
+
 distributeddb_unittest("DistributedDBSkipDownloadAssetsTest") {
   sources = [ "unittest/common/store_test/rdb/distributeddb_skip_download_assets_test.cpp" ]
 }
