@@ -32,9 +32,9 @@ ohos_unittest("DataBaseUtilsTest") {
   configs = [ ":database_utils_config" ]
   cflags = [ "-Dprivate=public" ]
   external_deps = [
-    "hilog:libhilog",
     "bounds_checking_function:libsec_shared",
     "googletest:gtest",
+    "hilog:libhilog",
   ]
 }
 
