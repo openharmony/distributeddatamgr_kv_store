@@ -14,6 +14,7 @@
 #####################hydra-fuzz###################
 import("//build/config/features.gni")
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("KvUtilFuzzTest") {
@@ -40,14 +41,14 @@ ohos_fuzztest("KvUtilFuzzTest") {
     "kvutil_fuzzer.cpp",
   ]
 
+  deps = [ "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner" ]
+
   external_deps = [
     "c_utils:utils",
     "data_share:datashare_common",
     "data_share:datashare_provider",
     "hilog:libhilog",
     "ipc:ipc_single",
-    "kv_store:distributeddata_inner",
-    "kv_store:distributeddb",
   ]
 }
 
