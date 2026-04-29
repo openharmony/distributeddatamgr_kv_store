@@ -72,7 +72,7 @@ if (is_ios || is_android) {
     deps = [ "${kv_store_base_path}/kvstoremock/interfaces/mock:build_module" ]
     external_deps = [
       "bounds_checking_function:libsec_shared",
-      "hilog:libhilog",
+      "hilog:libhilog"
     ]
     subsystem_name = "distributeddatamgr"
     part_name = "kv_store"
