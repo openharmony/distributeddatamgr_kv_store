@@ -116,10 +116,10 @@ public:
 
     int GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush, const CloudWaterType mode, sqlite3_stmt *&stmt);
 
-    std::pair<int, int64_t> BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory, const Timestamp &timestamp,
+    std::pair<int, int64_t> BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory, CloudWaterType mode,
         const std::string &user, sqlite3_stmt *&stmt) const;
 
-    void AppendKvQueryObjectOnSql(std::string &sql);
+    void AppendKvQueryObjectOnSql(CloudWaterType mode, std::string &sql);
 
     std::pair<int, sqlite3_stmt *> GetKvCloudQueryStmt(sqlite3 *db, bool forcePush, const CloudWaterType mode,
         int64_t timeStamp, const std::string &user);
@@ -165,7 +165,7 @@ private:
 
     void AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql);
 
-    int BindConditionToCloudStmt(sqlite3_stmt *&stmt, int &index) const;
+    int BindConditionToCloudStmt(CloudWaterType mode, sqlite3_stmt *&stmt, int &index) const;
     SchemaObject schema_;
     std::list<QueryObjNode> queryObjNodes_;
     std::vector<uint8_t> prefixKey_;

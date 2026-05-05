@@ -1307,7 +1307,7 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
     int &errCode = res.first;
     std::string sql = GetKvCloudQuerySql(false, forcePush);
     AppendCloudQueryToGetDiffData(sql, mode, true);
-    AppendKvQueryObjectOnSql(sql);
+    AppendKvQueryObjectOnSql(mode, sql);
     sql += "order by modify_time asc";
     errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -1328,7 +1328,7 @@ std::pair<int, sqlite3_stmt *> SqliteQueryHelper::GetKvCloudQueryStmt(sqlite3 *d
         return res;
     }
     int index = BIND_CLOUD_TIMESTAMP + 1;
-    errCode = BindConditionToCloudStmt(stmt, index);
+    errCode = BindConditionToCloudStmt(mode, stmt, index);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(stmt, true, ret);
         LOGE("[SqliteQueryHelper] Bind condition failed %d reset %d", errCode, ret);
@@ -1379,7 +1379,7 @@ int SqliteQueryHelper::GetAndBindGidKvCloudQueryStatement(const std::string &use
     sqlite3_stmt *&stmt)
 {
     std::string sql = SELECT_CLOUD_GID_SQL;
-    AppendKvQueryObjectOnSql(sql);
+    AppendKvQueryObjectOnSql(CloudWaterType::INSERT, sql);
     int errCode = SQLiteUtils::GetStatement(dbHandle, sql, stmt);
     if (errCode != E_OK) {
         LOGE("[SqliteQueryHelper] Get gid stmt failed %d", errCode);
@@ -1393,7 +1393,7 @@ int SqliteQueryHelper::GetAndBindGidKvCloudQueryStatement(const std::string &use
         LOGE("[SqliteQueryHelper] Bind user failed %d when query gid", errCode);
         return errCode;
     }
-    errCode = BindConditionToCloudStmt(stmt, index);
+    errCode = BindConditionToCloudStmt(CloudWaterType::INSERT, stmt, index);
     if (errCode != E_OK) {
         LOGE("[SqliteQueryHelper] Bind condition to query gid stmt failed %d", errCode);
         SQLiteUtils::ResetStatement(stmt, true, ret);
@@ -1406,7 +1406,7 @@ int SqliteQueryHelper::GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush,
 {
     std::string sql = SqliteQueryHelper::GetKvCloudQuerySql(true, forcePush);
     SqliteQueryHelper::AppendCloudQueryToGetDiffData(sql, mode, true);
-    AppendKvQueryObjectOnSql(sql);
+    AppendKvQueryObjectOnSql(mode, sql);
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
         LOGE("[SqliteQueryHelper] Count data stmt failed %d", errCode);
@@ -1415,7 +1415,7 @@ int SqliteQueryHelper::GetCountKvCloudDataStatement(sqlite3 *db, bool forcePush,
 }
 
 std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3 *db, bool isMemory,
-    const Timestamp &timestamp, const std::string &user, sqlite3_stmt *&stmt) const
+    CloudWaterType mode, const std::string &user, sqlite3_stmt *&stmt) const
 {
     ResFinalizer finalizer([stmt]() {
         sqlite3_stmt *statement = stmt;
@@ -1432,13 +1432,13 @@ std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3
         LOGE("[SqliteQueryHelper] Bind user failed %d when get upload count", errCode);
         return res;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, static_cast<int64_t>(timestamp));
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, BIND_CLOUD_TIMESTAMP, 0);
     if (errCode != E_OK) {
         LOGE("[SqliteQueryHelper] Bind begin time failed %d when get upload count", errCode);
         return res;
     }
     int keysIndex = BIND_CLOUD_TIMESTAMP + 1;
-    errCode = BindConditionToCloudStmt(stmt, keysIndex);
+    errCode = BindConditionToCloudStmt(mode, stmt, keysIndex);
     if (errCode != E_OK) {
         LOGE("[SqliteQueryHelper] Bind condition failed %d when get upload count", errCode);
         return res;
@@ -1453,10 +1453,13 @@ std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3
     return res;
 }
 
-void SqliteQueryHelper::AppendKvQueryObjectOnSql(std::string &sql)
+void SqliteQueryHelper::AppendKvQueryObjectOnSql(CloudWaterType mode, std::string &sql)
 {
     if (!keys_.empty()) {
         sql += " AND " + MapKeysInToSql(keys_.size());
+    }
+    if (mode == CloudWaterType::DELETE) {
+        return;
     }
     if (hasPrefixKey_) {
         sql += " AND key >= ? AND key <= ? ";
@@ -1468,12 +1471,15 @@ void SqliteQueryHelper::SetAppendCondition(bool isAppendCondition)
     isAppendCondition_ = isAppendCondition;
 }
 
-int SqliteQueryHelper::BindConditionToCloudStmt(sqlite3_stmt *&stmt, int &index) const
+int SqliteQueryHelper::BindConditionToCloudStmt(CloudWaterType mode, sqlite3_stmt *&stmt, int &index) const
 {
     int errCode = BindKeysToStmt(keys_, stmt, index);
     if (errCode != E_OK) {
         LOGE("[SqliteQueryHelper] Bind keys failed %d", errCode);
         return errCode;
+    }
+    if (mode == CloudWaterType::DELETE) {
+        return E_OK;
     }
     if (!hasPrefixKey_) {
         return E_OK;

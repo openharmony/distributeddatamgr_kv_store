@@ -562,4 +562,14 @@ int CloudSyncer::IsNeedDownload(const std::string &tableName, const std::string 
     }
     return errCode;
 }
+
+bool CloudSyncer::IsUploadOnlyTask(TaskId taskId)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    auto iter = cloudTaskInfos_.find(taskId);
+    if (iter == cloudTaskInfos_.end()) {
+        return false;
+    }
+    return iter->second.queryMode == QueryMode::UPLOAD_ONLY;
+}
 } // namespace DistributedDB

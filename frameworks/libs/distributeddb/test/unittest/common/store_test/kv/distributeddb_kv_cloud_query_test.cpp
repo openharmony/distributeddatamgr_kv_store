@@ -80,6 +80,14 @@ HWTEST_F(DistributedDBKvCloudQueryTest, PrefixKey001, TestSize.Level0)
     EXPECT_EQ(store2->Get({'k', '1'}, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
     EXPECT_EQ(store2->Get({'k', '2'}, actualValue), NOT_FOUND);
+    /**
+     * @tc.steps: step3. dev1 sync delete data
+     * @tc.expected: step3. sync should return OK.
+     */
+    EXPECT_EQ(store1->Delete({'k', '1'}), OK);
+    EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo1, DEVICE_A, syncOption));
+    EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo2, DEVICE_B, syncOption));
+    EXPECT_EQ(store2->Get({'k', '1'}, actualValue), NOT_FOUND);
 }
 
 /**

@@ -1088,7 +1088,7 @@ bool CloudSyncer::IsQueryListEmpty(TaskId taskId)
 bool CloudSyncer::IsNeedProcessCloudCursor(TaskId taskId)
 {
     // Compensated task no need to save/get cloud cursor
-    return IsQueryListEmpty(taskId) && !IsCompensatedTask(taskId);
+    return (IsQueryListEmpty(taskId) || IsUploadOnlyTask(taskId)) && !IsCompensatedTask(taskId);
 }
 
 bool CloudSyncer::IsNeedLock(const UploadParam &param)
