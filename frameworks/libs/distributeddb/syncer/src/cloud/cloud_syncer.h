@@ -380,8 +380,6 @@ protected:
 
     void UpdateProcessWhenUploadFailed(InnerProcessInfo &info);
 
-    void FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend, InnerProcessInfo &info) const;
-
     int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
     int BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);

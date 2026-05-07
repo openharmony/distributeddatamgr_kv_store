@@ -1023,11 +1023,11 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
     return BindHashKeyAndGidToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt, bindIndex);
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetWhereConditionForDataTable(const std::string &gidStr,
-    const std::set<std::string> &pkSet, const std::string &tableName, bool queryByPk)
+std::string SQLiteSingleVerRelationalStorageExecutor::BuildWhereClauseForCloudSync(const std::string &gidStr,
+    const std::set<std::string> &pkSet, const std::string &tableName, bool queryByPk) const
 {
     std::string where = " WHERE";
-    if (!gidStr.empty()) { // gid has higher priority, because primary key may be modified
+    if (!gidStr.empty()) {
         where += " " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = (SELECT data_key FROM " +
             DBCommon::GetLogTableName(tableName) + " WHERE cloud_gid = '" + gidStr + "')";
     }
@@ -1041,6 +1041,13 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetWhereConditionForDataTa
         }
         where += ")";
     }
+    return where;
+}
+
+std::string SQLiteSingleVerRelationalStorageExecutor::GetWhereConditionForDataTable(const std::string &gidStr,
+    const std::set<std::string> &pkSet, const std::string &tableName, bool queryByPk)
+{
+    std::string where = BuildWhereClauseForCloudSync(gidStr, pkSet, tableName, queryByPk);
     std::vector<std::string> localPkNames = SQLiteRelationalUtils::GetLocalPkNames(localSchema_.GetTable(tableName));
     if (!localPkNames.empty()) {
         where += " returning ";
@@ -1212,8 +1219,8 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToUpdateLogStatement(cons
     return SQLiteUtils::BindBlobToStatement(updateLogStmt, colNames.size() + 1, hashKey);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(const TableSchema &tableSchema,
-    const std::set<std::string> &pkSet, const VBucket &vBucket, sqlite3_stmt *&deleteStmt)
+int SQLiteSingleVerRelationalStorageExecutor::GetStatementForCloudSyncDelete(const TableSchema &tableSchema,
+    const std::set<std::string> &pkSet, const VBucket &vBucket, sqlite3_stmt *&stmt)
 {
     std::string gidStr;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gidStr);
@@ -1227,21 +1234,35 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
     }
 
     bool queryByPk = CloudStorageUtils::IsVbucketContainsAllPK(vBucket, pkSet);
-    std::string deleteSql = "DELETE FROM " + tableSchema.name;
-    deleteSql += GetWhereConditionForDataTable(gidStr, pkSet, tableSchema.name, queryByPk);
-    errCode = SQLiteUtils::GetStatement(dbHandle_, deleteSql, deleteStmt);
+    std::string sql;
+    if (isLogicDelete_) {
+        std::vector<std::string> localPkNames = SQLiteRelationalUtils::GetLocalPkNames(
+            localSchema_.GetTable(tableSchema.name));
+        sql = "SELECT ";
+        for (const auto &pkName : localPkNames) {
+            sql += pkName + ",";
+        }
+        sql.pop_back();
+        sql += " FROM " + tableSchema.name;
+        sql += BuildWhereClauseForCloudSync(gidStr, pkSet, tableSchema.name, queryByPk);
+    } else {
+        sql = "DELETE FROM " + tableSchema.name;
+        sql += GetWhereConditionForDataTable(gidStr, pkSet, tableSchema.name, queryByPk);
+    }
+
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
-        LOGE("Get delete statement failed when delete data, %d", errCode);
+        LOGE("Get statement failed when cloud sync delete, %d", errCode);
         return errCode;
     }
 
     int ret = E_OK;
     if (!pkSet.empty() && queryByPk) {
         std::vector<Field> pkFields = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema, true);
-        errCode = BindValueToUpsertStatement(vBucket, pkFields, deleteStmt);
+        errCode = BindValueToUpsertStatement(vBucket, pkFields, stmt);
         if (errCode != E_OK) {
-            LOGE("bind value to delete statement failed when delete cloud data, %d", errCode);
-            SQLiteUtils::ResetStatement(deleteStmt, true, ret);
+            LOGE("bind value to statement failed when cloud sync delete, %d", errCode);
+            SQLiteUtils::ResetStatement(stmt, true, ret);
         }
     }
     return errCode != E_OK ? errCode : ret;
@@ -1251,33 +1272,41 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string 
     const TableSchema &tableSchema, const TrackerTable &trackerTable)
 {
     if (isLogicDelete_) {
-        return LogicDeleteCloudData(tableName, vBucket, tableSchema, trackerTable);
+        LOGD("[RDBExecutor] logic delete skip delete data");
+        int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, CloudStorageUtils::GetCursorIncSql(tableName));
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
+
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
-    sqlite3_stmt *deleteStmt = nullptr;
-    int errCode = GetDeleteStatementForCloudSync(tableSchema, pkSet, vBucket, deleteStmt);
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = GetStatementForCloudSyncDelete(tableSchema, pkSet, vBucket, stmt);
     if (errCode != E_OK) {
         return errCode;
     }
     errCode = SQLiteRelationalUtils::SqliteStepReturningValues(SQLiteRelationalUtils::GetLocalPkNames(
-        localSchema_.GetTable(tableSchema.name)), deleteStmt, vBucket);
+        localSchema_.GetTable(tableSchema.name)), stmt, vBucket);
     int ret = E_OK;
-    SQLiteUtils::ResetStatement(deleteStmt, true, ret);
+    SQLiteUtils::ResetStatement(stmt, true, ret);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         LOGE("delete data failed when sync with cloud:%d", errCode);
         return errCode;
     }
     if (ret != E_OK) {
-        LOGE("reset delete statement failed:%d", ret);
+        LOGE("reset statement failed:%d", ret);
         return ret;
     }
 
-    // update log
     errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
     if (errCode != E_OK) {
         LOGE("update log record failed when delete cloud data, errCode = %d", errCode);
+        return errCode;
     }
-    return errCode;
+    if (isLogicDelete_ && !trackerTable.IsEmpty()) {
+        return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
+    }
+    return E_OK;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateLogTable(const VBucket &vBucket,
@@ -1346,24 +1375,6 @@ void SQLiteSingleVerRelationalStorageExecutor::SetUploadConfig(int32_t maxUpload
 {
     maxUploadCount_ = maxUploadCount;
     maxUploadSize_ = maxUploadSize;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::LogicDeleteCloudData(const std::string &tableName, const VBucket &vBucket,
-    const TableSchema &tableSchema, const TrackerTable &trackerTable)
-{
-    LOGD("[RDBExecutor] logic delete skip delete data");
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, CloudStorageUtils::GetCursorIncSql(tableName));
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (!trackerTable.IsEmpty()) {
-        return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
-    }
-    return E_OK;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::InitCursorToMeta(const std::string &tableName) const
