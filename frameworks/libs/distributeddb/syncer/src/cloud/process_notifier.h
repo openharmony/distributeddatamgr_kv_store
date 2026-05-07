@@ -68,6 +68,8 @@ private:
     void UpdateUploadInfoIfNeeded(const ICloudSyncer::InnerProcessInfo &process);
 
     void UpdateTableInfoFinally(std::map<std::string, TableProcessInfo> &processInfo);
+
+    static void UpdateErrorInfoIfNeed(CloudErrorInfo source, CloudErrorInfo &target);
 };
 }
 #endif // PROCESS_NOTIFIER_H

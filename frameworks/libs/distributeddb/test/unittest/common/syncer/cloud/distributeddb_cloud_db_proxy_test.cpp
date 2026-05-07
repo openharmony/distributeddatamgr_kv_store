@@ -1197,4 +1197,38 @@ HWTEST_F(DistributedDBCloudDBProxyTest, StorageProxy002, TestSize.Level0)
     EXPECT_EQ(proxy->GetCloudGidCursor("", cursor), E_OK);
     EXPECT_EQ(proxy->GetBackupCloudCursor("", cursor), E_OK);
 }
+
+/**
+ * @tc.name: FillCloudErrorActionTest001
+ * @tc.desc: Test fill cloud error action
+ * @tc.type: FUNC
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, FillCloudErrorActionTest001, TestSize.Level0)
+{
+    std::vector<VBucket> extend1 = {
+        {
+            {CloudDbConstant::CLOUD_ERROR_ACTION_FIELD, static_cast<int64_t>(-1)}
+        }
+    };
+    ICloudSyncer::InnerProcessInfo info;
+    CloudSyncUtils::FillCloudErrorActionFromExtend(extend1, info);
+    EXPECT_EQ(info.innerCloudErrorInfo.cloudAction, CloudErrorAction::ACTION_DEFAULT);
+
+    std::vector<VBucket> extend2 = {
+        {
+            {CloudDbConstant::CLOUD_ERROR_ACTION_FIELD, static_cast<int64_t>(CloudErrorAction::ACTION_BUTT)}
+        }
+    };
+    CloudSyncUtils::FillCloudErrorActionFromExtend(extend2, info);
+    EXPECT_EQ(info.innerCloudErrorInfo.cloudAction, CloudErrorAction::ACTION_DEFAULT);
+
+    std::vector<VBucket> extend3 = {
+        {
+            {CloudDbConstant::CLOUD_ERROR_ACTION_FIELD, static_cast<int64_t>(CloudErrorAction::ACTION_RETRY_SYNC_TASK)}
+        }
+    };
+    CloudSyncUtils::FillCloudErrorActionFromExtend(extend3, info);
+    EXPECT_EQ(info.innerCloudErrorInfo.cloudAction, CloudErrorAction::ACTION_RETRY_SYNC_TASK);
+}
 }

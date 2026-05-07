@@ -211,31 +211,6 @@ DataInfoWithLog GetLogInfo(uint64_t timestamp, bool isDeleted)
     return dataInfoWithLog;
 }
 
-static void Expect2GetInfoByPrimaryKeyOrGidCall()
-{
-    EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
-        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
-            info = GetLogInfo(0, false); // Gen data with timestamp 0
-            return E_OK;
-        })
-        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
-            info = GetLogInfo(1, false); // Gen data with timestamp 1
-            return E_OK;
-        })
-        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
-            info = GetLogInfo(2, false); // Gen data with timestamp 2
-            return E_OK;
-        })
-        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
-            info = GetLogInfo(3, false); // Gen data with timestamp 3
-            return E_OK;
-        })
-        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
-            info = GetLogInfo(4, false); // Gen data with timestamp 4
-            return E_OK;
-    });
-}
-
 /**
  * @tc.name: DownloadMockTest001
  * @tc.desc: Test situation with all possible output for GetCloudWaterMark
@@ -263,7 +238,6 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest001, TestSize.Lev
     //  1. Read meta data success
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillOnce(Return(E_OK));
-    Expect2GetInfoByPrimaryKeyOrGidCall();
 
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
@@ -321,7 +295,6 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest002, TestSize.Lev
     taskId = 7u;
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillOnce(Return(-E_NOT_FOUND));
-    Expect2GetInfoByPrimaryKeyOrGidCall();
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     // when we coudln't find key in get meta data, read local water mark will return default value and E_OK
     EXPECT_EQ(errCode, E_OK);
@@ -357,12 +330,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest002, TestSiz
     //  1. Query data success for the first time, but will not reach end
     //  2. While quring second time, no more data comes back and return QUERY END
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
-    EXPECT_CALL(*g_idb, Query(_, _, _))
-        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(5); // Gen 5 data
-            return QUERY_END;});
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    Expect2GetInfoByPrimaryKeyOrGidCall();
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
 }

@@ -1856,6 +1856,7 @@ HWTEST_F(SingleStoreImplTest, SetConfig, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
 {
+    AccessTokenID orTokenID = GetSelfTokenID();
     SetNativeTokenId();
     std::string pkgNameEx = "_distributed_data";
     std::shared_ptr<SingleStoreImpl> kvStore;
@@ -1874,6 +1875,7 @@ HWTEST_F(SingleStoreImplTest, GetDeviceEntries001, TestSize.Level1)
     ASSERT_NE(std::string(devinfo.deviceId), "");
     status = kvStore->GetDeviceEntries(std::string(devinfo.deviceId), output);
     ASSERT_EQ(status, SUCCESS);
+    SetSelfTokenID(orTokenID);
 }
 
 /**

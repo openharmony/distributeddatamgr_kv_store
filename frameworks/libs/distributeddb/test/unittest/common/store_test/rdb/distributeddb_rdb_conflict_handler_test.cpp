@@ -1470,5 +1470,85 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, ObserverTest010, TestSize.Level0)
     EXPECT_EQ(delegate->UnRegisterObserver(observer), OK);
     delete observer;
 }
+
+/**
+ * @tc.name: LogicDeleteObserverTest001
+ * @tc.desc: Test observer data after logic delete sync with distributed primary key (conflict resolve column).
+ * @tc.type: FUNC
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBRDBConflictHandlerTest, LogicDeleteObserverTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set logic delete mode for store2
+     * @tc.expected: step1. Set success.
+     */
+    auto delegate2 = GetDelegate(info2_);
+    bool logicDelete = true;
+    PragmaData pragmaData = &logicDelete;
+    ASSERT_EQ(delegate2->Pragma(PragmaCmd::LOGIC_DELETE_SYNC_DATA, pragmaData), OK);
+
+    /**
+     * @tc.steps:step2. Set conflict handler and store1 insert data
+     * @tc.expected: step2. Insert success and store1 has one row.
+     */
+    SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::UPSERT;
+    });
+
+    ASSERT_EQ(ExecuteSQL("INSERT INTO CLOUD_SYNC_TABLE_A VALUES(1, 1, 'text1', 'text2', 'uuid1')", info1_), E_OK);
+
+    /**
+     * @tc.steps:step3. Store1 push and store2 pull
+     * @tc.expected: step3. Sync success and store2 has one row.
+     */
+    Query pushQuery = Query::Select().From(CLOUD_SYNC_TABLE_A).EqualTo("stringCol2", "text2");
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, pushQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH, OK, OK));
+    Query pullQuery = Query::Select().FromTable({CLOUD_SYNC_TABLE_A});
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, pullQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL, OK, OK));
+    EXPECT_EQ(CountTableData(info2_, CLOUD_SYNC_TABLE_A, "uuidCol='uuid1'"), 1);
+
+    /**
+     * @tc.steps:step4. Register observer and set expected result for logic delete
+     * @tc.expected: step4. Register success.
+     */
+    auto observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer, nullptr);
+    EXPECT_EQ(delegate2->RegisterObserver(observer), OK);
+    ChangedData changedDataForTable;
+    changedDataForTable.tableName = CLOUD_SYNC_TABLE_A;
+    changedDataForTable.field.push_back(std::string("id"));
+    changedDataForTable.primaryData[ChangeType::OP_DELETE].push_back({1L});
+    observer->SetExpectedResult(changedDataForTable);
+
+    /**
+     * @tc.steps:step5. Set conflict handler for delete and store1 delete the row
+     * @tc.expected: step5. Delete success.
+     */
+    SetCloudConflictHandler(info2_, [](const std::string &, const VBucket &old, const VBucket &, VBucket &) {
+        EXPECT_NE(old.find(CloudDbConstant::CREATE_FIELD), old.end());
+        EXPECT_NE(old.find(CloudDbConstant::MODIFY_FIELD), old.end());
+        return ConflictRet::DELETE;
+    });
+
+    ASSERT_EQ(ExecuteSQL("DELETE FROM CLOUD_SYNC_TABLE_A WHERE uuidCol='uuid1'", info1_), E_OK);
+
+    /**
+     * @tc.steps:step6. Store1 push and store2 pull (logic delete)
+     * @tc.expected: step6. Sync success and store2 still has the row (logic delete).
+     */
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, pushQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH, OK, OK));
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, pullQuery, SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL, OK, OK));
+
+    /**
+     * @tc.steps:step7. Check observer data and data in store2
+     * @tc.expected: step7. Observer data is correct (received delete notification with correct pk),
+     *               store2 still has one row (logic delete).
+     */
+    EXPECT_EQ(CountTableData(info2_, CLOUD_SYNC_TABLE_A), 1);
+    EXPECT_EQ(observer->IsAllChangedDataEq(), true);
+    EXPECT_EQ(delegate2->UnRegisterObserver(observer), OK);
+    delete observer;
+}
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD

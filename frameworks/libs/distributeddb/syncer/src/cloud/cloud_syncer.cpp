@@ -2106,7 +2106,7 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isF
         CloudSyncUtils::CheckQueryCloudData(
             cloudTaskInfos_[taskId].prepareTraceId, param.downloadData, param.pkColNames);
     }
-    FillCloudErrorActionFromExtend(param.downloadData.data, param.info);
+    CloudSyncUtils::FillCloudErrorActionFromExtend(param.downloadData.data, param.info);
     if (ret == -E_QUERY_END) {
         // Won't break here since downloadData may not be null
         param.isLastBatch = true;
