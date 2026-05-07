@@ -1092,7 +1092,8 @@ bool CloudSyncUtils::CanStartAsyncDownload(int scheduleCount)
 
 bool CloudSyncUtils::IsCloudErrorNotNeedCompensated(int errCode)
 {
-    if (errCode == -E_CLOUD_NETWORK_ERROR || errCode == -E_CLOUD_ASSET_SPACE_INSUFFICIENT) {
+    if (errCode == -E_CLOUD_NETWORK_ERROR || errCode == -E_CLOUD_ASSET_SPACE_INSUFFICIENT ||
+        errCode == -E_TASK_INTERRUPTED) {
         LOGW("[CloudSyncer] errCode = %d, not need to compensation.", errCode);
         return true;
     }
@@ -1277,6 +1278,23 @@ void CloudSyncUtils::GetDownloadListIfNeed(DownloadList &changeList, const Downl
     for (const auto &tuple : downloadList) {
         if (!CloudSyncUtils::IsContainNotDownload(tuple)) {
             changeList.push_back(tuple);
+        }
+    }
+}
+
+void CloudSyncUtils::FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend,
+    ICloudSyncer::InnerProcessInfo &info)
+{
+    for (const auto &item : extend) {
+        auto actionIt = item.find(CloudDbConstant::CLOUD_ERROR_ACTION_FIELD);
+        if (actionIt == item.end() || (actionIt->second.index() != TYPE_INDEX<int64_t>)) {
+            continue;
+        }
+        CloudErrorAction cloudAction = static_cast<CloudErrorAction>(std::get<int64_t>(actionIt->second));
+        if (cloudAction >= CloudErrorAction::ACTION_DEFAULT && cloudAction < CloudErrorAction::ACTION_BUTT) {
+            info.innerCloudErrorInfo.cloudAction = cloudAction;
+            LOGI("[CloudSyncUtils] fill cloud error action: %d", cloudAction);
+            break;
         }
     }
 }

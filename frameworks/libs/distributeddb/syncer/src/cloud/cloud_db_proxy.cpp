@@ -881,7 +881,7 @@ int CloudDBProxy::StopCloudSync()
 int CloudDBProxy::HasCloudUpdate(const std::string &tableName, const std::string &previousCloudWaterMark,
     bool &hasCloudUpdate)
 {
-    hasCloudUpdate = false;
+    hasCloudUpdate = true;
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
         LOGE("[CloudDBProxy] HasCloudUpdate cloud db is nullptr");

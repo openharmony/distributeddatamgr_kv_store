@@ -433,6 +433,9 @@ private:
     int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 
+    std::string BuildWhereClauseForCloudSync(const std::string &gidStr, const std::set<std::string> &pkSet,
+        const std::string &tableName, bool queryByPk) const;
+
     std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
         const std::string &tableName, bool queryByPk = true);
 
@@ -453,8 +456,8 @@ private:
     int BindValueToUpdateLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
         const std::vector<std::string> &colNames, bool allowPrimaryKeyEmpty, sqlite3_stmt *updateLogStmt);
 
-    int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
-        const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
+    int GetStatementForCloudSyncDelete(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
+        const VBucket &vBucket, sqlite3_stmt *&stmt);
 
     int DeleteCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable);
@@ -558,9 +561,6 @@ private:
     int QueryCount(const std::string &tableName, int64_t &count);
 
     int GetUploadCountInner(const Timestamp &timestamp, SqliteQueryHelper &helper, std::string &sql, int64_t &count);
-
-    int LogicDeleteCloudData(const std::string &tableName, const VBucket &vBucket,
-        const TableSchema &tableSchema, const TrackerTable &trackerTable);
 
     bool AbortGetDownloadAssetGidIfNeed(const TableSchema &tableSchema, const std::string &gid, bool abortWithLimit,
         uint32_t &count);

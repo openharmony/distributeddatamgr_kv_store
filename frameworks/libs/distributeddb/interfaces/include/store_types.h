@@ -203,6 +203,7 @@ struct TableProcessInfo {
 enum class CloudErrorAction : uint32_t {
     ACTION_DEFAULT = 0,
     ACTION_RETRY_SYNC_TASK = 1,
+    ACTION_BUTT, // invalid cloud error action
 };
 
 struct CloudErrorInfo {

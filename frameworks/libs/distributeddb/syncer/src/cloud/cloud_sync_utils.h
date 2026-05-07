@@ -179,6 +179,9 @@ public:
 
     static void GetDownloadListIfNeed(DownloadList &changeList, const DownloadList &downloadList,
         bool isNeedDownloadAssets);
+
+    static void FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend,
+        ICloudSyncer::InnerProcessInfo &info);
 private:
     static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
         ChangedData &changedData);
