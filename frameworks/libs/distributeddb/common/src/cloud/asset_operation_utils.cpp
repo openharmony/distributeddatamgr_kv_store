@@ -364,4 +364,9 @@ bool AssetOperationUtils::IsAssetToDownload(const Asset &asset)
     auto lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
     return lowStatus == static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD);
 }
+
+void AssetOperationUtils::CopyAsset(const Asset &from, Asset &to)
+{
+    to = from;
+}
 }

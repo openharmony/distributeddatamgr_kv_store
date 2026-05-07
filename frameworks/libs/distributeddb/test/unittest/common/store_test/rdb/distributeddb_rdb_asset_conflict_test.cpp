@@ -29,10 +29,12 @@ public:
     void TearDown() override;
 protected:
     static constexpr const char *CLOUD_SYNC_TABLE_A = "CLOUD_SYNC_TABLE_A";
-    void InitTables(const std::string &table = CLOUD_SYNC_TABLE_A);
-    void InitSchema(const StoreInfo &info, const std::string &table = CLOUD_SYNC_TABLE_A);
+    static constexpr const char *CLOUD_SYNC_TABLE_B = "CLOUD_SYNC_TABLE_B";
+    void InitTables();
+    void InitSchema(const StoreInfo &info);
     void InitDistributedTable(const StoreInfo &info1, const StoreInfo &info2,
-        const std::vector<std::string> &tables = {CLOUD_SYNC_TABLE_A});
+        const std::vector<std::string> &tables = {CLOUD_SYNC_TABLE_A, CLOUD_SYNC_TABLE_B});
+    Assets CreateAssets(int64_t id, int64_t assetTime);
     Asset CreateAsset(int64_t id, int64_t assetTime);
     void InsertCloudData(int64_t begin, int64_t count, const std::string &tableName,
         int64_t recordTime = 0, int64_t assetTime = 0);
@@ -59,28 +61,38 @@ void DistributedDBRDBAssetConflictTest::TearDown()
     RDBGeneralUt::TearDown();
 }
 
-void DistributedDBRDBAssetConflictTest::InitTables(const std::string &table)
+void DistributedDBRDBAssetConflictTest::InitTables()
 {
-    std::string sql = "CREATE TABLE IF NOT EXISTS " + table + "("
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + std::string(CLOUD_SYNC_TABLE_A) + "("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "intCol INTEGER, stringCol1 TEXT, stringCol2 TEXT,"
         "assetsCol ASSETS)";
     EXPECT_EQ(ExecuteSQL(sql, info1_), E_OK);
     EXPECT_EQ(ExecuteSQL(sql, info2_), E_OK);
+    sql = "CREATE TABLE IF NOT EXISTS " + std::string(CLOUD_SYNC_TABLE_B) + "("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "assetCol ASSET)";
+    EXPECT_EQ(ExecuteSQL(sql, info1_), E_OK);
+    EXPECT_EQ(ExecuteSQL(sql, info2_), E_OK);
 }
 
-void DistributedDBRDBAssetConflictTest::InitSchema(const StoreInfo &info, const std::string &table)
+void DistributedDBRDBAssetConflictTest::InitSchema(const StoreInfo &info)
 {
-    const std::vector<UtFieldInfo> filedInfo = {
+    const std::vector<UtFieldInfo> filedInfoA = {
         {{"id", TYPE_INDEX<int64_t>, true, true}, false},
         {{"intCol", TYPE_INDEX<int64_t>, false, true}, false},
         {{"stringCol1", TYPE_INDEX<std::string>, false, true}, false},
         {{"stringCol2", TYPE_INDEX<std::string>, false, true}, false},
         {{"assetsCol", TYPE_INDEX<Assets>, false, true}, false},
     };
+    const std::vector<UtFieldInfo> filedInfoB = {
+            {{"id", TYPE_INDEX<int64_t>, true, true}, false},
+            {{"assetCol", TYPE_INDEX<Asset>, false, true}, false},
+    };
     UtDateBaseSchemaInfo schemaInfo = {
         .tablesInfo = {
-            {.name = table, .fieldInfo = filedInfo}
+            {.name = CLOUD_SYNC_TABLE_A, .fieldInfo = filedInfoA},
+            {.name = CLOUD_SYNC_TABLE_B, .fieldInfo = filedInfoB}
         }
     };
     RDBGeneralUt::SetSchemaInfo(info, schemaInfo);
@@ -93,6 +105,11 @@ void DistributedDBRDBAssetConflictTest::InitDistributedTable(const StoreInfo &in
     RDBGeneralUt::SetCloudDbConfig(info2);
     ASSERT_EQ(SetDistributedTables(info1, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
     ASSERT_EQ(SetDistributedTables(info2, tables, TableSyncType::CLOUD_COOPERATION), E_OK);
+}
+
+Assets DistributedDBRDBAssetConflictTest::CreateAssets(int64_t id, int64_t assetTime)
+{
+    return {CreateAsset(id, assetTime)};
 }
 
 Asset DistributedDBRDBAssetConflictTest::CreateAsset(int64_t id, int64_t assetTime)
@@ -120,11 +137,15 @@ void DistributedDBRDBAssetConflictTest::InsertCloudData(int64_t begin, int64_t c
         int num = 10;
         VBucket record;
         record["id"] = i;
-        record["intCol"] = i * num;
-        record["stringCol1"] = "cloud_insert_" + std::to_string(i);
-        record["stringCol2"] = "cloud_insert_str2_" + std::to_string(i);
-        record["uuidCol"] = "uuid_" + std::to_string(i);
-        record["assetsCol"] = Assets { CreateAsset(i, assetTime) };
+        if (tableName == CLOUD_SYNC_TABLE_A) {
+            record["intCol"] = i * num;
+            record["stringCol1"] = "cloud_insert_" + std::to_string(i);
+            record["stringCol2"] = "cloud_insert_str2_" + std::to_string(i);
+            record["uuidCol"] = "uuid_" + std::to_string(i);
+            record["assetsCol"] = CreateAssets(i, assetTime);
+        } else {
+            record["assetCol"] = CreateAsset(i, assetTime);
+        }
         records.push_back(std::move(record));
 
         VBucket extend;
@@ -300,7 +321,7 @@ HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy006, TestSize.Lev
     ASSERT_NO_FATAL_FAILURE(CloudBlockSync(info1_, query));
     std::string sql = std::string("SELECT assetsCol FROM ").append(CLOUD_SYNC_TABLE_A);
     EXPECT_NO_FATAL_FAILURE(CheckAssets(info1_, sql, false, [](const Asset &asset) {
-        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::INSERT));
+        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::NORMAL));
     }));
     auto loader = GetVirtualAssetLoader();
     ASSERT_NE(loader, nullptr);
@@ -363,6 +384,50 @@ HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy008, TestSize.Lev
     EXPECT_EQ(loader->GetBatchDownloadCount(), 1);
     auto cloud = GetVirtualCloudDb();
     EXPECT_EQ(cloud->GetUpdateCount(), 0);
+}
+
+/**
+ * @tc.name: AssetConflictPolicy009
+ * @tc.desc: Test asset col in cloud sync.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy009, TestSize.Level0)
+{
+    CloudSyncConfig config = {
+        .assetPolicy = AssetConflictPolicy::CONFLICT_POLICY_TIME_FIRST
+    };
+    ASSERT_NO_FATAL_FAILURE(SetCloudSyncConfig(info1_, config));
+    // set cloud data modifyTime to 0 and make sure record conflict result is local win
+    const int begin = 0;
+    const int count = 1;
+    ASSERT_EQ(InsertLocalDBData(begin, count, info1_), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InsertCloudData(begin, count, CLOUD_SYNC_TABLE_B, INT64_MAX, 0));
+    auto cloud = GetVirtualCloudDb();
+    ASSERT_NE(cloud, nullptr);
+    std::atomic<int> uploadCount = 0;
+    cloud->ForkBeforeBatchUpdate([&uploadCount](const std::string &, std::vector<VBucket> &record,
+        std::vector<VBucket> &, bool isDelete) {
+        uploadCount++;
+        for (const auto &item : record) {
+            auto iter = item.find("assetCol");
+            ASSERT_NE(iter, item.end());
+            ASSERT_EQ(iter->second.index(), TYPE_INDEX<Asset>);
+            auto asset = std::get<Asset>(iter->second);
+            EXPECT_EQ(asset.status, AssetStatus::UPDATE);
+        }
+    });
+    Query query = Query::Select().FromTable({CLOUD_SYNC_TABLE_B});
+    ASSERT_NO_FATAL_FAILURE(CloudBlockSync(info1_, query));
+    cloud->ForkBeforeBatchUpdate(nullptr);
+    std::string sql = std::string("SELECT assetCol FROM ").append(CLOUD_SYNC_TABLE_B);
+    EXPECT_NO_FATAL_FAILURE(CheckAssets(info1_, sql, false, [](const Asset &asset) {
+        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::NORMAL));
+    }));
+    auto loader = GetVirtualAssetLoader();
+    ASSERT_NE(loader, nullptr);
+    EXPECT_EQ(loader->GetBatchDownloadCount(), 0);
+    EXPECT_EQ(uploadCount, 1);
 }
 } // namespace
 #endif // USE_DISTRIBUTEDDB_CLOUD

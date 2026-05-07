@@ -419,7 +419,11 @@ int CloudSyncTagAssets::TagDownloadAssetsTimeFirst(const AssetRecordInfo &info, 
     }
     AssetOperationUtils::FilterDeleteAsset(param.downloadData.data[idx]);
     std::map<std::string, Assets> assetsMap;
-    TagDownloadAssetsTimeFirstInner(info, localAssetInfo, param.downloadData.data[idx], assetsMap);
+    bool isNeedKeepFlag = TagDownloadAssetsTimeFirstInner(info, localAssetInfo, param.downloadData.data[idx],
+        assetsMap);
+    if (isNeedKeepFlag && param.downloadData.opType[idx] == OpType::UPDATE) {
+        param.downloadData.opType[idx] = OpType::INTEGRATE;
+    }
     AssetOperationUtils::SetToDownload(info.isSkipDownloadAsset, param.downloadData.data[idx]);
     auto strategy = CloudSyncUtils::CalOpType(param, idx);
     if (!param.isSinglePrimaryKey && strategy == OpType::INSERT) {
@@ -554,7 +558,7 @@ Asset MarkAssetAsInsertWithTemp(const Asset &asset)
 // Process cloud assets to local assets based on time-first conflict resolution policy
 // Compare hash first, if same skip; if different compare modifyTime
 Assets ProcessCloudAssetsToLocal(const Assets &cloudAssets, const Assets &localAssets,
-    const std::map<std::string, size_t> &localIndexMap)
+    const std::map<std::string, size_t> &localIndexMap, bool &isNeedKeepFlag)
 {
     Assets result;
     for (const auto &cloudAsset : cloudAssets) {
@@ -577,6 +581,11 @@ Assets ProcessCloudAssetsToLocal(const Assets &cloudAssets, const Assets &localA
                 MarkAsset(AssetOpType::UPDATE,
                     static_cast<AssetStatus>(AssetStatus::DOWNLOADING), updateAsset);
                 result.push_back(updateAsset);
+            } else {
+                isNeedKeepFlag = true;
+                Asset updateAsset = localAsset;
+                updateAsset.assetId = cloudAsset.assetId;
+                result.push_back(updateAsset);
             }
         }
     }
@@ -585,7 +594,7 @@ Assets ProcessCloudAssetsToLocal(const Assets &cloudAssets, const Assets &localA
 
 // Process single cloud asset to local asset based on time-first conflict resolution policy
 // Compare hash first, if same skip; if different compare modifyTime
-Asset ProcessCloudAssetToLocal(const Asset &cloudAsset, const Asset &localAsset)
+Asset ProcessCloudAssetToLocal(const Asset &cloudAsset, const Asset &localAsset, bool &isNeedKeepFlag)
 {
     if (localAsset.hash == cloudAsset.hash) {
         Asset noChangeAsset = localAsset;
@@ -601,10 +610,10 @@ Asset ProcessCloudAssetToLocal(const Asset &cloudAsset, const Asset &localAsset)
         return updateAsset;
     }
     // Local asset is newer or same time, return no change
-    Asset noChangeAsset = localAsset;
-    noChangeAsset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
-    noChangeAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
-    return noChangeAsset;
+    isNeedKeepFlag = true;
+    Asset updateAsset = localAsset;
+    updateAsset.assetId = cloudAsset.assetId;
+    return updateAsset;
 }
 
 // Process cloud assets to local assets based on temp path conflict resolution policy
@@ -669,7 +678,7 @@ Asset ProcessCloudAssetToLocalTempPath(const Asset &cloudAsset, const Asset &loc
 }
 
 // Handle conflict when both local and cloud have Assets type
-static void HandleAssetsConflict(const Field &field, VBucket &local, VBucket &cloud,
+bool HandleAssetsConflict(const Field &field, VBucket &local, VBucket &cloud,
     std::map<std::string, Assets> &assetsMap, bool useTempPath)
 {
     auto localVal = local.find(field.colName);
@@ -677,11 +686,12 @@ static void HandleAssetsConflict(const Field &field, VBucket &local, VBucket &cl
     auto &localAssets = std::get<Assets>(localVal->second);
     auto &cloudAssets = std::get<Assets>(cloudVal->second);
     std::map<std::string, size_t> localIndexMap = CloudStorageUtils::GenAssetsIndexMap(localAssets);
+    bool isNeedKeepFlag = false;
     Assets changedAssets = useTempPath ?
         ProcessCloudAssetsToLocalTempPath(cloudAssets, localAssets, localIndexMap) :
-        ProcessCloudAssetsToLocal(cloudAssets, localAssets, localIndexMap);
+        ProcessCloudAssetsToLocal(cloudAssets, localAssets, localIndexMap, isNeedKeepFlag);
     if (changedAssets.empty()) {
-        return;
+        return isNeedKeepFlag;
     }
 
     assetsMap[field.colName] = changedAssets;
@@ -690,35 +700,33 @@ static void HandleAssetsConflict(const Field &field, VBucket &local, VBucket &cl
         auto assetIt = std::find_if(cloudAssetsRef.begin(), cloudAssetsRef.end(),
             [&asset](const Asset &a) { return a.name == asset.name; });
         if (assetIt != cloudAssetsRef.end()) {
-            assetIt->hash = asset.hash;
-            assetIt->assetId = asset.assetId;
-            assetIt->modifyTime = asset.modifyTime;
-            assetIt->flag = asset.flag;
-            assetIt->status = asset.status;
-            assetIt->timestamp = asset.timestamp;
+            AssetOperationUtils::CopyAsset(asset, *assetIt);
         }
     }
+    return isNeedKeepFlag;
 }
 
 // Handle conflict when both local and cloud have Asset type
-void HandleAssetConflict(const Field &field, VBucket &local, VBucket &cloud,
+bool HandleAssetConflict(const Field &field, VBucket &local, VBucket &cloud,
     std::map<std::string, Assets> &assetsMap, bool useTempPath)
 {
     auto localVal = local.find(field.colName);
     auto cloudVal = cloud.find(field.colName);
     auto &localAsset = std::get<Asset>(localVal->second);
     auto &cloudAsset = std::get<Asset>(cloudVal->second);
+    bool isNeedKeepFlag = false;
     Asset changedAsset = useTempPath ?
         ProcessCloudAssetToLocalTempPath(cloudAsset, localAsset) :
-        ProcessCloudAssetToLocal(cloudAsset, localAsset);
+        ProcessCloudAssetToLocal(cloudAsset, localAsset, isNeedKeepFlag);
     if (changedAsset.flag != static_cast<uint32_t>(AssetOpType::NO_CHANGE)) {
         assetsMap[field.colName] = Assets{changedAsset};
     }
     cloud[field.colName] = changedAsset;
+    return isNeedKeepFlag;
 }
 
 // Handle asset field conflict for both Asset and Assets types
-void HandleAssetFieldConflict(const Field &field, VBucket &local, VBucket &cloud,
+bool HandleAssetFieldConflict(const Field &field, VBucket &local, VBucket &cloud,
     std::map<std::string, Assets> &assetsMap, bool useTempPath)
 {
     bool localHasAssets = IsDataContainField<Assets>(field.colName, local);
@@ -726,14 +734,16 @@ void HandleAssetFieldConflict(const Field &field, VBucket &local, VBucket &cloud
     bool cloudHasAssets = IsDataContainField<Assets>(field.colName, cloud);
     bool cloudHasAsset = IsDataContainField<Asset>(field.colName, cloud);
     if ((!localHasAssets && !localHasAsset) || (!cloudHasAssets && !cloudHasAsset)) {
-        return;
+        return false;
     }
 
+    bool isNeedKeepFlag = false;
     if (localHasAssets && cloudHasAssets) {
-        HandleAssetsConflict(field, local, cloud, assetsMap, useTempPath);
+        isNeedKeepFlag = HandleAssetsConflict(field, local, cloud, assetsMap, useTempPath) || isNeedKeepFlag;
     } else if (localHasAsset && cloudHasAsset) {
-        HandleAssetConflict(field, local, cloud, assetsMap, useTempPath);
+        isNeedKeepFlag = HandleAssetConflict(field, local, cloud, assetsMap, useTempPath) || isNeedKeepFlag;
     }
+    return isNeedKeepFlag;
 }
 } // namespace
 
@@ -806,9 +816,10 @@ void CloudSyncTagAssets::TagDownloadAssetsTempPathInner(const AssetRecordInfo &i
 
 // Tag download assets with time-first conflict resolution policy
 // Compare local and cloud asset data, resolve conflicts based on modifyTime
-void CloudSyncTagAssets::TagDownloadAssetsTimeFirstInner(const AssetRecordInfo &info, VBucket &local,
+bool CloudSyncTagAssets::TagDownloadAssetsTimeFirstInner(const AssetRecordInfo &info, VBucket &local,
     VBucket &cloud, std::map<std::string, Assets> &assetsMap)
 {
+    bool isNeedKeepFlag = false;
     for (const auto &field : info.assetFields) {
         auto localVal = local.find(field.colName);
         auto cloudVal = cloud.find(field.colName);
@@ -832,8 +843,9 @@ void CloudSyncTagAssets::TagDownloadAssetsTimeFirstInner(const AssetRecordInfo &
             continue;
         }
         // Both local and cloud exist: compare and resolve conflicts based on modifyTime
-        HandleAssetFieldConflict(field, local, cloud, assetsMap, false);
+        isNeedKeepFlag = HandleAssetFieldConflict(field, local, cloud, assetsMap, false) || isNeedKeepFlag;
     }
+    return isNeedKeepFlag;
 }
 
 void CloudSyncTagAssets::HandleAssetFieldCloudNoneExist(const Field &field, const VBucket &local, const Type &localType,
