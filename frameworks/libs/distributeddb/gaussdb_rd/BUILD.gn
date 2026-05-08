@@ -103,11 +103,8 @@ ohos_static_library("gaussdb_rd") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
-  ]
-
-  public_external_deps = [
     "cJSON:cjson",
-    "sqlite:sqlite",
+    "sqlite:sqlite"
   ]
 
   subsystem_name = "distributeddatamgr"
