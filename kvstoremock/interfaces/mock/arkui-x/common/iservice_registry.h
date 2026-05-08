@@ -12,28 +12,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-#ifndef ABILITY_RUNTIME_NAPI_BASE_CONTEXT_H
-#define ABILITY_RUNTIME_NAPI_BASE_CONTEXT_H
- 
-#include <memory>
- 
-#include "napi/native_api.h"
-#ifndef CROSSPLATFORM
+
+#ifndef DISTRIBUTED_KVSTORE_MOCK_ISSERVICE_REGISTRY_H
+#define DISTRIBUTED_KVSTORE_MOCK_ISSERVICE_REGISTRY_H
+
+#include <iremote_broker.h>
+#include "if_system_ability_manager.h"
+
 namespace OHOS {
-namespace AppExecFwk {
-class Ability;
-}
-namespace AbilityRuntime {
-napi_value* GetFAModeContextClassObject();
- 
-napi_status IsStageContext(napi_env env, napi_value object, bool& stageMode);
- 
-class Context;
-std::shared_ptr<Context> GetStageModeContext(napi_env env, napi_value object);
- 
-AppExecFwk::Ability* GetCurrentAbility(napi_env env);
-}  // namespace AbilityRuntime
+class SystemAbilityManagerClient {
+public:
+    SystemAbilityManagerClient() = default;
+    ~SystemAbilityManagerClient() = default;
+
+    static SystemAbilityManagerClient& GetInstance()
+    {
+        static auto instance = new (std::nothrow) SystemAbilityManagerClient();
+        return *instance;
+    }
+
+    sptr<ISystemAbilityManager> GetSystemAbilityManager()
+    {
+        return nullptr;
+    }
+};
 }  // namespace OHOS
-#endif
-#endif  // ABILITY_RUNTIME_NAPI_BASE_CONTEXT_H
+#endif  // DISTRIBUTED_KVSTORE_MOCK_ISSERVICE_REGISTRY_H
