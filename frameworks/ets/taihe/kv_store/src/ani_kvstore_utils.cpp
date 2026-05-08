@@ -210,7 +210,7 @@ DistributedKv::SubscribeType SubscribeTypeToNative(::ohos::data::distributedkvst
     } else if (data[0] == ani_kvstoreutils::FLOAT) {
         resultType = ani_kvstoreutils::DOUBLE;
         uint32_t tmp4flt = be32toh(*reinterpret_cast<uint32_t*>(&(real[0])));
-        float tmp = *reinterpret_cast<float*>((void*)(&tmp4flt));
+        float tmp = *reinterpret_cast<float*>(&tmp4flt);
         return ::ohos::data::distributedkvstore::ValueUnion::make_F64(tmp);
     } else if (data[0] == ani_kvstoreutils::BYTE_ARRAY) {
         auto tmp = std::vector<uint8_t>(real.begin(), real.end());
@@ -219,7 +219,7 @@ DistributedKv::SubscribeType SubscribeTypeToNative(::ohos::data::distributedkvst
         return ::ohos::data::distributedkvstore::ValueUnion::make_BOOL(real[0]);
     } else if (data[0] == ani_kvstoreutils::DOUBLE) {
         uint64_t tmp4dbl = be64toh(*reinterpret_cast<uint64_t*>(&(real[0])));
-        double tmp = *reinterpret_cast<double*>((void*)(&tmp4dbl));
+        double tmp = *reinterpret_cast<double*>(&tmp4dbl);
         return ::ohos::data::distributedkvstore::ValueUnion::make_F64(tmp);
     } else if (data[0] == ani_kvstoreutils::STRING) {
         auto tmp = std::string(real.begin(), real.end());
@@ -412,7 +412,7 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
 
 int32_t GetTaiheValueTypeRealValue(ValueType::key_t key)
 {
-    int32_t keyInt = (int32_t)key;
+    int32_t keyInt = static_cast<int32_t>(key);
     switch (keyInt) {
         case static_cast<int32_t>(ValueType::key_t::STRING):
         case static_cast<int32_t>(ValueType::key_t::BYTE_ARRAY):
