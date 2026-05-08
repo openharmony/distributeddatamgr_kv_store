@@ -13,9 +13,14 @@
  * limitations under the License.
  */
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
 #include "rdb_general_ut.h"
 #include "sqlite_relational_utils.h"
 #include "relational_store_client.h"
+#include "relational_store_client_utils.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -26,6 +31,10 @@ const std::string g_deviceA = "dev1";
 const std::string g_deviceB = "dev2";
 const std::string g_deviceC = "dev3";
 
+constexpr size_t MAX_SLOT_NUM = 100;
+constexpr size_t MATRIX_FILE_SLOT_SIZE = sizeof(uint64_t);
+constexpr size_t MATRIX_FILE_SIZE = MAX_SLOT_NUM * MATRIX_FILE_SLOT_SIZE;
+
 class DistributedDBBasicRDBTest : public RDBGeneralUt {
 public:
     void SetUp() override;
@@ -33,6 +42,7 @@ public:
     static UtDateBaseSchemaInfo GetDefaultSchema();
     static UtTableSchemaInfo GetTableSchema(const std::string &table, bool noPk = false);
     void PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count);
+    std::string InitMatrixFile();
 protected:
     static constexpr const char *DEVICE_SYNC_TABLE = "DEVICE_SYNC_TABLE";
     static constexpr const char *CLOUD_SYNC_TABLE = "CLOUD_SYNC_TABLE";
@@ -67,6 +77,24 @@ UtTableSchemaInfo DistributedDBBasicRDBTest::GetTableSchema(const std::string &t
     }
     tableSchema.fieldInfo.push_back(field);
     return tableSchema;
+}
+
+std::string DistributedDBBasicRDBTest::InitMatrixFile()
+{
+    std::string matrixFilePath = GetTestDir() + "/matrixFile";
+
+    int fd = open(matrixFilePath.c_str(), O_RDWR | O_CREAT, 0660);
+    if (fd == -1) {
+        return "";
+    }
+
+    int ret = ftruncate(fd, MATRIX_FILE_SIZE);
+    close(fd);
+    if (ret != 0) {
+        unlink(matrixFilePath.c_str());
+        return "";
+    }
+    return matrixFilePath;
 }
 
 void DistributedDBBasicRDBTest::PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count)
@@ -518,5 +546,216 @@ HWTEST_F(DistributedDBBasicRDBTest, UpdateDataLog001, TestSize.Level1)
     updateOption.condition.logCondition = SelectCondition{"1=1", {}};
     updateOption.content.flag = LogFlag::LOCAL;
     EXPECT_EQ(UpdateDataLog(db, updateOption), DISTRIBUTED_SCHEMA_NOT_FOUND);
+}
+
+/**
+ * @tc.name: SetTrackerMatrixInfoTest001
+ * @tc.desc: Test set tracker matrix info on success
+ * @tc.type: FUNC
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetTrackerMatrixInfoTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
+     */
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(InitDatabase(info1), E_OK);
+    auto db = GetSqliteHandle(info1);
+    ASSERT_NE(db, nullptr);
+
+    /**
+     * @tc.steps: step2. SetTrackerMatrixInfo with normal params.
+     * @tc.expected: step2. Ok
+     */
+    MatrixFileInfo info = {.matrixFilePath = "filePath"};
+    EXPECT_EQ(SetTrackerMatrixInfo(db, info), OK);
+}
+
+/**
+ * @tc.name: SetTrackerMatrixInfoTest002
+ * @tc.desc: Test set tracker matrix info when params invalid
+ * @tc.type: FUNC
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetTrackerMatrixInfoTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
+     */
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(InitDatabase(info1), E_OK);
+    auto db = GetSqliteHandle(info1);
+    ASSERT_NE(db, nullptr);
+
+    /**
+     * @tc.steps: step2. SetTrackerMatrixInfo with empty file path.
+     * @tc.expected: step2. INVALID_ARGS
+     */
+    MatrixFileInfo info = {.matrixFilePath = ""};
+    EXPECT_EQ(SetTrackerMatrixInfo(db, info), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. SetTrackerMatrixInfo with empty db.
+     * @tc.expected: step3. INVALID_ARGS
+     */
+    info = {.matrixFilePath = "filePath"};
+    EXPECT_EQ(SetTrackerMatrixInfo(nullptr, info), INVALID_ARGS);
+}
+
+/**
+ * @tc.name: UpdateMatrixFileTest001
+ * @tc.desc: Test update matrix file
+ * @tc.type: FUNC
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBBasicRDBTest, UpdateMatrixFileTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
+     */
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(InitDatabase(info1), E_OK);
+    auto db = GetSqliteHandle(info1);
+    ASSERT_NE(db, nullptr);
+
+    /**
+     * @tc.steps: step2. Init matrix file.
+     * @tc.expected: step2. OK
+     */
+    std::string matrixFilePath = InitMatrixFile();
+    ASSERT_FALSE(matrixFilePath.empty());
+
+    /**
+     * @tc.steps: step3. Set matrix info.
+     * @tc.expected: step3. OK
+     */
+    std::map<std::string, uint64_t> matrixTables = {
+        {"table1", 0u},
+        {"table2", 1u}
+    };
+    MatrixFileInfo info = {.matrixFilePath = matrixFilePath, .matrixTables = matrixTables, .fullSyncOffset = 2};
+    EXPECT_EQ(SetTrackerMatrixInfo(db, info), OK);
+
+    /**
+     * @tc.steps: step4. Update matrix file for table1.
+     * @tc.expected: step4. OK
+     */
+    MatrixFileUpdateConfig config = {.isFullSync = false};
+    EXPECT_EQ(UpdateMatrixFile(db, {"table1"}, config), OK);
+
+    int fd = -1;
+    uint64_t *filePtr = RelationalStoreClientUtils::MmapMatrixFile(info.matrixFilePath, MATRIX_FILE_SIZE, fd);
+    ASSERT_NE(filePtr, nullptr);
+    EXPECT_NE(fd, -1);
+    EXPECT_EQ(filePtr[0], 1u);
+    EXPECT_EQ(filePtr[1], 0u);
+    EXPECT_EQ(filePtr[2], 0u);
+
+    /**
+     * @tc.steps: step5. Clean up.
+     * @tc.expected: step5. OK
+     */
+    munmap(filePtr, MATRIX_FILE_SIZE);
+    filePtr = nullptr;
+
+    close(fd);
+    unlink(matrixFilePath.c_str());
+}
+
+/**
+ * @tc.name: UpdateMatrixFileTest002
+ * @tc.desc: Test update matrix file and set full sync
+ * @tc.type: FUNC
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBBasicRDBTest, UpdateMatrixFileTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
+     */
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(InitDatabase(info1), E_OK);
+    auto db = GetSqliteHandle(info1);
+    ASSERT_NE(db, nullptr);
+
+    /**
+     * @tc.steps: step2. Init matrix file.
+     * @tc.expected: step2. OK
+     */
+    std::string matrixFilePath = InitMatrixFile();
+    ASSERT_FALSE(matrixFilePath.empty());
+
+    /**
+     * @tc.steps: step3. Set matrix info.
+     * @tc.expected: step3. OK
+     */
+    std::map<std::string, uint64_t> matrixTables = {
+        {"table1", 0u},
+        {"table2", 1u}
+    };
+    MatrixFileInfo info = {.matrixFilePath = matrixFilePath, .matrixTables = matrixTables, .fullSyncOffset = 2};
+    EXPECT_EQ(SetTrackerMatrixInfo(db, info), OK);
+
+    /**
+     * @tc.steps: step4. Update matrix file for both tables.
+     * @tc.expected: step4. OK
+     */
+    MatrixFileUpdateConfig config = {.isFullSync = true};
+    EXPECT_EQ(UpdateMatrixFile(db, {"table1", "table2"}, config), OK);
+
+    int fd = -1;
+    uint64_t *filePtr = RelationalStoreClientUtils::MmapMatrixFile(info.matrixFilePath, MATRIX_FILE_SIZE, fd);
+    ASSERT_NE(filePtr, nullptr);
+    EXPECT_NE(fd, -1);
+    EXPECT_EQ(filePtr[0], 1u);
+    EXPECT_EQ(filePtr[1], 1u);
+    EXPECT_EQ(filePtr[2], 1u);
+
+    /**
+     * @tc.steps: step5. Clean up.
+     * @tc.expected: step5. OK
+     */
+    munmap(filePtr, MATRIX_FILE_SIZE);
+    filePtr = nullptr;
+
+    close(fd);
+    unlink(matrixFilePath.c_str());
+}
+
+/**
+ * @tc.name: UpdateMatrixFileTest003
+ * @tc.desc: Test update matrix file when params invalid
+ * @tc.type: FUNC
+ * @tc.author: suyuchen
+ */
+HWTEST_F(DistributedDBBasicRDBTest, UpdateMatrixFileTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.expected: step1. Ok
+     */
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(InitDatabase(info1), E_OK);
+    auto db = GetSqliteHandle(info1);
+    ASSERT_NE(db, nullptr);
+
+    /**
+     * @tc.steps: step2. Update matrix file.
+     * @tc.expected: step2. NOT FOUND
+     */
+    EXPECT_EQ(UnsetTrackerMatrixInfo(db), OK);
+    MatrixFileUpdateConfig config = {.isFullSync = false};
+    EXPECT_EQ(UpdateMatrixFile(db, {"table1", "table2"}, config), NOT_FOUND);
+
+    /**
+     * @tc.steps: step3. Update matrix file when db is null.
+     * @tc.expected: step3. INVALID ARGS
+     */
+    EXPECT_EQ(UpdateMatrixFile(nullptr, {"table1", "table2"}, config), INVALID_ARGS);
 }
 } // namespace

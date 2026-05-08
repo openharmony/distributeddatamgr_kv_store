@@ -14,6 +14,11 @@
  */
 
 #include "relational_store_client_utils.h"
+
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -21,6 +26,10 @@
 #include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
+constexpr size_t MAX_SLOT_NUM = 100;   // Max tables of each matrix file
+constexpr size_t MATRIX_FILE_SLOT_SIZE = sizeof(uint64_t);
+constexpr size_t MATRIX_FILE_SIZE = MAX_SLOT_NUM * MATRIX_FILE_SLOT_SIZE;
+
 int RelationalStoreClientUtils::UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option)
 {
     auto errCode = CheckUpdateOption(db, option);
@@ -303,5 +312,106 @@ int RelationalStoreClientUtils::BindDataLogCondition(sqlite3_stmt *stmt,
         }
     }
     return E_OK;
+}
+
+uint64_t *RelationalStoreClientUtils::MmapMatrixFile(const std::string &path, size_t mmapSize, int32_t &fileFd)
+{
+    if (mmapSize > MATRIX_FILE_SIZE) {
+        LOGE("[RDBClientUtils] mapped size exceed limit, size: %zu", mmapSize);
+        return nullptr;
+    }
+
+    char *canonicalPath = realpath(path.c_str(), nullptr);
+    if (canonicalPath == nullptr) {
+        LOGE("[RDBClientUtils] File path is wrong");
+        return nullptr;
+    }
+
+    std::string realFilePath(canonicalPath);
+    free(canonicalPath);
+    canonicalPath = nullptr;
+
+    int fd = open(realFilePath.c_str(), O_RDWR);
+    if (fd < 0) {
+        LOGE("[RDBClientUtils] Open matrix file err: %d", errno);
+        return nullptr;
+    }
+    void *statusData = mmap(nullptr, mmapSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (statusData == MAP_FAILED) {
+        LOGE("[RDBClientUtils] mmap err: %d, size: %zu", errno, mmapSize);
+        close(fd);
+        return nullptr;
+    }
+    int errCode = madvise(statusData, mmapSize, MADV_RANDOM);
+    if (errCode != 0) {
+        LOGE("[RDBClientUtils] madvise err: %d", errno);
+        munmap(statusData, mmapSize);
+        close(fd);
+        return nullptr;
+    }
+    fileFd = fd;
+    return static_cast<uint64_t *>(statusData);
+}
+
+std::vector<uint64_t> RelationalStoreClientUtils::GetMatrixTableIndexs(const MatrixFileInfo &matrixFileInfo,
+    const std::vector<std::string> &changedData)
+{
+    std::vector<uint64_t> indexList;
+    for (const auto &tableName : changedData) {
+        auto it = matrixFileInfo.matrixTables.find(tableName);
+        if (it == matrixFileInfo.matrixTables.end()) {
+            LOGW("[RDBClientUtils] Table not registered, %s", DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            continue;
+        }
+        uint64_t index = it->second;
+        if (index >= MAX_SLOT_NUM) {
+            LOGW("[RDBClientUtils] Table index out of range %zu, limit: %zu, table: %s", index, MAX_SLOT_NUM,
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+            continue;
+        }
+        indexList.push_back(index);
+    }
+    return indexList;
+}
+
+int RelationalStoreClientUtils::UpdateMatrixFile(const MatrixFileInfo &fileInfo,
+    const std::vector<std::string> &changedData, const MatrixFileUpdateConfig &config)
+{
+    std::vector<uint64_t> indexList = RelationalStoreClientUtils::GetMatrixTableIndexs(fileInfo, changedData);
+    if (indexList.empty() && !config.isFullSync) {
+        LOGI("[RDBClientUtils] No change, Index list empty:%d, isFull:%d", indexList.empty(), config.isFullSync);
+        return E_OK;
+    }
+    int fd = -1;
+    uint64_t *matrixMapPtr = MmapMatrixFile(fileInfo.matrixFilePath, MATRIX_FILE_SIZE, fd);
+    if (matrixMapPtr == nullptr) {
+        LOGE("[RDBClientUtils] Matrix map ptr is null");
+        return -E_SYSTEM_API_FAIL;
+    }
+
+    ResFinalizer finalizer([matrixMapPtr, fd]() {
+        close(fd);  // close file to trigger event
+        if (munmap(matrixMapPtr, MATRIX_FILE_SIZE) != 0) {
+            LOGW("[RDBClientUtils] munmap err: %d", errno);
+        }
+    });
+
+    // update matrix file content
+    for (const auto index : indexList) {
+        matrixMapPtr[index] += 1;
+    }
+    if (config.isFullSync) {
+        if (fileInfo.fullSyncOffset >= MAX_SLOT_NUM) {
+            LOGW("[RDBClientUtils] isFull offset: %zu out of range %zu", fileInfo.fullSyncOffset, MAX_SLOT_NUM);
+        } else {
+            matrixMapPtr[fileInfo.fullSyncOffset] += 1;
+        }
+    }
+    int errCode = E_OK;
+    if (msync(matrixMapPtr, MATRIX_FILE_SIZE, MS_SYNC) != 0) {
+        LOGE("[RDBClientUtils] msync err: %d", errno);
+        errCode = -E_SYSTEM_API_FAIL;
+    }
+    return errCode;
 }
 } // namespace DistributedDB

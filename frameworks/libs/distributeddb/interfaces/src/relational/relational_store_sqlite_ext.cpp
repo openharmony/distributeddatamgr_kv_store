@@ -440,6 +440,9 @@ std::mutex g_registerSqliteHookMutex;
 
 std::mutex g_createTempTriggerMutex;
 
+std::mutex g_clientMatrixInfoMutex;
+std::map<std::string, MatrixFileInfo> g_clientMatrixInfoMap;
+
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -998,16 +1001,42 @@ void ClientObserverCallback(const std::string &hashFileName)
             return;
         }
     }
-    std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
-    auto it = g_clientChangedDataMap.find(hashFileName);
-    if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
-        ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
-        TaskId taskId = DBConstant::INVALID_TASK_ID;
-        (void)DistributedDB::ThreadPoolStub::GetInstance().ScheduleTask([clientObserver, clientChangedData] {
-            ClientChangedData taskClientChangedData = clientChangedData;
-            clientObserver(taskClientChangedData);
-            }, taskId);
-        g_clientChangedDataMap[hashFileName].tableData.clear();
+    ClientChangedData clientChangedData;
+    {
+        std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
+        auto it = g_clientChangedDataMap.find(hashFileName);
+        if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
+            clientChangedData = g_clientChangedDataMap[hashFileName];
+            TaskId taskId = DBConstant::INVALID_TASK_ID;
+            (void)DistributedDB::ThreadPoolStub::GetInstance().ScheduleTask([clientObserver, clientChangedData] {
+                ClientChangedData taskClientChangedData = clientChangedData;
+                clientObserver(taskClientChangedData);
+                }, taskId);
+            g_clientChangedDataMap[hashFileName].tableData.clear();
+        }
+    }
+
+    MatrixFileInfo fileInfo;
+    {
+        std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
+        auto it = g_clientMatrixInfoMap.find(hashFileName);
+        if (it == g_clientMatrixInfoMap.end()) {
+            return;
+        }
+        fileInfo = it->second;
+    }
+
+    std::vector<std::string> changedTables;
+    for (const auto &pair : clientChangedData.tableData) {
+        if (pair.second.isTrackedDataChange) {
+            changedTables.emplace_back(pair.first);
+        }
+    }
+
+    MatrixFileUpdateConfig config = {.isFullSync = false};
+    int errCode = RelationalStoreClientUtils::UpdateMatrixFile(fileInfo, changedTables, config);
+    if (errCode != E_OK) {
+        LOGE("[ClientObserverCallback] Update matrix file err: %d", errCode);
     }
 }
 
@@ -2072,6 +2101,81 @@ DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableNa
 DistributedDB::DBStatus UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option)
 {
     return TransferDBErrno(RelationalStoreClientUtils::UpdateDataLog(db, option));
+}
+
+DistributedDB::DBStatus SetTrackerMatrixInfo(sqlite3 *db, const DistributedDB::MatrixFileInfo &matrixFileInfo)
+{
+    if (matrixFileInfo.matrixFilePath.empty()) {
+        LOGE("[SetTrackerMatrixInfo] Matrix file path empty");
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        LOGE("[SetTrackerMatrixInfo] Get db filename failed.");
+        return DistributedDB::INVALID_ARGS;
+    }
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[SetTrackerMatrixInfo] GetHashString err: %d", errCode);
+        return DistributedDB::DBStatus::INVALID_ARGS;
+    }
+
+    std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
+    g_clientMatrixInfoMap[hashFileName] = matrixFileInfo;
+    return DistributedDB::OK;
+}
+
+DistributedDB::DBStatus UnsetTrackerMatrixInfo(sqlite3 *db)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        LOGE("[UnsetTrackerMatrixInfo] Get db filename failed.");
+        return DistributedDB::INVALID_ARGS;
+    }
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[UnsetTrackerMatrixInfo] GetHashString err: %d", errCode);
+        return DistributedDB::DBStatus::INVALID_ARGS;
+    }
+
+    std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
+    g_clientMatrixInfoMap.erase(hashFileName);
+    return DistributedDB::OK;
+}
+
+DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<std::string> &changedData,
+    const DistributedDB::MatrixFileUpdateConfig &config)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        LOGE("[UpdateMatrixFile] Get db filename failed.");
+        return DistributedDB::INVALID_ARGS;
+    }
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[UpdateMatrixFile] GetHashString err: %d", errCode);
+        return DistributedDB::DBStatus::INVALID_ARGS;
+    }
+    MatrixFileInfo fileInfo;
+    {
+        std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
+        auto it = g_clientMatrixInfoMap.find(hashFileName);
+        if (it == g_clientMatrixInfoMap.end()) {
+            LOGE("[UpdateMatrixFile] Matrix file not registered");
+            return DistributedDB::DBStatus::NOT_FOUND;
+        }
+        fileInfo = it->second;
+    }
+
+    errCode = RelationalStoreClientUtils::UpdateMatrixFile(fileInfo, changedData, config);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[UpdateMatrixFile] Update matrix file err: %d", errCode);
+    }
+    return TransferDBErrno(errCode);
 }
 
 void Clean(bool isOpenSslClean)

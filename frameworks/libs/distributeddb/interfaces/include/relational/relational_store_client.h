@@ -88,6 +88,16 @@ struct UpdateOption {
     UpdateCondition condition;
     UpdateContent content;
 };
+
+struct MatrixFileInfo {
+    std::string matrixFilePath;
+    std::map<std::string, uint64_t> matrixTables;
+    uint64_t fullSyncOffset = 0u;
+};
+
+struct MatrixFileUpdateConfig {
+    bool isFullSync = false;
+};
 }
 
 DB_API DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db,
@@ -96,6 +106,13 @@ DB_API DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db,
 DB_API DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 
 DB_API DistributedDB::DBStatus UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option);
+
+DB_API DistributedDB::DBStatus SetTrackerMatrixInfo(sqlite3 *db, const DistributedDB::MatrixFileInfo &matrixFileInfo);
+
+DB_API DistributedDB::DBStatus UnsetTrackerMatrixInfo(sqlite3 *db);
+
+DB_API DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<std::string> &changedData,
+    const DistributedDB::MatrixFileUpdateConfig &config);
 
 DB_API void Clean(bool isOpenSslClean);
 #endif // RELATIONAL_STORE_CLIENT_H

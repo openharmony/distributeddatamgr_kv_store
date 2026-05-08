@@ -26,6 +26,11 @@ public:
     static int UpdateDataLog(sqlite3 *db, const UpdateOption &option);
 
     static std::pair<int, RelationalSchemaObject> GetRDBSchema(sqlite3 *db, bool isTracker);
+
+    static int UpdateMatrixFile(const MatrixFileInfo &fileInfo, const std::vector<std::string> &changedData,
+        const MatrixFileUpdateConfig &config);
+
+    static uint64_t *MmapMatrixFile(const std::string &path, size_t mmapSize, int32_t &fileFd);
 private:
     static int CheckUpdateOption(sqlite3 *db, const UpdateOption &option);
 
@@ -45,6 +50,9 @@ private:
 
     static int BindDataLogCondition(sqlite3_stmt *stmt, const std::optional<SelectCondition> &condition,
         bool isLog, int &index);
+
+    static std::vector<uint64_t> GetMatrixTableIndexs(const MatrixFileInfo &matrixFileInfo,
+        const std::vector<std::string> &changedData);
 };
 } // namespace DistributedDB
 #endif // RELATIONAL_STORE_CLIENT_UTILS_H
