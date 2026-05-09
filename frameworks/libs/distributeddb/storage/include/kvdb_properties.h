@@ -74,7 +74,7 @@ public:
 
     static const std::string SHARED_MODE;
     static const std::string READ_ONLY_MODE;
-    static const std::string PAGE_SIZE;
+    static const std::string KVDB_PAGE_SIZE;
     static const std::string INDEX_TYPE;
     static const std::string CACHE_SIZE;
 
