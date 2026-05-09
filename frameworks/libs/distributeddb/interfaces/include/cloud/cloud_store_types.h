@@ -199,5 +199,21 @@ enum class TaskType : uint32_t {
     ONLY_CLOUD_SYNC_TASK,
     BUTT
 };
+
+enum class SubDataOpType : uint32_t {
+    OP_INSERT = 0x1,
+    OP_UPDATE = 0x2,
+    OP_DELETE = 0x4,
+};
+
+enum class SubQueryType : uint32_t {
+    GET_ALL = 0,
+    GET_NEW = 1,
+};
+
+struct DBSubscibeCur {
+    SubQueryType queryType;
+    uint64_t cursor = 0;
+};
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

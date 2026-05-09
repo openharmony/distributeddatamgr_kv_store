@@ -1033,6 +1033,12 @@ distributeddb_unittest("DistributedDBRDBAbnormalTableTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBDataDonationSqlTest") {
+  sources = [
+    "unittest/common/store_test/rdb/distributeddb_data_donation_sql_test.cpp",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -1078,6 +1084,7 @@ group("unittest") {
     ":DistributedDBCommunicatorSendReceiveTest",
     ":DistributedDBCommunicatorTest",
     ":DistributedDBDataCompressionTest",
+    ":DistributedDBDataDonationSqlTest",
     ":DistributedDBDataTransformerTest",
     ":DistributedDBDeviceIdentifierTest",
     ":DistributedDBEventLoopTimerTest",

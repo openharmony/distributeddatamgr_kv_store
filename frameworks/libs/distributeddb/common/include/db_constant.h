@@ -87,6 +87,7 @@ public:
     static constexpr const char *SCHEMA_KEY = "schemaKey";
     static constexpr const char *RELATIONAL_SCHEMA_KEY = "relational_schema";
     static constexpr const char *RELATIONAL_TRACKER_SCHEMA_KEY = "relational_tracker_schema";
+    static constexpr const char *DATA_DONATION_SCHEMA_KEY = "data_donation_schema";
     static constexpr const char *RDB_KNOWLEDGE_SCHEMA_KEY = "rdbKnowledgeSchemaKey";
 
     static constexpr const char *RD_KV_COLLECTION_MODE = "{\"mode\" : \"kv\"}";

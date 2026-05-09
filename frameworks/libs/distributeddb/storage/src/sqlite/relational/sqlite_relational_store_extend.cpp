@@ -15,6 +15,8 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_relational_store.h"
 
+#include "data_donation_utils.h"
+
 namespace DistributedDB {
 void SQLiteRelationalStore::StopAllBackgroundTask(TaskType type)
 {
@@ -250,6 +252,98 @@ int SQLiteRelationalStore::GetTargetDevices(const std::string &localDeviceId,
         }
     }
     return errCode;
+}
+
+int SQLiteRelationalStore::SetBinlogEnabled(bool enabled)
+{
+    {
+        std::lock_guard<std::mutex> lock(initalMutex_);
+        if (isBinlogEnabled_ == enabled) {
+            return E_OK;
+        }
+    }
+    int errCode = E_OK;
+    std::vector<bool> isExternal = { false, true };
+    for (bool external : std::as_const(isExternal)) {
+        errCode = SetBinlogEnabled(enabled, external);
+        if (errCode != E_OK) {
+            break;
+        }
+    }
+    if (errCode == E_OK) {
+        std::lock_guard<std::mutex> lock(initalMutex_);
+        isBinlogEnabled_ = enabled;
+        return E_OK;
+    }
+    if (!enabled) {
+        return errCode;
+    }
+    // rollback
+    for (bool external : std::as_const(isExternal)) {
+        errCode = SetBinlogEnabled(false, external);
+        if (errCode != E_OK) {
+            break;
+        }
+    }
+    if (errCode == E_OK) {
+        std::lock_guard<std::mutex> lock(initalMutex_);
+        isBinlogEnabled_ = false;
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal) const
+{
+    int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode, isExternal);
+    if (handle == nullptr) {
+        LOGE("[RelationalStore][SetBinlogEnabled] Get write handle failed:%d", errCode);
+        return errCode;
+    }
+    sqlite3 *db = nullptr;
+    errCode = handle->GetDbHandle(db);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore][SetBinlogEnabled] Get db handle failed:%d", errCode);
+        ReleaseHandle(handle, isExternal);
+        return errCode;
+    }
+    errCode = SQLiteUtils::SetBinlogEnabled(db, enabled);
+    ReleaseHandle(handle, isExternal);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore][SetBinlogEnabled] Set binlog enabled failed:%d, external:%d, enabled:%d",
+            errCode, isExternal, enabled);
+    } else {
+        DataDonationUtils::SetDataChangedObserver(db);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStore::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+{
+    if (sqliteStorageEngine_ == nullptr) {
+        LOGE("[RelationalStore][SetSubscibeCursor] sqliteStorageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    return sqliteStorageEngine_->SetSubscibeCursor(cursorIn);
+}
+
+int SQLiteRelationalStore::SetSubscribeSchema(const std::string &schema)
+{
+    return sqliteStorageEngine_->SetSubscribeSchema(schema);
+}
+
+int SQLiteRelationalStore::SetTrackerMatrixInfo(const MatrixFileInfo &info)
+{
+    return sqliteStorageEngine_->SetTrackerMatrixInfo(info);
+}
+
+int SQLiteRelationalStore::QuerySubscribeOutput(
+    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+{
+    if (sqliteStorageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return sqliteStorageEngine_->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
 }
 } // namespace DistributedDB
 #endif

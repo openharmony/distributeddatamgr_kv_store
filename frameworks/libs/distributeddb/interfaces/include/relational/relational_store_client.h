@@ -88,16 +88,6 @@ struct UpdateOption {
     UpdateCondition condition;
     UpdateContent content;
 };
-
-struct MatrixFileInfo {
-    std::string matrixFilePath;
-    std::map<std::string, uint64_t> matrixTables;
-    uint64_t fullSyncOffset = 0u;
-};
-
-struct MatrixFileUpdateConfig {
-    bool isFullSync = false;
-};
 }
 
 DB_API DistributedDB::DBStatus SetKnowledgeSourceSchema(sqlite3 *db,

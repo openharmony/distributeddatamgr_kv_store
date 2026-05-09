@@ -201,6 +201,7 @@ constexpr const int E_TASK_INTERRUPTED = (E_BASE + 214); // Task(cloud sync, gen
 constexpr const int E_TABLE_FIELD_MISMATCH = (E_BASE + 215); // Table field mismatch between local and remote
 // Distributed schema mismatch between local and remote
 constexpr const int E_DISTRIBUTED_SCHEMA_MISMATCH = (E_BASE + 216);
+constexpr const int E_SUBSCRIBE_QUERY_END = (E_BASE + 217);
 } // namespace DistributedDB
 
 #endif // DISTRIBUTEDDB_ERRNO_H

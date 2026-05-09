@@ -46,6 +46,8 @@ public:
 
     int SetTrackerTable(const TrackerSchema &schema) override;
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
+    int QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut) override;
     int CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
@@ -103,7 +105,15 @@ public:
 
     int SetProperty(const Property &property) override;
 
+    int SetBinlogEnabled(bool enabled) override;
+
+    int SetSubscibeCursor(const DBSubscibeCur &cursorIn) override;
+
     int StopTask(TaskType type) override;
+
+    int SetSubscribeSchema(const std::string &schema) override;
+
+    int SetTrackerMatrixInfo(const MatrixFileInfo &info) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

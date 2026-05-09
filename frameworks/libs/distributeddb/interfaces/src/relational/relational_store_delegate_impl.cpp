@@ -415,6 +415,21 @@ DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, 
     return OK;
 }
 
+DBStatus RelationalStoreDelegateImpl::QuerySubscribeOutput(
+    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] QuerySubscribeOutput failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 DBStatus RelationalStoreDelegateImpl::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
 {
@@ -761,5 +776,62 @@ DBStatus RelationalStoreDelegateImpl::StopTask(TaskType type)
     return TransferDBErrno(errCode);
 }
 #endif
+
+DBStatus RelationalStoreDelegateImpl::SetBinlogEnabled(bool enabled)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for SetBinlogEnabled!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->SetBinlogEnabled(enabled);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] SetBinlogEnabled failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    LOGI("[RelationalStore Delegate] SetBinlogEnabled:%d", enabled);
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for SetSubscibeCursor!");
+        return DB_ERROR;
+    }
+    if (cursorIn.queryType != SubQueryType::GET_NEW) {
+        return NOT_SUPPORT;
+    }
+    int errCode = conn_->SetSubscibeCursor(cursorIn);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] SetSubscibeCursor failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    LOGI("[RelationalStore Delegate] SetSubscibeCursor cursor:%lld", cursorIn.cursor);
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetSubscribeSchema(const std::string &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate][SetSubscribeSchema] Invalid connection");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->SetSubscribeSchema(schema);
+    LOGI("[RelationalStore Delegate] Set subscribe schema res: %d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+DBStatus RelationalStoreDelegateImpl::SetTrackerMatrixInfo(const MatrixFileInfo &info)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate][SetTrackerMatrixInfo] Invalid connection");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->SetTrackerMatrixInfo(info);
+    LOGI("[RelationalStore Delegate] Set tracker matrix info res: %d", errCode);
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB
 #endif

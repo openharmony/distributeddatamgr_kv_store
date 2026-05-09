@@ -30,6 +30,7 @@
 #include "store_observer.h"
 
 namespace DistributedDB {
+
 class RelationalStoreDelegate {
 public:
     DB_API virtual ~RelationalStoreDelegate() = default;
@@ -188,6 +189,16 @@ public:
         return OK;
     }
 
+    DB_API virtual DBStatus SetSubscribeSchema([[gnu::unused]] const std::string &schema)
+    {
+        return OK;
+    };
+
+    DB_API virtual DBStatus SetTrackerMatrixInfo([[gnu::unused]] const MatrixFileInfo &info)
+    {
+        return OK;
+    };
+
     DB_API virtual std::pair<DBStatus, int32_t> GetDownloadingAssetsCount()
     {
         return {OK, 0};
@@ -223,6 +234,22 @@ public:
     // tableMap: key is tableName, value is keepDevices
     DB_API virtual DBStatus RemoveExceptDeviceData(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows)
+    {
+        return OK;
+    }
+
+    DB_API virtual DBStatus SetBinlogEnabled(bool enabled)
+    {
+        return OK;
+    }
+
+    DB_API virtual DBStatus QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+    {
+        return OK;
+    }
+
+    DB_API virtual DBStatus SetSubscibeCursor(const DBSubscibeCur &cursorIn)
     {
         return OK;
     }

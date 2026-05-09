@@ -18,6 +18,7 @@
 
 #include "macro_utils.h"
 #include "relationaldb_properties.h"
+#include "data_donation_cache.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_storage_engine.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
@@ -78,13 +79,21 @@ public:
     int SaveTrackerSchema(const std::string &tableName, bool isFirstCreate);
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    int QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut);
     RelationalSchemaObject GetTrackerSchema() const;
     void SetTrackerSchema(const RelationalSchemaObject &trackerSchema);
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
+    int SetSubscibeCursor(const DBSubscibeCur &cursorIn);
+
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty,
         SQLiteSingleVerRelationalStorageExecutor *handle, std::set<std::string> &clearWaterMarkTables,
         RelationalSchemaObject &schema);
+
+    int SetSubscribeSchema(const std::string &schema);
+    int SetTrackerMatrixInfo(const MatrixFileInfo &info);
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int UpgradeSharedTable(const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,
         const std::map<std::string, std::vector<Field>> &updateTableNames,
@@ -209,6 +218,9 @@ private:
     GenLogTaskStatus genLogTaskStatus_ = GenLogTaskStatus::IDLE;
     mutable std::mutex genLogTaskCvMutex_;
     std::condition_variable genLogTaskCv_;
+
+    std::mutex donationCacheMutex_;
+    DataDonationCache dataDonationCache_;
 };
 } // namespace DistributedDB
 #endif

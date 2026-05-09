@@ -340,7 +340,8 @@ void SQLiteRelationalStore::OnClose(const std::function<void(void)> &notifier)
     }
 }
 
-SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandle(bool isWrite, int &errCode) const
+SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandle(bool isWrite, int &errCode,
+    bool isExternal) const
 {
     if (sqliteStorageEngine_ == nullptr) {
         errCode = -E_INVALID_DB;
@@ -348,9 +349,10 @@ SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandle(bool 
     }
 
     return static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        sqliteStorageEngine_->FindExecutor(isWrite, OperatePerm::NORMAL_PERM, errCode));
+        sqliteStorageEngine_->FindExecutor(isWrite, OperatePerm::NORMAL_PERM, errCode, isExternal));
 }
-void SQLiteRelationalStore::ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const
+void SQLiteRelationalStore::ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    bool isExternal) const
 {
     if (handle == nullptr) {
         return;
@@ -358,7 +360,7 @@ void SQLiteRelationalStore::ReleaseHandle(SQLiteSingleVerRelationalStorageExecut
 
     if (sqliteStorageEngine_ != nullptr) {
         StorageExecutor *databaseHandle = handle;
-        sqliteStorageEngine_->Recycle(databaseHandle);
+        sqliteStorageEngine_->Recycle(databaseHandle, isExternal);
         handle = nullptr;
     }
 }

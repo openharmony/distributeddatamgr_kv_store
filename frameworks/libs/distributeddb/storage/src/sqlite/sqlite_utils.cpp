@@ -23,6 +23,8 @@
 #include <map>
 #include <algorithm>
 #include <sys/stat.h>
+#include <fstream>
+#include <unistd.h>
 
 #include "sqlite_import.h"
 #include "securec.h"
@@ -67,6 +69,9 @@ namespace {
 
     const constexpr char *DETACH_BACKUP_SQL = "DETACH 'backup'";
     const constexpr char *UPDATE_META_SQL = "INSERT OR REPLACE INTO meta_data VALUES (?, ?);";
+    const constexpr char *SLAVE_FAILURE = "-slaveFailure";
+    constexpr uint32_t BINLOG_FILE_SIZE_LIMIT = 1024 * 1024 * 4;
+    constexpr uint16_t BINLOG_FILE_NUMS_LIMIT = 2;
 
     bool g_configLog = false;
     std::mutex g_serverChangedDataMutex;
@@ -1309,4 +1314,57 @@ int SQLiteUtils::RegisterIsEntityDuplicateFunction(sqlite3 *db)
     return SQLiteUtils::MapSQLiteErrno(errCode);
 }
 
+int SQLiteUtils::SetSlaveInvalid(const std::string &dbPath)
+{
+    if (IsSlaveInvalid(dbPath)) {
+        return E_OK;
+    }
+    std::ofstream src((dbPath + SLAVE_FAILURE).c_str(), std::ios::binary);
+    if (src.is_open()) {
+        src.close();
+        return E_OK;
+    }
+    return -E_NOT_SUPPORT;
+}
+
+bool SQLiteUtils::IsSlaveInvalid(const std::string &dbPath)
+{
+    return access((dbPath + SLAVE_FAILURE).c_str(), F_OK) == 0;
+}
+
+int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
+{
+    int errCode = E_OK;
+    if (enabled) {
+        Sqlite3BinlogConfig binLogConfig = {
+            .mode = Sqlite3BinlogMode::ROW_FOR_SEARCH,
+            .fullCallbackThreshold = BINLOG_FILE_NUMS_LIMIT,
+            .maxFileSize = BINLOG_FILE_SIZE_LIMIT,
+            .xErrorCallback = []([[gnu::unused]] void *pCtx, int errNo, char *errMsg, const char *dbPath) {
+                if (dbPath == nullptr) {
+                    LOGW("SQLiteUtilspath is null");
+                    return;
+                }
+                std::string dbPathStr(dbPath);
+                LOGW("[SQLiteUtils]binlog failed, mark invalid %s, errNo:%d, errMsg:%s",
+                    SQLiteUtils::Anonymous(dbPathStr).c_str(), errNo, errMsg);
+                SQLiteUtils::SetSlaveInvalid(dbPathStr);
+            },
+            .xLogFullCallback = nullptr,
+            .callbackCtx = nullptr,
+        };
+        errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, &binLogConfig);
+        if (errCode != SQLITE_OK) {
+            LOGE("[SQLiteUtils][SetBinlogEnabled] Enable binlog failed:%d", errCode);
+            return SQLiteUtils::MapSQLiteErrno(errCode);
+        }
+    } else {
+        errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, nullptr);
+        if (errCode != SQLITE_OK) {
+            LOGE("[SQLiteUtils][SetBinlogEnabled] Disable binlog failed:%d", errCode);
+            return SQLiteUtils::MapSQLiteErrno(errCode);
+        }
+    }
+    return E_OK;
+}
 } // namespace DistributedDB

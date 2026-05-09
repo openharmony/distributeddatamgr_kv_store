@@ -17,6 +17,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "data_donation_utils.h"
 #include "rdb_general_ut.h"
 #include "sqlite_relational_utils.h"
 #include "relational_store_client.h"
@@ -549,213 +550,101 @@ HWTEST_F(DistributedDBBasicRDBTest, UpdateDataLog001, TestSize.Level1)
 }
 
 /**
- * @tc.name: SetTrackerMatrixInfoTest001
- * @tc.desc: Test set tracker matrix info on success
+ * @tc.name: SetBinlogEnabled002
+ * @tc.desc: Test disable binlog.
  * @tc.type: FUNC
- * @tc.author: suyuchen
+ * @tc.author: test
  */
-HWTEST_F(DistributedDBBasicRDBTest, SetTrackerMatrixInfoTest001, TestSize.Level0)
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled002, TestSize.Level1)
 {
     /**
-     * @tc.steps: step1. Init delegate and set tracker schema.
+     * @tc.steps: step1. Init delegate and disable binlog.
+     * @tc.expected: step1. Return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled003
+ * @tc.desc: Test enable then disable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate, enable then disable binlog.
+     * @tc.expected: step1. Both return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled004
+ * @tc.desc: Test repeatedly enable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate, enable binlog twice.
+     * @tc.expected: step1. Both return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled005
+ * @tc.desc: Test enable binlog then insert data works normally.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. cloud insert data.
      * @tc.expected: step1. Ok
      */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
     auto info1 = GetStoreInfo1();
-    ASSERT_EQ(InitDatabase(info1), E_OK);
-    auto db = GetSqliteHandle(info1);
-    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
+    ASSERT_NE(virtualCloudDb, nullptr);
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, 20, 0, RDBGeneralUt::GetSchema(info1), virtualCloudDb), OK);
+    EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 20);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 0);
 
     /**
-     * @tc.steps: step2. SetTrackerMatrixInfo with normal params.
+     * @tc.steps: step2. cloud sync data to dev1.
      * @tc.expected: step2. Ok
      */
-    MatrixFileInfo info = {.matrixFilePath = "filePath"};
-    EXPECT_EQ(SetTrackerMatrixInfo(db, info), OK);
-}
-
-/**
- * @tc.name: SetTrackerMatrixInfoTest002
- * @tc.desc: Test set tracker matrix info when params invalid
- * @tc.type: FUNC
- * @tc.author: suyuchen
- */
-HWTEST_F(DistributedDBBasicRDBTest, SetTrackerMatrixInfoTest002, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Init delegate and set tracker schema.
-     * @tc.expected: step1. Ok
-     */
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(InitDatabase(info1), E_OK);
-    auto db = GetSqliteHandle(info1);
-    ASSERT_NE(db, nullptr);
-
-    /**
-     * @tc.steps: step2. SetTrackerMatrixInfo with empty file path.
-     * @tc.expected: step2. INVALID_ARGS
-     */
-    MatrixFileInfo info = {.matrixFilePath = ""};
-    EXPECT_EQ(SetTrackerMatrixInfo(db, info), INVALID_ARGS);
-
-    /**
-     * @tc.steps: step3. SetTrackerMatrixInfo with empty db.
-     * @tc.expected: step3. INVALID_ARGS
-     */
-    info = {.matrixFilePath = "filePath"};
-    EXPECT_EQ(SetTrackerMatrixInfo(nullptr, info), INVALID_ARGS);
-}
-
-/**
- * @tc.name: UpdateMatrixFileTest001
- * @tc.desc: Test update matrix file
- * @tc.type: FUNC
- * @tc.author: suyuchen
- */
-HWTEST_F(DistributedDBBasicRDBTest, UpdateMatrixFileTest001, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Init delegate and set tracker schema.
-     * @tc.expected: step1. Ok
-     */
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(InitDatabase(info1), E_OK);
-    auto db = GetSqliteHandle(info1);
-    ASSERT_NE(db, nullptr);
-
-    /**
-     * @tc.steps: step2. Init matrix file.
-     * @tc.expected: step2. OK
-     */
-    std::string matrixFilePath = InitMatrixFile();
-    ASSERT_FALSE(matrixFilePath.empty());
-
-    /**
-     * @tc.steps: step3. Set matrix info.
-     * @tc.expected: step3. OK
-     */
-    std::map<std::string, uint64_t> matrixTables = {
-        {"table1", 0u},
-        {"table2", 1u}
-    };
-    MatrixFileInfo info = {.matrixFilePath = matrixFilePath, .matrixTables = matrixTables, .fullSyncOffset = 2};
-    EXPECT_EQ(SetTrackerMatrixInfo(db, info), OK);
-
-    /**
-     * @tc.steps: step4. Update matrix file for table1.
-     * @tc.expected: step4. OK
-     */
-    MatrixFileUpdateConfig config = {.isFullSync = false};
-    EXPECT_EQ(UpdateMatrixFile(db, {"table1"}, config), OK);
-
-    int fd = -1;
-    uint64_t *filePtr = RelationalStoreClientUtils::MmapMatrixFile(info.matrixFilePath, MATRIX_FILE_SIZE, fd);
-    ASSERT_NE(filePtr, nullptr);
-    EXPECT_NE(fd, -1);
-    EXPECT_EQ(filePtr[0], 1u);
-    EXPECT_EQ(filePtr[1], 0u);
-    EXPECT_EQ(filePtr[2], 0u);
-
-    /**
-     * @tc.steps: step5. Clean up.
-     * @tc.expected: step5. OK
-     */
-    munmap(filePtr, MATRIX_FILE_SIZE);
-    filePtr = nullptr;
-
-    close(fd);
-    unlink(matrixFilePath.c_str());
-}
-
-/**
- * @tc.name: UpdateMatrixFileTest002
- * @tc.desc: Test update matrix file and set full sync
- * @tc.type: FUNC
- * @tc.author: suyuchen
- */
-HWTEST_F(DistributedDBBasicRDBTest, UpdateMatrixFileTest002, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Init delegate and set tracker schema.
-     * @tc.expected: step1. Ok
-     */
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(InitDatabase(info1), E_OK);
-    auto db = GetSqliteHandle(info1);
-    ASSERT_NE(db, nullptr);
-
-    /**
-     * @tc.steps: step2. Init matrix file.
-     * @tc.expected: step2. OK
-     */
-    std::string matrixFilePath = InitMatrixFile();
-    ASSERT_FALSE(matrixFilePath.empty());
-
-    /**
-     * @tc.steps: step3. Set matrix info.
-     * @tc.expected: step3. OK
-     */
-    std::map<std::string, uint64_t> matrixTables = {
-        {"table1", 0u},
-        {"table2", 1u}
-    };
-    MatrixFileInfo info = {.matrixFilePath = matrixFilePath, .matrixTables = matrixTables, .fullSyncOffset = 2};
-    EXPECT_EQ(SetTrackerMatrixInfo(db, info), OK);
-
-    /**
-     * @tc.steps: step4. Update matrix file for both tables.
-     * @tc.expected: step4. OK
-     */
-    MatrixFileUpdateConfig config = {.isFullSync = true};
-    EXPECT_EQ(UpdateMatrixFile(db, {"table1", "table2"}, config), OK);
-
-    int fd = -1;
-    uint64_t *filePtr = RelationalStoreClientUtils::MmapMatrixFile(info.matrixFilePath, MATRIX_FILE_SIZE, fd);
-    ASSERT_NE(filePtr, nullptr);
-    EXPECT_NE(fd, -1);
-    EXPECT_EQ(filePtr[0], 1u);
-    EXPECT_EQ(filePtr[1], 1u);
-    EXPECT_EQ(filePtr[2], 1u);
-
-    /**
-     * @tc.steps: step5. Clean up.
-     * @tc.expected: step5. OK
-     */
-    munmap(filePtr, MATRIX_FILE_SIZE);
-    filePtr = nullptr;
-
-    close(fd);
-    unlink(matrixFilePath.c_str());
-}
-
-/**
- * @tc.name: UpdateMatrixFileTest003
- * @tc.desc: Test update matrix file when params invalid
- * @tc.type: FUNC
- * @tc.author: suyuchen
- */
-HWTEST_F(DistributedDBBasicRDBTest, UpdateMatrixFileTest003, TestSize.Level0)
-{
-    /**
-     * @tc.steps: step1. Init delegate and set tracker schema.
-     * @tc.expected: step1. Ok
-     */
-    auto info1 = GetStoreInfo1();
-    ASSERT_EQ(InitDatabase(info1), E_OK);
-    auto db = GetSqliteHandle(info1);
-    ASSERT_NE(db, nullptr);
-
-    /**
-     * @tc.steps: step2. Update matrix file.
-     * @tc.expected: step2. NOT FOUND
-     */
-    EXPECT_EQ(UnsetTrackerMatrixInfo(db), OK);
-    MatrixFileUpdateConfig config = {.isFullSync = false};
-    EXPECT_EQ(UpdateMatrixFile(db, {"table1", "table2"}, config), NOT_FOUND);
-
-    /**
-     * @tc.steps: step3. Update matrix file when db is null.
-     * @tc.expected: step3. INVALID ARGS
-     */
-    EXPECT_EQ(UpdateMatrixFile(nullptr, {"table1", "table2"}, config), INVALID_ARGS);
+    Query query = Query::Select().FromTable({g_defaultTable1});
+    RDBGeneralUt::CloudBlockSync(info1, query);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 20);
 }
 } // namespace

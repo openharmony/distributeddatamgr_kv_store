@@ -37,6 +37,7 @@ public:
     static constexpr const char *CLOUD_ERROR_ACTION_FIELD = "#_cloud_error_action";
     static constexpr const char *SHARING_RESOURCE_FIELD = "#_sharing_resource";
     static constexpr const char *HASH_KEY_FIELD = "#_hash_key";
+    static constexpr const char *SUB_DATA_OP_TYPE = "#_sub_data_op_type";
     static constexpr const char *ASSET = "asset";
     static constexpr const char *ASSETS = "assets";
     static constexpr const char *SHARED = "_shared";
@@ -102,6 +103,8 @@ public:
     static constexpr const int32_t PRIORITY_TASK_DEFAULT_LEVEL = 0;
     static constexpr const int32_t PRIORITY_TASK_MAX_LEVEL = 2;
     static constexpr const int32_t MAX_CONDITIONS_SIZE = 100;
+
+    static constexpr const int32_t SUBSCRIBE_QUERY_LIMIT = 100;
 
     static constexpr const uint32_t ON_CHANGE_TRACKER = 0x1;
     static constexpr const uint32_t ON_CHANGE_P2P = 0x2;

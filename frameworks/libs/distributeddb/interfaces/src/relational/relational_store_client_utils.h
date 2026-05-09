@@ -27,10 +27,15 @@ public:
 
     static std::pair<int, RelationalSchemaObject> GetRDBSchema(sqlite3 *db, bool isTracker);
 
-    static int UpdateMatrixFile(const MatrixFileInfo &fileInfo, const std::vector<std::string> &changedData,
-        const MatrixFileUpdateConfig &config);
+    static std::string GetInsertTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey);
 
-    static uint64_t *MmapMatrixFile(const std::string &path, size_t mmapSize, int32_t &fileFd);
+    static std::string GetUpdateTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey);
+
+    static std::string GetDeleteTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey);
+
+    static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath);
+
+    static void StringToUpper(std::string &str);
 private:
     static int CheckUpdateOption(sqlite3 *db, const UpdateOption &option);
 
@@ -51,8 +56,23 @@ private:
     static int BindDataLogCondition(sqlite3_stmt *stmt, const std::optional<SelectCondition> &condition,
         bool isLog, int &index);
 
-    static std::vector<uint64_t> GetMatrixTableIndexs(const MatrixFileInfo &matrixFileInfo,
-        const std::vector<std::string> &changedData);
+    static int GetTableAndColumnName(const JsonObject &jsonValue, std::string &tableName, std::string &columnName);
+    
+    static void InitNewTableEntry(MonitorTableCol &table, const char *tableName, const char *columnName);
+
+    static int TryAddColumnToTable(MonitorTableCol &table, const char *columnName);
+
+    static int AddColumnsToMonitor(const JsonObject &jsonValue, MonitorTablesConfig *monitorConfig);
+
+    static int ReadJsonConfigFromFile(const std::string &dbPath, std::string &jsonStr);
+
+    static int ParseSearchConfig(const std::string &jsonStr, JsonObject &searchConfig);
+
+    static int ProcessMappings(const JsonObject &part, MonitorTablesConfig *monitorConfig);
+
+    static int ProcessUTDMapping(const JsonObject &utdMapping, MonitorTablesConfig *monitorConfig);
+
+    static int GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath);
 };
 } // namespace DistributedDB
 #endif // RELATIONAL_STORE_CLIENT_UTILS_H

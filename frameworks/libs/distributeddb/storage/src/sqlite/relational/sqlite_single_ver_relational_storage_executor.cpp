@@ -20,6 +20,7 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
+#include "data_donation_utils.h"
 #include "data_transformer.h"
 #include "db_common.h"
 #include "log_table_manager_factory.h"
@@ -2113,6 +2114,11 @@ bool SQLiteSingleVerRelationalStorageExecutor::CheckUpdateHashKeyCondition(const
     (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
     // if DELETE_FIELD is not present, it indicates tha the data is not deleted. deleted data cannot be updated
     return !isDeleted && !gid.empty();
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::SetTrackerMatrixInfo(const MatrixFileInfo &info) const
+{
+    return DataDonationUtils::SetTrackerMatrixInfo(dbHandle_, info);
 }
 } // namespace DistributedDB
 #endif

@@ -15,6 +15,7 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
+#include <fstream>
 #include <mutex>
 #include <openssl/sha.h>
 #include <openssl/crypto.h>
@@ -25,6 +26,7 @@
 #include <vector>
 
 #include "cloud/cloud_db_constant.h"
+#include "relational/data_donation_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "knowledge_source_utils.h"
@@ -34,6 +36,7 @@
 #include "relational_store_client.h"
 #include "relational_store_client_utils.h"
 #include "thread_pool_stub.h"
+#include "schema_utils.h"
 #include "sqlite_utils.h"
 
 // using the "sqlite3sym.h" in OHOS
@@ -76,6 +79,7 @@ constexpr const char *BINLOG_EXCLUDELIST[] = {"calendardata.db"};
 constexpr const char *COMPRESS_WHITELIST[] = {"calendardata_slave.db", "advisor_slave.db", "DeviceControl_slave.db",
     "iotConnect_slave.db", "OhTips_slave.db", "Clock_slave.db", "quick-game-engine_slave.db",
     "dual_write_binlog_test_slave.db", "RdbTestNO_slave.db", "media_library.db"};
+constexpr const char *ENABLE_BINLOG_SEARCH = "media_library.db";
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
@@ -473,13 +477,6 @@ int CalcValueHash(const std::vector<uint8_t> &value, std::vector<uint8_t> &hashV
     return E_OK;
 }
 
-void StringToUpper(std::string &str)
-{
-    std::transform(str.cbegin(), str.cend(), str.begin(), [](unsigned char c) {
-        return std::toupper(c);
-    });
-}
-
 void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     // 1 means that the function only needs one parameter, namely key
@@ -497,7 +494,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
             return;
         }
         std::string colStr(colChar);
-        StringToUpper(colStr);
+        RelationalStoreClientUtils::StringToUpper(colStr);
         std::vector<uint8_t> value;
         value.assign(colStr.begin(), colStr.end());
         errCode = CalcValueHash(value, hashValue);
@@ -870,57 +867,6 @@ void DataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1)); // 1 is result ok
 }
 
-std::string GetInsertTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey)
-{
-    std::string insertTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
-    insertTrigger += "naturalbase_rdb_" + tableName + "_local_ON_INSERT AFTER INSERT\n";
-    insertTrigger += "ON '" + tableName + "'\n";
-    insertTrigger += "BEGIN\n";
-    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
-        insertTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 0);\n";
-    } else {
-        insertTrigger += "SELECT data_change('" + tableName + "', ";
-        insertTrigger += "'" + primaryKey + "', ";
-        insertTrigger += "NEW." + primaryKey + ", 0);\n";
-    }
-    insertTrigger += "END;";
-    return insertTrigger;
-}
-
-std::string GetUpdateTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey)
-{
-    std::string updateTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
-    updateTrigger += "naturalbase_rdb_" + tableName + "_local_ON_UPDATE AFTER UPDATE\n";
-    updateTrigger += "ON '" + tableName + "'\n";
-    updateTrigger += "BEGIN\n";
-    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
-        updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 1);\n";
-    } else {
-        updateTrigger += "SELECT data_change('" + tableName + "', ";
-        updateTrigger += "'" + primaryKey + "', ";
-        updateTrigger += "NEW." + primaryKey + ", 1);\n";
-    }
-    updateTrigger += "END;";
-    return updateTrigger;
-}
-
-std::string GetDeleteTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey)
-{
-    std::string deleteTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
-    deleteTrigger += "naturalbase_rdb_" + tableName + "_local_ON_DELETE AFTER DELETE\n";
-    deleteTrigger += "ON '" + tableName + "'\n";
-    deleteTrigger += "BEGIN\n";
-    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
-        deleteTrigger += "SELECT data_change('" + tableName + "', 'rowid', OLD._rowid_, 2);\n";
-    } else {
-        deleteTrigger += "SELECT data_change('" + tableName + "', ";
-        deleteTrigger += "'" + primaryKey + "', ";
-        deleteTrigger += "OLD." + primaryKey + ", 2);\n";
-    }
-    deleteTrigger += "END;";
-    return deleteTrigger;
-}
-
 int GetPrimaryKeyName(sqlite3 *db, const std::string &tableName, std::string &primaryKey)
 {
     if (db == nullptr) {
@@ -956,11 +902,11 @@ int GetTriggerSqls(sqlite3 *db, const std::map<std::string, bool> &tableInfos, s
                 return errCode;
             }
         }
-        std::string sql = GetInsertTrigger(tableInfo.first, tableInfo.second, primaryKey);
+        std::string sql = RelationalStoreClientUtils::GetInsertTrigger(tableInfo.first, tableInfo.second, primaryKey);
         triggerSqls.push_back(sql);
-        sql = GetUpdateTrigger(tableInfo.first, tableInfo.second, primaryKey);
+        sql = RelationalStoreClientUtils::GetUpdateTrigger(tableInfo.first, tableInfo.second, primaryKey);
         triggerSqls.push_back(sql);
-        sql = GetDeleteTrigger(tableInfo.first, tableInfo.second, primaryKey);
+        sql = RelationalStoreClientUtils::GetDeleteTrigger(tableInfo.first, tableInfo.second, primaryKey);
         triggerSqls.push_back(sql);
     }
     return E_OK;
@@ -1034,9 +980,52 @@ void ClientObserverCallback(const std::string &hashFileName)
     }
 
     MatrixFileUpdateConfig config = {.isFullSync = false};
-    int errCode = RelationalStoreClientUtils::UpdateMatrixFile(fileInfo, changedTables, config);
+    int errCode = DataDonationUtils::UpdateMatrixFile(fileInfo, changedTables, config);
     if (errCode != E_OK) {
         LOGE("[ClientObserverCallback] Update matrix file err: %d", errCode);
+    }
+}
+
+void BinlogDataChangedObserver(const char *dbPath, char *tableName)
+{
+    std::string hashFileName;
+    int errCode = GetHashString(dbPath, hashFileName);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[BinlogDataChangedObserver] GetHashString err: %d", errCode);
+        return;
+    }
+
+    MatrixFileInfo fileInfo;
+    {
+        std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
+        auto it = g_clientMatrixInfoMap.find(hashFileName);
+        if (it != g_clientMatrixInfoMap.end()) {
+            fileInfo = it->second;
+        }
+    }
+
+    if (fileInfo.matrixFilePath.empty()) {
+        ChangeProperties properties = {
+            .isTrackedDataChange = true,
+            .isP2pSyncDataChange = false,
+            .isKnowledgeDataChange = false,
+            .isCloudSyncDataChange = false,
+        };
+        ClientChangedData data;
+        data.tableData[tableName] = properties;
+        {
+            std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
+            g_clientChangedDataMap[hashFileName] = data;
+        }
+        ClientObserverCallback(hashFileName);
+        return;
+    }
+
+    std::vector<std::string> changedData = {std::string(tableName)};
+    MatrixFileUpdateConfig config = {.isFullSync = false};
+    errCode = DataDonationUtils::UpdateMatrixFile(fileInfo, changedData, config);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[BinlogDataChangedObserver] Update matrix file err: %d", errCode);
     }
 }
 
@@ -1136,6 +1125,16 @@ int RegisterCloudDataChangeObserver(sqlite3 *db)
     TransactFunc func;
     func.xFunc = &CloudDataChangedObserver;
     return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
+}
+
+int RegisterBinlogDataChangeObserver(sqlite3 *db)
+{
+    return sqlite3_set_xChange_callback_binlog(db, &BinlogDataChangedObserver);
+}
+
+int RegisterBinlogSchemaParseObserver(sqlite3 *db)
+{
+    return sqlite3_set_json_parse_callback_binlog(db, &RelationalStoreClientUtils::BinlogSchemaGet);
 }
 
 int RegisterDataChangeObserver(sqlite3 *db)
@@ -1678,6 +1677,12 @@ void PostHandle(bool isExists, sqlite3 *db)
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";
     (void)ExecuteRawSQL(db, recursiveTrigger);
+
+    std::string fileName;
+    if (GetDbFileName(db, fileName) && DataDonationUtils::EndsWith(fileName, ENABLE_BINLOG_SEARCH)) {
+        RegisterBinlogDataChangeObserver(db);
+        RegisterBinlogSchemaParseObserver(db);
+    }
 }
 
 void GetFtsTableInfos(sqlite3 *db, std::set<std::string> &tableInfos)
@@ -2171,7 +2176,7 @@ DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<std::str
         fileInfo = it->second;
     }
 
-    errCode = RelationalStoreClientUtils::UpdateMatrixFile(fileInfo, changedData, config);
+    errCode = DataDonationUtils::UpdateMatrixFile(fileInfo, changedData, config);
     if (errCode != DistributedDB::E_OK) {
         LOGE("[UpdateMatrixFile] Update matrix file err: %d", errCode);
     }
