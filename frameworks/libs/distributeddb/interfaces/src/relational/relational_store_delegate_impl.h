@@ -51,9 +51,16 @@ public:
 
     DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
 
+    DBStatus QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut) override;
+
     DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
     DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
+
+    DBStatus SetBinlogEnabled(bool enabled) override;
+
+    DBStatus SetSubscibeCursor(const DBSubscibeCur &cursorIn) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int32_t GetCloudSyncTaskCount() override;
 
@@ -110,6 +117,9 @@ public:
     DBStatus RemoveExceptDeviceData(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows) override;
 #endif
+    DBStatus SetSubscribeSchema(const std::string &schema) override;
+
+    DBStatus SetTrackerMatrixInfo(const MatrixFileInfo &info) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

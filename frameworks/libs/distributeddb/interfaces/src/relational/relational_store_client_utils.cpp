@@ -14,6 +14,7 @@
  */
 
 #include "relational_store_client_utils.h"
+
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -21,6 +22,8 @@
 #include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
+constexpr int MAX_MONITOR_TABLE_COUNT = 10;
+constexpr int E_ERROR = 1;
 int RelationalStoreClientUtils::UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option)
 {
     auto errCode = CheckUpdateOption(db, option);
@@ -303,5 +306,268 @@ int RelationalStoreClientUtils::BindDataLogCondition(sqlite3_stmt *stmt,
         }
     }
     return E_OK;
+}
+
+int RelationalStoreClientUtils::GetTableAndColumnName(const JsonObject &jsonValue,
+    std::string &tableName, std::string &columnName)
+{
+    FieldValue tableValue;
+    int errCode = jsonValue.GetFieldValueByFieldPath(FieldPath {"tableName"}, tableValue);
+    if (errCode != E_OK) {
+        LOGE("get table failed %d", errCode);
+        return errCode;
+    }
+    FieldValue columnValue;
+    errCode = jsonValue.GetFieldValueByFieldPath(FieldPath {"columnName"}, columnValue);
+    if (errCode != E_OK) {
+        LOGE("get column failed %d", errCode);
+        return errCode;
+    }
+    tableName = tableValue.stringValue;
+    columnName = columnValue.stringValue;
+    return E_OK;
+}
+
+void RelationalStoreClientUtils::InitNewTableEntry(MonitorTableCol &table,
+    const char *tableName, const char *columnName)
+{
+    table.tableName = strdup(tableName);
+    table.colCount = 1;
+    table.cols = static_cast<const char**>(malloc(sizeof(char*) * MAX_MONITOR_TABLE_COUNT));
+    table.cols[0] = strdup(columnName);
+}
+
+int RelationalStoreClientUtils::TryAddColumnToTable(MonitorTableCol &table, const char *columnName)
+{
+    for (int j = 0; j < table.colCount; j++) {
+        if (table.cols[j] == strdup(columnName)) {
+            return E_OK;
+        }
+    }
+    table.colCount++;
+    table.cols = new const char *[1];
+    table.cols[table.colCount] = strdup(columnName);
+    return E_OK;
+}
+
+int RelationalStoreClientUtils::AddColumnsToMonitor(const JsonObject &jsonValue,
+    MonitorTablesConfig *monitorConfig)
+{
+    std::string tableName;
+    std::string columnName;
+    int errCode = GetTableAndColumnName(jsonValue, tableName, columnName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (monitorConfig->tableCount == 0) {
+        monitorConfig->tableCount++;
+        InitNewTableEntry(monitorConfig->tables[0], tableName.c_str(), columnName.c_str());
+        return E_OK;
+    }
+    for (int i = 0; i < monitorConfig->tableCount; i++) {
+        if (monitorConfig->tables[i].tableName == tableName) {
+            return TryAddColumnToTable(monitorConfig->tables[i], columnName.c_str());
+        }
+    }
+    if (monitorConfig->tableCount > MAX_MONITOR_TABLE_COUNT) {
+        LOGE("monitorConfig is full %d", errCode);
+        return E_ERROR;
+    }
+    monitorConfig->tableCount++;
+    InitNewTableEntry(monitorConfig->tables[monitorConfig->tableCount], tableName.c_str(), columnName.c_str());
+    return E_OK;
+}
+
+int RelationalStoreClientUtils::ReadJsonConfigFromFile(const std::string &dbPath, std::string &jsonStr)
+{
+    std::string configPath;
+    if (!DataDonationUtils::GetSchemaPathByDbPath(dbPath, configPath)) {
+        return -E_INVALID_ARGS;
+    }
+    std::ifstream file(configPath);
+    if (!file.is_open()) {
+        LOGE("Failed to open config file: %s", DBCommon::StringMiddleMasking(configPath).c_str());
+        return -E_ERROR;
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    jsonStr = buffer.str();
+    file.close();
+    if (jsonStr.empty()) {
+        LOGE("Config file is empty");
+        return -E_ERROR;
+    }
+    return E_OK;
+}
+
+int RelationalStoreClientUtils::ParseSearchConfig(const std::string &jsonStr, JsonObject &searchConfig)
+{
+    JsonObject object;
+    int errCode = object.Parse(jsonStr.c_str());
+    if (errCode != E_OK) {
+        LOGE("update Parsed failed");
+        return errCode;
+    }
+    errCode = SchemaUtils::ExtractJsonObj(object, "searchConfig", searchConfig);
+    if (errCode != E_OK) {
+        LOGE("Plz check searchConfig. %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalStoreClientUtils::ProcessMappings(const JsonObject &part, MonitorTablesConfig *monitorConfig)
+{
+    std::vector<JsonObject> mappings;
+    int errCode = SchemaUtils::ExtractJsonObjArray(part, "mappings", mappings);
+    if (errCode != E_OK) {
+        LOGE("Plz check mappings. %d", errCode);
+        return errCode;
+    }
+    for (const auto &mapping : mappings) {
+        JsonObject value;
+        errCode = SchemaUtils::ExtractJsonObj(mapping, "value", value);
+        if (errCode != E_OK) {
+            LOGE("Plz check value. %d", errCode);
+            return errCode;
+        }
+        errCode = AddColumnsToMonitor(value, monitorConfig);
+        if (errCode != E_OK) {
+            continue;
+        }
+    }
+    return E_OK;
+}
+
+int RelationalStoreClientUtils::ProcessUTDMapping(const JsonObject &utdMapping, MonitorTablesConfig *monitorConfig)
+{
+    std::vector<JsonObject> parts;
+    int errCode = SchemaUtils::ExtractJsonObjArray(utdMapping, "parts", parts);
+    if (errCode != E_OK) {
+        LOGE("Plz check parts. %d", errCode);
+        return errCode;
+    }
+    for (const auto &part : parts) {
+        (void)ProcessMappings(part, monitorConfig);
+    }
+    return E_OK;
+}
+
+int RelationalStoreClientUtils::GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath)
+{
+    if (monitorConfig == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    std::string jsonStr;
+    int errCode = ReadJsonConfigFromFile(dbPath, jsonStr);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    JsonObject searchConfig;
+    errCode = ParseSearchConfig(jsonStr, searchConfig);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::vector<JsonObject> utdMappings;
+    errCode = SchemaUtils::ExtractJsonObjArray(searchConfig, "UTDMapping", utdMappings);
+    if (errCode != E_OK) {
+        LOGE("Plz check UTDMapping. %d", errCode);
+        return errCode;
+    }
+    for (const auto &utdMapping : utdMappings) {
+        (void)ProcessUTDMapping(utdMapping, monitorConfig);
+    }
+    return E_OK;
+}
+
+MonitorTablesConfig *RelationalStoreClientUtils::BinlogSchemaGet(const char *dbPath)
+{
+    MonitorTablesConfig *monitorConfig = static_cast<MonitorTablesConfig*>(malloc(sizeof(MonitorTablesConfig)));
+    if (monitorConfig == nullptr) {
+        LOGE("BinlogSchemaGet: malloc monitorConfig failed");
+        return nullptr;
+    }
+    int errCode = memset_s(monitorConfig, sizeof(MonitorTablesConfig), 0, sizeof(MonitorTablesConfig));
+    if (errCode != E_OK) {
+        LOGE("GetMonitorConfigFromFile memset_s err=%d", errCode);
+    }
+    monitorConfig->tables = static_cast<MonitorTableCol*>(malloc(MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol)));
+    if (monitorConfig->tables == nullptr) {
+        LOGE("BinlogSchemaGet: malloc tables failed");
+        return nullptr;
+    }
+    errCode = memset_s(monitorConfig->tables, MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol), 0,
+        MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol));
+    if (errCode != E_OK) {
+        LOGE("GetMonitorConfigFromFile memset_s tables err=%d", errCode);
+    }
+    errCode = GetMonitorConfigFromFile(monitorConfig, dbPath);
+    if (errCode != E_OK) {
+        LOGE("GetMonitorConfigFromFile failed. err=%d", errCode);
+        free(monitorConfig->tables);
+        free(monitorConfig);
+        return nullptr;
+    }
+    return monitorConfig;
+}
+
+std::string RelationalStoreClientUtils::GetInsertTrigger(const std::string &tableName,
+    bool isRowid, const std::string &primaryKey)
+{
+    std::string insertTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
+    insertTrigger += "naturalbase_rdb_" + tableName + "_local_ON_INSERT AFTER INSERT\n";
+    insertTrigger += "ON '" + tableName + "'\n";
+    insertTrigger += "BEGIN\n";
+    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
+        insertTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 0);\n";
+    } else {
+        insertTrigger += "SELECT data_change('" + tableName + "', ";
+        insertTrigger += "'" + primaryKey + "', ";
+        insertTrigger += "NEW." + primaryKey + ", 0);\n";
+    }
+    insertTrigger += "END;";
+    return insertTrigger;
+}
+
+std::string RelationalStoreClientUtils::GetUpdateTrigger(const std::string &tableName,
+    bool isRowid, const std::string &primaryKey)
+{
+    std::string updateTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
+    updateTrigger += "naturalbase_rdb_" + tableName + "_local_ON_UPDATE AFTER UPDATE\n";
+    updateTrigger += "ON '" + tableName + "'\n";
+    updateTrigger += "BEGIN\n";
+    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
+        updateTrigger += "SELECT data_change('" + tableName + "', 'rowid', NEW._rowid_, 1);\n";
+    } else {
+        updateTrigger += "SELECT data_change('" + tableName + "', ";
+        updateTrigger += "'" + primaryKey + "', ";
+        updateTrigger += "NEW." + primaryKey + ", 1);\n";
+    }
+    updateTrigger += "END;";
+    return updateTrigger;
+}
+
+std::string RelationalStoreClientUtils::GetDeleteTrigger(const std::string &tableName,
+    bool isRowid, const std::string &primaryKey)
+{
+    std::string deleteTrigger = "CREATE TEMP TRIGGER IF NOT EXISTS ";
+    deleteTrigger += "naturalbase_rdb_" + tableName + "_local_ON_DELETE AFTER DELETE\n";
+    deleteTrigger += "ON '" + tableName + "'\n";
+    deleteTrigger += "BEGIN\n";
+    if (isRowid || primaryKey.empty()) { // LCOV_EXCL_BR_LINE
+        deleteTrigger += "SELECT data_change('" + tableName + "', 'rowid', OLD._rowid_, 2);\n";
+    } else {
+        deleteTrigger += "SELECT data_change('" + tableName + "', ";
+        deleteTrigger += "'" + primaryKey + "', ";
+        deleteTrigger += "OLD." + primaryKey + ", 2);\n";
+    }
+    deleteTrigger += "END;";
+    return deleteTrigger;
+}
+
+void RelationalStoreClientUtils::StringToUpper(std::string &str)
+{
+    std::transform(str.cbegin(), str.cend(), str.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
 }
 } // namespace DistributedDB

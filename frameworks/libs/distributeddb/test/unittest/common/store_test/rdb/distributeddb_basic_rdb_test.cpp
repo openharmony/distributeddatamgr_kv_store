@@ -13,9 +13,15 @@
  * limitations under the License.
  */
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#include "data_donation_utils.h"
 #include "rdb_general_ut.h"
 #include "sqlite_relational_utils.h"
 #include "relational_store_client.h"
+#include "relational_store_client_utils.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -26,6 +32,10 @@ const std::string g_deviceA = "dev1";
 const std::string g_deviceB = "dev2";
 const std::string g_deviceC = "dev3";
 
+constexpr size_t MAX_SLOT_NUM = 100;
+constexpr size_t MATRIX_FILE_SLOT_SIZE = sizeof(uint64_t);
+constexpr size_t MATRIX_FILE_SIZE = MAX_SLOT_NUM * MATRIX_FILE_SLOT_SIZE;
+
 class DistributedDBBasicRDBTest : public RDBGeneralUt {
 public:
     void SetUp() override;
@@ -33,6 +43,7 @@ public:
     static UtDateBaseSchemaInfo GetDefaultSchema();
     static UtTableSchemaInfo GetTableSchema(const std::string &table, bool noPk = false);
     void PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count);
+    std::string InitMatrixFile();
 protected:
     static constexpr const char *DEVICE_SYNC_TABLE = "DEVICE_SYNC_TABLE";
     static constexpr const char *CLOUD_SYNC_TABLE = "CLOUD_SYNC_TABLE";
@@ -67,6 +78,24 @@ UtTableSchemaInfo DistributedDBBasicRDBTest::GetTableSchema(const std::string &t
     }
     tableSchema.fieldInfo.push_back(field);
     return tableSchema;
+}
+
+std::string DistributedDBBasicRDBTest::InitMatrixFile()
+{
+    std::string matrixFilePath = GetTestDir() + "/matrixFile";
+
+    int fd = open(matrixFilePath.c_str(), O_RDWR | O_CREAT, 0660);
+    if (fd == -1) {
+        return "";
+    }
+
+    int ret = ftruncate(fd, MATRIX_FILE_SIZE);
+    close(fd);
+    if (ret != 0) {
+        unlink(matrixFilePath.c_str());
+        return "";
+    }
+    return matrixFilePath;
 }
 
 void DistributedDBBasicRDBTest::PrepareRemoveDataStore(StoreInfo &info1, StoreInfo &info2, StoreInfo &info3, int count)
@@ -518,5 +547,104 @@ HWTEST_F(DistributedDBBasicRDBTest, UpdateDataLog001, TestSize.Level1)
     updateOption.condition.logCondition = SelectCondition{"1=1", {}};
     updateOption.content.flag = LogFlag::LOCAL;
     EXPECT_EQ(UpdateDataLog(db, updateOption), DISTRIBUTED_SCHEMA_NOT_FOUND);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled002
+ * @tc.desc: Test disable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate and disable binlog.
+     * @tc.expected: step1. Return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled003
+ * @tc.desc: Test enable then disable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate, enable then disable binlog.
+     * @tc.expected: step1. Both return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled004
+ * @tc.desc: Test repeatedly enable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate, enable binlog twice.
+     * @tc.expected: step1. Both return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled005
+ * @tc.desc: Test enable binlog then insert data works normally.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBBasicRDBTest, SetBinlogEnabled005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. cloud insert data.
+     * @tc.expected: step1. Ok
+     */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, g_deviceA), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
+    ASSERT_NE(virtualCloudDb, nullptr);
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, 20, 0, RDBGeneralUt::GetSchema(info1), virtualCloudDb), OK);
+    EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 20);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 0);
+
+    /**
+     * @tc.steps: step2. cloud sync data to dev1.
+     * @tc.expected: step2. Ok
+     */
+    Query query = Query::Select().FromTable({g_defaultTable1});
+    RDBGeneralUt::CloudBlockSync(info1, query);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 20);
 }
 } // namespace

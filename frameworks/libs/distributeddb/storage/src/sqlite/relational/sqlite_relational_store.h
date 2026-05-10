@@ -45,8 +45,9 @@ public:
     int Open(const RelationalDBProperties &properties) override;
     void OnClose(const std::function<void(void)> &notifier);
 
-    SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode) const;
-    void ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
+    SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
+        bool isExternal = false) const;
+    void ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle, bool isExternal = false) const;
 
     void ReleaseDBConnection(uint64_t connectionId, RelationalStoreConnection *connection);
 
@@ -82,6 +83,9 @@ public:
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
 
+    int QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut);
+
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
@@ -95,6 +99,10 @@ public:
     int GetDownloadingAssetsCount(int32_t &count);
 
     int SetTableMode(DistributedTableMode tableMode);
+
+    int SetSubscribeSchema(const std::string &schema);
+
+    int SetTrackerMatrixInfo(const MatrixFileInfo &info);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema);
@@ -145,6 +153,10 @@ public:
     int OperateDataStatus(uint32_t dataOperator);
 
     int SetProperty(const Property &property);
+
+    int SetBinlogEnabled(bool enabled);
+
+    int SetSubscibeCursor(const DBSubscibeCur &cursorIn);
 
     void StopAllBackgroundTask(TaskType type);
 protected:
@@ -254,6 +266,7 @@ protected:
     int RemoveExceptDeviceDataInner(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows);
 #endif
+    int SetBinlogEnabled(bool enabled, bool isExternal) const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv
@@ -267,6 +280,8 @@ protected:
 
     mutable std::mutex initalMutex_;
     bool isInitialized_ = false;
+    mutable std::mutex binlogMutex_;
+    bool isBinlogEnabled_ = false;
 
     // lifeCycle
     std::mutex lifeCycleMutex_;

@@ -61,6 +61,8 @@ public:
 
     virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
     virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
+    virtual int QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut) = 0;
     virtual int CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
 
     virtual int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) = 0;
@@ -118,7 +120,15 @@ public:
 
     virtual int SetProperty(const Property &property) = 0;
 
+    virtual int SetBinlogEnabled(bool enabled) = 0;
+
+    virtual int SetSubscibeCursor(const DBSubscibeCur &cursorIn) = 0;
+
     virtual int StopTask(TaskType type) = 0;
+
+    virtual int SetSubscribeSchema(const std::string &schema) = 0;
+
+    virtual int SetTrackerMatrixInfo(const MatrixFileInfo &info) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

@@ -17,10 +17,12 @@
 #ifdef RELATIONAL_STORE
 
 #include <atomic>
+#include <unordered_set>
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_store_types.h"
 #include "cloud/cloud_upload_recorder.h"
+#include "data_donation_utils.h"
 #include "data_transformer.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
@@ -163,7 +165,10 @@ public:
     int CreateTrackerTable(const TrackerTable &trackerTable, const TableInfo &table, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
-
+    int QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path, const DBSubscibeCur &cursorIn,
+        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut);
+    int QuerySubscribeOutput(DataDonationSchema &schema, std::vector<DdData> &dataOut);
+    int SetTrackerMatrixInfo(const MatrixFileInfo &info) const;
     int GetClearWaterMarkTables(const std::vector<TableReferenceProperty> &tableReferenceProperty,
         const RelationalSchemaObject &schema, std::set<std::string> &clearWaterMarkTables);
     int CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag);
@@ -312,6 +317,8 @@ public:
 
     int CheckTableExists(const std::string &tableName, bool &isCreated);
 private:
+    int GetQuerySubscribeSql(const DataDonationSchema::DdRelationsPath &path,
+        int64_t cursor, std::string &sql) const;
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
 
@@ -579,6 +586,10 @@ private:
 
     int CalculateAndCompareHashKey(const VBucket &vBucket, const TableSchema &tableSchema,
         const Key &hashKey, Key &hashPrimaryKey, bool &isNeedUpdateHashKey);
+
+    int ExecuteTableQuery(const std::string &sql, std::vector<VBucket> &queryResult);
+    void SupplementUnmatchedDeletedRecords(const BinlogChangedData &changedData,
+        const std::unordered_set<std::string> &matchedPks, std::vector<DdData> &dataOut) const;
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";

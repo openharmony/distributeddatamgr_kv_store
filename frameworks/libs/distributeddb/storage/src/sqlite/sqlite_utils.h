@@ -229,6 +229,8 @@ public:
     static int PrintChangeRows(sqlite3_stmt *statement, int64_t &changedRows);
 
     static int BindType(sqlite3_stmt *statement, const Type &type, int cid);
+
+    static int SetBinlogEnabled(sqlite3 *db, bool enabled);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);
@@ -276,6 +278,10 @@ private:
         uint32_t iterTimes);
 
     static std::string Anonymous(const std::string &name);
+
+    static int SetSlaveInvalid(const std::string &dbPath);
+
+    static bool IsSlaveInvalid(const std::string &dbPath);
 
     static std::mutex logMutex_;
     static std::string lastErrorMsg_;

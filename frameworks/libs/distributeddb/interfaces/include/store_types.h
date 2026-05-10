@@ -103,6 +103,7 @@ enum DBStatus {
     TASK_INTERRUPTED, // Task(cloud sync) interrupted
     TABLE_FIELD_MISMATCH, // Table field mismatch between local and remote
     DISTRIBUTED_SCHEMA_MISMATCH, // Distributed schema mismatch between local and remote
+    SUBSCRIBE_QUERY_END,
     BUTT_STATUS = 27394048 // end of status
 };
 
@@ -414,6 +415,16 @@ enum class LogFlag : uint32_t {
     REMOTE = 0,
     LOCAL = 2,
     BUTT
+};
+
+struct MatrixFileInfo {
+    std::string matrixFilePath;
+    std::map<std::string, uint64_t> matrixTables;
+    uint64_t fullSyncOffset = 0u;
+};
+
+struct MatrixFileUpdateConfig {
+    bool isFullSync = false;
 };
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

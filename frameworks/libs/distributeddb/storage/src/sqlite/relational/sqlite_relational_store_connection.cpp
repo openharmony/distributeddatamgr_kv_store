@@ -393,6 +393,17 @@ int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, s
     return store->ExecuteSql(condition, records);
 }
 
+int SQLiteRelationalStoreConnection::QuerySubscribeOutput(
+    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+}
+
 int SQLiteRelationalStoreConnection::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
@@ -578,6 +589,26 @@ int SQLiteRelationalStoreConnection::SetProperty(const Property &property)
     return store->SetProperty(property);
 }
 
+int SQLiteRelationalStoreConnection::SetBinlogEnabled(bool enabled)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, set binlog enabled failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetBinlogEnabled(enabled);
+}
+
+int SQLiteRelationalStoreConnection::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, set subscribe cursor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetSubscibeCursor(cursorIn);
+}
+
 int SQLiteRelationalStoreConnection::StopTask(TaskType type)
 {
     if (static_cast<uint32_t>(type) >= static_cast<uint32_t>(TaskType::BUTT)) {
@@ -591,6 +622,26 @@ int SQLiteRelationalStoreConnection::StopTask(TaskType type)
         LOGW("[RelationalConnection] store is null when stop task");
     }
     return E_OK;
+}
+
+int SQLiteRelationalStoreConnection::SetSubscribeSchema(const std::string &schema)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when set subscribe schema");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetSubscribeSchema(schema);
+}
+
+int SQLiteRelationalStoreConnection::SetTrackerMatrixInfo(const MatrixFileInfo &info)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null when set matrix info");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetTrackerMatrixInfo(info);
 }
 }
 #endif

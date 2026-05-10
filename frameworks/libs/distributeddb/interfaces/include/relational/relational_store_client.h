@@ -97,5 +97,12 @@ DB_API DistributedDB::DBStatus CleanDeletedData(sqlite3 *db, const std::string &
 
 DB_API DistributedDB::DBStatus UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option);
 
+DB_API DistributedDB::DBStatus SetTrackerMatrixInfo(sqlite3 *db, const DistributedDB::MatrixFileInfo &matrixFileInfo);
+
+DB_API DistributedDB::DBStatus UnsetTrackerMatrixInfo(sqlite3 *db);
+
+DB_API DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<std::string> &changedData,
+    const DistributedDB::MatrixFileUpdateConfig &config);
+
 DB_API void Clean(bool isOpenSslClean);
 #endif // RELATIONAL_STORE_CLIENT_H
