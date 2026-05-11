@@ -106,7 +106,8 @@ template<>
 bool Marshalling(const Options &input, MessageParcel &data)
 {
     if (!ITypesUtil::Marshal(data, input.schema, input.hapName, input.policies, input.cloudConfig.enableCloud,
-                             input.cloudConfig.autoSync, input.authType, input.baseDir)) {
+                             input.cloudConfig.autoSync, input.cloudConfig.filterMode, input.authType,
+                             input.baseDir)) {
         ZLOGE("Write policies failed");
         return false;
     }
@@ -134,7 +135,8 @@ template<>
 bool Unmarshalling(Options &output, MessageParcel &data)
 {
     if (!ITypesUtil::Unmarshal(data, output.schema, output.hapName, output.policies, output.cloudConfig.enableCloud,
-                               output.cloudConfig.autoSync, output.authType, output.baseDir)) {
+                               output.cloudConfig.autoSync, output.cloudConfig.filterMode, output.authType,
+                               output.baseDir)) {
         ZLOGE("Read policies failed");
         return false;
     }

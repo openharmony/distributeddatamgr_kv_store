@@ -620,5 +620,18 @@ bool QueryObject::IsRelaxForDelete() const
 {
     return isRelaxForDelete_;
 }
+
+bool QueryObject::IsContainOtherNodes(const Query &query, const std::set<QueryObjType> &target)
+{
+    auto expression = GetQueryInfo::GetQueryExpression(query);
+    return std::any_of(expression.GetQueryExpression().begin(), expression.GetQueryExpression().end(),
+        [&target](QueryObjNode node) {
+        if (target.find(node.operFlag) == target.end()) {
+            LOGD("[QueryObject] Query has other node[%" PRIu32 "]", static_cast<uint32_t>(node.operFlag));
+            return true;
+        }
+        return false;
+    });
+}
 }
 

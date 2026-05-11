@@ -38,6 +38,8 @@ protected:
         std::vector<Entry> &entries);
     void BlockCloudSync(const StoreInfo &from, const std::string &deviceId, DBStatus expectApiRet = DBStatus::OK,
         DBStatus expectSyncRet = DBStatus::OK);
+    void BlockCloudSync(const StoreInfo &from, const std::string &deviceId, const CloudSyncOption &option,
+        DBStatus expectApiRet = DBStatus::OK, DBStatus expectSyncRet = DBStatus::OK);
     std::pair<DBStatus, uint64_t> GetRemoteSoftwareVersion(const StoreInfo &info, const std::string &dev,
         const std::string &user);
     std::pair<DBStatus, uint64_t> GetRemoteSchemaVersion(const StoreInfo &info, const std::string &dev,

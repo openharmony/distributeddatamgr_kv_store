@@ -92,6 +92,8 @@ public:
     bool IsRelaxForDelete() const;
 
     void SetRelaxForDelete(bool isRelaxForDelete);
+
+    static bool IsContainOtherNodes(const Query &query, const std::set<QueryObjType> &target);
 protected:
     explicit QueryObject(const QueryExpression &queryExpression);
     static std::vector<QueryExpression> GetQueryExpressions(const Query &query);

@@ -977,6 +977,11 @@ distributeddb_unittest("DistributedDBRDBAssetConflictTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBKvCloudQueryTest") {
+  sources =
+      [ "unittest/common/store_test/kv/distributeddb_kv_cloud_query_test.cpp" ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1122,6 +1127,7 @@ group("unittest") {
     ":DistributedDBKVCompressTest",
     ":DistributedDBKVDataStatusTest",
     ":DistributedDBKVNotifyTest",
+    ":DistributedDBKvCloudQueryTest",
     ":DistributedDBKvCloudSyncTest",
     ":DistributedDBKvDeviceSyncTest",
     ":DistributedDBKvMultiUserSyncTest",

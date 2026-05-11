@@ -1158,7 +1158,7 @@ std::pair<int, int64_t> SqliteCloudKvExecutorUtils::CountAllCloudData(const DBPa
             return res;
         }
         // count no use watermark
-        auto [err, cnt] = helper.BindCountKvCloudDataStatement(param.first, param.second, 0u, user, stmt);
+        auto [err, cnt] = helper.BindCountKvCloudDataStatement(param.first, param.second, typeVec[i], user, stmt);
         if (err != E_OK) {
             return { err, 0 };
         }

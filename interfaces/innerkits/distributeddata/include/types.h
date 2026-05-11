@@ -372,6 +372,11 @@ struct Group {
     std::string groupId = "";
 };
 
+enum FilterMode : uint32_t {
+    NONE = 0,
+    ACCOUNT = 1
+};
+
 /**
  * @brief Cloud config
 */
@@ -384,6 +389,10 @@ struct CloudConfig {
      * @brief Set cloud sync is auto sync
     */
     bool autoSync = false;
+    /**
+     * @brief Set cloud sync data's filter
+    */
+    uint32_t filterMode = FilterMode::NONE;
 };
 
 enum IndexType : uint32_t {

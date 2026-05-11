@@ -611,6 +611,8 @@ protected:
     int IsNeedDownload(const std::string &tableName, const std::string &previousCloudWaterMark,
         bool &isNeedDownload);
 
+    bool IsUploadOnlyTask(TaskId taskId);
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;
