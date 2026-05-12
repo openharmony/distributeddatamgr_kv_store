@@ -80,22 +80,6 @@ int32_t KVDBNotifierStub::OnCloudSyncCompleted(MessageParcel& data, MessageParce
     return ERR_NONE;
 }
 
-int32_t KVDBNotifierStub::OnOnRemoteChange(MessageParcel& data, MessageParcel& reply)
-{
-    std::map<std::string, bool> mask;
-    int32_t dataType;
-    if (!ITypesUtil::Unmarshal(data, mask, dataType)) {
-        ZLOGE("Unmarshal fail mask size:%{public}zu", mask.size());
-        return IPC_STUB_INVALID_DATA_ERR;
-    }
-    if (dataType < static_cast<int>(DataType::TYPE_STATICS) || dataType > static_cast<int>(DataType::TYPE_DYNAMICAL)) {
-        ZLOGE("Invalid dataType:%{public}d", dataType);
-        return IPC_STUB_INVALID_DATA_ERR;
-    }
-    OnRemoteChange(std::move(mask), dataType);
-    return ERR_NONE;
-}
-
 int32_t KVDBNotifierStub::OnOnSwitchChange(MessageParcel& data, MessageParcel& reply)
 {
     SwitchNotification notification;
