@@ -36,8 +36,8 @@ constexpr size_t GET_NEW_BATCH_NUM = 100;
 class DataDonationCache : public UniqueQueue<DdData, DdDataHash, std::equal_to<DdData>> {
 public:
     int SetSchema(const std::string &schema);
-    int Query(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscibeCur &cursorIn,
-        DBSubscibeCur &cursorOut, std::vector<VBucket> &data);
+    int Query(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
+        DBSubscribeCur &cursorOut, std::vector<VBucket> &data);
     int UpdateCursor(const DdCursor &cursorIn, DdData &ddData);
 
     DdData cacheRead[GET_ALL_BATCH_NUM]{};
@@ -47,10 +47,10 @@ private:
     uint64_t cursor = UINT64_MAX; // The water level value set externally，cursor % capacity = front
     DataDonationSchema ddSchema;
 
-    int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscibeCur &cursorIn,
-        DBSubscibeCur &cursorOut, std::vector<VBucket> &data);
-    int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscibeCur &cursorIn,
-        DBSubscibeCur &cursorOut, std::vector<VBucket> &data);
+    int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
+        DBSubscribeCur &cursorOut, std::vector<VBucket> &data);
+    int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
+        DBSubscribeCur &cursorOut, std::vector<VBucket> &data);
 };
 
 }  // namespace DistributedDB

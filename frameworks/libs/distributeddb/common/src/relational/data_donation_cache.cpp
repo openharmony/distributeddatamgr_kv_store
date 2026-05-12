@@ -23,8 +23,8 @@ int DataDonationCache::SetSchema(const std::string &schema)
     return ddSchema.Init(schema);
 }
 
-int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscibeCur &cursorIn,
-    DBSubscibeCur &cursorOut, std::vector<VBucket> &data)
+int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
+    DBSubscribeCur &cursorOut, std::vector<VBucket> &data)
 {
     if (handle == nullptr) {
         LOGE("[QueryBinlog] executor is null");
@@ -34,8 +34,8 @@ int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *ha
     return handle->QuerySubscribeOutput(ddSchema.GetRelationPath(), cursorIn, cursorOut, data);
 }
 
-int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscibeCur &cursorIn,
-    DBSubscibeCur &cursorOut, std::vector<VBucket> &data)
+int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
+    DBSubscribeCur &cursorOut, std::vector<VBucket> &data)
 {
     if (handle == nullptr) {
         LOGE("[QueryBinlog] executor is null");
@@ -88,7 +88,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
 }
 
 int DataDonationCache::Query(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &data)
+    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &data)
 {
     switch (cursorIn.queryType) {
         case SubQueryType::GET_ALL:

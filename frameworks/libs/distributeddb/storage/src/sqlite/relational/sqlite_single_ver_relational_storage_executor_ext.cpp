@@ -20,7 +20,7 @@
 #include "data_donation_utils.h"
 namespace DistributedDB {
 int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path,
-    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
 {
     std::string sql;
     int errCode = GetQuerySubscribeSql(path, cursorIn.cursor, sql);

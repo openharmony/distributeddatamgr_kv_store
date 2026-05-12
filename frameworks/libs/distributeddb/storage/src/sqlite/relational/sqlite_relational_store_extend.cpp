@@ -318,13 +318,13 @@ int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal) const
     return errCode;
 }
 
-int SQLiteRelationalStore::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+int SQLiteRelationalStore::SetSubscribeCursor(const DBSubscribeCur &cursorIn)
 {
     if (sqliteStorageEngine_ == nullptr) {
-        LOGE("[RelationalStore][SetSubscibeCursor] sqliteStorageEngine was not initialized");
+        LOGE("[RelationalStore][SetSubscribeCursor] sqliteStorageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    return sqliteStorageEngine_->SetSubscibeCursor(cursorIn);
+    return sqliteStorageEngine_->SetSubscribeCursor(cursorIn);
 }
 
 int SQLiteRelationalStore::SetSubscribeSchema(const std::string &schema)
@@ -338,7 +338,7 @@ int SQLiteRelationalStore::SetTrackerMatrixInfo(const MatrixFileInfo &info)
 }
 
 int SQLiteRelationalStore::QuerySubscribeOutput(
-    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
 {
     if (sqliteStorageEngine_ == nullptr) {
         return -E_INVALID_DB;

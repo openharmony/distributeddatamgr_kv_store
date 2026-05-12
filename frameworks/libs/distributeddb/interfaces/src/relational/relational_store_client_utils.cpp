@@ -23,6 +23,7 @@
 
 namespace DistributedDB {
 constexpr int MAX_MONITOR_TABLE_COUNT = 10;
+constexpr int MAX_MONITOR_COLUMN_COUNT = 100;
 constexpr int E_ERROR = 1;
 int RelationalStoreClientUtils::UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOption &option)
 {
@@ -328,25 +329,63 @@ int RelationalStoreClientUtils::GetTableAndColumnName(const JsonObject &jsonValu
     return E_OK;
 }
 
-void RelationalStoreClientUtils::InitNewTableEntry(MonitorTableCol &table,
-    const char *tableName, const char *columnName)
+int RelationalStoreClientUtils::InitNewTableEntry(MonitorTableCol &table, const std::string &tableName,
+    const std::string &columnName)
 {
-    table.tableName = strdup(tableName);
+    char *tableNameCpy = strdup(tableName.c_str());
+    if (tableNameCpy == nullptr) {
+        LOGE("[InitNewTableEntry] Copy table name err: %d", -E_OUT_OF_MEMORY);
+        return -E_OUT_OF_MEMORY;
+    }
+
+    size_t colSize = sizeof(char *) * MAX_MONITOR_COLUMN_COUNT;
+    char **tableCols = static_cast<char **>(malloc(colSize));
+    if (tableCols == nullptr) {
+        LOGE("[InitNewTableEntry] Allocate table columns err: %d", -E_OUT_OF_MEMORY);
+        free(tableNameCpy);
+        return -E_OUT_OF_MEMORY;
+    }
+    (void)memset_s(tableCols, colSize, 0, colSize);
+
+    tableCols[0] = strdup(columnName.c_str());
+    if (tableCols[0] == nullptr) {
+        LOGE("[InitNewTableEntry] Copy column name err: %d", -E_OUT_OF_MEMORY);
+        free(tableNameCpy);
+        free(tableCols);
+        return -E_OUT_OF_MEMORY;
+    }
+
+    table.tableName = tableNameCpy;
+    table.cols = tableCols;
     table.colCount = 1;
-    table.cols = static_cast<const char**>(malloc(sizeof(char*) * MAX_MONITOR_TABLE_COUNT));
-    table.cols[0] = strdup(columnName);
+    return E_OK;
 }
 
-int RelationalStoreClientUtils::TryAddColumnToTable(MonitorTableCol &table, const char *columnName)
+int RelationalStoreClientUtils::TryAddColumnToTable(MonitorTableCol &table, const std::string &columnName)
 {
+    if (table.cols == nullptr) {
+        LOGE("[TryAddColumnToTable] Column is null");
+        return -E_UNEXPECTED_DATA;
+    }
+
+    if (table.colCount >= MAX_MONITOR_COLUMN_COUNT) {
+        LOGE("[TryAddColumnToTable] Column count exceed limit: %d, max: %d", table.colCount, MAX_MONITOR_COLUMN_COUNT);
+        return -E_LENGTH_ERROR;
+    }
+
     for (int j = 0; j < table.colCount; j++) {
-        if (table.cols[j] == strdup(columnName)) {
+        if (table.cols[j] != nullptr && std::string(table.cols[j]) == columnName) {
             return E_OK;
         }
     }
+
+    table.cols[table.colCount] = strdup(columnName.c_str());
+    if (table.cols[table.colCount] == nullptr) {
+        LOGE("[TryAddColumnToTable] Copy column name failed.");
+        return -E_OUT_OF_MEMORY;
+    }
+
     table.colCount++;
-    table.cols = new const char *[1];
-    table.cols[table.colCount] = strdup(columnName);
     return E_OK;
 }
 
@@ -357,24 +396,31 @@ int RelationalStoreClientUtils::AddColumnsToMonitor(const JsonObject &jsonValue,
     std::string columnName;
     int errCode = GetTableAndColumnName(jsonValue, tableName, columnName);
     if (errCode != E_OK) {
+        LOGE("[AddColumnsToMonitor] Get table and column name err: %d", errCode);
         return errCode;
     }
-    if (monitorConfig->tableCount == 0) {
-        monitorConfig->tableCount++;
-        InitNewTableEntry(monitorConfig->tables[0], tableName.c_str(), columnName.c_str());
-        return E_OK;
-    }
+
+    // add column if table already exist
     for (int i = 0; i < monitorConfig->tableCount; i++) {
-        if (monitorConfig->tables[i].tableName == tableName) {
-            return TryAddColumnToTable(monitorConfig->tables[i], columnName.c_str());
+        if (monitorConfig->tables[i].tableName == nullptr) {
+            continue;
+        }
+        if (std::string(monitorConfig->tables[i].tableName) == tableName) {
+            return TryAddColumnToTable(monitorConfig->tables[i], columnName);
         }
     }
-    if (monitorConfig->tableCount > MAX_MONITOR_TABLE_COUNT) {
-        LOGE("monitorConfig is full %d", errCode);
-        return E_ERROR;
+
+    if (monitorConfig->tableCount >= MAX_MONITOR_TABLE_COUNT) {
+        LOGE("[AddColumnsToMonitor] Table count exceed limit %d", monitorConfig->tableCount);
+        return -E_LENGTH_ERROR;
+    }
+
+    errCode = InitNewTableEntry(monitorConfig->tables[monitorConfig->tableCount], tableName, columnName);
+    if (errCode != E_OK) {
+        LOGE("[AddColumnsToMonitor] Init table err: %d", errCode);
+        return errCode;
     }
     monitorConfig->tableCount++;
-    InitNewTableEntry(monitorConfig->tables[monitorConfig->tableCount], tableName.c_str(), columnName.c_str());
     return E_OK;
 }
 
@@ -427,11 +473,12 @@ int RelationalStoreClientUtils::ProcessMappings(const JsonObject &part, MonitorT
         JsonObject value;
         errCode = SchemaUtils::ExtractJsonObj(mapping, "value", value);
         if (errCode != E_OK) {
-            LOGE("Plz check value. %d", errCode);
-            return errCode;
+            LOGD("Extract value field err: %d", errCode);
+            continue;
         }
         errCode = AddColumnsToMonitor(value, monitorConfig);
         if (errCode != E_OK) {
+            LOGW("[ProcessMappings] Add column to monitor err: %d", errCode);
             continue;
         }
     }
@@ -481,26 +528,29 @@ int RelationalStoreClientUtils::GetMonitorConfigFromFile(MonitorTablesConfig *mo
 
 MonitorTablesConfig *RelationalStoreClientUtils::BinlogSchemaGet(const char *dbPath)
 {
+    if (dbPath == nullptr) {
+        LOGE("[BinlogSchemaGet] db path is null");
+        return nullptr;
+    }
+
+    LOGI("[BinlogSchemaGet] Start get schema.");
     MonitorTablesConfig *monitorConfig = static_cast<MonitorTablesConfig*>(malloc(sizeof(MonitorTablesConfig)));
     if (monitorConfig == nullptr) {
         LOGE("BinlogSchemaGet: malloc monitorConfig failed");
         return nullptr;
     }
-    int errCode = memset_s(monitorConfig, sizeof(MonitorTablesConfig), 0, sizeof(MonitorTablesConfig));
-    if (errCode != E_OK) {
-        LOGE("GetMonitorConfigFromFile memset_s err=%d", errCode);
-    }
+    (void)memset_s(monitorConfig, sizeof(MonitorTablesConfig), 0, sizeof(MonitorTablesConfig));
+
     monitorConfig->tables = static_cast<MonitorTableCol*>(malloc(MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol)));
     if (monitorConfig->tables == nullptr) {
         LOGE("BinlogSchemaGet: malloc tables failed");
+        free(monitorConfig);
         return nullptr;
     }
-    errCode = memset_s(monitorConfig->tables, MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol), 0,
+    (void)memset_s(monitorConfig->tables, MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol), 0,
         MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol));
-    if (errCode != E_OK) {
-        LOGE("GetMonitorConfigFromFile memset_s tables err=%d", errCode);
-    }
-    errCode = GetMonitorConfigFromFile(monitorConfig, dbPath);
+
+    int errCode = GetMonitorConfigFromFile(monitorConfig, dbPath);
     if (errCode != E_OK) {
         LOGE("GetMonitorConfigFromFile failed. err=%d", errCode);
         free(monitorConfig->tables);

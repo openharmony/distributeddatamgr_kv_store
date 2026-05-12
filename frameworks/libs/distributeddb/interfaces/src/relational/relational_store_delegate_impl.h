@@ -51,8 +51,8 @@ public:
 
     DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
 
-    DBStatus QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
-        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut) override;
+    DBStatus QuerySubscribeOutput(const DBSubscribeCur &cursorIn,
+        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut) override;
 
     DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
@@ -60,7 +60,7 @@ public:
 
     DBStatus SetBinlogEnabled(bool enabled) override;
 
-    DBStatus SetSubscibeCursor(const DBSubscibeCur &cursorIn) override;
+    DBStatus SetSubscribeCursor(const DBSubscribeCur &cursorIn) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int32_t GetCloudSyncTaskCount() override;
 

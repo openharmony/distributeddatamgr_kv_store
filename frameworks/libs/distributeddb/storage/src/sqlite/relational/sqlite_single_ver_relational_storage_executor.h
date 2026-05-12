@@ -165,8 +165,8 @@ public:
     int CreateTrackerTable(const TrackerTable &trackerTable, const TableInfo &table, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
-    int QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path, const DBSubscibeCur &cursorIn,
-        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut);
+    int QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path, const DBSubscribeCur &cursorIn,
+        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut);
     int QuerySubscribeOutput(DataDonationSchema &schema, std::vector<DdData> &dataOut);
     int SetTrackerMatrixInfo(const MatrixFileInfo &info) const;
     int GetClearWaterMarkTables(const std::vector<TableReferenceProperty> &tableReferenceProperty,
