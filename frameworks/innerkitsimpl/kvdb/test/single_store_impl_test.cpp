@@ -1981,20 +1981,6 @@ HWTEST_F(SingleStoreImplTest, DoAutoSync001, TestSize.Level1)
 }
 
 /**
- * @tc.name: IsRemoteChanged
- * @tc.desc: is remote changed
- * @tc.type: FUNC
- */
-HWTEST_F(SingleStoreImplTest, IsRemoteChanged, TestSize.Level0)
-{
-    std::shared_ptr<SingleStoreImpl> kvStore;
-    kvStore = CreateKVStore();
-    ASSERT_NE(kvStore, nullptr);
-    bool ret = kvStore->IsRemoteChanged("");
-    ASSERT_TRUE(ret);
-}
-
-/**
  * @tc.name: GenerateDbFiles
  * @tc.desc: GenerateDbFiles test
  * @tc.type: FUNC

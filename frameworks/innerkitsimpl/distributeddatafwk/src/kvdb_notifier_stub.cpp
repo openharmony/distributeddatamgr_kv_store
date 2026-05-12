@@ -34,7 +34,6 @@ const KVDBNotifierStub::Handler
     KVDBNotifierStub::HANDLERS[static_cast<uint32_t>(KVDBNotifierCode::TRANS_BUTT)] = {
     &KVDBNotifierStub::OnSyncCompleted,
     &KVDBNotifierStub::OnCloudSyncCompleted,
-    &KVDBNotifierStub::OnOnRemoteChange,
     &KVDBNotifierStub::OnOnSwitchChange,
 };
 
