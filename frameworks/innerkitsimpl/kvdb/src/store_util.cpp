@@ -214,7 +214,10 @@ std::vector<StoreUtil::FileInfo> StoreUtil::GetFiles(const std::string &path)
         if (dp->d_type == DT_REG) {
             struct stat fileStat;
             auto fullName = path + "/" + dp->d_name;
-            stat(fullName.c_str(), &fileStat);
+            if (stat(fullName.c_str(), &fileStat) != 0) {
+                ZLOGE("stat failed:%{public}d, path:%{public}s", errno, Anonymous(fullName).c_str());
+                continue;
+            }
             FileInfo fileInfo = { "", 0, 0 };
             fileInfo.name = dp->d_name;
             fileInfo.modifyTime = fileStat.st_mtim.tv_sec;
