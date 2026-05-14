@@ -15,6 +15,7 @@
 #ifndef UNIQUE_QUEUE_H
 #define UNIQUE_QUEUE_H
 #include <vector>
+#include <unordered_map>
 #include "store_types.h"
 #include "db_types.h"
 #include "db_errno.h"
