@@ -46,7 +46,6 @@ public:
 
 private:
     ConcurrentMap<uint64_t, std::shared_ptr<KvStoreSyncCallback>> syncCallbackInfo_;
-    ConcurrentMap<std::string, std::pair<bool, bool>> remotes_;
     ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;
     ConcurrentMap<uint64_t, AsyncDetail> cloudSyncCallbacks_;
 };
