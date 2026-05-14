@@ -86,8 +86,8 @@ void DistributedDBRDBAssetConflictTest::InitSchema(const StoreInfo &info)
         {{"assetsCol", TYPE_INDEX<Assets>, false, true}, false},
     };
     const std::vector<UtFieldInfo> filedInfoB = {
-            {{"id", TYPE_INDEX<int64_t>, true, true}, false},
-            {{"assetCol", TYPE_INDEX<Asset>, false, true}, false},
+        {{"id", TYPE_INDEX<int64_t>, true, true}, false},
+        {{"assetCol", TYPE_INDEX<Asset>, false, true}, false},
     };
     UtDateBaseSchemaInfo schemaInfo = {
         .tablesInfo = {
