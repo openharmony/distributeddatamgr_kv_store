@@ -157,6 +157,7 @@ public:
 protected:
     virtual ~SyncOperation();
 
+    mutable std::mutex dataMutex_;
     RefObject *context_ = nullptr;
 private:
     DECLARE_OBJECT_TAG(SyncOperation);

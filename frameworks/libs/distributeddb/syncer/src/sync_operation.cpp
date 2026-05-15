@@ -65,7 +65,7 @@ int SyncOperation::Initialize()
     LOGD("[SyncOperation] Init SyncOperation id:%d.", syncId_);
     std::map<std::string, DeviceSyncProcess> tempSyncProcessMap;
     {
-        AutoLock lockGuard(this);
+        std::lock_guard<std::mutex> lock(dataMutex_);
         for (const std::string &deviceId : devices_) {
             statuses_.insert(std::pair<std::string, int>(deviceId, OP_WAITING));
             DeviceSyncProcess processInfo;
@@ -109,7 +109,7 @@ void SyncOperation::SetOnSyncFinished(const OnSyncFinished &callback)
 void SyncOperation::SetStatus(const std::string &deviceId, int status, int commErrCode)
 {
     LOGD("[SyncOperation] SetStatus dev %s{private} status %d commErrCode %d", deviceId.c_str(), status, commErrCode);
-    AutoLock lockGuard(this);
+    std::lock_guard<std::mutex> lock(dataMutex_);
     if (IsKilled()) {
         LOGE("[SyncOperation] SetStatus failed, the SyncOperation has been killed!");
         return;
@@ -141,7 +141,7 @@ void SyncOperation::SetStatus(const std::string &deviceId, int status, int commE
 void SyncOperation::SetUnfinishedDevStatus(int status)
 {
     LOGD("[SyncOperation] SetUnfinishedDevStatus status %d", status);
-    AutoLock lockGuard(this);
+    std::lock_guard<std::mutex> lock(dataMutex_);
     if (IsKilled()) {
         LOGE("[SyncOperation] SetUnfinishedDevStatus failed, the SyncOperation has been killed!");
         return;
@@ -160,7 +160,7 @@ void SyncOperation::SetUnfinishedDevStatus(int status)
 
 int SyncOperation::GetStatus(const std::string &deviceId) const
 {
-    AutoLock lockGuard(this);
+    std::lock_guard<std::mutex> lock(dataMutex_);
     auto iter = statuses_.find(deviceId);
     if (iter != statuses_.end()) {
         return iter->second;
@@ -197,7 +197,7 @@ void SyncOperation::Finished()
     std::map<std::string, int> tmpStatus;
     std::map<std::string, DeviceSyncProcess> tmpProcessMap;
     {
-        AutoLock lockGuard(this);
+        std::lock_guard<std::mutex> lock(dataMutex_);
         if (IsKilled() || isFinished_) {
             return;
         }
@@ -316,7 +316,7 @@ void SyncOperation::UpdateFinishedCount(const std::string &deviceId, uint32_t co
     if (this->userSyncProcessCallback_) {
         std::map<std::string, DeviceSyncProcess> tmpMap;
         {
-            AutoLock lockGuard(this);
+            std::lock_guard<std::mutex> lock(dataMutex_);
             if (IsKilled()) {
                 return;
             }
@@ -332,7 +332,7 @@ void SyncOperation::SetSyncProcessTotal(const std::string &deviceId, uint32_t to
 {
     if (this->userSyncProcessCallback_) {
         {
-            AutoLock lockGuard(this);
+            std::lock_guard<std::mutex> lock(dataMutex_);
             if (IsKilled()) {
                 return;
             }
@@ -344,7 +344,7 @@ void SyncOperation::SetSyncProcessTotal(const std::string &deviceId, uint32_t to
 
 bool SyncOperation::CheckIsAllFinished() const
 {
-    AutoLock lockGuard(this);
+    std::lock_guard<std::mutex> lock(dataMutex_);
     for (const auto &iter : statuses_) {
         if (iter.second < OP_FINISHED_ALL) {
             return false;
@@ -355,7 +355,7 @@ bool SyncOperation::CheckIsAllFinished() const
 
 bool SyncOperation::CheckIsFinished(const std::string &dev) const
 {
-    AutoLock lockGuard(this);
+    std::lock_guard<std::mutex> lock(dataMutex_);
     auto status = statuses_.find(dev);
     if (status == statuses_.end()) {
         return true;

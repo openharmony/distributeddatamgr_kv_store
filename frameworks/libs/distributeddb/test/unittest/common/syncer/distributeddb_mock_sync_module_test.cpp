@@ -2863,7 +2863,9 @@ HWTEST_F(DistributedDBMockSyncModuleTest, CheckIsAllFinishedTest002, TestSize.Le
     operation->SetStatus("devA", SyncOperation::OP_FINISHED_ALL);
     operation->SetStatus("devB", SyncOperation::OP_FINISHED_ALL);
     // Should return false since not all devices finished
+    operation->LockObj();
     EXPECT_FALSE(operation->CheckIsAllFinished());
+    operation->UnlockObj();
     RefObject::KillAndDecObjRef(operation);
 }
 }
