@@ -82,6 +82,7 @@ public:
     std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
     std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false);
     std::shared_ptr<SingleKvStore> kvStore_;
+    static inline std::shared_ptr<StoreFactory> storeFactory = nullptr;
     static constexpr int MAX_RESULTSET_SIZE = 8;
 };
 
@@ -89,6 +90,7 @@ void SingleStoreImplTest::SetUpTestCase(void)
 {
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+    storeFactory = std::make_shared<StoreFactory>();
 }
 
 void SingleStoreImplTest::TearDownTestCase(void)
@@ -150,12 +152,11 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosyn
     options.area = EL1;
     options.autoSync = autosync;
     options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    StoreFactory storeFactory;
-    auto dbManager = storeFactory.GetDBManager(options.baseDir, appId);
+    auto dbManager = storeFactory->GetDBManager(options.baseDir, appId);
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
     DBStatus dbStatus = DBStatus::DB_ERROR;
-    dbManager->GetKvStore(storeId, storeFactory.GetDBOption(options, dbPassword),
-        [&dbManager, &kvStore, &appId, &dbStatus, &options, &storeFactory](auto status, auto *store) {
+    dbManager->GetKvStore(storeId, storeFactory->GetDBOption(options, dbPassword),
+        [&dbManager, &kvStore, &appId, &dbStatus, &options](auto status, auto *store) {
             dbStatus = status;
             if (store == nullptr) {
                 return;
@@ -164,8 +165,8 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplTest::CreateKVStore(bool autosyn
                 dbManager->CloseKvStore(store);
             };
             auto dbStore = std::shared_ptr<DBStore>(store, release);
-            storeFactory.SetDbConfig(dbStore);
-            const Convertor &convertor = *(storeFactory.convertors_[options.kvStoreType]);
+            storeFactory->SetDbConfig(dbStore);
+            const Convertor &convertor = *(storeFactory->convertors_[options.kvStoreType]);
             kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
         });
     return kvStore;
