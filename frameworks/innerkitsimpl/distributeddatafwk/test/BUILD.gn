@@ -91,7 +91,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../../../../databaseutils:database_utils",
     "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt:kv_store_crypt",
   ]
   external_deps = [
     "access_token:libaccesstoken_sdk",
@@ -111,7 +110,6 @@ ohos_source_set("distributeddatafwk_src_file") {
 
   if (dms_service_enable && qemu_disable) {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dms:dms_adapter" ]
   } else {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
   }
@@ -120,7 +118,6 @@ ohos_source_set("distributeddatafwk_src_file") {
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
     ]
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dm:dm_adapter" ]
   } else {
     sources += [
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",

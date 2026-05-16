@@ -87,7 +87,6 @@ ohos_source_set("kvdb_src_file") {
     "../../../../databaseutils:database_utils",
     "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt:kv_store_crypt",
   ]
   external_deps = [
     "access_token:libaccesstoken_sdk",
@@ -106,7 +105,6 @@ ohos_source_set("kvdb_src_file") {
   ]
   if (dms_service_enable && qemu_disable) {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dms:dms_adapter" ]
   } else {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
   }
@@ -115,7 +113,6 @@ ohos_source_set("kvdb_src_file") {
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
     ]
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dm:dm_adapter" ]
   } else {
     sources += [
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
@@ -161,9 +158,6 @@ ohos_unittest("SingleStoreImplTest") {
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
-  if (dm_service_enable) {
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dm:dm_adapter" ]
-  }
 }
 
 ohos_unittest("StoreUtilTest") {
@@ -322,7 +316,6 @@ ohos_unittest("StoreFactoryTest") {
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt:kv_store_crypt",
   ]
 
   cflags = [
@@ -351,7 +344,6 @@ ohos_unittest("SecurityManagerTest") {
   deps = [
     ":kvdb_src_file",
     "../../../libs/distributeddb/:distributeddb",
-    "${kv_store_base_path}/frameworks/innerkitsimpl//crypt:kv_store_crypt",
   ]
 }
 
@@ -396,7 +388,6 @@ ohos_unittest("StoreFactoryMockTest") {
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
     "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
     "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
-    "${kv_store_base_path}/frameworks/innerkitsimpl//crypt:kv_store_crypt",
   ]
 
   external_deps = [
@@ -413,13 +404,6 @@ ohos_unittest("StoreFactoryMockTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-  if (dm_service_enable) {
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dms:dms_adapter" ]
-  }
-
-  if (dms_service_enable && qemu_disable) {
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dm:dm_adapter" ]
-  }
 
   cflags = [ "-Dprivate=public" ]
 
@@ -478,7 +462,6 @@ ohos_unittest("SingleStoreImplMockTest") {
     "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
     "${kv_store_base_path}/interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "../../../../databaseutils:database_utils",
-    "${kv_store_base_path}/frameworks/innerkitsimpl//crypt:kv_store_crypt",
   ]
 
   external_deps = [
@@ -498,13 +481,6 @@ ohos_unittest("SingleStoreImplMockTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-  if (dm_service_enable) {
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dm:dm_adapter" ]
-  }
-
-  if (dms_service_enable && qemu_disable) {
-    deps += [ "${kv_store_base_path}/frameworks/innerkitsimpl/dms:dms_adapter" ]
-  }
 
   defines = [
     "private=public",

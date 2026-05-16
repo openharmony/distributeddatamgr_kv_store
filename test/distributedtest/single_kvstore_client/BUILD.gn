@@ -32,7 +32,6 @@ config("module_private_config") {
 common_deps = [
   "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
   "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
-  "${kv_store_base_path}/frameworks/innerkitsimpl/crypt:kv_store_crypt",
 ]
 
 common_external_deps = [

@@ -13,6 +13,15 @@
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
+group("build_module") {
+  deps = []
+  if (dm_service_enable) {
+    deps += [
+      ":dm_adapter",
+    ]
+  }
+}
+
 ohos_shared_library("dm_adapter") {
   sanitize = {
     boundary_sanitize = true

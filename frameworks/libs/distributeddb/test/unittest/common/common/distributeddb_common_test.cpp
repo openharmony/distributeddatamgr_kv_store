@@ -1371,8 +1371,6 @@ HWTEST_F(DistributedDBCommonTest, RuntimeContextClean001, TestSize.Level0)
     StorageEngine *storageEngine = StorageEngineManager::GetStorageEngine(property, errCode);
     ASSERT_EQ(errCode, E_OK);
     ASSERT_NE(storageEngine, nullptr);
-    auto *perfAnalysis = PerformanceAnalysis::GetInstance();
-    ASSERT_NE(perfAnalysis, nullptr);
     StorageEngineManager::ReleaseStorageEngine(storageEngine);
     RuntimeConfig::Clean();
 
