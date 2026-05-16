@@ -15,16 +15,56 @@
 #define LOG_TAG "AutoSyncTimer"
 #include "auto_sync_timer.h"
 
-#include "dms_handler.h"
 #include "ipc_skeleton.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
 
 namespace OHOS::DistributedKv {
+using Creator = std::shared_ptr<OHOS::DistributedKv::DMSAdapter> (*)();
+
 AutoSyncTimer &AutoSyncTimer::GetInstance()
 {
     static AutoSyncTimer instance;
     return instance;
+}
+
+void* AutoSyncTimer::GetHandle()
+{
+    std::lock_guard<std::mutex> lock(handleMutex_);
+    if (handle_ == nullptr) {
+        handle_ = dlopen("libdms_adapter.z.so", RTLD_LAZY);
+        if (handle_ == nullptr) {
+            ZLOGE("dlopen dms so failed errno is %{public}d", errno);
+        }
+    }
+    return handle_;
+}
+
+std::shared_ptr<DMSAdapter> AutoSyncTimer::CreateDelegate()
+{
+    auto handle = GetHandle();
+    if (handle == nullptr) {
+        return nullptr;
+    }
+    auto creator = reinterpret_cast<Creator>(dlsym(handle, "CreateDMSAdapterDelegate"));
+    if (creator == nullptr) {
+        ZLOGE("dlsym CreateDMSAdapterDelegate failed, errno:%{public}d", errno);
+        return nullptr;
+    }
+    return creator();
+}
+
+std::shared_ptr<DMSAdapter> AutoSyncTimer::GetDelegate()
+{
+    std::lock_guard<std::mutex> lock(delegateMutex_);
+    if (dmsAdapter_ != nullptr) {
+        return dmsAdapter_;
+    }
+    dmsAdapter_ = CreateDelegate();
+    if (dmsAdapter_ == nullptr) {
+        return nullptr;
+    }
+    return dmsAdapter_;
 }
 
 void AutoSyncTimer::StartTimer()
@@ -121,13 +161,11 @@ std::function<void()> AutoSyncTimer::ProcessTask()
 
 std::pair<bool, std::string> AutoSyncTimer::HasCollaboration(const std::string &appId)
 {
-    std::vector<DistributedSchedule::EventNotify> events;
-    auto status = DistributedSchedule::DmsHandler::GetInstance().GetDSchedEventInfo(
-        DistributedSchedule::DMS_COLLABORATION, events);
-    if (status != SUCCESS) {
-        ZLOGE("Get collaboration events failed, status:%{public}d", status);
+    auto dmsAdapter = GetDelegate();
+    if (dmsAdapter == nullptr) {
         return { false, "" };
     }
+    std::vector<EventNotify> events = dmsAdapter->GetDMSEventInfo();
     for (const auto &event : events) {
         if (event.srcBundleName_ == appId || event.destBundleName_ == appId) {
             ZLOGI("The application is collaboration, srcBundleName:%{public}s, destBundleName:%{public}s",

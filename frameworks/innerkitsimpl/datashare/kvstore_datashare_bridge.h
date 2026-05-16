@@ -38,7 +38,7 @@ public:
         INT64 = 6
     };
 
-    KvStoreDataShareBridge(std::shared_ptr<KvStoreResultSet> kvResultSet);
+    explicit KvStoreDataShareBridge(std::shared_ptr<KvStoreResultSet> kvResultSet);
     ~KvStoreDataShareBridge() = default;
 
     int GetRowCount(int32_t &count) override;

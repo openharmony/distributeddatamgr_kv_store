@@ -19,6 +19,8 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <mutex>
+#include <atomic>
 
 #include "auto_launch.h"
 #include "auto_launch_export.h"
@@ -26,6 +28,7 @@
 #include "cloud/icloud_data_translate.h"
 #include "db_info_handle.h"
 #include "icommunicator_aggregator.h"
+#include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
 #include "ithread_pool.h"
 #include "kv_store_observer.h"
@@ -83,6 +86,8 @@ public:
 
     // Get the global context object(singleton), never return nullptr.
     static RuntimeContext *GetInstance();
+
+    static void DeleteInstance();
 
     virtual int SetPermissionCheckCallback(const PermissionCheckCallback &callback) = 0;
 
@@ -219,6 +224,9 @@ public:
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}
+
+    static std::atomic<RuntimeContext *> instance_;
+    static std::mutex instanceLock_;
 };
 } // namespace DistributedDB
 

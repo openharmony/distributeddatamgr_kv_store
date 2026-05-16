@@ -16,6 +16,7 @@
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H
 #include <atomic>
 
+#include "kv_store_crypt.h"
 #include "kv_store_delegate_manager.h"
 #include "kv_store_nb_delegate.h"
 #include "task_executor.h"
@@ -100,23 +101,27 @@ public:
 private:
     SecurityManager();
     ~SecurityManager();
-    std::vector<uint8_t> Random(int32_t length);
     bool LoadContent(SecurityContent &content, const std::string &path);
     void LoadKeyFromFile(const std::string &path, SecurityContent &securityContent);
     void LoadNewKey(const std::vector<char> &content, SecurityContent &securityContent);
     void LoadOldKey(const std::vector<char> &content, SecurityContent &securityContent);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
     bool IsKeyOutdated(const std::vector<uint8_t> &date);
-    int32_t GenerateRootKey();
-    int32_t CheckRootKey();
     bool Retry();
-    bool Encrypt(const std::vector<uint8_t> &key, SecurityContent &content);
-    bool Decrypt(SecurityContent &content);
+    void* GetHandle();
+    std::shared_ptr<KVDBCrypto> CreateDelegate(const std::vector<uint8_t> &rootKeyAlias,
+        const std::vector<uint8_t> vecAad);
+    std::shared_ptr<KVDBCrypto> GetDelegate();
+    std::vector<uint8_t> GenerateRandomNum(uint32_t length);
 
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};
     std::vector<uint8_t> vecAad_{};
     std::atomic_bool hasRootKey_ = false;
+    void *handle_;
+    std::mutex cryptoMutex_;
+    std::mutex handleMutex_;
+    std::shared_ptr<KVDBCrypto> kvdbCrypto_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H

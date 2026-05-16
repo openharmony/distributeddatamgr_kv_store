@@ -145,6 +145,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
         ctxt->options.apiVersion = kvm->param_->apiVersion;
+        ctxt->options.isApplication = true;
         ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area,
             JSUtil::Anonymous(ctxt->options.baseDir).c_str());
         std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
@@ -266,6 +267,7 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
         ctxt->options.apiVersion = kvm->param_->apiVersion;
+        ctxt->options.isApplication = true;
         Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, ctxt->options);
         ZLOGD("DeleteKvStore status:%{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?

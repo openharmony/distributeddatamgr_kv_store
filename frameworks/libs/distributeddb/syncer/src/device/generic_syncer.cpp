@@ -191,7 +191,10 @@ int GenericSyncer::Sync(const SyncParam &param, uint64_t connectionId)
         LOGE("[Syncer] PrepareSync failed when sync called, err %d", errCode);
         return errCode;
     }
-    PerformanceAnalysis::GetInstance()->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+    PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
+    if (performance != nullptr) {
+        performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+    }
     return E_OK;
 }
 
@@ -244,7 +247,10 @@ int GenericSyncer::PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t
     ISyncEngine *engine = nullptr;
     {
         std::lock_guard<std::mutex> autoLock(syncerLock_);
-        PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+        PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
+        if (performance != nullptr) {
+            performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+        }
         InitSyncOperation(operation, param);
         LOGI("[Syncer] GenerateSyncId %" PRIu32 ", mode = %d, wait = %d, label = %.3s, devices = %s, comm retry = %d",
             syncId, param.mode, param.wait, label_.c_str(), GetSyncDevicesStr(param.devices).c_str(), param.isRetry);
@@ -253,7 +259,10 @@ int GenericSyncer::PrepareSync(const SyncParam &param, uint32_t syncId, uint64_t
     }
     AddSyncOperation(engine, operation);
     RefObject::DecObjRef(engine);
-    PerformanceAnalysis::GetInstance()->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+    PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
+    if (performance != nullptr) {
+        performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
+    }
     if (connectionId != DBConstant::IGNORE_CONNECTION_ID) {
         std::lock_guard<std::mutex> lockGuard(syncIdLock_);
         connectionIdMap_[connectionId].push_back(static_cast<int>(syncId));

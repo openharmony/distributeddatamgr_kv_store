@@ -16,7 +16,6 @@
 #include "distributed_kv_data_manager.h"
 
 #include "dds_trace.h"
-#include "dev_manager.h"
 #include "ikvstore_data_service.h"
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
@@ -291,6 +290,17 @@ Status DistributedKvDataManager::UnsubscribeSwitchData(const AppId &appId, std::
 {
     KvStoreServiceDeathNotifier::SetAppId(appId);
     return StoreManager::GetInstance().UnsubscribeSwitchData(appId, observer);
+}
+
+bool DistributedKvDataManager::Init()
+{
+    TaskExecutor::GetInstance().GenerateExecutors();
+    return true;
+}
+
+bool DistributedKvDataManager::Destroy()
+{
+    return TaskExecutor::GetInstance().Stop() && StoreManager::GetInstance().CleanUp();
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

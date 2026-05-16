@@ -52,6 +52,7 @@ StorageEngineManager::~StorageEngineManager()
     if (lockStatusListener_ != nullptr) {
         lockStatusListener_->Drop(true);
     }
+    ReleaseAllStorageEngines();
 }
 
 StorageEngine *StorageEngineManager::GetStorageEngine(const KvDBProperties &property, int &errCode)
@@ -160,6 +161,20 @@ StorageEngineManager *StorageEngineManager::GetInstance()
         }
     }
     return instance_;
+}
+
+void StorageEngineManager::DeleteInstance()
+{
+    StorageEngineManager *inst = nullptr;
+    {
+        std::lock_guard<std::mutex> lockGuard(instanceLock_);
+        inst = instance_;
+        instance_ = nullptr;
+    }
+    if (inst != nullptr) {
+        delete inst;
+    }
+    isRegLockStatusListener_ = false;
 }
 
 int StorageEngineManager::RegisterLockStatusListener()
@@ -315,5 +330,20 @@ void StorageEngineManager::ExitGetEngineProcess(const std::string &identifier)
     std::unique_lock<std::mutex> lock(getEngineMutex_);
     (void)getEngineSet_.erase(identifier);
     getEngineCondition_.notify_all();
+}
+
+void StorageEngineManager::ReleaseAllStorageEngines()
+{
+    std::map<std::string, StorageEngine *> enginesToRelease;
+    {
+        std::lock_guard<std::mutex> lockGuard(storageEnginesLock_);
+        enginesToRelease = std::move(storageEngines_);
+    }
+    for (auto &item : enginesToRelease) {
+        if (item.second != nullptr) {
+            item.second->SetNotifiedCallback(nullptr);
+            RefObject::KillAndDecObjRef(item.second);
+        }
+    }
 }
 } // namespace DistributedDB

@@ -271,5 +271,28 @@ void RelationalStoreInstance::Dump(int fd)
         RefObject::DecObjRef(entry.second);
     }
 }
+
+void RelationalStoreInstance::DeleteInstance()
+{
+    {
+        std::lock_guard<std::mutex> lockGuard(storeLock_);
+        for (auto &entry : dbs_) {
+            if (entry.second != nullptr) {
+                RefObject::KillAndDecObjRef(entry.second);
+            }
+        }
+        dbs_.clear();
+    }
+
+    RelationalStoreInstance *inst = nullptr;
+    {
+        std::lock_guard<std::mutex> lockGuard(instanceLock_);
+        inst = instance_;
+        instance_ = nullptr;
+    }
+    if (inst != nullptr) {
+        delete inst;
+    }
+}
 } // namespace DistributedDB
 #endif

@@ -43,6 +43,8 @@ public:
     // Register callback invoked when all connections released.
     virtual void OnClose(const std::function<void(void)> &func) = 0;
 
+    virtual void ClearCloseNotifiers() = 0;
+
     virtual void WakeUpSyncer() = 0;
 
     virtual void SetCorruptHandler(const DatabaseCorruptHandler &handler) = 0;

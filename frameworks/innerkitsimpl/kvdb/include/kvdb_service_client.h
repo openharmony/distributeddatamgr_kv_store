@@ -31,6 +31,7 @@ public:
 class KVDBServiceClient : public IRemoteProxy<KVDBServiceProxy> {
 public:
     static std::shared_ptr<KVDBServiceClient> GetInstance();
+    static bool CleanUp();
     Status GetStoreIds(const AppId &appId, int32_t subUser, std::vector<StoreId> &storeIds) override;
     Status BeforeCreate(const AppId &appId, const StoreId &storeId, const Options &options) override;
     Status AfterCreate(const AppId &appId, const StoreId &storeId, const Options &options,

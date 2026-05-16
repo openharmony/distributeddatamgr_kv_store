@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "concurrent_map.h"
+#include "dms_adapter.h"
 #include "kvdb_service.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
@@ -41,10 +42,17 @@ private:
     void AddSyncStores(const std::string &appId, std::set<StoreId> storeIds);
     bool HasSyncStores();
     std::pair<bool, std::string> HasCollaboration(const std::string &appId);
+    void* GetHandle();
+    std::shared_ptr<DMSAdapter> CreateDelegate();
+    std::shared_ptr<DMSAdapter> GetDelegate();
     ConcurrentMap<std::string, std::vector<StoreId>> stores_;
     TaskExecutor::TaskId delaySyncTaskId_;
     TaskExecutor::TaskId forceSyncTaskId_;
     std::mutex mutex_;
+    void *handle_;
+    std::mutex delegateMutex_;
+    std::mutex handleMutex_;
+    std::shared_ptr<DMSAdapter> dmsAdapter_;
 };
 } // namespace OHOS::DistributedKv
 #endif // SDB_AUTO_SYNC_TIMER_H

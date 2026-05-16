@@ -22,6 +22,7 @@ ohos_fuzztest("KvUtilFuzzTest") {
 
   include_dirs = [
     "../../../frameworks/common",
+    "../../../frameworks/innerkitsimpl/datashare",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
     "../../../interfaces/innerkits/distributeddata/include",
@@ -39,6 +40,8 @@ ohos_fuzztest("KvUtilFuzzTest") {
 
   sources = [
     "kvutil_fuzzer.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kv_utils.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kvstore_datashare_bridge.cpp",
   ]
 
   deps = [ "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner" ]

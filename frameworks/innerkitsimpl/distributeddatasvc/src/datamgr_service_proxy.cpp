@@ -125,7 +125,24 @@ int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int3
 
 int32_t DataMgrServiceProxy::Exit(const std::string &featureName)
 {
-    return Status::NOT_SUPPORT;
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
+        ZLOGE("Write descriptor failed.");
+        return Status::IPC_ERROR;
+    }
+    if (!ITypesUtil::Marshal(data, featureName)) {
+        ZLOGE("Write featureName failed.");
+        return Status::IPC_ERROR;
+    }
+    MessageParcel reply;
+    MessageOption mo { MessageOption::TF_SYNC };
+    int32_t error = Remote()->SendRequest(
+        static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::FEATURE_EXIT), data, reply, mo);
+    if (error != 0) {
+        ZLOGE("Failed during IPC. errCode %d", error);
+        return Status::IPC_ERROR;
+    }
+    return static_cast<Status>(reply.ReadInt32());
 }
 
 std::pair<int32_t, std::string> DataMgrServiceProxy::GetSelfBundleName()

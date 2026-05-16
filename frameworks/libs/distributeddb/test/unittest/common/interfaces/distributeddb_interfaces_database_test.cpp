@@ -1286,6 +1286,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetDBWhileOpened001, TestSize.Leve
     KvDBManager::ReleaseDatabaseConnection(connection1);
     KvDBManager::ReleaseDatabaseConnection(connection3);
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    KvDBManager::DeleteInstance();
 }
 namespace {
     void OpenCloseDatabase(const std::string &storeId)
