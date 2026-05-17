@@ -35,6 +35,8 @@ public:
 
     static int ExecuteMigration(StorageEngine *storageEngine);
 
+    static void DeleteInstance();
+
     DISABLE_COPY_ASSIGN_MOVE(StorageEngineManager);
 
 private:
@@ -59,6 +61,8 @@ private:
     void ReleaseResources(const std::string &identifier);
 
     int ReleaseEngine(StorageEngine *releaseEngine);
+
+    void ReleaseAllStorageEngines();
 
     void EnterGetEngineProcess(const std::string &identifier);
 

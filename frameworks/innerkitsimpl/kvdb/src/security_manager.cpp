@@ -17,14 +17,14 @@
 #include "security_manager.h"
 
 #include <chrono>
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <limits>
 #include <sys/file.h>
 #include <unistd.h>
 
 #include "file_ex.h"
-#include "hks_api.h"
-#include "hks_param.h"
+
 #include "log_print.h"
 #include "securec.h"
 #include "store_types.h"
@@ -42,15 +42,26 @@ static constexpr const char *SUFFIX_KEY_LOCK = ".key_lock";
 static constexpr const char *KEY_DIR = "/key";
 static constexpr const char *SLASH = "/";
 
+using Creator = std::shared_ptr<OHOS::DistributedKv::KVDBCrypto> (*)(const std::vector<uint8_t> &rootKeyAlias,
+    const std::vector<uint8_t> vecAad);
+using GenerateRandomNumFunc = std::vector<uint8_t> (*)(const uint32_t);
+
 SecurityManager::SecurityManager()
 {
     vecRootKeyAlias_ = std::vector<uint8_t>(ROOT_KEY_ALIAS, ROOT_KEY_ALIAS + strlen(ROOT_KEY_ALIAS));
     vecNonce_ = std::vector<uint8_t>(HKS_BLOB_TYPE_NONCE, HKS_BLOB_TYPE_NONCE + strlen(HKS_BLOB_TYPE_NONCE));
     vecAad_ = std::vector<uint8_t>(HKS_BLOB_TYPE_AAD, HKS_BLOB_TYPE_AAD + strlen(HKS_BLOB_TYPE_AAD));
+    (void)GetDelegate();
 }
 
 SecurityManager::~SecurityManager()
-{}
+{
+    kvdbCrypto_ = nullptr;
+    if (handle_ != nullptr) {
+        dlclose(handle_);
+        handle_ = nullptr;
+    }
+}
 
 SecurityManager &SecurityManager::GetInstance()
 {
@@ -58,38 +69,81 @@ SecurityManager &SecurityManager::GetInstance()
     return instance;
 }
 
+void* SecurityManager::GetHandle()
+{
+    std::lock_guard<std::mutex> lock(handleMutex_);
+    if (handle_ == nullptr) {
+        handle_ = dlopen("libkv_store_crypt.z.so", RTLD_LAZY);
+        if (handle_ == nullptr) {
+            ZLOGE("dlopen crypto so failed errno is %{public}d", errno);
+        }
+    }
+    return handle_;
+}
+
+std::shared_ptr<KVDBCrypto> SecurityManager::CreateDelegate(const std::vector<uint8_t> &rootKeyAlias,
+    const std::vector<uint8_t> vecAad)
+{
+    auto handle = GetHandle();
+    if (handle == nullptr) {
+        return nullptr;
+    }
+    auto creator = reinterpret_cast<Creator>(dlsym(handle, "CreateKvdbCryptoDelegate"));
+    if (creator == nullptr) {
+        ZLOGE("dlsym CreateKvdbCryptoDelegate failed, errno:%{public}d", errno);
+        return nullptr;
+    }
+    return creator(rootKeyAlias, vecAad);
+}
+
+std::shared_ptr<KVDBCrypto> SecurityManager::GetDelegate()
+{
+    std::lock_guard<std::mutex> lock(cryptoMutex_);
+    if (kvdbCrypto_ != nullptr) {
+        return kvdbCrypto_;
+    }
+    kvdbCrypto_ = CreateDelegate(vecRootKeyAlias_, vecAad_);
+    if (kvdbCrypto_ == nullptr) {
+        return nullptr;
+    }
+    return kvdbCrypto_;
+}
+
+std::vector<uint8_t> SecurityManager::GenerateRandomNum(uint32_t length)
+{
+    auto handle = GetHandle();
+    if (handle == nullptr) {
+        return {};
+    }
+    auto generateRandomNum = reinterpret_cast<GenerateRandomNumFunc>(dlsym(handle, "GenerateKvdbRandomNum"));
+    if (generateRandomNum == nullptr) {
+        ZLOGE("dlsym GenerateRandomNum failed, errno:%{public}d", errno);
+        return {};
+    }
+    return generateRandomNum(length);
+}
+
 bool SecurityManager::Retry()
 {
-    auto status = CheckRootKey();
-    if (status == HKS_SUCCESS) {
+    auto kvdbCrypto = GetDelegate();
+    if (kvdbCrypto == nullptr) {
+        return false;
+    }
+    if (kvdbCrypto->CheckRootKey()) {
         hasRootKey_ = true;
         ZLOGE("Root key already exist.");
         return true;
     }
-
-    if (status == HKS_ERROR_NOT_EXIST && GenerateRootKey() == HKS_SUCCESS) {
+    if (kvdbCrypto->GenerateRootKey()) {
         hasRootKey_ = true;
         ZLOGE("GenerateRootKey success.");
         return true;
     }
-
     constexpr int32_t interval = 100;
     TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(interval), [this] {
         Retry();
     });
     return false;
-}
-
-std::vector<uint8_t> SecurityManager::Random(int32_t length)
-{
-    std::vector<uint8_t> value(length, 0);
-    struct HksBlob blobValue = { .size = length, .data = &(value[0]) };
-    auto ret = HksGenerateRandom(nullptr, &blobValue);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksGenerateRandom failed, status: %{public}d", ret);
-        return {};
-    }
-    return value;
 }
 
 bool SecurityManager::LoadContent(SecurityManager::SecurityContent &content, const std::string &path)
@@ -98,10 +152,18 @@ bool SecurityManager::LoadContent(SecurityManager::SecurityContent &content, con
         return false;
     }
     LoadKeyFromFile(path, content);
-    if (content.encryptValue.empty() || !Decrypt(content)) {
+    if (content.encryptValue.empty()) {
         return false;
     }
-    return true;
+    auto kvdbCrypto = GetDelegate();
+    if (kvdbCrypto == nullptr) {
+        return false;
+    }
+    KVDBCryptoParam param;
+    param.keyValue = content.encryptValue;
+    param.nonceValue = content.nonceValue.empty() ? vecNonce_ : content.nonceValue;
+    content.fullKeyValue = kvdbCrypto->Decrypt(param);
+    return content.fullKeyValue.empty() ? false : true;
 }
 
 SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name, const std::string &path,
@@ -138,7 +200,7 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
         content.fullKeyValue.assign(content.fullKeyValue.size(), 0);
     }
     if (!result && needCreate) {
-        key = Random(SecurityContent::KEY_SIZE);
+        key = GenerateRandomNum(SecurityContent::KEY_SIZE);
         if (key.empty() || !SaveKeyToFile(name, path, key)) {
             key.assign(key.size(), 0);
             return dbPassword;
@@ -225,8 +287,9 @@ void SecurityManager::LoadOldKey(const std::vector<char> &content, SecurityManag
 bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path,
     std::vector<uint8_t> &key)
 {
-    if (!hasRootKey_ && !Retry()) {
-        ZLOGE("Failed! no root key and generation failed");
+    auto kvdbCrypto = GetDelegate();
+    if (kvdbCrypto == nullptr || (!hasRootKey_ && !Retry())) {
+        ZLOGE("Failed! kvdbCrypto is nullptr, or not root key and generation failed");
         return false;
     }
     SecurityContent securityContent;
@@ -237,11 +300,17 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     keyContent.push_back(securityContent.version);
     keyContent.insert(keyContent.end(), securityContent.time.begin(), securityContent.time.end());
     keyContent.insert(keyContent.end(), key.begin(), key.end());
-    if (!Encrypt(keyContent, securityContent)) {
-        keyContent.assign(keyContent.size(), 0);
+    KVDBCryptoParam param;
+    param.keyValue = keyContent;
+    param.nonceValue = GenerateRandomNum(SecurityContent::NONCE_SIZE);
+    if (param.nonceValue.empty()) {
         return false;
     }
+    auto encryptKey = kvdbCrypto->Encrypt(param);
     keyContent.assign(keyContent.size(), 0);
+    if (encryptKey.empty()) {
+        return false;
+    }
     auto keyPath = path + KEY_DIR;
     if (!StoreUtil::InitPath(keyPath)) {
         ZLOGE("Init keyPath:%{public}s failed", StoreUtil::Anonymous(keyPath).c_str());
@@ -254,10 +323,8 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         return false;
     }
     std::string content(SecurityContent::MAGIC_NUM, static_cast<char>(SecurityContent::MAGIC_CHAR));
-    content.append(reinterpret_cast<const char *>(securityContent.nonceValue.data()),
-        securityContent.nonceValue.size());
-    content.append(reinterpret_cast<const char *>(securityContent.encryptValue.data()),
-        securityContent.encryptValue.size());
+    content.append(reinterpret_cast<const char *>(param.nonceValue.data()), param.nonceValue.size());
+    content.append(reinterpret_cast<const char *>(encryptKey.data()), encryptKey.size());
     auto ret = SaveStringToFd(fd, content);
     std::fill(content.begin(), content.end(), '\0');
     close(fd);
@@ -266,187 +333,6 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         return false;
     }
     StoreUtil::RemoveRWXForOthers(keyFullPath);
-    return ret;
-}
-
-bool SecurityManager::Encrypt(const std::vector<uint8_t> &key, SecurityManager::SecurityContent &content)
-{
-    struct HksParamSet *params = nullptr;
-    int32_t ret = HksInitParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return false;
-    }
-    content.nonceValue = Random(SecurityContent::NONCE_SIZE);
-    if (content.nonceValue.empty()) {
-        HksFreeParamSet(&params);
-        return false;
-    }
-    struct HksParam hksParam[] = {
-        { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
-        { .tag = HKS_TAG_PURPOSE, .uint32Param = HKS_KEY_PURPOSE_ENCRYPT },
-        { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
-        { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
-        { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
-        { .tag = HKS_TAG_NONCE, .blob = { SecurityContent::NONCE_SIZE, &(content.nonceValue[0]) } },
-        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = { uint32_t(vecAad_.size()), &(vecAad_[0]) } },
-        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
-    };
-    ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return false;
-    }
-    ret = HksBuildParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return false;
-    }
-    uint8_t cipherBuf[256] = { 0 };
-    struct HksBlob cipherText = { sizeof(cipherBuf), cipherBuf };
-    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
-    struct HksBlob plainKey = { uint32_t(key.size()), const_cast<uint8_t *>(key.data()) };
-    ret = HksEncrypt(&rootKeyName, params, &plainKey, &cipherText);
-    (void)HksFreeParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksEncrypt failed, status: %{public}d", ret);
-        return false;
-    }
-    content.encryptValue = std::vector<uint8_t>(cipherText.data, cipherText.data + cipherText.size);
-    std::fill(cipherBuf, cipherBuf + sizeof(cipherBuf), 0);
-    return true;
-}
-
-bool SecurityManager::Decrypt(SecurityManager::SecurityContent &content)
-{
-    struct HksParamSet *params = nullptr;
-    int32_t ret = HksInitParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return false;
-    }
-    struct HksBlob blobNonce = { .size = uint32_t(vecNonce_.size()), .data = &(vecNonce_[0]) };
-    if (!(content.nonceValue.empty())) {
-        blobNonce.size = uint32_t(content.nonceValue.size());
-        blobNonce.data = const_cast<uint8_t*>(&(content.nonceValue[0]));
-    }
-    struct HksParam hksParam[] = {
-        { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
-        { .tag = HKS_TAG_PURPOSE, .uint32Param = HKS_KEY_PURPOSE_DECRYPT },
-        { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
-        { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
-        { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
-        { .tag = HKS_TAG_NONCE, .blob = blobNonce },
-        { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = { uint32_t(vecAad_.size()), &(vecAad_[0]) } },
-        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
-    };
-    ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return false;
-    }
-    ret = HksBuildParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return false;
-    }
-    uint8_t plainBuf[256] = { 0 };
-    struct HksBlob plainKeyBlob = { sizeof(plainBuf), plainBuf };
-    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), &(vecRootKeyAlias_[0]) };
-    struct HksBlob encryptedKeyBlob = { uint32_t(content.encryptValue.size()),
-        const_cast<uint8_t *>(content.encryptValue.data()) };
-    ret = HksDecrypt(&rootKeyName, params, &encryptedKeyBlob, &plainKeyBlob);
-    (void)HksFreeParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksDecrypt, status: %{public}d", ret);
-        return false;
-    }
-    content.fullKeyValue.assign(plainKeyBlob.data, plainKeyBlob.data + plainKeyBlob.size);
-    std::fill(plainBuf, plainBuf + sizeof(plainBuf), 0);
-    return true;
-}
-
-int32_t SecurityManager::GenerateRootKey()
-{
-    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
-    struct HksParamSet *params = nullptr;
-    int32_t ret = HksInitParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return ret;
-    }
-
-    struct HksParam hksParam[] = {
-        { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
-        { .tag = HKS_TAG_KEY_SIZE, .uint32Param = HKS_AES_KEY_SIZE_256 },
-        { .tag = HKS_TAG_PURPOSE, .uint32Param = HKS_KEY_PURPOSE_ENCRYPT | HKS_KEY_PURPOSE_DECRYPT },
-        { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
-        { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
-        { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
-        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
-    };
-
-    ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return ret;
-    }
-
-    ret = HksBuildParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return ret;
-    }
-
-    ret = HksGenerateKey(&rootKeyName, params, nullptr);
-    HksFreeParamSet(&params);
-    ZLOGI("HksGenerateKey status: %{public}d", ret);
-    return ret;
-}
-
-int32_t SecurityManager::CheckRootKey()
-{
-    struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
-    struct HksParamSet *params = nullptr;
-    int32_t ret = HksInitParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return ret;
-    }
-
-    struct HksParam hksParam[] = {
-        { .tag = HKS_TAG_ALGORITHM, .uint32Param = HKS_ALG_AES },
-        { .tag = HKS_TAG_KEY_SIZE, .uint32Param = HKS_AES_KEY_SIZE_256 },
-        { .tag = HKS_TAG_PURPOSE, .uint32Param = HKS_KEY_PURPOSE_ENCRYPT | HKS_KEY_PURPOSE_DECRYPT },
-        { .tag = HKS_TAG_DIGEST, .uint32Param = 0 },
-        { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
-        { .tag = HKS_TAG_BLOCK_MODE, .uint32Param = HKS_MODE_GCM },
-        { .tag = HKS_TAG_AUTH_STORAGE_LEVEL, .uint32Param = HKS_AUTH_STORAGE_LEVEL_DE },
-    };
-
-    ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return ret;
-    }
-
-    ret = HksBuildParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
-        HksFreeParamSet(&params);
-        return ret;
-    }
-
-    ret = HksKeyExist(&rootKeyName, params);
-    HksFreeParamSet(&params);
-    ZLOGI("HksKeyExist status: %{public}d", ret);
     return ret;
 }
 

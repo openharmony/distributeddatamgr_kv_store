@@ -27,12 +27,26 @@ const std::string PerformanceAnalysis::STATISTICAL_DATA_FILE_NAME_HEADER = "/dat
 const std::string PerformanceAnalysis::CSV_FILE_EXTENSION = ".csv";
 const std::string PerformanceAnalysis::DEFAULT_FILE_NAME = "default00";
 std::once_flag PerformanceAnalysis::initFlag_;
+std::atomic<PerformanceAnalysis *> PerformanceAnalysis::instance_{nullptr};
 
 PerformanceAnalysis *PerformanceAnalysis::GetInstance(int stepNum)
 {
-    static PerformanceAnalysis inst(stepNum);
-    std::call_once(initFlag_, [] { inst.Initialization(); });
-    return &inst;
+    std::call_once(initFlag_, [&stepNum]() {
+        instance_.store(new PerformanceAnalysis(stepNum), std::memory_order_release);
+        instance_.load(std::memory_order_acquire)->Initialization();
+    });
+    return instance_.load(std::memory_order_acquire);
+}
+
+void PerformanceAnalysis::DeleteInstance()
+{
+    PerformanceAnalysis *inst = nullptr;
+    {
+        inst = instance_.exchange(nullptr, std::memory_order_acq_rel);
+    }
+    if (inst != nullptr) {
+        delete inst;
+    }
 }
 
 PerformanceAnalysis::PerformanceAnalysis(uint32_t inStepNum)

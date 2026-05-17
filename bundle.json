@@ -101,7 +101,10 @@
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync",
         "//foundation/distributeddatamgr/kv_store/databaseutils:database_utils",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock:build_module",
-        "//foundation/distributeddatamgr/kv_store/frameworks/ets/taihe/kv_store:distributedkvstore_ani_pack"
+        "//foundation/distributeddatamgr/kv_store/frameworks/ets/taihe/kv_store:distributedkvstore_ani_pack",
+        "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/crypt:kv_store_crypt",
+	    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/dm:build_module",
+        "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/dms:build_module"
       ],
       "inner_kits": [
         {

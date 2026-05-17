@@ -22,6 +22,10 @@ config("module_private_config") {
   cflags = [ "-Wno-c99-designator" ]
 
   include_dirs = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/dm",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/dms",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare",
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
     "../../../../interfaces/innerkits/distributeddatamgr/include/",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
@@ -48,11 +52,11 @@ ohos_source_set("kvdb_src_file") {
     "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
     "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
     "../../distributeddatafwk/src/ikvstore_observer.cpp",
-    "../../distributeddatafwk/src/kv_utils.cpp",
+    "../../datashare/kv_utils.cpp",
     "../../distributeddatafwk/src/kvdb_notifier_client.cpp",
     "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
     "../../distributeddatafwk/src/kvstore_client_death_observer.cpp",
-    "../../distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+    "../../datashare/kvstore_datashare_bridge.cpp",
     "../../distributeddatafwk/src/kvstore_observer_client.cpp",
     "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
     "../../distributeddatafwk/src/switch_observer_bridge.cpp",
@@ -101,7 +105,6 @@ ohos_source_set("kvdb_src_file") {
   ]
   if (dms_service_enable && qemu_disable) {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
-    external_deps += [ "dmsfwk:distributed_sdk" ]
   } else {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
   }
@@ -110,7 +113,6 @@ ohos_source_set("kvdb_src_file") {
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
     ]
-    external_deps += [ "device_manager:devicemanagersdk" ]
   } else {
     sources += [
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
@@ -402,13 +404,6 @@ ohos_unittest("StoreFactoryMockTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-  if (dm_service_enable) {
-    external_deps += [ "device_manager:devicemanagersdk" ]
-  }
-
-  if (dms_service_enable && qemu_disable) {
-    external_deps += [ "dmsfwk:distributed_sdk" ]
-  }
 
   cflags = [ "-Dprivate=public" ]
 
@@ -424,10 +419,10 @@ ohos_unittest("SingleStoreImplMockTest") {
     "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
     "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
     "../../distributeddatafwk/src/ikvstore_observer.cpp",
-    "../../distributeddatafwk/src/kv_utils.cpp",
+    "../../datashare/kv_utils.cpp",
     "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
     "../../distributeddatafwk/src/kvstore_client_death_observer.cpp",
-    "../../distributeddatafwk/src/kvstore_datashare_bridge.cpp",
+    "../../datashare/kvstore_datashare_bridge.cpp",
     "../../distributeddatafwk/src/kvstore_observer_client.cpp",
     "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
     "../../distributeddatafwk/src/switch_observer_bridge.cpp",
@@ -486,13 +481,6 @@ ohos_unittest("SingleStoreImplMockTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
-  if (dm_service_enable) {
-    external_deps += [ "device_manager:devicemanagersdk" ]
-  }
-
-  if (dms_service_enable && qemu_disable) {
-    external_deps += [ "dmsfwk:distributed_sdk" ]
-  }
 
   defines = [
     "private=public",

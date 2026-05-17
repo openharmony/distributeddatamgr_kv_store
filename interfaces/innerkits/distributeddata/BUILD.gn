@@ -35,6 +35,9 @@ config("distributeddatafwk_config") {
 
   include_dirs = [
     "include",
+    "../../../frameworks/innerkitsimpl/crypt",
+    "../../../frameworks/innerkitsimpl/dm",
+    "../../../frameworks/innerkitsimpl/dms",
     "../../../frameworks/innerkitsimpl/distributeddatamgr/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
@@ -61,11 +64,9 @@ old_source_config = [
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_kv_data_manager.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_client_death_observer.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_observer.cpp",
-  "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvdb_notifier_client.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvdb_notifier_stub.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_client_death_observer.cpp",
-  "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_observer_client.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_service_death_notifier.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/switch_observer_bridge.cpp",
@@ -99,15 +100,11 @@ deps_config = [
 ]
 
 external_deps_config = [
-  "access_token:libaccesstoken_sdk",
-  "access_token:libtokenid_sdk",
   "c_utils:utils",
-  "data_share:datashare_common_lite",
   "hisysevent:libhisysevent",
   "hitrace:hitrace_meter",
   "hitrace:libhitracechain",
   "hilog:libhilog",
-  "huks:libhukssdk",
   "ipc:ipc_single",
   "samgr:samgr_proxy",
   "file_api:securitylabel",
@@ -143,7 +140,6 @@ ohos_shared_library("distributeddata_inner") {
       "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
       "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
     ]
-    external_deps += [ "device_manager:devicemanagersdk" ]
   } else {
     sources += [
       "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",

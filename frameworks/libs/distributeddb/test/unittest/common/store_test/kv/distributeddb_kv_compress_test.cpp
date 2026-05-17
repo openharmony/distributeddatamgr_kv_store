@@ -14,7 +14,9 @@
  */
 
 #ifdef USE_DISTRIBUTEDDB_DEVICE
+#include "data_compression.h"
 #include "kv_general_ut.h"
+#include "zlib_compression.h"
 
 namespace DistributedDB {
 using namespace testing::ext;
@@ -51,6 +53,9 @@ void DistributedDBKVCompressTest::PrepareEnv(bool isNeedCompressOnSync)
 
 void DistributedDBKVCompressTest::TriggerPutAndSync()
 {
+    if (DataCompression::GetInstance(CompressAlgorithm::ZLIB) == nullptr) {
+        new ZlibCompression();
+    }
     auto storeInfo1 = GetStoreInfo1();
     auto storeInfo2 = GetStoreInfo2();
     auto store1 = GetDelegate(storeInfo1);

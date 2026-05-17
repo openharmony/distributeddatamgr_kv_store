@@ -24,6 +24,7 @@ class Convertor {
 public:
     using DBKey = DistributedDB::Key;
     using DBQuery = DistributedDB::Query;
+    virtual ~Convertor() = default;
     virtual std::vector<uint8_t> ToLocalDBKey(const Key &key) const;
     virtual std::vector<uint8_t> ToWholeDBKey(const Key &key) const;
     virtual Key ToKey(DBKey &&key, std::string &deviceId) const;

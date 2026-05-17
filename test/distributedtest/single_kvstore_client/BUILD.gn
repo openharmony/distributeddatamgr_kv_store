@@ -25,6 +25,7 @@ config("module_private_config") {
     "${kv_store_base_path}/frameworks/distributeddatafwk/include",
     "${kv_store_base_path}/frameworks/distributeddatafwk/src",
     "${kv_store_base_path}/frameworks/kvdb/include",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt",
   ]
 }
 

@@ -99,6 +99,20 @@ KVDBServiceClient::KVDBServiceClient(const sptr<IRemoteObject> &handle) : IRemot
     remote_ = Remote();
 }
 
+bool KVDBServiceClient::CleanUp()
+{
+    if (!KvStoreServiceDeathNotifier::Exit()) {
+        return false;
+    }
+    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
+    if (instance_ != nullptr && instance_.use_count() > 1) {
+        ZLOGW("KVDBService has other in use:%{public}ld", instance_.use_count());
+        return false;
+    }
+    instance_ = nullptr;
+    return true;
+}
+
 Status KVDBServiceClient::GetStoreIds(const AppId &appId, int32_t subUser, std::vector<StoreId> &storeIds)
 {
     MessageParcel reply;

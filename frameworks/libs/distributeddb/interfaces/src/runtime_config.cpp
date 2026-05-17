@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "runtime_config.h"
 
+#include "data_compression.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_dfx_adapter.h"
@@ -24,7 +25,11 @@
 #include "log_print.h"
 #include "network_adapter.h"
 #include "param_check_utils.h"
+#include "performance_analysis.h"
+#include "relational_store_instance.h"
 #include "runtime_context.h"
+#include "storage_engine_manager.h"
+#include "thread_pool_stub.h"
 
 namespace DistributedDB {
 std::mutex RuntimeConfig::communicatorMutex_;
@@ -256,6 +261,26 @@ DBStatus RuntimeConfig::SetDataFlowCheckCallback(const DataFlowCheckCallback &ca
 #else
     return OK;
 #endif
+}
+
+void RuntimeConfig::Clean()
+{
+    LOGI("[RuntimeContext Clean] destroy singletons");
+    DataCompression::DeleteInstance();
+    PerformanceAnalysis::DeleteInstance();
+    StorageEngineManager::DeleteInstance();
+    KvDBManager::DeleteInstance();
+#ifdef RELATIONAL_STORE
+    RelationalStoreInstance::DeleteInstance();
+#endif
+    RuntimeContext::DeleteInstance();
+    ThreadPoolStub::DeleteInstance();
+    Logger::DeleteInstance();
+
+    {
+        std::lock_guard<std::mutex> lock(communicatorMutex_);
+        processCommunicator_ = nullptr;
+    }
 }
 } // namespace DistributedDB
 #endif

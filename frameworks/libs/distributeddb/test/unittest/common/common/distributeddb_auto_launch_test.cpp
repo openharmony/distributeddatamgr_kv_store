@@ -116,9 +116,6 @@ void DistributedDBAutoLaunchUnitTest::SetUpTestCase(void)
         g_testDir + "/" + DBCommon::TransferStringToHex(g_identifierA) + "/single_ver") != 0) {
         LOGE("rm test db files error!");
     }
-    g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
-    ASSERT_TRUE(g_communicatorAggregator != nullptr);
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
 }
 
 void DistributedDBAutoLaunchUnitTest::TearDownTestCase(void)
@@ -166,11 +163,15 @@ void DistributedDBAutoLaunchUnitTest::SetUp(void)
     GetProperty(g_propG, g_identifierG, STORE_ID_6, g_dualIdentifierG);
     GetProperty(g_propH, g_identifierH, STORE_ID_7, g_dualIdentifierH);
     GetProperty(g_propI, g_identifierI, STORE_ID_8, g_dualIdentifierI);
+    g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(g_communicatorAggregator != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
 }
 
 void DistributedDBAutoLaunchUnitTest::TearDown(void)
 {
     RuntimeContext::GetInstance()->StopTaskPool();
+    RuntimeContext::DeleteInstance();
 }
 
 static void PutSyncData(const KvDBProperties &prop, const Key &key, const Value &value)

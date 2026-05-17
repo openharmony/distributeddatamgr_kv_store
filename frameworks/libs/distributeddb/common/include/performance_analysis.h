@@ -19,6 +19,7 @@
 #include <fstream>
 #include <mutex>
 #include <vector>
+#include <atomic>
 
 #include "db_types.h"
 
@@ -71,6 +72,7 @@ struct SingleStatistics {
 class PerformanceAnalysis {
 public:
     static PerformanceAnalysis *GetInstance(int stepNum = 20);
+    static void DeleteInstance();
 
     void Initialization();
 
@@ -122,6 +124,7 @@ private:
     int fileNumber_;
     std::string fileName_;
     static std::once_flag initFlag_;
+    static std::atomic<PerformanceAnalysis *> instance_;
 };
 }  // namespace DistributedDB
 #endif

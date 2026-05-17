@@ -16,7 +16,6 @@
 #include "single_store_impl.h"
 
 #include <cerrno>
-#include "accesstoken_kit.h"
 #include "acl.h"
 #include "auto_sync_timer.h"
 #include "backup_manager.h"
@@ -34,7 +33,6 @@
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
 using namespace std::chrono;
-using namespace Security::AccessToken;
 using namespace DATABASE_UTILS;
 SingleStoreImpl::SingleStoreImpl(
     std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt)
@@ -59,14 +57,7 @@ SingleStoreImpl::SingleStoreImpl(
     autoBackup_ = options.backup;
     isSchemaStore_ = !options.schema.empty();
     isCustomDir_ = options.isCustomDir;
-    uint32_t tokenId = IPCSkeleton::GetSelfTokenID();
-    if (AccessTokenKit::GetTokenTypeFlag(tokenId) == TOKEN_HAP) {
-        isApplication_ = true;
-        apiVersion_ = options.apiVersion;
-    }
-    if (!isApplication_) {
-        isCheckIntegrity_ = true;
-    }
+    isApplication_ = options.isApplication;
     if (syncable_ || autoBackup_) {
         SetAcl(storeId_, path);
         if (autoBackup_) {
@@ -797,7 +788,7 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_,
-        .isCheckIntegrity = isCheckIntegrity_  };
+        .isCheckIntegrity = isApplication_  };
     auto status = BackupManager::GetInstance().Backup(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
@@ -814,7 +805,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
         service->Close({ appId_ }, { storeId_ }, subUser_);
     }
     BackupInfo info = { .name = file, .baseDir = baseDir, .appId = appId_, .storeId = storeId_,
-        .encrypt = encrypt_, .isCheckIntegrity = isCheckIntegrity_, .subUser = subUser_, .isCustomDir = isCustomDir_ };
+        .encrypt = encrypt_, .isCheckIntegrity = isApplication_, .subUser = subUser_, .isCustomDir = isCustomDir_ };
     auto status = BackupManager::GetInstance().Restore(info, dbStore_);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,

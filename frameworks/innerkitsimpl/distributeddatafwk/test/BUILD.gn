@@ -24,6 +24,10 @@ config("module_private_config") {
   include_dirs = [
     "../include/",
     "../src/",
+    "../../crypt/",
+    "../../datashare/",
+    "../../dm/",
+    "../../dms/",
     "../../distributeddatasvc/include/",
     "../../kvdb/include/",
     "../../kvdb/src/",
@@ -50,11 +54,11 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../src/distributed_kv_data_manager.cpp",
     "../src/ikvstore_client_death_observer.cpp",
     "../src/ikvstore_observer.cpp",
-    "../src/kv_utils.cpp",
+    "../../datashare/kv_utils.cpp",
     "../src/kvdb_notifier_client.cpp",
     "../src/kvdb_notifier_stub.cpp",
     "../src/kvstore_client_death_observer.cpp",
-    "../src/kvstore_datashare_bridge.cpp",
+    "../../datashare/kvstore_datashare_bridge.cpp",
     "../src/kvstore_observer_client.cpp",
     "../src/kvstore_service_death_notifier.cpp",
     "../src/switch_observer_bridge.cpp",
@@ -106,7 +110,6 @@ ohos_source_set("distributeddatafwk_src_file") {
 
   if (dms_service_enable && qemu_disable) {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
-    external_deps += [ "dmsfwk:distributed_sdk" ]
   } else {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
   }
@@ -115,7 +118,6 @@ ohos_source_set("distributeddatafwk_src_file") {
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
     ]
-    external_deps += [ "device_manager:devicemanagersdk" ]
   } else {
     sources += [
       "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
