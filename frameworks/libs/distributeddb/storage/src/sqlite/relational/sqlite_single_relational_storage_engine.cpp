@@ -627,7 +627,7 @@ int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &conditio
 }
 
 int SQLiteSingleRelationalStorageEngine::QuerySubscribeOutput(
-    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -757,7 +757,7 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+int SQLiteSingleRelationalStorageEngine::SetSubscribeCursor(const DBSubscribeCur &cursorIn)
 {
     DdCursor ddCursor;
     ddCursor.type = static_cast<DonationType>(cursorIn.queryType);
@@ -777,7 +777,7 @@ int SQLiteSingleRelationalStorageEngine::SetSubscibeCursor(const DBSubscibeCur &
     }
     sqlite3 *db = nullptr;
     if (handle->GetDbHandle(db) != E_OK) {
-        LOGE("[SetSubscibeCursor] invalid db");
+        LOGE("[SetSubscribeCursor] invalid db");
         ReleaseExecutor(handle);
         return -E_INVALID_DB;
     }

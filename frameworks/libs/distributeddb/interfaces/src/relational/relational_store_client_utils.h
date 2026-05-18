@@ -58,9 +58,9 @@ private:
 
     static int GetTableAndColumnName(const JsonObject &jsonValue, std::string &tableName, std::string &columnName);
     
-    static void InitNewTableEntry(MonitorTableCol &table, const char *tableName, const char *columnName);
+    static int InitNewTableEntry(MonitorTableCol &table, const std::string &tableName, const std::string &columnName);
 
-    static int TryAddColumnToTable(MonitorTableCol &table, const char *columnName);
+    static int TryAddColumnToTable(MonitorTableCol &table, const std::string &columnName);
 
     static int AddColumnsToMonitor(const JsonObject &jsonValue, MonitorTablesConfig *monitorConfig);
 

@@ -416,7 +416,7 @@ DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, 
 }
 
 DBStatus RelationalStoreDelegateImpl::QuerySubscribeOutput(
-    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");
@@ -792,21 +792,21 @@ DBStatus RelationalStoreDelegateImpl::SetBinlogEnabled(bool enabled)
     return OK;
 }
 
-DBStatus RelationalStoreDelegateImpl::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+DBStatus RelationalStoreDelegateImpl::SetSubscribeCursor(const DBSubscribeCur &cursorIn)
 {
     if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for SetSubscibeCursor!");
+        LOGE("[RelationalStore Delegate] Invalid connection for SetSubscribeCursor!");
         return DB_ERROR;
     }
     if (cursorIn.queryType != SubQueryType::GET_NEW) {
         return NOT_SUPPORT;
     }
-    int errCode = conn_->SetSubscibeCursor(cursorIn);
+    int errCode = conn_->SetSubscribeCursor(cursorIn);
     if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] SetSubscibeCursor failed:%d", errCode);
+        LOGE("[RelationalStore Delegate] SetSubscribeCursor failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
-    LOGI("[RelationalStore Delegate] SetSubscibeCursor cursor:%lld", cursorIn.cursor);
+    LOGI("[RelationalStore Delegate] SetSubscribeCursor cursor:%lld", cursorIn.cursor);
     return OK;
 }
 

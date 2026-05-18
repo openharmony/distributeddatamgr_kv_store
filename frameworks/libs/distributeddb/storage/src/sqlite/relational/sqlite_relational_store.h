@@ -83,8 +83,8 @@ public:
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
 
-    int QuerySubscribeOutput(const DBSubscibeCur &cursorIn,
-        DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut);
+    int QuerySubscribeOutput(const DBSubscribeCur &cursorIn,
+        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut);
 
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
@@ -156,7 +156,7 @@ public:
 
     int SetBinlogEnabled(bool enabled);
 
-    int SetSubscibeCursor(const DBSubscibeCur &cursorIn);
+    int SetSubscribeCursor(const DBSubscribeCur &cursorIn);
 
     void StopAllBackgroundTask(TaskType type);
 protected:

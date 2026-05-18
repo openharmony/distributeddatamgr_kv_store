@@ -394,7 +394,7 @@ int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, s
 }
 
 int SQLiteRelationalStoreConnection::QuerySubscribeOutput(
-    const DBSubscibeCur &cursorIn, DBSubscibeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -599,14 +599,14 @@ int SQLiteRelationalStoreConnection::SetBinlogEnabled(bool enabled)
     return store->SetBinlogEnabled(enabled);
 }
 
-int SQLiteRelationalStoreConnection::SetSubscibeCursor(const DBSubscibeCur &cursorIn)
+int SQLiteRelationalStoreConnection::SetSubscribeCursor(const DBSubscribeCur &cursorIn)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
         LOGE("[RelationalConnection] store is null, set subscribe cursor failed!");
         return -E_INVALID_CONNECTION;
     }
-    return store->SetSubscibeCursor(cursorIn);
+    return store->SetSubscribeCursor(cursorIn);
 }
 
 int SQLiteRelationalStoreConnection::StopTask(TaskType type)
