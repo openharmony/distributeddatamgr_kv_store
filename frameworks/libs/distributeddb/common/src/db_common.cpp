@@ -69,18 +69,6 @@ namespace {
 
 static std::atomic_bool g_isGrdLoaded = false;
 
-int DBCommon::CreateDirectory(const std::string &directory)
-{
-    bool isExisted = OS::CheckPathExistence(directory);
-    if (!isExisted) {
-        int errCode = OS::MakeDBDirectory(directory);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-    }
-    return E_OK;
-}
-
 void DBCommon::VectorToString(const std::vector<uint8_t> &src, std::string &dst)
 {
     dst.clear();

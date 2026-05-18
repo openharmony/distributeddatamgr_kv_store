@@ -810,4 +810,29 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
     monitorConfig = RelationalStoreClientUtils::BinlogSchemaGet(invalidDbPath.c_str());
     EXPECT_EQ(monitorConfig, nullptr);
 }
+
+/**
+ * @tc.name: QueryBinlogSubscribeData006
+ * @tc.desc: Test QuerySubscribeOutput interface with not enabled binlog.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData006, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    
+    DBSubscribeCur cursorIn;
+    cursorIn.queryType = SubQueryType::GET_ALL;
+    cursorIn.cursor = 0;
+    DBSubscribeCur cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_NE(status, OK);
+}
 }
