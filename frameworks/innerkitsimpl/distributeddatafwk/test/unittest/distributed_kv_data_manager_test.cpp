@@ -1062,4 +1062,26 @@ HWTEST_F(DistributedKvDataManagerTest, UnsubscribeSwitchesData, TestSize.Level1)
     status = manager.UnsubscribeSwitchData({ "switches_test_appId" }, observer);
     ASSERT_EQ(status, Status::PERMISSION_DENIED);
 }
+
+/**
+* @tc.name: InitTest
+* @tc.desc: init DistributedKvDataManager.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, InitTest, TestSize.Level1)
+{
+    auto status = manager.Init();
+    ASSERT_EQ(status, true);
+}
+
+/**
+* @tc.name: DestroyTest
+* @tc.desc: Destroy DistributedKvDataManager.
+* @tc.type: FUNC
+*/
+HWTEST_F(DistributedKvDataManagerTest, DestroyTest, TestSize.Level1)
+{
+    auto status = manager.Destroy();
+    ASSERT_EQ(status, false);
+}
 } // namespace OHOS::Test
