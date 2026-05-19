@@ -64,7 +64,7 @@ public:
     static int GetRecordPrefix(size_t idx, ICloudSyncer::SyncParam &param, const ICloudSyncer::DataInfo &dataInfo,
         Type &prefix, std::vector<Type> &pkVals);
 private:
-    static void TagDownloadAssetsTimeFirstInner(const AssetRecordInfo &info, VBucket &local, VBucket &cloud,
+    static bool TagDownloadAssetsTimeFirstInner(const AssetRecordInfo &info, VBucket &local, VBucket &cloud,
         std::map<std::string, Assets> &assetsMap);
     static void HandleAssetFieldCloudNoneExist(const Field &field, const VBucket &local, const Type &localType,
         std::map<std::string, Assets> &assetsMap);

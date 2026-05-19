@@ -47,6 +47,7 @@ public:
     static bool IsAssetsNeedDownload(const Assets &assets);
     static void SetToDownload(bool isSkipDownloadAssets, VBucket &record);
     static bool IsAssetToDownload(const Asset &asset);
+    static void CopyAsset(const Asset &from, Asset &to);
 private:
     static void Init();
     static AssetOperationUtils::AssetOpType DefaultOperation(const Asset &, const Assets &);
