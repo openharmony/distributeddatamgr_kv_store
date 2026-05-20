@@ -206,9 +206,10 @@ HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
         EXPECT_NE(kvStore->dbStore_, nullptr);
         EXPECT_FALSE(kvStore->isApplication_);
 
-        kvStore->taskId_ = 0;
+        kvStore->taskId_ = 1;
         kvStore->OnRemoteDied();
 
+        kvStore->taskId_ = 0;
         shared_ptr<Observer> observer = make_shared<Observer>();
         shared_ptr<Observer> observer1 = make_shared<Observer>();
         Convertor cvt;
