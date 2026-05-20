@@ -462,7 +462,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorBasicTest001, TestSize.
 
 /**
  * @tc.name: SetSubscribeCursorNotSupportTest001
- * @tc.desc: Test SetSubscribeCursor interface returns NOT_SUPPORT when queryType is GET_ALL.
+ * @tc.desc: Test SetSubscribeCursor interface returns OK when queryType is GET_ALL.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
@@ -481,7 +481,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorNotSupportTest001, Test
     cursorIn.cursor = 0;
     
     DBStatus status = delegate->SetSubscribeCursor(cursorIn);
-    EXPECT_EQ(status, NOT_SUPPORT);
+    EXPECT_EQ(status, OK);
 }
 
 /**

@@ -802,7 +802,7 @@ DBStatus RelationalStoreDelegateImpl::SetSubscribeCursor(const DBSubscribeCur &c
         return DB_ERROR;
     }
     if (cursorIn.queryType != SubQueryType::GET_NEW) {
-        return NOT_SUPPORT;
+        return OK;
     }
     int errCode = conn_->SetSubscribeCursor(cursorIn);
     if (errCode != E_OK) {
