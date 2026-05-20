@@ -796,6 +796,7 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_,
         .isCheckIntegrity = isCheckIntegrity_  };
     auto status = BackupManager::GetInstance().Backup(info, dbStore_);
@@ -1098,9 +1099,8 @@ void SingleStoreImpl::DoAutoSync()
 
 void SingleStoreImpl::OnRemoteDied()
 {
-    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
-    bool expected = false;
-    if (!isDied_.compare_exchange_strong(expected, true)) {
+    uint64_t expect = 0;
+    if (!taskId_.compare_exchange_strong(expect, UINT64_MAX)) {
         return;
     }
     observers_.ForEach([](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
@@ -1121,7 +1121,6 @@ void SingleStoreImpl::OnRemoteDied()
 
 void SingleStoreImpl::Register()
 {
-    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     Status status = SUCCESS;
     observers_.ForEach([&status](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
         if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE ||
@@ -1143,7 +1142,6 @@ void SingleStoreImpl::Register()
         });
     } else {
         taskId_ = 0;
-        isDied_ = false;
     }
 }
 
