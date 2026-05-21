@@ -23,7 +23,7 @@ namespace OHOS::DistributedKv {
 class BDevManager {
 public:
     virtual std::string ToUUID(const std::string &) = 0;
-    virtual const DetailInfo &GetLocalDevice() = 0;
+    virtual const DevManager::DetailInfo &GetLocalDevice() = 0;
     virtual std::string ToNetworkId(const std::string &) = 0;
     virtual std::string GetUnEncryptedUuid() = 0;
     BDevManager() = default;
@@ -36,7 +36,7 @@ public:
 class DevManagerMock : public BDevManager {
 public:
     MOCK_METHOD(std::string, ToUUID, (const std::string &));
-    MOCK_METHOD(const DetailInfo &, GetLocalDevice, ());
+    MOCK_METHOD(const DevManager::DetailInfo &, GetLocalDevice, ());
     MOCK_METHOD(std::string, ToNetworkId, (const std::string &));
     MOCK_METHOD(std::string, GetUnEncryptedUuid, ());
 };

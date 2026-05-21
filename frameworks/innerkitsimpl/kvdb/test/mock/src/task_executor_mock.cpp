@@ -53,9 +53,4 @@ TaskExecutor::TaskId TaskExecutor::Reset(TaskExecutor::TaskId taskId, Duration i
 void TaskExecutor::SetExecutors(std::shared_ptr<ExecutorPool> executors) { }
 
 void TaskExecutor::GenerateExecutors() { }
-
-bool TaskExecutor::Stop()
-{
-    return true;
-}
 } // namespace OHOS

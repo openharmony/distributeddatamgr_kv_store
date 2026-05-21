@@ -245,22 +245,6 @@ public:
      * @return Return SUCCESS for success, others for failure.
     */
     API_EXPORT Status UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
-
-    /**
-     * @brief initialization resources.
-     *
-     * @note Create pool initialization resources.
-     */
-    API_EXPORT static bool Init();
-
-    /**
-     * @brief Clean up resources before dlclose.
-     *
-     * @note This interface is only used to release resources before calling dlclose, and can only be called before
-     * actually uninstalling kvdb. Please manually release all resources obtained from kvdb (kvStore, resultSet,
-     * transaction, etc.) before calling, and then dlopen again to use them normally
-     */
-    API_EXPORT static bool Destroy();
 private:
     static bool isAlreadySet_;
     std::mutex mutex_;

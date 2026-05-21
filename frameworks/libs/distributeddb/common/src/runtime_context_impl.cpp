@@ -66,17 +66,6 @@ RuntimeContextImpl::~RuntimeContextImpl()
         taskPoolReportsTimerId_ = 0;
     }
     StopTaskPool();
-    {
-        std::lock_guard<std::mutex> autoLock(timersLock_);
-        for (auto &item : timers_) {
-            if (item.second != nullptr) {
-                item.second->Detach(false);
-                RefObject::DecObjRef(item.second);
-                item.second = nullptr;
-            }
-        }
-        timers_.clear();
-    }
     if (mainLoop_ != nullptr) { // LCOV_EXCL_BR_LINE
         mainLoop_->Stop();
         mainLoop_->KillAndDecObjRef(mainLoop_);

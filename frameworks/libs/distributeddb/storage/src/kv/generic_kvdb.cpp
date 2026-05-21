@@ -86,12 +86,6 @@ void GenericKvDB::OnClose(const std::function<void(void)> &notifier)
     }
 }
 
-void GenericKvDB::ClearCloseNotifiers()
-{
-    AutoLock lockGuard(this);
-    closeNotifiers_.clear();
-}
-
 std::string GenericKvDB::GetStoreId() const
 {
     return MyProp().GetStringProp(KvDBProperties::STORE_ID, "");

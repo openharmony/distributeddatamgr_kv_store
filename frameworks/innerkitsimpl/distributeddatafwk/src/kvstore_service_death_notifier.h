@@ -30,7 +30,6 @@ class KvStoreServiceDeathNotifier final {
 public:
     // get DistributedKvDataService proxy object.
     static sptr<IKvStoreDataService> GetDistributedKvDataService();
-    static bool Exit();
     // temporarily used, should get in service side from binder.
     static void SetAppId(const AppId &appId);
     static AppId GetAppId();

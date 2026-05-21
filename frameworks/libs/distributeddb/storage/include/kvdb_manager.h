@@ -63,8 +63,6 @@ public:
     // Get a KvDBManager instance, Singleton mode
     static KvDBManager *GetInstance();
 
-    static void DeleteInstance();
-
     // Dump all db message in cache
     void Dump(int fd);
 private:

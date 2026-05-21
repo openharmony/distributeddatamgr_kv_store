@@ -20,7 +20,6 @@
 #include "kvdb_service_client.h"
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
-#include "runtime_config.h"
 #include "security_manager.h"
 
 #include "store_util.h"
@@ -29,12 +28,6 @@ StoreManager &StoreManager::GetInstance()
 {
     static StoreManager instance;
     return instance;
-}
-
-bool StoreManager::CleanUp()
-{
-    DistributedDB::RuntimeConfig::Clean();
-    return KVDBServiceClient::CleanUp();
 }
 
 std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, const StoreId &storeId,

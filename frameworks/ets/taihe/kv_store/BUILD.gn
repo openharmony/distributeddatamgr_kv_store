@@ -41,7 +41,6 @@ taihe_shared_library("distributedkvstore_ani") {
     "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
     "${kv_store_base_path}/frameworks/ets/taihe/kv_store/include",
     "${kv_store_base_path}/frameworks/common",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare",
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
   ]
   sources = get_target_outputs(":run_taihe")
@@ -53,8 +52,7 @@ taihe_shared_library("distributedkvstore_ani") {
     "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_observer_utils.cpp",
     "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ani_utils.cpp",
     "${kv_store_base_path}/frameworks/ets/taihe/kv_store/src/ohos.data.distributedkvstore.impl.cpp",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kv_utils.cpp",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kvstore_datashare_bridge.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
   ]
   deps = [
     ":run_taihe",

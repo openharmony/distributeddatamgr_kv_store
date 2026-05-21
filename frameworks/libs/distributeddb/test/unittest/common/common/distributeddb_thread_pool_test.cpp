@@ -480,7 +480,6 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool001, TestSize.Level1)
         LOGD("end wait all task finished");
     }
     RuntimeContext::GetInstance()->StopTaskPool();
-    ThreadPoolStub::DeleteInstance();
 }
 
 /**
@@ -517,7 +516,6 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool002, TestSize.Level1)
     }, taskId);
     TaskId expId = 2;
     EXPECT_EQ(currentId, expId);
-    ThreadPoolStub::DeleteInstance();
 }
 
 /**
@@ -545,6 +543,5 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool003, TestSize.Level1)
     }, taskId);
     ThreadPoolStub::GetInstance().RemoveTask(taskId, true);
     ThreadPoolStub::GetInstance().SetThreadPool(nullptr);
-    ThreadPoolStub::DeleteInstance();
 }
 }

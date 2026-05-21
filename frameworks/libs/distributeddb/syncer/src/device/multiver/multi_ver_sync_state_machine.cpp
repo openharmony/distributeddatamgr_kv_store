@@ -115,10 +115,7 @@ void MultiVerSyncStateMachine::StepToIdle()
     currentState_ = IDLE;
     StopWatchDog();
     context_->Clear();
-    PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
-    if (performance != nullptr) {
-        performance->TimeRecordEnd();
-    }
+    PerformanceAnalysis::GetInstance()->TimeRecordEnd();
     LOGD("[MultiVerSyncStateMachine][%s] step to idle", STR_MASK(context_->GetDeviceId()));
 }
 

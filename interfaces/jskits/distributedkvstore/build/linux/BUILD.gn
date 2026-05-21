@@ -48,6 +48,8 @@ cflags_cc = [
   ]
 
   sources = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
     "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
     "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
     "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
@@ -62,6 +64,10 @@ cflags_cc = [
     "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/js_util.cpp",
     "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/napi_queue.cpp",
     "${kv_store_base_path}/frameworks/jskitsimpl/distributedkvstore/src/uv_queue.cpp",
+  ]
+  sources -= [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
   ]
   sources += [
     "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common/hitracechain.cpp",

@@ -90,23 +90,6 @@ sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataServi
     return instance.kvDataServiceProxy_;
 }
 
-bool KvStoreServiceDeathNotifier::Exit()
-{
-    auto &instance = GetInstance();
-    std::lock_guard<std::mutex> lg(instance.watchMutex_);
-    if (instance.kvDataServiceProxy_ == nullptr) {
-        return true;
-    }
-    auto code = instance.kvDataServiceProxy_->Exit("kv_store");
-    if (code != 0) {
-        ZLOGE("exit fail, code:%{public}d", code);
-        return false;
-    }
-    instance.kvDataServiceProxy_->AsObject()->RemoveDeathRecipient(instance.deathRecipientPtr_);
-    instance.kvDataServiceProxy_ = nullptr;
-    return true;
-}
-
 void KvStoreServiceDeathNotifier::RegisterClientDeathObserver()
 {
     if (kvDataServiceProxy_ == nullptr) {
