@@ -63,13 +63,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     }
     sql += "a.hash_key = ?";
     if (!pkMap.empty() && CloudStorageUtils::IsDownloadDataContainsPrimaryKey(vBucket, pkMap)) {
-        sql += " or (";
+        sql += " or a.data_key = (select _rowid_ from '" + tableName + "' where ";
         bool first = true;
         for (const auto &pk : pkMap) {
             if (!first) {
                 sql += " and ";
             }
-            sql += "b." + pk.first + " = ?";
+            sql += pk.first + " = ?";
             first = false;
         }
         sql += ")";
