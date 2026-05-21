@@ -200,7 +200,6 @@ HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin OnRemoteDied";
     try {
-        EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).WillOnce(Return(TOKEN_INVALID));
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore(false, false);
         ASSERT_NE(kvStore, nullptr);
@@ -248,7 +247,6 @@ HWTEST_F(SingleStoreImplMockTest, Register, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Register";
     try {
-        EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).WillOnce(Return(TOKEN_HAP));
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore(false, false);
         ASSERT_NE(kvStore, nullptr);
