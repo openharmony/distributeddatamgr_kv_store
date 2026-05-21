@@ -1089,8 +1089,8 @@ void SingleStoreImpl::DoAutoSync()
 
 void SingleStoreImpl::OnRemoteDied()
 {
-    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
-    if (taskId_ > 0) {
+    uint64_t expect = 0;
+    if (!taskId_.compare_exchange_strong(expect, UINT64_MAX)) {
         return;
     }
     observers_.ForEach([](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
@@ -1111,7 +1111,6 @@ void SingleStoreImpl::OnRemoteDied()
 
 void SingleStoreImpl::Register()
 {
-    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     Status status = SUCCESS;
     observers_.ForEach([&status](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
         if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE ||
