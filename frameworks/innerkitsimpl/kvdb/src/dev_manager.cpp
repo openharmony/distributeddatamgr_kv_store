@@ -15,58 +15,64 @@
 #define LOG_TAG "DevManager"
 #include "dev_manager.h"
 #include <unistd.h>
+#include "device_manager.h"
+#include "device_manager_callback.h"
+#include "dm_device_info.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_util.h"
-
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
+using namespace OHOS::DistributedHardware;
+using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
+constexpr int32_t DM_OK = 0;
+constexpr int32_t DM_ERROR = -1;
 constexpr size_t DevManager::MAX_ID_LEN;
 constexpr const char *PKG_NAME_EX = "_distributed_data";
+class DmDeathCallback : public DmInitCallback {
+public:
+    explicit DmDeathCallback(DevManager &devManager) : devManager_(devManager){};
+    void OnRemoteDied() override;
 
-using Creator = std::shared_ptr<OHOS::DistributedKv::DeviceAdapter> (*)(const std::string &pkgName);
+private:
+    DevManager &devManager_;
+};
+
+void DmDeathCallback::OnRemoteDied()
+{
+    ZLOGI("Dm device manager died, init it again");
+    devManager_.RegisterDevCallback();
+}
 
 DevManager::DevManager(const std::string &pkgName) : PKG_NAME(pkgName + PKG_NAME_EX)
 {
-    (void)GetDelegate();
+    RegisterDevCallback();
 }
 
-void* DevManager::GetHandle()
+int32_t DevManager::Init()
 {
-    std::lock_guard<std::mutex> lock(handleMutex_);
-    if (handle_ == nullptr) {
-        handle_ = dlopen("libdm_adapter.z.so", RTLD_LAZY);
-        if (handle_ == nullptr) {
-            ZLOGE("dlopen dm so failed errno is %{public}d", errno);
+    auto &deviceManager = DeviceManager::GetInstance();
+    auto deviceInitCallback = std::make_shared<DmDeathCallback>(*this);
+    return deviceManager.InitDeviceManager(PKG_NAME, deviceInitCallback);
+}
+
+void DevManager::RegisterDevCallback()
+{
+    auto check = Retry();
+    check();
+}
+
+std::function<void()> DevManager::Retry()
+{
+    return [this]() {
+        int32_t errNo = DM_ERROR;
+        errNo = Init();
+        if (errNo == DM_OK) {
+            return;
         }
-    }
-    return handle_;
-}
-
-std::shared_ptr<DeviceAdapter> DevManager::CreateDelegate()
-{
-    auto handle = GetHandle();
-    if (handle == nullptr) {
-        return nullptr;
-    }
-    auto creator = reinterpret_cast<Creator>(dlsym(handle, "CreateDeviceAdapterDelegate"));
-    if (creator == nullptr) {
-        ZLOGE("dlsym CreateDeviceAdapterDelegate failed, errno:%{public}d", errno);
-        return nullptr;
-    }
-    return creator(PKG_NAME);
-}
-
-std::shared_ptr<DeviceAdapter> DevManager::GetDelegate()
-{
-    std::lock_guard<std::mutex> lock(delegateMutex_);
-    if (deviceAdapter_ != nullptr) {
-        return deviceAdapter_;
-    }
-    deviceAdapter_ = CreateDelegate();
-    if (deviceAdapter_ == nullptr) {
-        return nullptr;
-    }
-    return deviceAdapter_;
+        constexpr int32_t interval = 100;
+        TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(interval), Retry());
+    };
 }
 
 DevManager &DevManager::GetInstance()
@@ -85,7 +91,7 @@ std::string DevManager::ToNetworkId(const std::string &uuid)
     return GetDevInfoFromBucket(uuid).networkId;
 }
 
-DetailInfo DevManager::GetDevInfoFromBucket(const std::string &id)
+DevManager::DetailInfo DevManager::GetDevInfoFromBucket(const std::string &id)
 {
     DetailInfo detailInfo;
     if (!deviceInfos_.Get(id, detailInfo)) {
@@ -120,12 +126,10 @@ std::string DevManager::GetUnEncryptedUuid()
     if (!UnEncryptedLocalInfo_.uuid.empty()) {
         return UnEncryptedLocalInfo_.uuid;
     }
-    DetailInfo info;
-    auto deviceAdapter = GetDelegate();
-    if (deviceAdapter == nullptr) {
-        return "";
-    }
-    if (!deviceAdapter->GetLocalDeviceInfo(info)) {
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("Get local device info fail");
         return "";
     }
     auto networkId = std::string(info.networkId);
@@ -133,7 +137,8 @@ std::string DevManager::GetUnEncryptedUuid()
         ZLOGE("This networkid is empty");
         return "";
     }
-    std::string uuid = deviceAdapter->GetUuidByNetworkId(networkId);
+    std::string uuid;
+    DeviceManager::GetInstance().GetUuidByNetworkId(PKG_NAME, networkId, uuid);
     if (uuid.empty()) {
         ZLOGE("Get uuid by networkid fail");
         return "";
@@ -145,22 +150,21 @@ std::string DevManager::GetUnEncryptedUuid()
     return UnEncryptedLocalInfo_.uuid;
 }
 
-const DetailInfo &DevManager::GetLocalDevice()
+const DevManager::DetailInfo &DevManager::GetLocalDevice()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
-    auto deviceAdapter = GetDelegate();
-    if (deviceAdapter == nullptr) {
-        return invalidDetail_;
-    }
-    DetailInfo info;
-    if (!deviceAdapter->GetLocalDeviceInfo(info)) {
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("Get local device info fail");
         return invalidDetail_;
     }
     auto networkId = std::string(info.networkId);
-    std::string uuid = deviceAdapter->GetEncryptedUuidByNetworkId(networkId);
+    std::string uuid;
+    DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
     if (uuid.empty() || networkId.empty()) {
         return invalidDetail_;
     }
@@ -171,24 +175,30 @@ const DetailInfo &DevManager::GetLocalDevice()
     return localInfo_;
 }
 
-std::vector<DetailInfo> DevManager::GetRemoteDevices()
+std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
 {
-    auto deviceAdapter = GetDelegate();
-    if (deviceAdapter == nullptr) {
+    std::vector<DevInfo> dmInfos;
+    auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
+    if (ret != DM_OK) {
+        ZLOGE("Get trusted device:%{public}d", ret);
         return {};
     }
-    std::vector<DetailInfo> dtInfos = deviceAdapter->GetTrustedDeviceList();
-    if (dtInfos.empty()) {
+    if (dmInfos.empty()) {
         ZLOGD("No remote device");
         return {};
     }
-    for (auto &dtInfo : dtInfos) {
-        auto networkId = std::string(dtInfo.networkId);
-        std::string uuid = deviceAdapter->GetEncryptedUuidByNetworkId(networkId);
-        if (uuid.empty()) {
-            ZLOGE("Get uuid fail by networkId,networkId:%{public}s", StoreUtil::Anonymous(networkId).c_str());
+    std::vector<DetailInfo> dtInfos;
+    for (auto &device : dmInfos) {
+        DetailInfo dtInfo;
+        auto networkId = std::string(device.networkId);
+        std::string uuid;
+        ret = DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
+        if (ret != DM_OK) {
+            ZLOGE("Get uuid fail by networkId,networkId:%{public}s, ret:%{public}d",
+                StoreUtil::Anonymous(networkId).c_str(), ret);
             continue;
         }
+        dtInfo.networkId = std::move(device.networkId);
         dtInfo.uuid = std::move(uuid);
         dtInfos.push_back(dtInfo);
     }

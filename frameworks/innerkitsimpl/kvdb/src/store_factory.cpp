@@ -47,17 +47,6 @@ StoreFactory::StoreFactory()
     }
     (void)DBManager::SetProcessSystemAPIAdapter(std::make_shared<SystemApi>());
 }
-
-StoreFactory::~StoreFactory()
-{
-    for (auto& convertor : convertors_) {
-        if (convertor != nullptr) {
-            delete convertor;
-            convertor = nullptr;
-        }
-    }
-}
-
 Status StoreFactory::SetDbConfig(std::shared_ptr<DBStore> dbStore)
 {
     PragmaData data =

@@ -27,16 +27,6 @@ TaskExecutor &TaskExecutor::GetInstance()
     return instance;
 };
 
-bool TaskExecutor::Stop()
-{
-    std::unique_lock<decltype(mtx_)> lock(mtx_);
-    if (pool_ != nullptr && pool_.use_count() > 1) {
-        return false;
-    }
-    pool_ = nullptr;
-    return true;
-}
-
 TaskExecutor::TaskId TaskExecutor::Execute(const Task &task)
 {
     if (pool_ == nullptr) {

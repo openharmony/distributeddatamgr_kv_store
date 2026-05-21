@@ -23,9 +23,6 @@ namespace DistributedDB {
 static std::atomic_uint taskID = 0;
 #endif
 
-std::atomic<ThreadPoolStub *> ThreadPoolStub::instance_{nullptr};
-std::mutex ThreadPoolStub::instanceLock_;
-
 ThreadPoolStub::ThreadPoolStub()
     : taskPool_(nullptr)
 {}
@@ -34,27 +31,8 @@ ThreadPoolStub::~ThreadPoolStub() {}
 
 ThreadPoolStub& ThreadPoolStub::GetInstance()
 {
-    if (instance_ == nullptr) {
-        std::lock_guard<std::mutex> lock(instanceLock_);
-        if (instance_ == nullptr) {
-            instance_ = new ThreadPoolStub();
-        }
-    }
-    return *instance_;
-}
-
-void ThreadPoolStub::DeleteInstance()
-{
-    ThreadPoolStub *inst = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(instanceLock_);
-        inst = instance_;
-        instance_ = nullptr;
-    }
-    if (inst != nullptr) {
-        inst->StopTaskPool();
-        delete inst;
-    }
+    static ThreadPoolStub instThreadPool;
+    return instThreadPool;
 }
 
 void ThreadPoolStub::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool)

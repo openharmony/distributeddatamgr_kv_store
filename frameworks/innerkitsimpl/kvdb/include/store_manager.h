@@ -37,7 +37,6 @@ public:
     std::pair<Status, SwitchData> GetSwitch(const AppId &appId, const std::string &networkId);
     Status SubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
     Status UnsubscribeSwitchData(const AppId &appId, std::shared_ptr<KvStoreObserver> observer);
-    bool CleanUp();
 
 private:
     std::shared_ptr<SingleKvStore> OpenWithSecretKeyFromService(const AppId &appId, const StoreId &storeId,

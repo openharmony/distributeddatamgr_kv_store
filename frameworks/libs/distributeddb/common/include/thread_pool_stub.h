@@ -19,7 +19,6 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
-#include <atomic>
 
 #include "ithread_pool.h"
 #include "task_pool.h"
@@ -36,7 +35,6 @@ class ThreadPoolStub {
 
 public:
     static ThreadPoolStub &GetInstance();
-    static void DeleteInstance();
     // thread pool interfaces.
     void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool);
     std::shared_ptr<IThreadPool> GetThreadPool() const;
@@ -59,8 +57,6 @@ private:
     static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.
     std::mutex taskLock_;
     TaskPool *taskPool_;
-    static std::atomic<ThreadPoolStub *> instance_;
-    static std::mutex instanceLock_;
 };
 }
 #endif // THREAD_POOL_STUB_H

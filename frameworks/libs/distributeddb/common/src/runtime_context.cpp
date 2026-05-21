@@ -18,31 +18,18 @@
 #include "version.h"
 
 namespace DistributedDB {
-std::atomic<RuntimeContext *> RuntimeContext::instance_{nullptr};
-std::mutex RuntimeContext::instanceLock_;
-
 RuntimeContext *RuntimeContext::GetInstance()
 {
-    std::lock_guard<std::mutex> lock(instanceLock_);
-    if (instance_.load(std::memory_order_acquire) == nullptr) {
-        if (instance_ == nullptr) {
-            instance_.store(new RuntimeContextImpl(), std::memory_order_release);
+    static std::mutex instLock_;
+    static std::atomic<RuntimeContext *> instPtr = nullptr;
+    // For Double-Checked Locking, we need check insPtr twice
+    if (instPtr == nullptr) {
+        std::lock_guard<std::mutex> lock(instLock_);
+        if (instPtr == nullptr) {
+            instPtr = new RuntimeContextImpl();
             LOGI("DistributedDB Version : %s", SOFTWARE_VERSION_STRING);
         }
     }
-    return instance_.load(std::memory_order_acquire);
-}
-
-void RuntimeContext::DeleteInstance()
-{
-    RuntimeContext *inst = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(instanceLock_);
-        inst = instance_.load(std::memory_order_acquire);
-        instance_.store(nullptr, std::memory_order_release);
-    }
-    if (inst != nullptr) {
-        delete inst;
-    }
+    return instPtr;
 }
 } // namespace DistributedDB

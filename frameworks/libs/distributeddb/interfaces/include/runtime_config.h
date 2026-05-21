@@ -88,8 +88,6 @@ public:
     DB_API static DBStatus SetAsyncDownloadAssetsConfig(const AsyncDownloadAssetsConfig &config);
 
     DB_API static DBStatus SetDataFlowCheckCallback(const DataFlowCheckCallback &callback);
-
-    DB_API static void Clean();
 private:
     static std::mutex communicatorMutex_;
     static std::mutex multiUserMutex_;

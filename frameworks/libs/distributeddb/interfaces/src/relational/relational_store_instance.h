@@ -31,7 +31,6 @@ public:
     static RelationalStoreConnection *GetDatabaseConnection(const RelationalDBProperties &properties, int &errCode,
         bool isNeedIfOpened = true);
     static RelationalStoreInstance *GetInstance();
-    static void DeleteInstance();
 
     static int ReleaseDataBaseConnection(RelationalStoreConnection *connection);
 

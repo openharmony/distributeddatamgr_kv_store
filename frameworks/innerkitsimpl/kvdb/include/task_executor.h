@@ -32,8 +32,6 @@ public:
     bool Remove(TaskId taskId, bool wait = false);
     TaskId Reset(TaskId taskId, Duration interval);
     void SetExecutors(std::shared_ptr<ExecutorPool> executors);
-    bool Stop();
-    void GenerateExecutors();
 
 private:
     std::mutex mtx_;
@@ -41,6 +39,7 @@ private:
     size_t MIN_THREADS = 0;
     TaskExecutor() = default;
     ~TaskExecutor();
+    void GenerateExecutors();
     std::shared_ptr<ExecutorPool> pool_ = nullptr;
 };
 } // namespace OHOS

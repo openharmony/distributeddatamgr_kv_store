@@ -117,7 +117,6 @@ void DistributedDBDeviceIdentifierTest::TearDown(void)
         EXPECT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(TIME_LAG));
-    StorageEngineManager::DeleteInstance();
 }
 
 /**

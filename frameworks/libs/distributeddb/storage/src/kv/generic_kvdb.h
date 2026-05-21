@@ -68,8 +68,6 @@ public:
     // Called when all connections of this database closed.
     void OnClose(const std::function<void(void)> &notifier) final;
 
-    void ClearCloseNotifiers() override;
-
     // Publish event when a commit action happened.
     virtual void CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data);
 

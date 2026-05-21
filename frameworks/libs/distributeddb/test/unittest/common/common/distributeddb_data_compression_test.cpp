@@ -18,9 +18,6 @@
 
 #include "distributeddb_tools_unit_test.h"
 #include "data_compression.h"
-#ifndef OMIT_ZLIB
-#include "zlib_compression.h"
-#endif
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -55,21 +52,8 @@ unsigned char g_srcStr[] =
     "Oh don't you cry for me,"
     "I'm going to Louisiana,"
     "With my banjo on my knee.";
-
-DataCompression *GetZlibInstanceAndCompress(const vector<uint8_t> &srcData,
-    vector<uint8_t> &compressedData)
-{
-    auto *zlibInstance = DataCompression::GetInstance(CompressAlgorithm::ZLIB);
-    if (zlibInstance == nullptr) {
-        return nullptr;
-    }
-    if (zlibInstance->Compress(srcData, compressedData) != E_OK) {
-        return nullptr;
-    }
-    return zlibInstance;
 }
 #endif
-}
 class DistributedDBDataCompressionTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -79,18 +63,10 @@ public:
 };
 
 void DistributedDBDataCompressionTest::SetUpTestCase(void)
-{
-#ifndef OMIT_ZLIB
-    if (DataCompression::GetInstance(CompressAlgorithm::ZLIB) == nullptr) {
-        new ZlibCompression();
-    }
-#endif
-}
+{}
 
 void DistributedDBDataCompressionTest::TearDownTestCase(void)
-{
-    DataCompression::DeleteInstance();
-}
+{}
 
 void DistributedDBDataCompressionTest::SetUp(void)
 {
@@ -118,8 +94,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression1, TestSize.Level1)
     vector<uint8_t> srcData(g_srcStr, g_srcStr + sizeof(g_srcStr));
 
     vector<uint8_t> compressedData;
-    auto *zlibInstance = GetZlibInstanceAndCompress(srcData, compressedData);
-    ASSERT_NE(zlibInstance, nullptr);
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Compress(srcData, compressedData), E_OK);
     EXPECT_LT(compressedData.size(), srcData.size());
 
     /**
@@ -127,7 +102,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression1, TestSize.Level1)
      * @tc.expected: step2. Uncompress successfully. Uncompressed data equals to source data.
      */
     vector<uint8_t> uncompressedData;
-    EXPECT_EQ(zlibInstance->Uncompress(
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Uncompress(
         compressedData, uncompressedData, origLen), E_OK);
     EXPECT_EQ(srcData, uncompressedData);
 #endif // OMIT_ZLIB
@@ -151,8 +126,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression2, TestSize.Level1)
     vector<uint8_t> srcData(g_srcStr, g_srcStr + sizeof(g_srcStr));
 
     vector<uint8_t> compressedData;
-    auto *zlibInstance = GetZlibInstanceAndCompress(srcData, compressedData);
-    ASSERT_NE(zlibInstance, nullptr);
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Compress(srcData, compressedData), E_OK);
     EXPECT_LT(compressedData.size(), srcData.size());
 
     /**
@@ -165,7 +139,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression2, TestSize.Level1)
      * @tc.expected: step3. Uncompressed failed and return -E_SYSTEM_API_FAIL.
      */
     vector<uint8_t> uncompressedData;
-    EXPECT_EQ(zlibInstance->Uncompress(
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Uncompress(
         compressedData, uncompressedData, origLen), -E_SYSTEM_API_FAIL);
 #endif // OMIT_ZLIB
 }
@@ -188,8 +162,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression3, TestSize.Level1)
     vector<uint8_t> srcData(g_srcStr, g_srcStr + sizeof(g_srcStr));
 
     vector<uint8_t> compressedData;
-    auto *zlibInstance = GetZlibInstanceAndCompress(srcData, compressedData);
-    ASSERT_NE(zlibInstance, nullptr);
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Compress(srcData, compressedData), E_OK);
     EXPECT_LT(compressedData.size(), srcData.size());
 
     /**
@@ -198,7 +171,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression3, TestSize.Level1)
      */
     vector<uint8_t> uncompressedData;
     int incorrectLen = 10000;
-    EXPECT_EQ(zlibInstance->Uncompress(
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Uncompress(
         compressedData, uncompressedData, incorrectLen), E_OK);
     EXPECT_EQ(srcData, uncompressedData);
 
@@ -208,7 +181,7 @@ HWTEST_F(DistributedDBDataCompressionTest, DataCompression3, TestSize.Level1)
      */
     uncompressedData.clear();
     incorrectLen = 31457281; // 30M + 1
-    EXPECT_EQ(zlibInstance->Uncompress(
+    EXPECT_EQ(DataCompression::GetInstance(CompressAlgorithm::ZLIB)->Uncompress(
         compressedData, uncompressedData, incorrectLen), -E_INVALID_ARGS);
 #endif // OMIT_ZLIB
 }

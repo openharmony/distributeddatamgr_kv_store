@@ -36,7 +36,6 @@ config("distributeddatafwk_public_config") {
 
   include_dirs = [
     "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/datashare",
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/include",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
     "${kv_store_base_path}/frameworks/common",
@@ -50,11 +49,11 @@ old_source_config = [
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/distributed_kv_data_manager.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_client_death_observer.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_observer.cpp",
-  "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kv_utils.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvdb_notifier_client.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvdb_notifier_stub.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_client_death_observer.cpp",
-  "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kvstore_datashare_bridge.cpp",
+  "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_observer_client.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_service_death_notifier.cpp",
   "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk/src/switch_observer_bridge.cpp",

@@ -17,12 +17,9 @@
 #include "db_errno.h"
 
 namespace DistributedDB {
-std::mutex DataCompression::algosLock_;
-
 void DataCompression::GetCompressionAlgo(std::set<CompressAlgorithm> &algorithmSet)
 {
     algorithmSet.clear();
-    std::lock_guard<std::mutex> lock(algosLock_);
     for (const auto &item : GetCompressionAlgos()) {
         algorithmSet.insert(item.first);
     }
@@ -30,7 +27,6 @@ void DataCompression::GetCompressionAlgo(std::set<CompressAlgorithm> &algorithmS
 
 int DataCompression::TransferCompressionAlgo(uint32_t compressAlgoType, CompressAlgorithm &algoType)
 {
-    std::lock_guard<std::mutex> lock(algosLock_);
     auto iter = GetTransMap().find(compressAlgoType);
     if (iter == GetTransMap().end()) {
         return -E_INVALID_ARGS;
@@ -41,7 +37,6 @@ int DataCompression::TransferCompressionAlgo(uint32_t compressAlgoType, Compress
 
 DataCompression *DataCompression::GetInstance(CompressAlgorithm algo)
 {
-    std::lock_guard<std::mutex> lock(algosLock_);
     auto iter = GetCompressionAlgos().find(algo);
     if (iter == GetCompressionAlgos().end()) {
         return nullptr;
@@ -52,8 +47,7 @@ DataCompression *DataCompression::GetInstance(CompressAlgorithm algo)
 // All supported compression algorithm should call this function to register their instance.
 void DataCompression::Register(CompressAlgorithm algo, DataCompression *compressionPtr)
 {
-    std::lock_guard<std::mutex> lock(algosLock_);
-    if (GetCompressionAlgos().find(algo) != GetCompressionAlgos().end()) {
+    if (GetInstance(algo) != nullptr) {
         return;
     }
     GetCompressionAlgos().insert({ algo, compressionPtr });
@@ -70,15 +64,5 @@ std::map<uint32_t, CompressAlgorithm> &DataCompression::GetTransMap()
 {
     static std::map<uint32_t, CompressAlgorithm> transferMap;
     return transferMap;
-}
-
-void DataCompression::DeleteInstance()
-{
-    std::map<CompressAlgorithm, DataCompression *> algosToRelease;
-    {
-        std::lock_guard<std::mutex> lock(algosLock_);
-        algosToRelease = std::move(GetCompressionAlgos());
-        GetTransMap().clear();
-    }
 }
 }  // namespace DistributedDB

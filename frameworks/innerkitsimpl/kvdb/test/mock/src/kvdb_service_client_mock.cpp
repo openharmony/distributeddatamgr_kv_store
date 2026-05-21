@@ -26,11 +26,6 @@ std::shared_ptr<KVDBServiceClient> KVDBServiceClient::GetInstance()
     return BKVDBServiceClient::kVDBServiceClient->GetInstance();
 }
 
-bool KVDBServiceClient::CleanUp()
-{
-    return true;
-}
-
 sptr<KVDBNotifierClient> KVDBServiceClient::GetServiceAgent(const AppId &appId)
 {
     if (BKVDBServiceClient::kVDBServiceClient == nullptr) {

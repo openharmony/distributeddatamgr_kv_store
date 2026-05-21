@@ -708,54 +708,6 @@ KvDBManager *KvDBManager::GetInstance()
     return instance_;
 }
 
-void KvDBManager::DeleteInstance()
-{
-    KvDBManager *inst = nullptr;
-    {
-        std::lock_guard<std::mutex> lockGuard(instanceLock_);
-        inst = instance_;
-        instance_ = nullptr;
-    }
-    if (inst != nullptr) {
-        {
-            std::lock_guard<std::mutex> lockGuard(kvDBLock_);
-            for (const auto &entry : inst->localKvDBs_) {
-                if (entry.second != nullptr) {
-                    entry.second->ClearCloseNotifiers();
-                    entry.second->SetCorruptHandler(nullptr);
-                    RefObject::KillAndDecObjRef(entry.second);
-                }
-            }
-            inst->localKvDBs_.clear();
-            for (const auto &entry : inst->multiVerNaturalStores_) {
-                if (entry.second != nullptr) {
-                    entry.second->ClearCloseNotifiers();
-                    entry.second->SetCorruptHandler(nullptr);
-                    RefObject::KillAndDecObjRef(entry.second);
-                }
-            }
-            inst->multiVerNaturalStores_.clear();
-            for (const auto &entry : inst->singleVerNaturalStores_) {
-                if (entry.second != nullptr) {
-                    entry.second->ClearCloseNotifiers();
-                    entry.second->SetCorruptHandler(nullptr);
-                    RefObject::KillAndDecObjRef(entry.second);
-                }
-            }
-            inst->singleVerNaturalStores_.clear();
-        }
-        delete inst;
-    }
-    {
-        std::lock_guard<std::mutex> fileLock(fileHandleMutex_);
-        for (auto &item : locks_) {
-            OS::FileUnlock(item.second);
-            OS::CloseFile(item.second);
-        }
-        locks_.clear();
-    }
-}
-
 // Save to IKvDB to the global map
 IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
 {

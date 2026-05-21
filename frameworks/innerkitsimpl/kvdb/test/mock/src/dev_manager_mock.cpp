@@ -27,7 +27,7 @@ DevManager &DevManager::GetInstance()
     return instance;
 }
 
-const DetailInfo &DevManager::GetLocalDevice()
+const DevManager::DetailInfo &DevManager::GetLocalDevice()
 {
     if (BDevManager::devManager == nullptr) {
         return invalidDetail_;

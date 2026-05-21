@@ -589,10 +589,6 @@ struct Options {
     * Sub user config for system ability.
     */
     int32_t subUser = 0;
-    /**
-     * Set Whether the caller is application.
-    */
-    bool isApplication = false;
 };
 
 /**
