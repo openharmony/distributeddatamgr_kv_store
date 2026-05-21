@@ -796,7 +796,6 @@ int32_t SingleStoreImpl::Close(bool isForce)
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     BackupInfo info = { .name = file, .baseDir = baseDir, .storeId = storeId_,
         .isCheckIntegrity = isCheckIntegrity_  };
     auto status = BackupManager::GetInstance().Backup(info, dbStore_);
