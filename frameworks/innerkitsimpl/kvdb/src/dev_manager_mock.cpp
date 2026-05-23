@@ -14,26 +14,12 @@
  */
 
 #include "dev_manager.h"
+#include "device_adapter.h"
 
 namespace OHOS::DistributedKv {
 static constexpr const char *PKG_NAME_EX = "kv_store";
 DevManager::DevManager(const std::string &pkgName) : PKG_NAME(pkgName)
 {
-    RegisterDevCallback();
-}
-
-int32_t DevManager::Init()
-{
-    return -1;
-}
-
-void DevManager::RegisterDevCallback()
-{
-}
-
-std::function<void()> DevManager::Retry()
-{
-    return nullptr;
 }
 
 DevManager &DevManager::GetInstance()
@@ -54,7 +40,7 @@ std::string DevManager::ToNetworkId(const std::string &uuid)
     return "";
 }
 
-DevManager::DetailInfo DevManager::GetDevInfoFromBucket(const std::string &id)
+DetailInfo DevManager::GetDevInfoFromBucket(const std::string &id)
 {
     (void)id;
     DetailInfo detailInfo;
@@ -70,12 +56,12 @@ std::string DevManager::GetUnEncryptedUuid()
     return "";
 }
 
-const DevManager::DetailInfo &DevManager::GetLocalDevice()
+const DetailInfo &DevManager::GetLocalDevice()
 {
     return localInfo_;
 }
 
-std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
+std::vector<DetailInfo> DevManager::GetRemoteDevices()
 {
     return {};
 }
