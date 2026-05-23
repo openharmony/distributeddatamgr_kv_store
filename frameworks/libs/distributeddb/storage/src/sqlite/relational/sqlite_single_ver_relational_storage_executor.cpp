@@ -132,7 +132,7 @@ int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode, Tabl
         }
 
         if (syncType == CLOUD_COOPERATION) {
-            int errCode = CloudStorageUtils::ConstraintsCheckForCloud(table, trimedSql);
+            int errCode = CloudStorageUtils::ConstraintsCheckForCloud(table);
             if (errCode != E_OK) {
                 LOGE("ConstraintsCheckForCloud failed, errCode = %d", errCode);
                 return errCode;

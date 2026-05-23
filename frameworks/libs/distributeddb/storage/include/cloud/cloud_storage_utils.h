@@ -96,7 +96,7 @@ public:
     static bool IsVbucketContainsAllPK(const VBucket &vBucket, const std::set<std::string> &pkSet);
     static bool CheckAssetStatus(const Assets &assets);
 
-    static int ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql);
+    static int ConstraintsCheckForCloud(const TableInfo &table);
     static std::string GetTableRefUpdateSql(const TableInfo &table, OpType opType);
     static std::string GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA = true);
     static std::string GetUpdateLockChangedSql();

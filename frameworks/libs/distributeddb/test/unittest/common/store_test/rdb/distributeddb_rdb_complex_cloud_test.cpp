@@ -1068,5 +1068,25 @@ HWTEST_F(DistributedDBRDBComplexCloudTest, SkipAssetTest001, TestSize.Level0)
      */
     EXPECT_EQ(CountTableData(info1_, CLOUD_SYNC_TABLE_A, "assetsCol IS NULL"), DATA_COUNT_PER_OP / 2);
 }
+
+/**
+ * @tc.name: UniqueTable001
+ * @tc.desc: Test create distributed table with unique constraint.
+ * @tc.expected: Create table success.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBComplexCloudTest, UniqueTable001, TestSize.Level0)
+{
+    const std::string tableName = "uniqueTable";
+    std::string sql = "CREATE TABLE IF NOT EXISTS " + tableName + "("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "intCol INTEGER, stringCol1 TEXT, stringCol2 TEXT, uuidCol TEXT UNIQUE,"
+        "assetCol ASSET, assetsCol ASSETS)";
+    EXPECT_EQ(ExecuteSQL(sql, info1_), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InitSchema(info1_, tableName));
+    ASSERT_NO_FATAL_FAILURE(RDBGeneralUt::SetCloudDbConfig(info1_));
+    ASSERT_EQ(SetDistributedTables(info1_, {tableName}, TableSyncType::CLOUD_COOPERATION), E_OK);
+}
 }
 #endif
