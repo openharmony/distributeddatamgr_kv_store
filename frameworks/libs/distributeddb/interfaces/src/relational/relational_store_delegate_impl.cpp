@@ -423,11 +423,14 @@ DBStatus RelationalStoreDelegateImpl::QuerySubscribeOutput(
         return DB_ERROR;
     }
     int errCode = conn_->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStore Delegate] QuerySubscribeOutput failed:%d", errCode);
+    if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
+        LOGE("[RelationalStore Delegate] Query Subscribe failed:%d, cIn=%" PRId64 ", cOut=%" PRId64,
+            errCode, cursorIn.cursor, cursorOut.cursor);
         return TransferDBErrno(errCode);
     }
-    return OK;
+    LOGI("[RelationalStore Delegate] Query Subscribe, cIn=%" PRId64 ", cOut=%" PRId64 ", size=%zu",
+        cursorIn.cursor, cursorOut.cursor, dataOut.size());
+    return TransferDBErrno(errCode);
 }
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
@@ -799,7 +802,7 @@ DBStatus RelationalStoreDelegateImpl::SetSubscribeCursor(const DBSubscribeCur &c
         return DB_ERROR;
     }
     if (cursorIn.queryType != SubQueryType::GET_NEW) {
-        return NOT_SUPPORT;
+        return OK;
     }
     int errCode = conn_->SetSubscribeCursor(cursorIn);
     if (errCode != E_OK) {

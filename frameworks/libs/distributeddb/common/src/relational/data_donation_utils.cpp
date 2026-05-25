@@ -349,7 +349,7 @@ bool DataDonationUtils::GetSchemaPathByDbPath(const std::string &dbPath, std::st
         return false;
     }
 
-    output = dbPath.substr(0, lastPos) + "/" + DataDonationUtils::DATA_DONATION_SCHEMA_FILE;
+    output = dbPath + DBConstant::BINLOG_DIR_POSTFIX + DataDonationUtils::DATA_DONATION_SCHEMA_FILE;
     return true;
 }
 
@@ -364,6 +364,14 @@ int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const std::string &schem
     if (!DataDonationUtils::GetSchemaPathByDbPath(fullName, filePath)) {
         return -E_INVALID_DB;
     }
+
+    std::string binlogDir = fullName + DBConstant::BINLOG_DIR_POSTFIX;
+    int errCode = DBCommon::CreateDirectory(binlogDir);
+    if (errCode != E_OK) {
+        LOGE("[SaveSubscribeSchema] Create binlog directory failed, errCode: %d", errCode);
+        return errCode;
+    }
+
     std::ofstream file(filePath);
     if (!file.is_open()) {
         LOGE("[SaveSubscribeSchema] Open file failed errno: %d", errno);

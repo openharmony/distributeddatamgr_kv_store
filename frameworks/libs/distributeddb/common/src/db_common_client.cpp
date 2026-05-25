@@ -14,6 +14,7 @@
  */
 
 #include "db_common.h"
+#include "platform_specific.h"
 #include "value_hash_calc.h"
 
 namespace DistributedDB {
@@ -196,5 +197,17 @@ bool DBCommon::IsStringAllDigit(const std::string &originStr)
         }
     }
     return true;
+}
+
+int DBCommon::CreateDirectory(const std::string &directory)
+{
+    bool isExisted = OS::CheckPathExistence(directory);
+    if (!isExisted) {
+        int errCode = OS::MakeDBDirectory(directory);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

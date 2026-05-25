@@ -22,8 +22,16 @@ namespace DistributedDB {
 int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path,
     const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
 {
+    int errCode = E_OK;
+    if (cursorIn.cursor == 0) {
+        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_reset_search_hwm_binlog(dbHandle_));
+        if (errCode != E_OK) {
+            LOGE("[QuerySubscribeOutput] sqlite3_reset_search_hwm_binlog failed: %d", errCode);
+            return errCode;
+        }
+    }
     std::string sql;
-    int errCode = GetQuerySubscribeSql(path, cursorIn.cursor, sql);
+    errCode = GetQuerySubscribeSql(path, cursorIn.cursor, sql);
     if (errCode != E_OK) {
         LOGE("[QuerySubscribeOutput] GetQuerySubscribeSql failed: %d", errCode);
         return errCode;

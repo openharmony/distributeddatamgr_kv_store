@@ -462,7 +462,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorBasicTest001, TestSize.
 
 /**
  * @tc.name: SetSubscribeCursorNotSupportTest001
- * @tc.desc: Test SetSubscribeCursor interface returns NOT_SUPPORT when queryType is GET_ALL.
+ * @tc.desc: Test SetSubscribeCursor interface returns OK when queryType is GET_ALL.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
@@ -481,7 +481,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorNotSupportTest001, Test
     cursorIn.cursor = 0;
     
     DBStatus status = delegate->SetSubscribeCursor(cursorIn);
-    EXPECT_EQ(status, NOT_SUPPORT);
+    EXPECT_EQ(status, OK);
 }
 
 /**
@@ -809,5 +809,30 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
     std::string invalidDbPath = "not_a_path";
     monitorConfig = RelationalStoreClientUtils::BinlogSchemaGet(invalidDbPath.c_str());
     EXPECT_EQ(monitorConfig, nullptr);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData006
+ * @tc.desc: Test QuerySubscribeOutput interface with not enabled binlog.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData006, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    
+    DBSubscribeCur cursorIn;
+    cursorIn.queryType = SubQueryType::GET_ALL;
+    cursorIn.cursor = 0;
+    DBSubscribeCur cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_NE(status, OK);
 }
 }
