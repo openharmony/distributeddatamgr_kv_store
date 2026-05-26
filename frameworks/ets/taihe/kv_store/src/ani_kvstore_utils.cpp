@@ -34,7 +34,7 @@ bool IsValidStoreId(std::string const& storeId)
         return false;
     }
     auto iter = std::find_if_not(storeId.begin(), storeId.end(),
-        [](char c) { return (std::isdigit(c) || std::isalpha(c) || c == '_'); });
+        [](unsigned char c) { return (std::isdigit(c) || std::isalpha(c) || c == '_'); });
     return (iter == storeId.end());
 }
 
