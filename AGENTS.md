@@ -1,6 +1,6 @@
 # distributeddatamgr_kv_store — Agent Instructions
 
-OpenHarmony 分布式键值数据库组件，为应用提供 KV 存储、设备协同、端端同步、云同步能力。C++ 原生引擎 + JS/ArkTS API 双层架构。
+OpenHarmony 分布式键值数据库组件，为设备应用提供键值对数据管理能力。
 
 ## Core Principles <!-- [S1,E4] -->
 
