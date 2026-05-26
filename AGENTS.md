@@ -88,29 +88,6 @@ Required: 不硬编码路径、UDID、UUID、密钥在测试或示例中 `[C4]`
 - 关键路径：`frameworks/common/log_print.h`、`frameworks/libs/distributeddb/common/include/log_print.h`
 - 失效条件：日志基础设施统一
 
-## Known Pitfalls <!-- [E1,E5,S4] -->
-
-### 踩坑：Status 与 DBStatus 混用
-- 现象：修改 innerkitsimpl 代码时误用 `DistributedDB::E_OK` 判断返回值
-- 根因：innerkitsimpl 用 `Status` enum（`store_errno.h`），distributeddb 用 `E_*` errno（`db_errno.h`），两套体系不互通
-- 反模式：NEVER 在 innerkitsimpl 层判断 `E_OK`，必须用 `Status::SUCCESS`
-- 正确写法：`StoreUtil::ConvertStatus(dbStatus)` 转换后再判断
-- 引入时机：2026-05
-
-### 踩坑：LOG_TAG 未定义导致日志异常
-- 现象：日志输出 tag 为空或乱码
-- 根因：.cpp 顶部 Required 定义 `#define LOG_TAG "ClassName"`，缺少则 HiLog 无法归类
-- 反模式：NEVER 省略 `LOG_TAG` 定义
-- 正确写法：紧接版权头后 `#define LOG_TAG "SingleStoreImpl"`
-- 引入时机：2026-05
-
-### 踩坑：IPC 接口码变更未走 CODEOWNERS
-- 现象：修改 IPC interface code 后未通知评审人，导致合入冲突
-- 根因：`CODEOWNERS` 规定 IPC 接口码文件变更需 @leonchan5 评审
-- 反模式：NEVER 修改 IPC 接口码文件而不通知 CODEOWNERS 评审人
-- 正确写法：修改前先与 `liubao6@huawei.com` / `@leonchan5` 沟通
-- 引入时机：2026-05
-
 ## Coding Conventions <!-- [C2] -->
 
 | 维度 | 规则 |
@@ -129,17 +106,17 @@ Required: 不硬编码路径、UDID、UUID、密钥在测试或示例中 `[C4]`
 ## Anti-Patterns <!-- [C2,E5,S4] -->
 
 ### 语法级
-- NEVER print plaintext udid / uuid / ip / mac / key / db path — MUST anonymize `[C4]`
-- NEVER send IPC inside a lock `[C4]`
-- NEVER pass stack-reference lambda to async thread `[C4]`
-- NEVER construct smart pointer from raw pointer passed from outside `[C4]`
-- Should avoid `realloc` / `alloca`，prefer safe alternatives `[C4]`
+- NEVER 明文打印 udid / uuid / ip / mac / 密钥 / 数据库路径 — 必须匿名化 `[C4]`
+- NEVER 在锁内发送 IPC `[C4]`
+- NEVER 将捕获栈变量引用的 lambda 异步到其他线程 `[C4]`
+- NEVER 将外部传入的裸指针直接构造为智能指针 `[C4]`
+- 禁止使用 `realloc` / `alloca`，用安全替代方案 `[C4]`
 
 ### 认知级
-- NEVER claim "done" without running tests `[E1]`
-- NEVER implement when user said "调研一下" `[S1]`
-- NEVER fabricate API signatures `[E5]`
-- Should push back when seeing problems，不要讨好式同意 `[S4]`
+- NEVER 声称"已完成"而不运行测试 `[E1]`
+- NEVER 用户说"调研一下"时直接实现 `[S1]`
+- NEVER 编造不存在的 API 签名 `[E5]`
+- 看到问题必须推回，不要讨好式同意 `[S4]`
 
 ### 合理化对照表
 | Agent 会说的借口 | 现实 |
