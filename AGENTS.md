@@ -113,7 +113,7 @@ CI 平台：OHOS CI；流水线配置：`build/sh/build.sh`
 语法级：
 - NEVER 明文打印 udid / uuid / ip / mac / 密钥 / 数据库路径 — 必须匿名化。
 - NEVER 在锁内发送 IPC。
-- NEVER 将捕获栈变量引用的 lambda 异步到其他线程。
+- NEVER 将捕获栈变量引用的 lambda 异步到其它线程。
 - NEVER 将外部传入的裸指针直接构造为智能指针。
 - NEVER `ConcurrentMap::Compute` lambda 返回 `false` 表示"删除该条目"，不是"操作失败"。
 - 禁止使用 `realloc` / `alloca`，用安全替代方案。
