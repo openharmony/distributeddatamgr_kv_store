@@ -77,7 +77,7 @@ struct API_EXPORT AppId {
         }
         int count = 0;
         auto iter = std::find_if_not(appId.begin(), appId.end(),
-            [&count](char c) {
+            [&count](unsigned char c) {
             count = (c == SEPARATOR_CHAR) ? (count + 1) : (count >= SEPARATOR_COUNT ? count : 0);
             return (std::isprint(c) && c != '/');
         });
@@ -132,7 +132,7 @@ struct API_EXPORT StoreId {
             return false;
         }
         auto iter = std::find_if_not(storeId.begin(), storeId.end(),
-            [](char c) { return (std::isdigit(c) || std::isalpha(c) || c == '_'); });
+            [](unsigned char c) { return (std::isdigit(c) || std::isalpha(c) || c == '_'); });
         return (iter == storeId.end());
     }
 private:
