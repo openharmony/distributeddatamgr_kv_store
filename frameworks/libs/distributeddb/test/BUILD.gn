@@ -1084,7 +1084,6 @@ group("unittest") {
     ":DistributedDBCommunicatorSendReceiveTest",
     ":DistributedDBCommunicatorTest",
     ":DistributedDBDataCompressionTest",
-    ":DistributedDBDataDonationSqlTest",
     ":DistributedDBDataTransformerTest",
     ":DistributedDBDeviceIdentifierTest",
     ":DistributedDBEventLoopTimerTest",
@@ -1202,6 +1201,7 @@ group("unittest") {
       ":DistributedDBStorageRdSingleVerNaturalExecutorTest",
       ":DistributedDBStorageRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdSingleVerStorageEngineTest",
+      ":DistributedDBDataDonationSqlTest",
     ]
   }
 }

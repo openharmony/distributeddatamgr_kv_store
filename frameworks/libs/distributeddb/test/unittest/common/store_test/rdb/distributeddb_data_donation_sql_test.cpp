@@ -556,7 +556,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
     EXPECT_EQ(totalRecords, dataCount);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData002, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJosnFileSchema());
@@ -599,7 +599,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData002, Tes
     EXPECT_EQ(totalRecords, 2 * dataCount);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData003, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData003, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJosnFileSchema());
@@ -641,7 +641,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData003, Tes
     EXPECT_EQ(totalRecords, dataCount * 2);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData004, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData004, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJosnFileSchema());
@@ -687,7 +687,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData004, Tes
     EXPECT_EQ(totalRecords, (dataCount * 2 - updCnt) + updCnt * 2 + updCnt);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData005, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJosnFileSchema());
