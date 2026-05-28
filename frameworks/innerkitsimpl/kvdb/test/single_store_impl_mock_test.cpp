@@ -19,7 +19,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "include/accesstoken_kit_mock.h"
 #include "include/convertor_mock.h"
 #include "include/dev_manager_mock.h"
 #include "include/kvdb_notifier_client_mock.h"
@@ -35,7 +34,6 @@ namespace OHOS::DistributedKv {
 using namespace std;
 using namespace testing;
 using namespace DistributedDB;
-using namespace Security::AccessToken;
 
 static StoreId storeId = { "single_test" };
 static AppId appId = { "rekey" };
@@ -56,7 +54,6 @@ public:
     static inline shared_ptr<KVDBNotifierClientMock> kVDBNotifierClientMock = nullptr;
     static inline shared_ptr<ObserverBridgeMock> observerBridgeMock = nullptr;
     static inline shared_ptr<TaskExecutorMock> taskExecutorMock = nullptr;
-    static inline shared_ptr<AccessTokenKitMock> accessTokenKitMock = nullptr;
     static inline shared_ptr<ConvertorMock> convertorMock = nullptr;
     static inline shared_ptr<StoreFactory> storeFactory = nullptr;
     std::shared_ptr<SingleStoreImpl> CreateKVStore(bool autosync = false, bool backup = true, bool isSyncable = false);
@@ -81,8 +78,6 @@ void SingleStoreImplMockTest::SetUpTestCase()
     BObserverBridge::observerBridge = observerBridgeMock;
     taskExecutorMock = make_shared<TaskExecutorMock>();
     BTaskExecutor::taskExecutor = taskExecutorMock;
-    accessTokenKitMock = make_shared<AccessTokenKitMock>();
-    BAccessTokenKit::accessTokenKit = accessTokenKitMock;
     convertorMock = make_shared<ConvertorMock>();
     BConvertor::convertor = convertorMock;
     storeFactory = make_shared<StoreFactory>();
@@ -101,8 +96,6 @@ void SingleStoreImplMockTest::TearDownTestCase()
     observerBridgeMock = nullptr;
     BTaskExecutor::taskExecutor = nullptr;
     taskExecutorMock = nullptr;
-    BAccessTokenKit::accessTokenKit = nullptr;
-    accessTokenKitMock = nullptr;
     BConvertor::convertor = nullptr;
     convertorMock = nullptr;
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
@@ -200,7 +193,6 @@ HWTEST_F(SingleStoreImplMockTest, OnRemoteDied, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin OnRemoteDied";
     try {
-        EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).WillOnce(Return(TOKEN_INVALID));
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore(false, false);
         ASSERT_NE(kvStore, nullptr);
@@ -248,7 +240,6 @@ HWTEST_F(SingleStoreImplMockTest, Register, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Register";
     try {
-        EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).WillOnce(Return(TOKEN_HAP));
         std::shared_ptr<SingleStoreImpl> kvStore;
         kvStore = CreateKVStore(false, false);
         ASSERT_NE(kvStore, nullptr);
@@ -295,7 +286,6 @@ HWTEST_F(SingleStoreImplMockTest, Put_001, testing::ext::TestSize.Level1)
 {
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Put_001";
     try {
-        EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).Times(AnyNumber());
         std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, false, true);
         ASSERT_NE(kvStore, nullptr);
         EXPECT_NE(kvStore->dbStore_, nullptr);
@@ -326,7 +316,6 @@ HWTEST_F(SingleStoreImplMockTest, Put_002, testing::ext::TestSize.Level1)
     GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin Put_002";
     try {
         EXPECT_CALL(*taskExecutorMock, Schedule(_, _, _, _)).Times(AnyNumber());
-        EXPECT_CALL(*accessTokenKitMock, GetTokenTypeFlag(_)).Times(AnyNumber());
         std::shared_ptr<SingleStoreImpl> kvStore = CreateKVStore(false, false);
         ASSERT_NE(kvStore, nullptr);
         EXPECT_NE(kvStore->dbStore_, nullptr);
