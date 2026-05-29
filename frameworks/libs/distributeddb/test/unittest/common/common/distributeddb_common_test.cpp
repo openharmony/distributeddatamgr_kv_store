@@ -57,7 +57,6 @@ namespace {
         std::placeholders::_1, std::placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
 
     // Constants for Logger tests
-    constexpr int LOGGER_THREAD_COUNT_HIGH = 100;
     constexpr int LOGGER_THREAD_COUNT_LOW = 20;
     constexpr int LOGGER_REPEAT_COUNT = 10;
     constexpr int LOGGER_TEST_LINE_NUMBER = 100;
