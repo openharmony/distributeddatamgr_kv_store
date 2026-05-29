@@ -209,6 +209,7 @@ enum class CloudErrorAction : uint32_t {
 
 struct CloudErrorInfo {
     CloudErrorAction cloudAction = CloudErrorAction::ACTION_DEFAULT;
+    std::string errorMessage = "";
 };
 
 struct SyncProcess {

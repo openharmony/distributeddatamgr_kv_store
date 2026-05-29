@@ -217,7 +217,7 @@ protected:
     int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 
     int QueryCloudData(TaskId taskId, const std::string &tableName, std::string &cloudWaterMark,
-        DownloadData &downloadData, bool needCheckWaterMark);
+        DownloadData &downloadData, bool &needCheckWaterMark);
 
     size_t GetCurrentCommonTaskNum();
 
@@ -243,7 +243,9 @@ protected:
 
     void HeartBeatFailed(TaskId taskId, int errCode);
 
-    void SetTaskFailed(TaskId taskId, int errCode);
+    void SetTaskFailed(TaskId taskId, int errCode, const std::string &errorMessage = "");
+
+    void SetTaskErrorInfo(CloudTaskInfo &taskInfo, int errCode, const std::string &errorMessage) const;
 
     int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
         std::map<std::string, LogInfo> &localLogInfoCache, std::vector<VBucket> &localInfo);
@@ -329,7 +331,7 @@ protected:
 
     void MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo);
 
-    void SetCurrentTaskFailedWithoutLock(int errCode);
+    void SetCurrentTaskFailedWithoutLock(int errCode, const std::string &errorMessage = "");
 
     int LockCloudIfNeed(TaskId taskId);
 
@@ -465,7 +467,7 @@ protected:
 
     bool IsLockInDownload();
 
-    CloudSyncEvent SetCurrentTaskFailedInMachine(int errCode);
+    CloudSyncEvent SetCurrentTaskFailedInMachine(int errCode, const std::string &errorMessage = "");
 
     CloudSyncEvent SyncMachineDoRepeatCheck();
 
@@ -578,7 +580,7 @@ protected:
 
     void RetainCurrentTaskInfo(TaskId taskId);
 
-    void SetCurrentTmpError(int errCode);
+    void SetCurrentTmpError(int errCode, const std::string &errorMessage = "");
 
     int DoUpdateExpiredCursor(TaskId taskId, const std::string &table, std::string &newCursor);
 

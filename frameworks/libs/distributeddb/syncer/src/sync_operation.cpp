@@ -55,7 +55,6 @@ SyncOperation::SyncOperation(uint32_t syncId, const ISyncer::SyncParam &param)
 
 SyncOperation::~SyncOperation()
 {
-    RefObject::DecObjRef(context_);
     LOGD("SyncOperation::~SyncOperation()");
     Finalize();
 }
@@ -272,13 +271,6 @@ bool SyncOperation::IsBlockSync() const
 bool SyncOperation::IsAutoControlCmd() const
 {
     return isAutoSubscribe_;
-}
-
-void SyncOperation::SetSyncContext(RefObject *context)
-{
-    RefObject::DecObjRef(context_);
-    context_ = context;
-    RefObject::IncObjRef(context);
 }
 
 bool SyncOperation::CanCancel()

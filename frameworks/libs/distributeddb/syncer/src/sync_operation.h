@@ -144,8 +144,6 @@ public:
 
     static ProcessStatus DBStatusTransProcess(int operationStatus);
 
-    void SetSyncContext(RefObject *context);
-
     bool CanCancel();
 
     void SetSyncProcessCallFun(DeviceSyncProcessCallback callBack);

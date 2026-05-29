@@ -125,7 +125,8 @@ void CloudSyncer::Close()
         currentTask = currentContext_.currentTaskId;
     }
     // mark current task db_closed
-    SetTaskFailed(currentTask, -E_DB_CLOSED);
+    std::string errorMessage = "the database has been closed, all sync tasks are terminated.";
+    SetTaskFailed(currentTask, -E_DB_CLOSED, errorMessage);
     UnlockIfNeed();
     cloudDB_.Close();
     IfNeedWaitCurTaskFinished(true);
@@ -1398,7 +1399,7 @@ int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &p
 }
 
 int CloudSyncer::QueryCloudData(TaskId taskId, const std::string &tableName, std::string &cloudWaterMark,
-    DownloadData &downloadData, bool needCheckWaterMark)
+    DownloadData &downloadData, bool &needCheckWaterMark)
 {
     int ret = E_OK;
     bool isNeedDownload = true;
@@ -1616,7 +1617,7 @@ void CloudSyncer::HeartBeatFailed(TaskId taskId, int errCode)
     SetTaskFailed(taskId, errCode);
 }
 
-void CloudSyncer::SetTaskFailed(TaskId taskId, int errCode)
+void CloudSyncer::SetTaskFailed(TaskId taskId, int errCode, const std::string &errorMessage)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     if (cloudTaskInfos_.find(taskId) == cloudTaskInfos_.end()) {
@@ -1625,7 +1626,7 @@ void CloudSyncer::SetTaskFailed(TaskId taskId, int errCode)
     if (cloudTaskInfos_[taskId].errCode != E_OK) {
         return;
     }
-    cloudTaskInfos_[taskId].errCode = errCode;
+    SetTaskErrorInfo(cloudTaskInfos_[taskId], errCode, errorMessage);
 }
 
 int32_t CloudSyncer::GetCloudSyncTaskCount()
@@ -1810,12 +1811,12 @@ void CloudSyncer::MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo)
     }
 }
 
-void CloudSyncer::SetCurrentTaskFailedWithoutLock(int errCode)
+void CloudSyncer::SetCurrentTaskFailedWithoutLock(int errCode, const std::string &errorMessage)
 {
     if (currentContext_.currentTaskId == INVALID_TASK_ID) {
         return;
     }
-    cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+    SetTaskErrorInfo(cloudTaskInfos_[currentContext_.currentTaskId], errCode, errorMessage);
 }
 
 int CloudSyncer::LockCloudIfNeed(TaskId taskId)
@@ -1934,6 +1935,7 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
         for (auto &cloudTaskInfoIter : cloudTaskInfos_) {
             if (cloudTaskInfoIter.second.compensatedTask) {
                 cloudTaskInfoIter.second.errCode = info.errCode;
+                cloudTaskInfoIter.second.errorMessage = info.errorMessage;
             }
         }
     }

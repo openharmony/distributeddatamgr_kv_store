@@ -86,6 +86,9 @@ void ProcessNotifier::UpdateErrorInfoIfNeed(CloudErrorInfo source, CloudErrorInf
     if (target.cloudAction == CloudErrorAction::ACTION_DEFAULT) {
         target.cloudAction = source.cloudAction;
     }
+    if (!source.errorMessage.empty() && target.errorMessage.empty()) {
+        target.errorMessage = source.errorMessage;
+    }
 }
 
 void ProcessNotifier::FillProcessInfo(const ICloudSyncer::CloudTaskInfo &taskInfo,
@@ -95,6 +98,10 @@ void ProcessNotifier::FillProcessInfo(const ICloudSyncer::CloudTaskInfo &taskInf
     syncProcess_.process = taskInfo.status;
     multiSyncProcess_[user_].errCode = TransferDBErrno(taskInfo.errCode, true);
     multiSyncProcess_[user_].process = taskInfo.status;
+    CloudErrorInfo errorInfo;
+    errorInfo.errorMessage = taskInfo.errorMessage;
+    UpdateErrorInfoIfNeed(errorInfo, syncProcess_.cloudErrorInfo);
+    UpdateErrorInfoIfNeed(errorInfo, multiSyncProcess_[user_].cloudErrorInfo);
     UpdateUploadInfoIfNeeded(process);
 }
 

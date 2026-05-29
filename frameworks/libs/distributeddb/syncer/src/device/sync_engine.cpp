@@ -348,9 +348,6 @@ int SyncEngine::AddSyncOperForContext(const std::string &deviceId, SyncOperation
     }
 
     errCode = context->AddSyncOperation(operation);
-    if (operation != nullptr) {
-        operation->SetSyncContext(context); // make the life cycle of context and operation are same
-    }
     RefObject::DecObjRef(context);
     return errCode;
 }

@@ -1010,6 +1010,7 @@ std::pair<bool, TaskId> CloudSyncer::TryMergeTask(const std::shared_ptr<DataBase
     processNotifier->Init(cloudTaskInfos_[beMergeTask].table, cloudTaskInfos_[beMergeTask].devices,
         cloudTaskInfos_[beMergeTask].users);
     cloudTaskInfos_[beMergeTask].errCode = -E_CLOUD_SYNC_TASK_MERGED;
+    cloudTaskInfos_[beMergeTask].errorMessage = "this sync task has been merged into another task";
     cloudTaskInfos_[beMergeTask].status = ProcessStatus::FINISHED;
     processNotifier->SetAllTableFinish();
     processNotifier->NotifyProcess(cloudTaskInfos_[beMergeTask], {}, true);
@@ -1257,10 +1258,10 @@ bool CloudSyncer::IsLockInDownload()
     return (currentLockAction & static_cast<uint32_t>(LockAction::DOWNLOAD)) != 0;
 }
 
-CloudSyncEvent CloudSyncer::SetCurrentTaskFailedInMachine(int errCode)
+CloudSyncEvent CloudSyncer::SetCurrentTaskFailedInMachine(int errCode, const std::string &errorMessage)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+    SetCurrentTaskFailedWithoutLock(errCode, errorMessage);
     return CloudSyncEvent::ERROR_EVENT;
 }
 
@@ -1434,7 +1435,8 @@ void CloudSyncer::StopAllTasks(int errCode)
 {
     CloudSyncer::TaskId currentTaskId = GetCurrentTaskId();
     // mark current task user_change
-    SetTaskFailed(currentTaskId, errCode);
+    std::string errorMessage = "sync tasks have been stopped due to a system event.";
+    SetTaskFailed(currentTaskId, errCode, errorMessage);
     std::optional<TaskId> currentTaskIdIfNeed;
     if (errCode != -E_TASK_INTERRUPTED) {
         UnlockIfNeed();

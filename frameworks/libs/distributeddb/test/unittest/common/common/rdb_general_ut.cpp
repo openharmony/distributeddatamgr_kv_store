@@ -249,6 +249,7 @@ int RDBGeneralUt::InitDatabase(const StoreInfo &info)
     errCode = RDBDataGenerator::InitDatabaseWithSchemaInfo(schemaInfo, *db);
     if (errCode != SQLITE_OK) {
         LOGE("[RDBGeneralUt] Init database failed %d", errCode);
+        sqlite3_close_v2(db);
         return errCode;
     }
     {
