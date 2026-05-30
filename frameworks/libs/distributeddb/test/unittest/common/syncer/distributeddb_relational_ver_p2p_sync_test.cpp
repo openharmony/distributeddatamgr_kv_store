@@ -1857,13 +1857,13 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer006, TestSize.Level3)
      */
     Query query = Query::Select(g_tableName);
     g_rdbDelegatePtr->Sync({DEVICE_B}, SyncMode::SYNC_MODE_PULL_ONLY, query, nullptr, false);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10 second to wait sync finish
+
+    RuntimeContext::GetInstance()->StopTaskPool();
     ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
     g_rdbDelegatePtr = nullptr;
     delete g_observer;
     g_observer = nullptr;
-    std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10 second to wait sync finish
-    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /*

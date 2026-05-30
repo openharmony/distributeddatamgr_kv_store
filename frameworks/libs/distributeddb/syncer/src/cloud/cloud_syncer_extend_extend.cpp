@@ -223,13 +223,13 @@ void CloudSyncer::RetainCurrentTaskInfo(TaskId taskId)
     }
 }
 
-void CloudSyncer::SetCurrentTmpError(int errCode)
+void CloudSyncer::SetCurrentTmpError(int errCode, const std::string &errorMessage)
 {
     std::lock_guard<std::mutex> guard(dataLock_);
     if (cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
         return;
     }
-    cloudTaskInfos_[currentContext_.currentTaskId].errCode = errCode;
+    SetTaskErrorInfo(cloudTaskInfos_[currentContext_.currentTaskId], errCode, errorMessage);
     cloudTaskInfos_[currentContext_.currentTaskId].tempErrCode = errCode;
 }
 
@@ -571,5 +571,13 @@ bool CloudSyncer::IsUploadOnlyTask(TaskId taskId)
         return false;
     }
     return iter->second.queryMode == QueryMode::UPLOAD_ONLY;
+}
+
+void CloudSyncer::SetTaskErrorInfo(CloudTaskInfo &taskInfo, int errCode, const std::string &errorMessage) const
+{
+    taskInfo.errCode = errCode;
+    if (!errorMessage.empty() && taskInfo.errorMessage.empty()) {
+        taskInfo.errorMessage = errorMessage;
+    }
 }
 } // namespace DistributedDB

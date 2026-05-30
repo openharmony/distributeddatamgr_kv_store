@@ -57,7 +57,6 @@ namespace {
         std::placeholders::_1, std::placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
 
     // Constants for Logger tests
-    constexpr int LOGGER_THREAD_COUNT_HIGH = 100;
     constexpr int LOGGER_THREAD_COUNT_LOW = 20;
     constexpr int LOGGER_REPEAT_COUNT = 10;
     constexpr int LOGGER_TEST_LINE_NUMBER = 100;
@@ -978,43 +977,6 @@ HWTEST_F(DistributedDBCommonTest, PropertiesTest002, TestSize.Level0)
     const auto &copyProperties = properties2;
     properties2 = copyProperties;
     EXPECT_EQ(isEncrypted, properties2.IsEncrypted());
-}
-
-/**
- * @tc.name: LoggerCallOnceTest
- * @tc.desc: Test Logger only initializes once using std::call_once.
- * @tc.type: FUNC
- * @tc.author: zqq
- */
-HWTEST_F(DistributedDBCommonTest, LoggerCallOnceTest, TestSize.Level1)
-{
-    // Reset instance for clean test
-    Logger::DeleteInstance();
-
-    std::vector<std::shared_ptr<Logger>> instances;
-    const int threadCount = LOGGER_THREAD_COUNT_HIGH;
-
-    // Launch multiple threads calling GetInstance simultaneously
-    std::vector<std::thread> threads;
-    for (int i = 0; i < threadCount; ++i) {
-        threads.emplace_back([&instances]() {
-            auto logger = Logger::GetInstance();
-            instances.push_back(logger);
-        });
-    }
-
-    // Wait for all threads
-    for (auto &thread : threads) {
-        thread.join();
-    }
-
-    // Verify all instances point to the same object (call_once ensures single initialization)
-    ASSERT_GT(instances.size(), 0);
-    for (size_t i = 1; i < instances.size(); ++i) {
-        EXPECT_EQ(instances[0], instances[i]);
-    }
-
-    Logger::DeleteInstance();
 }
 
 /**

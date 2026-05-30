@@ -54,6 +54,7 @@ public:
         std::string prepareTraceId;
         uint32_t groupNum = 0;
         AssetsGroupMap assetsGroupMap;
+        std::string errorMessage;
     };
 
     struct UploadRetryInfo {

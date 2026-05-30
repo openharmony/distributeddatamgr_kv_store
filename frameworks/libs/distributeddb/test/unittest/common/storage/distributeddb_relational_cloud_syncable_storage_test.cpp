@@ -1792,6 +1792,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor002, TestS
     obj.AddRelationalTable(table);
     engine->SetSchema(obj);
     EXPECT_EQ(storage->DeleteCloudNoneExistRecord("", {false, true}), -E_BUSY);
+    RefObject::KillAndDecObjRef(storage);
 }
 
 /**

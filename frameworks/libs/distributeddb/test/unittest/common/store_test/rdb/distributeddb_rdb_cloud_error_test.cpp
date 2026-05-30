@@ -37,6 +37,8 @@ protected:
         int64_t baseModifyTime = BASE_MODIFY_TIME, int64_t baseCreateTime = BASE_CREATE_TIME);
     CloudSyncOption BuildCloudSyncOption();
     void SyncAndCheckAction(RelationalStoreDelegate *delegate, CloudSyncOption option);
+    void SyncAndCheckErrorMessage(RelationalStoreDelegate *delegate, CloudSyncOption option,
+        const std::string &expectedMessage);
 };
 
 void DistributedDBRDBCloudErrorTest::SetUp()
@@ -284,6 +286,86 @@ HWTEST_F(DistributedDBRDBCloudErrorTest, RdbCloudErrorActionTest003, TestSize.Le
     ASSERT_NO_FATAL_FAILURE(SyncAndCheckAction(delegate, option));
     cloudDB->ForkAfterQueryResult(nullptr);
     cloudDB->ForkBeforeBatchUpdate(nullptr);
+}
+
+void DistributedDBRDBCloudErrorTest::SyncAndCheckErrorMessage(RelationalStoreDelegate *delegate,
+    CloudSyncOption option, const std::string &expectedMessage)
+{
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finished = false;
+    std::string capturedMessage;
+
+    auto callback = [&](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            std::lock_guard<std::mutex> autoLock(dataMutex);
+            if (item.second.process == DistributedDB::FINISHED) {
+                capturedMessage = item.second.cloudErrorInfo.errorMessage;
+                finished = true;
+                cv.notify_one();
+            }
+        }
+    };
+
+    EXPECT_EQ(delegate->Sync(option, callback), DBStatus::OK);
+
+    std::unique_lock<std::mutex> uniqueLock(dataMutex);
+    cv.wait(uniqueLock, [&finished]() { return finished; });
+    EXPECT_FALSE(capturedMessage.empty());
+    if (!expectedMessage.empty()) {
+        EXPECT_EQ(capturedMessage, expectedMessage);
+    }
+}
+
+/**
+  * @tc.name: RdbCloudErrorMessageTest001
+  * @tc.desc: Test errorMessage is passed when call stop sync task
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBRDBCloudErrorTest, RdbCloudErrorMessageTest001, TestSize.Level1)
+{
+    auto cloudDB = GetVirtualCloudDb();
+    ASSERT_NE(cloudDB, nullptr);
+    ASSERT_NO_FATAL_FAILURE(InsertCloudRecordBatch(CLOUD_TABLE, 1, DATA_COUNT));
+
+    auto delegate = GetDelegate(info1_);
+    ASSERT_NE(delegate, nullptr);
+
+    bool isStopped = false;
+    cloudDB->ForkQuery([&delegate, &isStopped](const std::string &, VBucket &) {
+        if (isStopped) {
+            return;
+        }
+        EXPECT_EQ(delegate->StopTask(TaskType::BACKGROUND_TASK), OK);
+        isStopped = true;
+    });
+
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finished = false;
+    std::string capturedMessage;
+
+    auto callback = [&](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            std::lock_guard<std::mutex> autoLock(dataMutex);
+            if (item.second.process == DistributedDB::FINISHED) {
+                capturedMessage = item.second.cloudErrorInfo.errorMessage;
+                finished = true;
+                cv.notify_one();
+            }
+        }
+    };
+
+    CloudSyncOption option = DistributedDBRDBCloudErrorTest::BuildCloudSyncOption();
+    EXPECT_EQ(delegate->Sync(option, callback), DBStatus::OK);
+
+    std::unique_lock<std::mutex> uniqueLock(dataMutex);
+    cv.wait(uniqueLock, [&finished]() { return finished; });
+    EXPECT_FALSE(capturedMessage.empty());
+
+    cloudDB->ForkQuery(nullptr);
 }
 }
 #endif
