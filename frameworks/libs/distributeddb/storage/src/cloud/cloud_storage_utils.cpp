@@ -682,14 +682,8 @@ static bool IsViolationOfConstraints(const std::string &name, const std::vector<
     return false;
 }
 
-int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql)
+int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table)
 {
-    if (table.GetCloudSyncDistributedPk().empty() &&
-        DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
-        LOGE("[ConstraintsCheckForCloud] Not support create distributed table with 'UNIQUE' constraint.");
-        return -E_NOT_SUPPORT;
-    }
-
     const std::map<int, FieldName> &primaryKeys = table.GetPrimaryKey();
     const std::vector<FieldInfo> &fieldInfos = table.GetFieldInfos();
     for (const auto &item : primaryKeys) {
