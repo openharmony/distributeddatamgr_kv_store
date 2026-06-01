@@ -36,7 +36,7 @@ Key areas:
 | `databaseutils/` | ACL 权限工具 | c_utils | innerkitsimpl/kvdb |
 | `frameworks/ets/taihe/kv_store/` + `interfaces/cj/` | Taihe/ANI + CJ FFI 接口层 | — | — |
 
-高频修改路径：`kvdb/`、`distributeddb/`、`jskits/distributedkvstore/`。当前未记录有意设计的循环依赖。若发现循环依赖，先创建 issue 并在此记录。
+高频修改路径：`kvdb/`、`distributeddb/`、`distributeddatafwk/`。当前未记录有意设计的循环依赖。若发现循环依赖，先创建 issue 并在此记录。
 
 Where to look:
 
@@ -129,9 +129,9 @@ Always（强约束，非铁律）：
 
 ### Known Pitfalls
 
-**P1: Compute 返回 false = 删除条目** `[E5]` — Agent 误认为"操作失败"导致静默删除；正确写法：保留条目时 action 返回 true；引入：2024 年
+**P1: Compute 返回 false = 删除条目** `[E5]` — Agent 误认为"操作失败"导致静默删除；正确写法：保留条目时 action 返回 true；来源：`concurrent_map.h` Compute 接口语义
 
-**P2: KVStoreDelegateImpl 是死代码** `[E5]` — OMIT_MULTI_VER 永久禁用多版本路径；实际 Put 路径：`SingleStoreImpl::Put` → `KvStoreNbDelegateImpl::Put`；引入：2025 年
+**P2: KVStoreDelegateImpl 是死代码** `[E5]` — OMIT_MULTI_VER 在 `distributeddb/BUILD.gn` 中定义为编译宏；`kv_store_delegate_impl.h` 整个类被 `#ifndef OMIT_MULTI_VER` 包裹（line 19-117）；实际 Put 路径：`SingleStoreImpl::Put` → `dbStore_->Put()`（`DBStore = KvStoreNbDelegate`，见 `single_store_impl.h:40`）
 
 ### Ask before
 
@@ -141,7 +141,7 @@ Always（强约束，非铁律）：
 
 - 不可派生加 `final`；共享库 `-fvisibility=hidden` 仅导出必要符号。单函数超 80 行应拆分。
 - 错误处理：innerkitsimpl `Status` enum / distributeddb `int` errno；跨层必须用 `StoreUtil::ConvertStatus` 转换。
-- 日志：`.cpp` 定义 `LOG_TAG`；敏感数据 MUST 用 `StoreUtil::Anonymous()` 匿名化；innerkitsimpl `%{public}s`/`%{private}s`，distributeddb `s{private}`。
+- 日志：`.cpp` 定义 `LOG_TAG`；敏感数据 MUST 用 `StoreUtil::Anonymous()` 匿名化后再输出；innerkitsimpl 用 `%{public}s`，distributeddb 用 `s{private}`。
 - 命名：PascalCase 方法/类、`camelCase_` 尾下划线成员变量、`UPPER_SNAKE_CASE` 常量；文件 `snake_case`，mock 加 `_mock`。
 - 导出：主共享库必须配置 `sanitize = { ubsan, boundary_sanitize, cfi, cfi_cross_dso }` + `branch_protector_ret = "pac_ret"`；dm/dms/crypt/taihe 尚未全量覆盖，新增目标须补齐。
 - 命名空间：innerkitsimpl `OHOS::DistributedKv`；distributeddb `DistributedDB`。include guard：innerkitsimpl `OHOS_DISTRIBUTED_DATA_*_H`；distributeddb `DISTRIBUTEDDB_*_H`。
