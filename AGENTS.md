@@ -36,7 +36,7 @@ Key areas:
 | `databaseutils/` | ACL 权限工具 | c_utils | innerkitsimpl/kvdb |
 | `frameworks/ets/taihe/kv_store/` + `interfaces/cj/` | Taihe/ANI + CJ FFI 接口层 | — | — |
 
-当前未记录有意设计的循环依赖。若发现循环依赖，先创建 issue 并在此记录。
+高频修改路径：`kvdb/`、`distributeddb/`、`jskits/distributedkvstore/`。当前未记录有意设计的循环依赖。若发现循环依赖，先创建 issue 并在此记录。
 
 Where to look:
 
@@ -66,6 +66,8 @@ Where to look:
 - 并发容器逻辑变更 → 读 `concurrent_map.h`（Compute：action 返回 false = 删除条目）
 - 构建配置变更 → 读 `kv_store.gni` + `distributeddb.gni`（特性开关）
 - 依赖增删 → 读 `bundle.json`
+- 权限/安全变更 → 读 `CODEOWNERS`（权限评审归属）+ `security_manager.cpp`（加密降级）
+- 跨设备行为变更 → 读 `kv_store.gni`（降级开关）+ `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md`（兼容自检）
 
 ### Path-based routing
 
@@ -117,6 +119,7 @@ Where to look:
 - NEVER 为通过测试删除日志、事件、错误码或诊断信息 `[E1]`
 - NEVER 改公共 API 签名/错误码/权限行为/生命周期语义，除非任务明确要求 `[C4]`
 - NEVER 修改 IPC 接口码而不通知 CODEOWNERS 指定评审人 `[C4]`
+- NEVER 执行破坏性设备操作，影响真实设备前必须确认 `[C4]`
 
 Always（强约束，非铁律）：
 - Always 将捕获栈变量引用的 lambda 异步到其它线程时，确认引用生命周期安全
@@ -148,6 +151,13 @@ Always（强约束，非铁律）：
 
 构建/测试命令必须从根 `BUILD.gn` 或 `bundle.json` 核对真实 GN 目标名后再执行。
 
+### Minimum checks
+
+- Build + Test：`./build.sh --product-name <product> --ccache --build-target kv_store_test`（如可本地执行）
+- CI 门禁等价：`./build.sh --product-name <product> --gn-args use_thin_lto=false --ccache --build-target kv_store_test`
+- Lint/static check：无独立工具；编译期 `-Werror=vla` + sanitize + `-fvisibility=hidden` 集成在构建中
+- Compatibility check：API 变更时比对 `store_errno.h` 错误码兼容性
+
 | 目标 | 用途 | 命令 |
 |---|---|---|
 | `kv_store_test` | 部件级全量单测（由构建框架从 `bundle.json` test 条目聚合） | `./build.sh --product-name <product> --ccache --build-target kv_store_test` |
@@ -156,11 +166,7 @@ Always（强约束，非铁律）：
 | `fuzztest` | 全量 fuzz 测试 | `./build.sh --product-name <product> --build-target fuzztest` |
 | `distributedtest` | 分布式跨设备集成测试 | `./build.sh --product-name <product> --build-target distributedtest` |
 
-- 提交前必跑：`./build.sh --product-name <product> --ccache --build-target kv_store_test`（如可本地执行）
-- CI 门禁本地等价：`./build.sh --product-name <product> --gn-args use_thin_lto=false --ccache --build-target kv_store_test`
-- 构建单个模块：`./build.sh --product-name <product> --build-target <gn_target>`（先确认最近的 `BUILD.gn` 中存在该目标）
-- Lint/static check：无独立 lint 工具；编译期 `-Werror=vla` + sanitize + `-fvisibility=hidden` 集成在构建中
-- 禁止运行宽泛产品级全量构建，除非用户明确要求
+构建单个模块：`./build.sh --product-name <product> --build-target <gn_target>`（先确认最近的 `BUILD.gn` 中存在该目标）。禁止宽泛产品级全量构建，除非用户明确要求。
 
 单元测试约定：C++ GTest+GMock (`ohos_unittest`) / JS `ohos_js_unittest`；文件 `_test.cpp` / `*JsTest.js`；TDD: RED (MUST 看到失败 `[E1]`) → GREEN → IMPROVE。
 
