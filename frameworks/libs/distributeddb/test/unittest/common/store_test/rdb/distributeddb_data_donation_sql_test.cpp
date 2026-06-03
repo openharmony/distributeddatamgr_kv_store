@@ -818,7 +818,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData006, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData006, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
