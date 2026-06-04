@@ -1,0 +1,133 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
+
+config("ability_runtime_config") {
+  include_dirs = [
+    "include",
+    "${kv_store_mock_external_kit_path}/ability_base/include",
+    "${kv_store_mock_external_kit_path}/ipc/include",
+    "${kv_store_mock_external_kit_path}/safwk/include",
+    "${kv_store_mock_external_kit_path}/resource_management/include",
+    "${kv_store_mock_external_kit_path}/bundle_framework/include",
+    "${kv_store_mock_external_kit_path}/bundle_framework/include/bundlemgr",
+    "${kv_store_mock_external_kit_path}/common_event_service/include",
+  ]
+}
+
+ohos_source_set("abilitykit_native") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_context.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [
+    "c_utils:utils",
+    "json:nlohmann_json_static",
+  ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("extensionkit_native") {
+  configs = [ ":ability_runtime_config" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("napi_base_context") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_napi_base_context.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("napi_common") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_napi_common.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("ability_manager") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_ability_manager.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("ability_connect_callback_stub") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_ability_connect_callback_stub.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("ani_base_context") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_ani_base_context.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("app_context") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_app_context.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("dataobs_manager") {
+  configs = [ ":ability_runtime_config" ]
+  sources = [ "mock_data_ability_observer_stub.cpp" ]
+  all_dependent_configs = [ ":ability_runtime_config" ]
+  public_configs = [ ":ability_runtime_config" ]
+  deps = []
+  deps += deps_ipc_core
+  deps += deps_ability_base_want
+  external_deps = [ "c_utils:utils" ]
+  external_deps += external_deps_ipc_core
+  external_deps += external_deps_ability_base_want
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
