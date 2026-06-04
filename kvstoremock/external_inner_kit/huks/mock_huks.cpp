@@ -423,7 +423,8 @@ HKS_API_EXPORT int32_t HksCheckParamMatch(const struct HksParam *baseParam, cons
         case HKS_TAG_TYPE_BOOL:
             return (baseParam->boolParam == param->boolParam) ? HKS_SUCCESS : HKS_ERROR_INVALID_ARGUMENT;
         case HKS_TAG_TYPE_BYTES:
-            if (baseParam->blob.size != param->blob.size || baseParam->blob.data == NULL || (param->blob.data == NULL)) {
+            if (baseParam->blob.size != param->blob.size || baseParam->blob.data == NULL ||
+        (param->blob.data == NULL)) {
                 HKS_LOG_E("unmatch byte type len!");
                 return HKS_ERROR_INVALID_ARGUMENT;
             }
