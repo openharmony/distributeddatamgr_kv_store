@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "ability_info.h"
-//#include "app_mgr_constants.h"
 #include "parcel.h"
 
 namespace OHOS {

@@ -26,7 +26,8 @@ class ElementName;
 }
 
 namespace AbilityRuntime {
-using UIExtensionCallback = std::function<void(int32_t, const std::shared_ptr<AppExecFwk::ElementName>&, const std::string&)>;
+using UIExtensionCallback = std::function<void(int32_t,
+    const std::shared_ptr<AppExecFwk::ElementName>&, const std::string&)>;
 }
 }
 

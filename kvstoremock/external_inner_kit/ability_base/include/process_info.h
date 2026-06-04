@@ -21,7 +21,6 @@
 
 #include "nocopyable.h"
 #include "parcel.h"
-//#include "app_mgr_constants.h"
 #include "running_process_info.h"
 
 namespace OHOS {

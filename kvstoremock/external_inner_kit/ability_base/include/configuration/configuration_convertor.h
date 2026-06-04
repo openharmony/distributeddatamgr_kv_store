@@ -44,7 +44,6 @@ std::string GetDirectionStr(int32_t orientation);
 
 std::string GetDensityStr(float density);
 
-//Ets_onvert
 Global::Resource::ColorMode DarkMode_ConvertEts2Native(const int32_t index);
 int32_t DarkMode_ConvertNative2Ets(const Global::Resource::ColorMode nativeValue);
 

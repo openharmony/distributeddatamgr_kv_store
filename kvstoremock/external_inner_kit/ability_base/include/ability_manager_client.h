@@ -18,8 +18,6 @@
 
 #include <mutex>
 
-//#include "ability_connect_callback_interface.h"
-//#include "ability_manager_errors.h"
 #include "ability_manager_interface.h"
 #include "ability_scheduler_interface.h"
 #include "auto_startup_info.h"
@@ -27,11 +25,8 @@
 #include "iremote_object.h"
 #include "iprepare_terminate_callback_interface.h"
 #include "mission_info.h"
-//#include "system_memory_attr.h"
 #include "ui_extension_window_command.h"
 #include "want.h"
-//#include "intent_exemption_info.h"
-//#include "ihidden_start_observer.h"
 
 namespace OHOS {
 namespace AAFwk {

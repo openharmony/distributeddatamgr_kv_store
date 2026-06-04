@@ -29,7 +29,8 @@ ErrCode MockAbilityContext::StartAbilityWithAccount(const AAFwk::Want &want, int
     return 0;
 }
 
-ErrCode MockAbilityContext::StartAbility(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions, int requestCode)
+ErrCode MockAbilityContext::StartAbility(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions,
+    int requestCode)
 {
     return 0;
 }
@@ -39,12 +40,14 @@ ErrCode MockAbilityContext::StartAbilityAsCaller(const AAFwk::Want &want, int re
     return 0;
 }
 
-ErrCode MockAbilityContext::StartAbilityAsCaller(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions, int requestCode)
+ErrCode MockAbilityContext::StartAbilityAsCaller(const AAFwk::Want &want,
+    const AAFwk::StartOptions &startOptions, int requestCode)
 {
     return 0;
 }
 
-ErrCode MockAbilityContext::StartAbilityWithAccount(const AAFwk::Want &want, int accountId, const AAFwk::StartOptions &startOptions, int requestCode)
+ErrCode MockAbilityContext::StartAbilityWithAccount(const AAFwk::Want &want, int accountId,
+    const AAFwk::StartOptions &startOptions, int requestCode)
 {
     return 0;
 }
@@ -54,17 +57,20 @@ ErrCode MockAbilityContext::StartAbilityForResult(const AAFwk::Want &want, int r
     return 0;
 }
 
-ErrCode MockAbilityContext::StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId, int requestCode, RuntimeTask &&task)
+ErrCode MockAbilityContext::StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId,
+    int requestCode, RuntimeTask &&task)
 {
     return 0;
 }
 
-ErrCode MockAbilityContext::StartAbilityForResult(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task)
+ErrCode MockAbilityContext::StartAbilityForResult(const AAFwk::Want &want,
+    const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task)
 {
     return 0;
 }
 
-ErrCode MockAbilityContext::StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId, const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task)
+ErrCode MockAbilityContext::StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId,
+    const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task)
 {
     return 0;
 }
@@ -118,7 +124,8 @@ ErrCode MockAbilityContext::OpenLink(const AAFwk::Want &want, int requestCode, b
     return 0;
 }
 
-ErrCode MockAbilityContext::OpenAtomicService(AAFwk::Want& want, const AAFwk::StartOptions &options, int requestCode, RuntimeTask &&task)
+ErrCode MockAbilityContext::OpenAtomicService(AAFwk::Want& want, const AAFwk::StartOptions &options,
+    int requestCode, RuntimeTask &&task)
 {
     return 0;
 }
@@ -133,17 +140,20 @@ ErrCode MockAbilityContext::ConnectAbility(const AAFwk::Want &want, const sptr<A
     return 0;
 }
 
-ErrCode MockAbilityContext::ConnectAbilityWithAccount(const AAFwk::Want &want, int accountId, const sptr<AbilityConnectCallback> &connectCallback)
+ErrCode MockAbilityContext::ConnectAbilityWithAccount(const AAFwk::Want &want, int accountId,
+    const sptr<AbilityConnectCallback> &connectCallback)
 {
     return 0;
 }
 
-ErrCode MockAbilityContext::ConnectUIServiceExtensionAbility(const AAFwk::Want& want, const sptr<AbilityConnectCallback>& connectCallback)
+ErrCode MockAbilityContext::ConnectUIServiceExtensionAbility(const AAFwk::Want& want,
+    const sptr<AbilityConnectCallback>& connectCallback)
 {
     return 0;
 }
 
-void MockAbilityContext::DisconnectAbility(const AAFwk::Want &want, const sptr<AbilityConnectCallback> &connectCallback, int32_t accountId)
+void MockAbilityContext::DisconnectAbility(const AAFwk::Want &want,
+    const sptr<AbilityConnectCallback> &connectCallback, int32_t accountId)
 {
 }
 
@@ -192,7 +202,8 @@ void *MockAbilityContext::GetEtsContentStorage()
     return etsContentStorage_;
 }
 
-ErrCode MockAbilityContext::StartAbilityByCall(const AAFwk::Want& want, const std::shared_ptr<CallerCallBack> &callback, int32_t accountId)
+ErrCode MockAbilityContext::StartAbilityByCall(const AAFwk::Want& want,
+    const std::shared_ptr<CallerCallBack> &callback, int32_t accountId)
 {
     return 0;
 }
@@ -260,11 +271,13 @@ ErrCode MockAbilityContext::SetMissionContinueState(const AAFwk::ContinueState &
     return 0;
 }
 
-void MockAbilityContext::RegisterAbilityLifecycleObserver(const std::shared_ptr<AppExecFwk::ILifecycleObserver> &observer)
+void MockAbilityContext::RegisterAbilityLifecycleObserver(
+    const std::shared_ptr<AppExecFwk::ILifecycleObserver> &observer)
 {
 }
 
-void MockAbilityContext::UnregisterAbilityLifecycleObserver(const std::shared_ptr<AppExecFwk::ILifecycleObserver> &observer)
+void MockAbilityContext::UnregisterAbilityLifecycleObserver(
+    const std::shared_ptr<AppExecFwk::ILifecycleObserver> &observer)
 {
 }
 
@@ -302,7 +315,8 @@ void MockAbilityContext::NotifyBindingObjectConfigUpdate()
 {
 }
 
-void MockAbilityContext::SetAbilityResourceManager(std::shared_ptr<Global::Resource::ResourceManager> abilityResourceMgr)
+void MockAbilityContext::SetAbilityResourceManager(
+    std::shared_ptr<Global::Resource::ResourceManager> abilityResourceMgr)
 {
 }
 
@@ -364,38 +378,46 @@ void MockAbilityContext::RemoveResultCallbackTask(int requestCode)
 {
 }
 
-ErrCode MockAbilityContext::AddCompletionHandler(const std::string &requestId, OnRequestResult onRequestSucc, OnRequestResult onRequestFail)
+ErrCode MockAbilityContext::AddCompletionHandler(const std::string &requestId,
+    OnRequestResult onRequestSucc, OnRequestResult onRequestFail)
 {
     return 0;
 }
 
-void MockAbilityContext::OnRequestSuccess(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message)
+void MockAbilityContext::OnRequestSuccess(const std::string &requestId,
+    const AppExecFwk::ElementName &element, const std::string &message)
 {
 }
 
-void MockAbilityContext::OnRequestFailure(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message, int32_t resultCode)
+void MockAbilityContext::OnRequestFailure(const std::string &requestId,
+    const AppExecFwk::ElementName &element, const std::string &message, int32_t resultCode)
 {
 }
 
-void MockAbilityContext::OnOpenLinkRequestSuccess(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message)
+void MockAbilityContext::OnOpenLinkRequestSuccess(const std::string &requestId,
+    const AppExecFwk::ElementName &element, const std::string &message)
 {
 }
 
-void MockAbilityContext::OnOpenLinkRequestFailure(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message)
+void MockAbilityContext::OnOpenLinkRequestFailure(const std::string &requestId,
+    const AppExecFwk::ElementName &element, const std::string &message)
 {
 }
 
-ErrCode MockAbilityContext::AddCompletionHandlerForAtomicService(const std::string &requestId, OnAtomicRequestSuccess onRequestSucc, OnAtomicRequestFailure onRequestFail, const std::string &appId)
+ErrCode MockAbilityContext::AddCompletionHandlerForAtomicService(const std::string &requestId,
+    OnAtomicRequestSuccess onRequestSucc, OnAtomicRequestFailure onRequestFail, const std::string &appId)
 {
     return 0;
 }
 
-ErrCode MockAbilityContext::AddCompletionHandlerForOpenLink(const std::string &requestId, OnRequestResult onRequestSucc, OnRequestResult onRequestFail)
+ErrCode MockAbilityContext::AddCompletionHandlerForOpenLink(const std::string &requestId,
+    OnRequestResult onRequestSucc, OnRequestResult onRequestFail)
 {
     return 0;
 }
 
-ErrCode MockAbilityContext::StartSelfUIAbilityInCurrentProcess(const AAFwk::Want &want, const std::string &specifiedFlag, const AAFwk::StartOptions &startOptions, bool hasOptions)
+ErrCode MockAbilityContext::StartSelfUIAbilityInCurrentProcess(const AAFwk::Want &want,
+    const std::string &specifiedFlag, const AAFwk::StartOptions &startOptions, bool hasOptions)
 {
     return 0;
 }

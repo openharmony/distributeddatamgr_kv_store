@@ -28,14 +28,20 @@ public:
 
     ErrCode StartAbility(const AAFwk::Want &want, int requestCode) override;
     ErrCode StartAbilityWithAccount(const AAFwk::Want &want, int accountId, int requestCode) override;
-    ErrCode StartAbility(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions, int requestCode) override;
+    ErrCode StartAbility(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions,
+        int requestCode) override;
     ErrCode StartAbilityAsCaller(const AAFwk::Want &want, int requestCode) override;
-    ErrCode StartAbilityAsCaller(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions, int requestCode) override;
-    ErrCode StartAbilityWithAccount(const AAFwk::Want &want, int accountId, const AAFwk::StartOptions &startOptions, int requestCode) override;
+    ErrCode StartAbilityAsCaller(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions,
+        int requestCode) override;
+    ErrCode StartAbilityWithAccount(const AAFwk::Want &want, int accountId,
+        const AAFwk::StartOptions &startOptions, int requestCode) override;
     ErrCode StartAbilityForResult(const AAFwk::Want &want, int requestCode, RuntimeTask &&task) override;
-    ErrCode StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId, int requestCode, RuntimeTask &&task) override;
-    ErrCode StartAbilityForResult(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task) override;
-    ErrCode StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId, const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task) override;
+    ErrCode StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId, int requestCode,
+        RuntimeTask &&task) override;
+    ErrCode StartAbilityForResult(const AAFwk::Want &want, const AAFwk::StartOptions &startOptions,
+        int requestCode, RuntimeTask &&task) override;
+    ErrCode StartAbilityForResultWithAccount(const AAFwk::Want &want, int accountId,
+        const AAFwk::StartOptions &startOptions, int requestCode, RuntimeTask &&task) override;
     ErrCode StartServiceExtensionAbility(const AAFwk::Want &want, int32_t accountId) override;
     ErrCode StartUIServiceExtensionAbility(const AAFwk::Want &want, int32_t accountId) override;
     ErrCode StopServiceExtensionAbility(const AAFwk::Want& want, int32_t accountId) override;
@@ -46,12 +52,17 @@ public:
     void OnAbilityResult(int requestCode, int resultCode, const AAFwk::Want &resultData) override;
     ErrCode RequestModalUIExtension(const AAFwk::Want& want) override;
     ErrCode OpenLink(const AAFwk::Want &want, int requestCode, bool hideFailureTipDialog) override;
-    ErrCode OpenAtomicService(AAFwk::Want& want, const AAFwk::StartOptions &options, int requestCode, RuntimeTask &&task) override;
+    ErrCode OpenAtomicService(AAFwk::Want& want, const AAFwk::StartOptions &options, int requestCode,
+        RuntimeTask &&task) override;
     ErrCode AddFreeInstallObserver(const sptr<AbilityRuntime::IFreeInstallObserver> &observer) override;
-    ErrCode ConnectAbility(const AAFwk::Want &want, const sptr<AbilityConnectCallback> &connectCallback) override;
-    ErrCode ConnectAbilityWithAccount(const AAFwk::Want &want, int accountId, const sptr<AbilityConnectCallback> &connectCallback) override;
-    ErrCode ConnectUIServiceExtensionAbility(const AAFwk::Want& want, const sptr<AbilityConnectCallback>& connectCallback) override;
-    void DisconnectAbility(const AAFwk::Want &want, const sptr<AbilityConnectCallback> &connectCallback, int32_t accountId) override;
+    ErrCode ConnectAbility(const AAFwk::Want &want,
+        const sptr<AbilityConnectCallback> &connectCallback) override;
+    ErrCode ConnectAbilityWithAccount(const AAFwk::Want &want, int accountId,
+        const sptr<AbilityConnectCallback> &connectCallback) override;
+    ErrCode ConnectUIServiceExtensionAbility(const AAFwk::Want& want,
+        const sptr<AbilityConnectCallback>& connectCallback) override;
+    void DisconnectAbility(const AAFwk::Want &want,
+        const sptr<AbilityConnectCallback> &connectCallback, int32_t accountId) override;
     std::shared_ptr<AppExecFwk::AbilityInfo> GetAbilityInfo() const override;
     void MinimizeAbility(bool fromUser) override;
     ErrCode OnBackPressedCallBack(bool &needMoveToBackground) override;
@@ -61,7 +72,8 @@ public:
     ErrCode CloseAbility() override;
     std::unique_ptr<NativeReference>& GetContentStorage() override;
     void *GetEtsContentStorage() override;
-    ErrCode StartAbilityByCall(const AAFwk::Want& want, const std::shared_ptr<CallerCallBack> &callback, int32_t accountId) override;
+    ErrCode StartAbilityByCall(const AAFwk::Want& want,
+        const std::shared_ptr<CallerCallBack> &callback, int32_t accountId) override;
     ErrCode ReleaseCall(const std::shared_ptr<CallerCallBack> &callback) override;
     void ClearFailedCallConnection(const std::shared_ptr<CallerCallBack> &callback) override;
     std::shared_ptr<LocalCallContainer> GetLocalCallContainer() override;
@@ -98,14 +110,23 @@ public:
     void SetTerminating(bool state) override;
     void InsertResultCallbackTask(int requestCode, RuntimeTask&& task) override;
     void RemoveResultCallbackTask(int requestCode) override;
-    ErrCode AddCompletionHandler(const std::string &requestId, OnRequestResult onRequestSucc, OnRequestResult onRequestFail) override;
-    void OnRequestSuccess(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message) override;
-    void OnRequestFailure(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message, int32_t resultCode) override;
-    void OnOpenLinkRequestSuccess(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message) override;
-    void OnOpenLinkRequestFailure(const std::string &requestId, const AppExecFwk::ElementName &element, const std::string &message) override;
-    ErrCode AddCompletionHandlerForAtomicService(const std::string &requestId, OnAtomicRequestSuccess onRequestSucc, OnAtomicRequestFailure onRequestFail, const std::string &appId) override;
-    ErrCode AddCompletionHandlerForOpenLink(const std::string &requestId, OnRequestResult onRequestSucc, OnRequestResult onRequestFail) override;
-    ErrCode StartSelfUIAbilityInCurrentProcess(const AAFwk::Want &want, const std::string &specifiedFlag, const AAFwk::StartOptions &startOptions, bool hasOptions) override;
+    ErrCode AddCompletionHandler(const std::string &requestId, OnRequestResult onRequestSucc,
+        OnRequestResult onRequestFail) override;
+    void OnRequestSuccess(const std::string &requestId, const AppExecFwk::ElementName &element,
+        const std::string &message) override;
+    void OnRequestFailure(const std::string &requestId, const AppExecFwk::ElementName &element,
+        const std::string &message, int32_t resultCode) override;
+    void OnOpenLinkRequestSuccess(const std::string &requestId, const AppExecFwk::ElementName &element,
+        const std::string &message) override;
+    void OnOpenLinkRequestFailure(const std::string &requestId, const AppExecFwk::ElementName &element,
+        const std::string &message) override;
+    ErrCode AddCompletionHandlerForAtomicService(const std::string &requestId,
+        OnAtomicRequestSuccess onRequestSucc, OnAtomicRequestFailure onRequestFail,
+        const std::string &appId) override;
+    ErrCode AddCompletionHandlerForOpenLink(const std::string &requestId, OnRequestResult onRequestSucc,
+        OnRequestResult onRequestFail) override;
+    ErrCode StartSelfUIAbilityInCurrentProcess(const AAFwk::Want &want, const std::string &specifiedFlag,
+        const AAFwk::StartOptions &startOptions, bool hasOptions) override;
     ErrCode NotifyCancelGamePreLaunch() override;
     ErrCode NotifyCompleteGamePreLaunch() override;
 
