@@ -24,7 +24,6 @@
 #include "sys_binder.h"
 #include "iremote_invoker.h"
 #include "invoker_factory.h"
-
 #include "ipc_object_stub.h"
 #include "ipc_object_proxy.h"
 #include "ipc_process_skeleton.h"
