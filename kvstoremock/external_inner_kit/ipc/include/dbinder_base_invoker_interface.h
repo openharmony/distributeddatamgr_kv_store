@@ -1,0 +1,429 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef OHOS_IPC_DBINDER_BASE_INVOKER_INTERFACE_H
+#define OHOS_IPC_DBINDER_BASE_INVOKER_INTERFACE_H
+
+#include "dbinder_base_invoker_object.h"
+#include "dbinder_base_invoker_process.h"
+
+namespace OHOS {
+
+template <class T>
+std::shared_ptr<T> DBinderBaseInvoker<T>::WriteTransaction(int cmd, uint32_t flags, int32_t handle, int32_t socketId,
+    uint32_t code, MessageParcel &data, uint64_t &seqNumber, int status)
+{
+    std::shared_ptr<T> sessionObject = GetSessionObject(handle, socketId);
+    if (sessionObject == nullptr) {
+        ZLOGE(LOG_LABEL, "session is not exist for listenFd:%{public}d handle:%{public}d", socketId, handle);
+        DfxReportFailListenEvent(DbinderErrorCode::RPC_DRIVER, socketId, RADAR_GET_SESSION_FAIL, __FUNCTION__);
+        return nullptr;
+    }
+
+    uint64_t seqNum = GetUniqueSeqNumber(cmd);
+    if (seqNum == 0) {
+        ZLOGE(LOG_LABEL, "seqNum invalid, listenFd:%{public}d handle:%{public}d", socketId, handle);
+        DfxReportFailListenEvent(DbinderErrorCode::RPC_DRIVER, socketId, RADAR_SEQ_INVALID, __FUNCTION__);
+        return nullptr;
+    }
+    /* save seqNum for wait thread */
+    seqNumber = seqNum;
+    /* if MessageParcel has raw data, send raw data first, then send MessageParcel to peer */
+    if (!ProcessRawData(sessionObject, data, seqNum)) {
+        ZLOGE(LOG_LABEL, "send rawdata failed, listenFd:%{public}d handle:%{public}d", socketId, handle);
+        DfxReportFailListenEvent(DbinderErrorCode::RPC_DRIVER, socketId, RADAR_SEND_RAW_DATA_FAIL, __FUNCTION__);
+        return nullptr;
+    }
+    std::shared_ptr<dbinder_transaction_data> transData =
+        ProcessNormalData(sessionObject, data, handle, socketId, seqNum, cmd, code, flags, status);
+    if (transData == nullptr) {
+        ZLOGE(LOG_LABEL, "send normal data failed, listenFd:%{public}d handle:%{public}d", socketId, handle);
+        DfxReportFailListenEvent(DbinderErrorCode::RPC_DRIVER, socketId, RADAR_SEND_NORMAL_DATA_FAIL, __FUNCTION__);
+        return nullptr;
+    }
+
+    if (MoveTransData2Buffer(sessionObject, transData) != true) {
+        ZLOGE(LOG_LABEL, "move transaction data to buffer failed, listenFd:%{public}d handle:%{public}d",
+            socketId, handle);
+        DfxReportFailListenEvent(DbinderErrorCode::RPC_DRIVER, socketId,
+            RADAR_MOVE_TRANS_DATA_TO_BUFFER_FAIL, __FUNCTION__);
+        return nullptr;
+    }
+    return sessionObject;
+}
+
+template <class T>
+int DBinderBaseInvoker<T>::SendOrWaitForCompletion(int userWaitTime, uint64_t seqNumber,
+    std::shared_ptr<T> sessionOfPeer, MessageParcel *reply)
+{
+    if (seqNumber == 0) {
+        ZLOGE(LOG_LABEL, "seqNumber can not be zero");
+        return RPC_BASE_INVOKER_INVALID_DATA_ERR;
+    }
+    if (sessionOfPeer == nullptr) {
+        ZLOGE(LOG_LABEL, "current session is invalid, seq:%{public}" PRIu64, seqNumber);
+        return RPC_BASE_INVOKER_INVALID_DATA_ERR;
+    }
+    int result = OnSendMessage(sessionOfPeer);
+    if (result != 0) {
+        ZLOGE(LOG_LABEL, "fail to send to remote session, error:%{public}d seq:%{public}" PRIu64, result, seqNumber);
+        return RPC_BASE_INVOKER_INVALID_DATA_ERR;
+    }
+    result = WaitForReply(seqNumber, reply, sessionOfPeer->GetSocketId(), userWaitTime);
+    if (result != ERR_NONE) {
+        ZLOGE(LOG_LABEL, "dbinder wait for reply error:%{public}d seq:%{public}" PRIu64, result, seqNumber);
+    }
+    return result;
+}
+
+template <class T>
+int DBinderBaseInvoker<T>::SendRequest(int32_t handle, uint32_t code, MessageParcel &data, MessageParcel &reply,
+    MessageOption &option)
+{
+    uint64_t seqNumber = 0;
+    int ret;
+
+    uint32_t flags = static_cast<uint32_t>(option.GetFlags());
+    int userWaitTime = option.GetWaitTime();
+    MessageParcel &newData = const_cast<MessageParcel &>(data);
+    size_t oldWritePosition = newData.GetWritePosition();
+    HiTraceId traceId = HiTraceChain::GetId();
+    // set client send trace point if trace is enabled
+    HiTraceId childId = HitraceInvoker::TraceClientSend(handle, code, newData, flags, traceId);
+    std::shared_ptr<T> session = WriteTransaction(BC_TRANSACTION, flags, handle, 0, code, data, seqNumber, 0);
+    if (session == nullptr) {
+        newData.RewindWrite(oldWritePosition);
+        ZLOGE(LOG_LABEL, "WriteTransaction fail, handle:%{public}d", handle);
+        return RPC_BASE_INVOKER_WRITE_TRANS_ERR;
+    }
+
+    if (flags & TF_ONE_WAY) {
+        ret = SendOrWaitForCompletion(userWaitTime, seqNumber, session, nullptr);
+    } else {
+        ret = SendOrWaitForCompletion(userWaitTime, seqNumber, session, &reply);
+    }
+    HitraceInvoker::TraceClientReceive(handle, code, flags, traceId, childId);
+    // restore Parcel data
+    newData.RewindWrite(oldWritePosition);
+    return ret;
+}
+
+template <class T> bool DBinderBaseInvoker<T>::SetMaxWorkThread(int maxThreadNum)
+{
+    return true;
+}
+
+template <class T> int DBinderBaseInvoker<T>::SendReply(MessageParcel &reply, uint32_t flags, int32_t result)
+{
+    uint64_t seqNumber = 0;
+    std::shared_ptr<T> sessionObject = WriteTransaction(BC_REPLY, flags, 0,
+        GetClientFd(), 0, reply, seqNumber, result);
+    if (sessionObject == nullptr) {
+        ZLOGE(LOG_LABEL, "WriteTransaction fail");
+        return RPC_BASE_INVOKER_SEND_REPLY_ERR;
+    }
+    SendOrWaitForCompletion(0, seqNumber, sessionObject, nullptr);
+    return 0;
+}
+
+template <class T> void DBinderBaseInvoker<T>::OnTransaction(std::shared_ptr<ThreadProcessInfo> processInfo)
+{
+    if (processInfo == nullptr) {
+        ZLOGE(LOG_LABEL, "processInfo is error!");
+        return;
+    }
+    int32_t listenFd = processInfo->listenFd;
+    char *package = processInfo->buffer.get();
+
+    if (package == nullptr || listenFd < 0) {
+        ZLOGE(LOG_LABEL, "package is null or listenFd:%{public}d invalid!", listenFd);
+        return;
+    }
+
+    dbinder_transaction_data *tr = reinterpret_cast<dbinder_transaction_data *>(package);
+    if (tr->sizeOfSelf < sizeof(dbinder_transaction_data)) {
+        ZLOGE(LOG_LABEL, "package size:%{public}u is invalid, expected size:%{public}zu",
+            tr->sizeOfSelf, sizeof(dbinder_transaction_data));
+        return;
+    }
+
+    if (tr->cmd == BC_TRANSACTION) {
+        ProcessTransaction(tr, listenFd);
+    } else if (tr->cmd == BC_REPLY) {
+        ProcessReply(tr, listenFd);
+    }
+    return;
+}
+
+template <class T> bool DBinderBaseInvoker<T>::PingService(int32_t handle)
+{
+    return true;
+}
+
+template <class T> sptr<IRemoteObject> DBinderBaseInvoker<T>::GetSAMgrObject()
+{
+    return nullptr;
+}
+
+
+template <class T> bool DBinderBaseInvoker<T>::SetRegistryObject(sptr<IRemoteObject> &object)
+{
+    return true;
+}
+
+template <class T> void DBinderBaseInvoker<T>::FreeBuffer(void *data)
+{
+    return;
+}
+
+#ifdef FREEZE_PROCESS_ENABLED
+template <class T>
+int32_t DBinderBaseInvoker<T>::Freeze(uint32_t pid, bool freeze, uint32_t timeout)
+{
+    return RPC_BASE_INVOKER_NOT_SUPPORT_ERR;
+}
+
+template <class T>
+int32_t DBinderBaseInvoker<T>::GetProcessFreezeInfo(uint32_t pid, bool &isFreeze)
+{
+    return RPC_BASE_INVOKER_NOT_SUPPORT_ERR;
+}
+#endif // FREEZE_PROCESS_ENABLED
+
+#ifdef MEMORY_USAGE_ENABLED
+template <class T>
+int32_t DBinderBaseInvoker<T>::GetMemoryUsage(uint32_t pid, unsigned long &totalSize, unsigned long &oneWayFreeSize)
+{
+    return RPC_BASE_INVOKER_NOT_SUPPORT_ERR;
+}
+#endif // MEMORY_USAGE_ENABLED
+
+template <class T> bool DBinderBaseInvoker<T>::CheckTransactionData(const dbinder_transaction_data *tr) const
+{
+    if (tr->sizeOfSelf == 0 || tr->sizeOfSelf > SOCKET_MAX_BUFF_SIZE || tr->buffer_size > SOCKET_MAX_BUFF_SIZE ||
+        tr->buffer_size == 0 || tr->offsets != tr->buffer_size ||
+        tr->sizeOfSelf < sizeof(dbinder_transaction_data) + tr->buffer_size) {
+        return false;
+    }
+    if ((tr->flags & MessageOption::TF_STATUS_CODE) && (tr->offsets != sizeof(binder_size_t))) {
+        return false;
+    }
+    if (!(tr->flags & MessageOption::TF_STATUS_CODE)) {
+        if (tr->offsets_size > (tr->sizeOfSelf - sizeof(dbinder_transaction_data) - tr->buffer_size)) {
+            return false;
+        }
+        binder_size_t sessionSize =
+            tr->sizeOfSelf - tr->buffer_size - sizeof(dbinder_transaction_data) - tr->offsets_size;
+        if (sessionSize * sizeof(binder_size_t) != tr->offsets_size * T::GetFlatSessionLen()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <class T> std::mutex &DBinderBaseInvoker<T>::GetObjectMutex()
+{
+    return objectMutex_;
+}
+
+template<class T>
+void DBinderBaseInvoker<T>::PrintDBinderTransData(const dbinder_transaction_data *transData, uint32_t dataLen)
+{
+    if (transData == nullptr) {
+        ZLOGW(LOG_LABEL, "transData is nullptr");
+        return;
+    }
+
+    // sizeof(dbinder_transaction_data) <= sizeOfSelf <= dataLen
+    if (transData->sizeOfSelf < sizeof(dbinder_transaction_data) || transData->sizeOfSelf > dataLen) {
+        ZLOGW(LOG_LABEL, "invalid transData sizeOfSelf:%{public}u, at least:%{public}zu, at most:%{public}u",
+            transData->sizeOfSelf, sizeof(dbinder_transaction_data), dataLen);
+        return;
+    }
+    ZLOGI(LOG_LABEL, "sizeOfSelf:%{public}u, dbinder_transaction_data:%{public}zu "
+        "bufSize:%{public}llu offsetsSize:%{public}llu flag:%{public}u",
+        transData->sizeOfSelf, sizeof(dbinder_transaction_data), transData->buffer_size,
+        transData->offsets_size, transData->flags);
+    std::string formatStr;
+    size_t size = (transData->sizeOfSelf - sizeof(dbinder_transaction_data)) / sizeof(int32_t);
+    auto data = reinterpret_cast<const int32_t *>(transData->buffer);
+    size_t idx = 0;
+    while (idx < size) {
+        formatStr += std::to_string(data[idx]) + ',';
+        ++idx;
+    }
+    ZLOGI(LOG_LABEL, "buffer:%{public}s", formatStr.c_str());
+}
+
+template <class T> uint64_t DBinderBaseInvoker<T>::GetUniqueSeqNumber(int cmd)
+{
+    IPCProcessSkeleton *current = IPCProcessSkeleton::GetCurrent();
+    if (current == nullptr) {
+        ZLOGE(LOG_LABEL, "IPCProcessSkeleton is nullptr");
+        return 0;
+    }
+
+    if (cmd == BC_TRANSACTION) {
+        auto seqNumber = current->GetSeqNumber();
+        SetSeqNum(seqNumber);
+        return seqNumber;
+    } else if (cmd == BC_REPLY) {
+        /* use sender sequence number */
+        return GetSeqNum();
+    } else {
+        return 0;
+    }
+}
+
+template <class T>
+void DBinderBaseInvoker<T>::ConstructTransData(MessageParcel &data, dbinder_transaction_data &transData,
+    size_t totalSize, uint64_t seqNum, int cmd, __u32 code, __u32 flags)
+{
+    transData.sizeOfSelf = totalSize;
+    transData.magic = DBINDER_MAGICWORD;
+    transData.version = SUPPORT_TOKENID_VERSION_NUM;
+    transData.cmd = cmd;
+    transData.code = code;
+    transData.flags = flags;
+    transData.cookie = 0;
+    transData.seqNumber = seqNum;
+    transData.buffer_size = 0;
+    transData.offsets_size = 0;
+    transData.offsets = 0;
+}
+
+template <class T>
+bool DBinderBaseInvoker<T>::TranslateRawData(unsigned char *dataBuffer, MessageParcel &data, uint32_t socketId,
+    uint64_t seqNumber)
+{
+    if (socketId == 0) {
+        ZLOGI(LOG_LABEL, "no raw data to translate.");
+        return true;
+    }
+
+    IPCProcessSkeleton *current = IPCProcessSkeleton::GetCurrent();
+    if (current == nullptr) {
+        ZLOGE(LOG_LABEL, "IPCProcessSkeleton is nullptr");
+        return false;
+    }
+    std::shared_ptr<InvokerRawData> receivedRawData = current->QueryRawData(socketId, seqNumber);
+    if (receivedRawData == nullptr) {
+        ZLOGE(LOG_LABEL, "cannot found rawData according to the socketId:%{public}u", socketId);
+        return false;
+    }
+    std::shared_ptr<char> rawData = receivedRawData->GetData();
+    size_t rawSize = receivedRawData->GetSize();
+    current->DetachRawData(socketId, seqNumber);
+    if (!data.RestoreRawData(rawData, rawSize)) {
+        ZLOGE(LOG_LABEL, "found rawData, but cannot restore them, socketId:%{public}u", socketId);
+        return false;
+    }
+    return true;
+}
+
+template <class T> void DBinderBaseInvoker<T>::DBinderSendAllocator::Dealloc(void *data) {}
+
+template <class T> void DBinderBaseInvoker<T>::DBinderRecvAllocator::Dealloc(void *data)
+{
+    delete[](unsigned char *) data;
+}
+template <class T> bool DBinderBaseInvoker<T>::AddDeathRecipient(int32_t handle, void *cookie)
+{
+    return true;
+}
+
+template <class T> bool DBinderBaseInvoker<T>::RemoveDeathRecipient(int32_t handle, void *cookie)
+{
+    return true;
+}
+
+template <class T> bool DBinderBaseInvoker<T>::AddRefreshRecipient(int32_t handle, void *cookie)
+{
+    return true;
+}
+
+template <class T> bool DBinderBaseInvoker<T>::RemoveRefreshRecipient(int32_t handle, void *cookie)
+{
+    return true;
+}
+
+template <class T> bool DBinderBaseInvoker<T>::CheckMessageVaildity(int32_t socketId, int cmd)
+{
+    if (cmd == BC_TRANSACTION && ((QueryClientSessionObject(socketId) != nullptr))) {
+        return true;
+    }
+    if (cmd == BC_REPLY && QueryServerSessionObjectBySocketId(socketId) == true) {
+        return true;
+    }
+    ZLOGE(LOG_LABEL, "check false");
+    return false;
+}
+
+template <class T> void DBinderBaseInvoker<T>::StartProcessLoop(int32_t socketId, const char *buffer, uint32_t size)
+{
+    IPCProcessSkeleton *current = IPCProcessSkeleton::GetCurrent();
+    if (current == nullptr) {
+        ZLOGE(LOG_LABEL, "IPCProcessSkeleton is nullptr");
+        StartLoopFailSendReply(buffer, size, RPC_BASE_INVOKER_CURRENT_NULL_ERR);
+        return;
+    }
+    std::shared_ptr<ThreadProcessInfo> processInfo = MakeThreadProcessInfo(socketId, buffer, size);
+    if (processInfo == nullptr) {
+        ZLOGE(LOG_LABEL, "processInfo is nullptr");
+        StartLoopFailSendReply(buffer, size, RPC_BASE_INVOKER_MALLOC_ERR);
+        return;
+    }
+    char *package = processInfo->buffer.get();
+    dbinder_transaction_data *tr = reinterpret_cast<dbinder_transaction_data *> (package);
+    if (!CheckMessageVaildity(socketId, tr->cmd)) {
+        return;
+    }
+    std::thread::id threadId = current->GetIdleDataThread();
+    if (threadId == std::thread::id()) {
+        bool result = CreateProcessThread();
+        if (!result) {
+            int socketThreadNum = current->GetSocketTotalThreadNum();
+            ZLOGE(LOG_LABEL, "create IO thread failed, current socket thread num:%{public}d socketId:%{public}d",
+                socketThreadNum, socketId);
+            /* thread create too much, wait some thread be idle */
+        }
+        do {
+            /*  no IO thread in idle state, wait a monent */
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } while ((threadId = current->GetIdleDataThread()) == std::thread::id());
+    }
+
+    current->AddDataInfoToThread(threadId, processInfo);
+    current->WakeUpDataThread(threadId);
+    return;
+}
+
+template <class T> std::shared_ptr<ThreadMessageInfo> DBinderBaseInvoker<T>::MakeThreadMessageInfo(int32_t socketId)
+{
+    std::shared_ptr<ThreadMessageInfo> messageInfo = std::make_shared<struct ThreadMessageInfo>();
+    if (messageInfo == nullptr) {
+        ZLOGE(LOG_LABEL, "make ThreadMessageInfo fail");
+        return nullptr;
+    }
+
+    messageInfo->buffer = nullptr;
+    messageInfo->offsets = 0;
+    messageInfo->socketId = static_cast<uint32_t>(socketId);
+    messageInfo->ready = false;
+    return messageInfo;
+}
+} // namespace OHOS
+#endif // OHOS_IPC_DBINDER_BASE_INVOKER_INTERFACE_H
