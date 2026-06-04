@@ -18,7 +18,6 @@
 
 #include <string>
 #include <vector>
-
 #include "appexecfwk_errors.h"
 #include "bundle_mgr_interface.h"
 #include "securec.h"
@@ -38,7 +37,6 @@ namespace AppExecFwk {
 class LauncherService : public virtual RefBase {
 public:
     using Want = OHOS::AAFwk::Want;
-
     LauncherService();
     virtual ~LauncherService();
 
@@ -133,7 +131,6 @@ private:
     std::shared_ptr<BundleMonitor> bundleMonitor_ = nullptr;
     static OHOS::sptr<OHOS::AppExecFwk::IBundleMgr> bundleMgr_;
     static OHOS::sptr<IRemoteObject::DeathRecipient> deathRecipient_;
-
     static std::mutex bundleMgrMutex_;
     DISALLOW_COPY_AND_MOVE(LauncherService);
 
