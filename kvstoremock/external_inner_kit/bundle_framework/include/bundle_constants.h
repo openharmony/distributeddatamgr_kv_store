@@ -164,7 +164,6 @@ constexpr uint8_t MAX_BUNDLE_NAME = 128;
 constexpr uint8_t MIN_BUNDLE_NAME = 7;
 constexpr uint8_t MAX_JSON_ELEMENT_LENGTH = 255;
 constexpr uint16_t MAX_JSON_ARRAY_LENGTH = 1024;
-
 constexpr uint16_t MAX_JSON_STRING_LENGTH = 4096;
 constexpr const char* UID = "uid";
 constexpr const char* USER_ID = "userId";
@@ -174,7 +173,6 @@ constexpr const char* ABILITY_NAME = "abilityName";
 constexpr const char* HAP_PATH = "hapPath";
 constexpr const char* APP_INDEX = "appIndex";
 constexpr int8_t MAX_LIMIT_SIZE = 4;
-
 constexpr const char* PARAM_URI_SEPARATOR = ":///";
 constexpr uint8_t PARAM_URI_SEPARATOR_LEN = 4;
 constexpr const char* URI_SEPARATOR = "://";
