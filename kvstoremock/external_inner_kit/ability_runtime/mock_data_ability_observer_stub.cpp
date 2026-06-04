@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "data_ability_observer_stub.h"
+#include "iremote_stub.h"
+#include "message_parcel.h"
+
+namespace OHOS {
+namespace AAFwk {
+
+DataAbilityObserverStub::DataAbilityObserverStub() {}
+
+DataAbilityObserverStub::~DataAbilityObserverStub() {}
+
+int DataAbilityObserverStub::OnRemoteRequest(
+    uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
+{
+    return 0;
+}
+
+int32_t DataAbilityObserverStub::OnChangeInner(MessageParcel &data, MessageParcel &reply)
+{
+    return 0;
+}
+
+int32_t DataAbilityObserverStub::OnChangeExtInner(MessageParcel &data, MessageParcel &reply)
+{
+    return 0;
+}
+
+int32_t DataAbilityObserverStub::OnChangePreferencesInner(MessageParcel &data, MessageParcel &reply)
+{
+    return 0;
+}
+
+DataObsCallbackRecipient::DataObsCallbackRecipient(RemoteDiedHandler handler) : handler_(handler) {}
+
+DataObsCallbackRecipient::~DataObsCallbackRecipient() {}
+
+void DataObsCallbackRecipient::OnRemoteDied(const wptr<IRemoteObject> &remote)
+{
+    if (handler_) {
+        handler_(remote);
+    }
+}
+
+}  // namespace AAFwk
+}  // namespace OHOS
