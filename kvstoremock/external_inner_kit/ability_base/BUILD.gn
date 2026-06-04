@@ -1,0 +1,74 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
+
+config("ability_base_config") {
+  include_dirs = [
+    "include",
+    "include/appkit/app",
+    "include/ability/native",
+    "include/ability_runtime",
+    "include/native",
+  ]
+}
+
+ohos_source_set("ability_base") {
+  configs = [ ":ability_base_config" ]
+  sources = [
+    "mock_aa_fwk.cpp",
+    "mock_ability_runtime_ability_context.cpp",
+    "mock_context_container.cpp",
+    "mock_fa_ability_context.cpp",
+  ]
+  all_dependent_configs = [ ":ability_base_config" ]
+  public_configs = [ ":ability_base_config" ]
+  deps = []
+  deps += deps_bundle_framework
+  deps += deps_common_event_service
+  deps += deps_ipc_core
+  deps += deps_ability_runtime_abilitykit_native
+  external_deps = [
+    "c_utils:utils",
+    "json:nlohmann_json_static",
+  ]
+  external_deps += external_deps_bundle_framework
+  external_deps += external_deps_common_event_service
+  external_deps += external_deps_ipc_core
+  external_deps += external_deps_ability_runtime_abilitykit_native
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("want") {
+  configs = [ ":ability_base_config" ]
+  sources = [ "mock_want.cpp" ]
+  all_dependent_configs = [ ":ability_base_config" ]
+  public_configs = [ ":ability_base_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
+
+ohos_source_set("zuri") {
+  configs = [ ":ability_base_config" ]
+  sources = [ "mock_uri.cpp" ]
+  all_dependent_configs = [ ":ability_base_config" ]
+  public_configs = [ ":ability_base_config" ]
+  deps = []
+  external_deps = [ "c_utils:utils" ]
+  part_name = "kv_store"
+  subsystem_name = "distributeddatamgr"
+}
