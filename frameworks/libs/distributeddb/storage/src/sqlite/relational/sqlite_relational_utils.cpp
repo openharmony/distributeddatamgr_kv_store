@@ -1649,7 +1649,7 @@ int SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(sqlite3 *db, const std::
         return -E_INVALID_ARGS;
     }
     std::string deleteSql = "UPDATE " + DBCommon::GetLogTableName(removedTable) +
-        " SET flag = 0x01 WHERE ori_device NOT IN (";
+        " SET data_key=-1, flag = 0x01, timestamp=0 WHERE ori_device NOT IN (";
     for (size_t i = 0; i < keepDevices.size(); i++) {
         deleteSql += "?";
         if (i + 1 < keepDevices.size()) {
