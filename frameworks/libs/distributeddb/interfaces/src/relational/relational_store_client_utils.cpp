@@ -440,7 +440,7 @@ int RelationalStoreClientUtils::ReadJsonConfigFromFile(const std::string &dbPath
     jsonStr = buffer.str();
     file.close();
     if (jsonStr.empty()) {
-        LOGE("Config file is empty");
+        LOGD("Config file is empty");
         return -E_ERROR;
     }
     return E_OK;
@@ -533,7 +533,7 @@ MonitorTablesConfig *RelationalStoreClientUtils::BinlogSchemaGet(const char *dbP
         return nullptr;
     }
 
-    LOGI("[BinlogSchemaGet] Start get schema.");
+    LOGD("[BinlogSchemaGet] Start get schema.");
     MonitorTablesConfig *monitorConfig = static_cast<MonitorTablesConfig*>(malloc(sizeof(MonitorTablesConfig)));
     if (monitorConfig == nullptr) {
         LOGE("BinlogSchemaGet: malloc monitorConfig failed");
@@ -552,7 +552,7 @@ MonitorTablesConfig *RelationalStoreClientUtils::BinlogSchemaGet(const char *dbP
 
     int errCode = GetMonitorConfigFromFile(monitorConfig, dbPath);
     if (errCode != E_OK) {
-        LOGE("GetMonitorConfigFromFile failed. err=%d", errCode);
+        LOGD("GetMonitorConfigFromFile failed. err=%d", errCode);
         free(monitorConfig->tables);
         free(monitorConfig);
         return nullptr;
