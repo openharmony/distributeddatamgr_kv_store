@@ -1,0 +1,350 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+kv_store_mock_external_kit_path = "${kv_store_base_path}/kvstoremock/external_inner_kit"
+
+declare_args() {
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.hiviewdfx_hilog)) {
+    kv_store_hilog_enabled = true
+  } else {
+    kv_store_hilog_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.hiviewdfx_hitrace)) {
+    kv_store_hitrace_enabled = true
+  } else {
+    kv_store_hitrace_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.hiviewdfx_hisysevent)) {
+    kv_store_hisysevent_enabled = true
+  } else {
+    kv_store_hisysevent_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.communication_ipc)) {
+    kv_store_ipc_enabled = true
+  } else {
+    kv_store_ipc_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.systemabilitymgr_samgr)) {
+    kv_store_samgr_enabled = true
+  } else {
+    kv_store_samgr_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.security_huks)) {
+    kv_store_huks_enabled = true
+  } else {
+    kv_store_huks_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.security_access_token)) {
+    kv_store_access_token_enabled = true
+  } else {
+    kv_store_access_token_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.filemanagement_file_api)) {
+    kv_store_file_api_enabled = true
+  } else {
+    kv_store_file_api_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.systemabilitymgr_safwk)) {
+    kv_store_safwk_enabled = true
+  } else {
+    kv_store_safwk_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.arkui_napi)) {
+    kv_store_napi_enabled = true
+  } else {
+    kv_store_napi_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.ability_ability_base)) {
+    kv_store_ability_base_enabled = true
+  } else {
+    kv_store_ability_base_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.ability_ability_runtime)) {
+    kv_store_ability_runtime_enabled = true
+  } else {
+    kv_store_ability_runtime_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.notification_common_event_service)) {
+    kv_store_common_event_service_enabled = true
+  } else {
+    kv_store_common_event_service_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.notification_eventhandler)) {
+    kv_store_eventhandler_enabled = true
+  } else {
+    kv_store_eventhandler_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.arkcompiler_runtime_core)) {
+    kv_store_runtime_core_enabled = true
+  } else {
+    kv_store_runtime_core_enabled = false
+  }
+
+  if (defined(global_parts_info) &&
+      defined(global_parts_info.bundlemanager_bundle_framework)) {
+    kv_store_bundle_framework_enabled = true
+  } else {
+    kv_store_bundle_framework_enabled = false
+  }
+}
+
+if (kv_store_hilog_enabled) {
+  external_deps_hilog = [ "hilog:libhilog" ]
+  deps_hilog = []
+} else {
+  external_deps_hilog = []
+  deps_hilog = [ "${kv_store_mock_external_kit_path}/hilog:libhilog" ]
+}
+
+if (kv_store_hitrace_enabled) {
+  external_deps_hitrace_meter = [ "hitrace:hitrace_meter" ]
+  deps_hitrace_meter = []
+  external_deps_hitrace_chain = [ "hitrace:libhitracechain" ]
+  deps_hitrace_chain = []
+} else {
+  external_deps_hitrace_meter = []
+  deps_hitrace_meter = [ "${kv_store_mock_external_kit_path}/hitrace:hitrace_meter" ]
+  external_deps_hitrace_chain = []
+  deps_hitrace_chain = []
+}
+
+if (kv_store_hisysevent_enabled) {
+  external_deps_hisysevent = [ "hisysevent:libhisysevent" ]
+  deps_hisysevent = []
+} else {
+  external_deps_hisysevent = []
+  deps_hisysevent = [ "${kv_store_mock_external_kit_path}/hisysevent:libhisysevent" ]
+}
+
+if (kv_store_ipc_enabled) {
+  external_deps_ipc_core = [ "ipc:ipc_core" ]
+  deps_ipc_core = []
+  external_deps_ipc_single = [ "ipc:ipc_single" ]
+  deps_ipc_single = []
+} else {
+  external_deps_ipc_core = []
+  deps_ipc_core = [ "${kv_store_mock_external_kit_path}/ipc:ipc_core" ]
+  external_deps_ipc_single = []
+  deps_ipc_single = [ "${kv_store_mock_external_kit_path}/ipc:ipc_single" ]
+}
+
+if (kv_store_samgr_enabled) {
+  external_deps_samgr = [ "samgr:samgr_proxy" ]
+  deps_samgr = []
+} else {
+  external_deps_samgr = []
+  deps_samgr = [ "${kv_store_mock_external_kit_path}/samgr:samgr_proxy" ]
+}
+
+if (kv_store_huks_enabled) {
+  external_deps_huks = [ "huks:libhukssdk" ]
+  deps_huks = []
+} else {
+  external_deps_huks = []
+  deps_huks = [ "${kv_store_mock_external_kit_path}/huks:libhukssdk" ]
+}
+
+if (kv_store_access_token_enabled) {
+  external_deps_access_token_libaccesstoken_sdk = [ "access_token:libaccesstoken_sdk" ]
+  deps_access_token_libaccesstoken_sdk = []
+  external_deps_access_token_libtokenid_sdk = [ "access_token:libtokenid_sdk" ]
+  deps_access_token_libtokenid_sdk = []
+  external_deps_access_token_libtoken_setproc = [ "access_token:libtoken_setproc" ]
+  deps_access_token_libtoken_setproc = []
+  external_deps_access_token_libnativetoken = [ "access_token:libnativetoken" ]
+  deps_access_token_libnativetoken = []
+  external_deps_access_token_libnativetoken_shared = [ "access_token:libnativetoken_shared" ]
+  deps_access_token_libnativetoken_shared = []
+} else {
+  external_deps_access_token_libaccesstoken_sdk = []
+  deps_access_token_libaccesstoken_sdk = [ "${kv_store_mock_external_kit_path}/access_token:libaccesstoken_sdk" ]
+  external_deps_access_token_libtokenid_sdk = []
+  deps_access_token_libtokenid_sdk = [ "${kv_store_mock_external_kit_path}/access_token:libtokenid_sdk" ]
+  external_deps_access_token_libtoken_setproc = []
+  deps_access_token_libtoken_setproc = [ "${kv_store_mock_external_kit_path}/access_token:libtoken_setproc" ]
+  external_deps_access_token_libnativetoken = []
+  deps_access_token_libnativetoken = [ "${kv_store_mock_external_kit_path}/access_token:libnativetoken" ]
+  external_deps_access_token_libnativetoken_shared = []
+  deps_access_token_libnativetoken_shared = [ "${kv_store_mock_external_kit_path}/access_token:libnativetoken_shared" ]
+}
+
+if (kv_store_file_api_enabled) {
+  external_deps_file_api = [ "file_api:securitylabel" ]
+  deps_file_api = []
+} else {
+  external_deps_file_api = []
+  deps_file_api = [ "${kv_store_mock_external_kit_path}/file_api:securitylabel" ]
+}
+
+if (dms_service_enable) {
+  external_deps_dmsfwk = [ "dmsfwk:distributed_sdk" ]
+  deps_dmsfwk = []
+} else {
+  external_deps_dmsfwk = []
+  deps_dmsfwk = [ "${kv_store_mock_external_kit_path}/dmsfwk:distributed_sdk" ]
+}
+
+if (kv_store_safwk_enabled) {
+  external_deps_safwk = [ "safwk:system_ability_fwk" ]
+  deps_safwk = []
+} else {
+  external_deps_safwk = []
+  deps_safwk = [ "${kv_store_mock_external_kit_path}/safwk:system_ability_fwk" ]
+}
+
+if (kv_store_napi_enabled) {
+  external_deps_napi = [ "napi:ace_napi" ]
+  deps_napi = []
+  external_deps_cj_bind_ffi = [ "napi:cj_bind_ffi" ]
+  deps_cj_bind_ffi = []
+  external_deps_cj_bind_native = [ "napi:cj_bind_native" ]
+  deps_cj_bind_native = []
+} else {
+  external_deps_napi = []
+  deps_napi = [ "${kv_store_mock_external_kit_path}/napi:ace_napi" ]
+  external_deps_cj_bind_ffi = []
+  deps_cj_bind_ffi = [ "${kv_store_mock_external_kit_path}/napi:cj_bind_ffi" ]
+  external_deps_cj_bind_native = []
+  deps_cj_bind_native = [ "${kv_store_mock_external_kit_path}/napi:cj_bind_native" ]
+}
+
+if (kv_store_ability_base_enabled) {
+  external_deps_ability_base_want = [ "ability_base:want" ]
+  deps_ability_base_want = []
+  external_deps_ability_base_zuri = [ "ability_base:zuri" ]
+  deps_ability_base_zuri = []
+} else {
+  external_deps_ability_base_want = []
+  deps_ability_base_want = [ "${kv_store_mock_external_kit_path}/ability_base:want" ]
+  external_deps_ability_base_zuri = []
+  deps_ability_base_zuri = [ "${kv_store_mock_external_kit_path}/ability_base:zuri" ]
+}
+
+if (kv_store_ability_runtime_enabled) {
+  external_deps_ability_runtime_abilitykit_native = [
+    "ability_runtime:abilitykit_native",
+  ]
+  deps_ability_runtime_abilitykit_native = []
+  external_deps_ability_runtime_napi_base_context = [
+    "ability_runtime:napi_base_context",
+  ]
+  deps_ability_runtime_napi_base_context = []
+  external_deps_ability_runtime_napi_common = [ "ability_runtime:napi_common" ]
+  deps_ability_runtime_napi_common = []
+  external_deps_ability_runtime_ability_manager = [
+    "ability_runtime:ability_manager",
+  ]
+  deps_ability_runtime_ability_manager = []
+  external_deps_ability_runtime_ability_connect_callback_stub = [
+    "ability_runtime:ability_connect_callback_stub",
+  ]
+  deps_ability_runtime_ability_connect_callback_stub = []
+  external_deps_ability_runtime_ani_base_context = [
+    "ability_runtime:ani_base_context",
+  ]
+  deps_ability_runtime_ani_base_context = []
+  external_deps_ability_runtime_app_context = [ "ability_runtime:app_context" ]
+  deps_ability_runtime_app_context = []
+  external_deps_ability_runtime_extensionkit_native = [
+    "ability_runtime:extensionkit_native",
+  ]
+  deps_ability_runtime_extensionkit_native = []
+} else {
+  external_deps_ability_runtime_abilitykit_native = []
+  deps_ability_runtime_abilitykit_native =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:abilitykit_native" ]
+  external_deps_ability_runtime_napi_base_context = []
+  deps_ability_runtime_napi_base_context =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:napi_base_context" ]
+  external_deps_ability_runtime_napi_common = []
+  deps_ability_runtime_napi_common =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:napi_common" ]
+  external_deps_ability_runtime_ability_manager = []
+  deps_ability_runtime_ability_manager =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:ability_manager" ]
+  external_deps_ability_runtime_ability_connect_callback_stub = []
+  deps_ability_runtime_ability_connect_callback_stub =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:ability_connect_callback_stub" ]
+  external_deps_ability_runtime_ani_base_context = []
+  deps_ability_runtime_ani_base_context =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:ani_base_context" ]
+  external_deps_ability_runtime_app_context = []
+  deps_ability_runtime_app_context =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:app_context" ]
+  external_deps_ability_runtime_extensionkit_native = []
+  deps_ability_runtime_extensionkit_native =
+      [ "${kv_store_mock_external_kit_path}/ability_runtime:extensionkit_native" ]
+}
+
+if (kv_store_common_event_service_enabled) {
+  external_deps_common_event_service = [ "common_event_service:cesfwk_innerkits" ]
+  deps_common_event_service = []
+} else {
+  external_deps_common_event_service = []
+  deps_common_event_service = [ "${kv_store_mock_external_kit_path}/common_event_service:cesfwk_innerkits" ]
+}
+
+if (kv_store_eventhandler_enabled) {
+  external_deps_eventhandler = [ "eventhandler:libeventhandler" ]
+  deps_eventhandler = []
+} else {
+  external_deps_eventhandler = []
+  deps_eventhandler = [ "${kv_store_mock_external_kit_path}/eventhandler:libeventhandler" ]
+}
+
+if (kv_store_runtime_core_enabled) {
+  external_deps_runtime_core = [ "runtime_core:ani_helpers" ]
+  deps_runtime_core = []
+} else {
+  external_deps_runtime_core = []
+  deps_runtime_core = [ "${kv_store_mock_external_kit_path}/runtime_core:ani_helpers" ]
+}
+
+if (kv_store_bundle_framework_enabled) {
+  external_deps_bundle_framework = [ "bundle_framework:appexecfwk_base" ]
+  deps_bundle_framework = []
+} else {
+  external_deps_bundle_framework = []
+  deps_bundle_framework = [ "${kv_store_mock_external_kit_path}/bundle_framework:bundle_framework" ]
+}
