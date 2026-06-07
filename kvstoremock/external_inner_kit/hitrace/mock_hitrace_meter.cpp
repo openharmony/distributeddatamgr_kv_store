@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,7 +22,7 @@ void StartTraceEx(HiTraceOutputLevel level, uint64_t tag, const char* name, cons
 void MiddleTrace(uint64_t label, const std::string& beforeValue, const std::string& afterValue) {};
 void FinishTrace(uint64_t label) {};
 void FinishTraceEx(HiTraceOutputLevel level, uint64_t tag) {};
-void StartAsyncTrace(uint64_t label, const std::string& name, int32_t taskId) {};
+void StartAsyncTrace(uint64_t label, const std::string& name, int32_t taskId, float limit) {};
 void FinishAsyncTrace(uint64_t label, const std::string& name, int32_t taskId) {};
 void UpdateTraceLabel() {}
 #ifdef __cplusplus

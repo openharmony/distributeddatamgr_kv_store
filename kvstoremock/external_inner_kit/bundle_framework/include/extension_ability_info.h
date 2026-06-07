@@ -62,7 +62,9 @@ enum class ExtensionAbilityType {
     ENTERPRISE_ADMIN = 11,
     FILEACCESS_EXTENSION = 12,
     THUMBNAIL = 13,
+#ifndef PREVIEW
     PREVIEW = 14,
+#endif
     PRINT = 15,
     SHARE = 16,
     PUSH = 17,

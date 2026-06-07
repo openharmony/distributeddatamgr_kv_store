@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Copyright (c) 2026 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,6 +14,7 @@
 import("//build/ohos.gni")
 import("//build/ohos/ace/ace.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 base_output_path = get_label_info(":distributed_data_js", "target_out_dir")
 distributed_data_js_obj_path = base_output_path + "/distributed_data.o"
@@ -50,7 +51,6 @@ if (use_platform_win || use_platform_mac) {
 
     cflags_cc = [ "-std=c++17" ]
     sources = [
-      "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
       "../../../frameworks/jskitsimpl/distributeddata/src/js_util.cpp",
       "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common/log_print.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/entry_point.cpp",
@@ -75,9 +75,17 @@ if (use_platform_win || use_platform_mac) {
       "//third_party/libuv:uv",
     ]
 
-    external_deps = [
-      "data_share:datashare_common_lite",
-    ]
+    external_deps = []
+
+    if (data_share_enabled) {
+      sources += [
+        "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+        "../../../frameworks/jskitsimpl/distributeddata/src/napi_data_share_adapter.cpp",
+      ]
+      external_deps += [
+        "data_share:datashare_common_lite",
+      ]
+    }
 
     if (use_platform_win) {
       defines = [ "IS_WINDOWS" ]

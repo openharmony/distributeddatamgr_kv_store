@@ -17,7 +17,11 @@ import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 config("ability_runtime_config") {
   include_dirs = [
     "include",
+    "include/napi_base_context",
+    "include/appkit/ability_runtime/",
+    "include/appkit/ability_runtime/context",
     "${kv_store_mock_external_kit_path}/ability_base/include",
+    "${kv_store_mock_external_kit_path}/ability_base/include/ability/native",
     "${kv_store_mock_external_kit_path}/ipc/include",
     "${kv_store_mock_external_kit_path}/safwk/include",
     "${kv_store_mock_external_kit_path}/resource_management/include",
@@ -32,7 +36,7 @@ ohos_source_set("abilitykit_native") {
   sources = [ "mock_context.cpp" ]
   all_dependent_configs = [ ":ability_runtime_config" ]
   public_configs = [ ":ability_runtime_config" ]
-  deps = []
+  deps = [ ":napi_base_context" ]
   external_deps = [
     "c_utils:utils",
     "json:nlohmann_json_static",
@@ -57,7 +61,12 @@ ohos_source_set("napi_base_context") {
   all_dependent_configs = [ ":ability_runtime_config" ]
   public_configs = [ ":ability_runtime_config" ]
   deps = []
-  external_deps = [ "c_utils:utils" ]
+  deps += deps_napi
+  external_deps = [
+    "c_utils:utils",
+    "json:nlohmann_json_static",
+  ]
+  external_deps += external_deps_napi
   part_name = "kv_store"
   subsystem_name = "distributeddatamgr"
 }

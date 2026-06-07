@@ -18,6 +18,7 @@ config("file_api_config") {
   include_dirs = [
     "include",
     "include/uri",
+    "include/ipc",
   ]
 }
 
