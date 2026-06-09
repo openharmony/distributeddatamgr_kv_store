@@ -114,11 +114,17 @@ ohos_shared_library("distributeddb") {
 
   cflags_cc = [
     "-fvisibility=hidden",
+    "-fvisibility-inlines-hidden",
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-fno-unwind-tables",
+    "-fno-asynchronous-unwind-tables",
     "-Os",
     "-D_FORTIFY_SOURCE=2",
     "-flto",
     "-Werror=vla",
   ]
+  ldflags = [ "-Wl,--gc-sections,--exclude-libs,ALL" ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 
   external_deps = [
@@ -268,11 +274,17 @@ ohos_shared_library("distributeddb_client") {
 
   cflags_cc = [
     "-fvisibility=hidden",
+    "-fvisibility-inlines-hidden",
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-fno-unwind-tables",
+    "-fno-asynchronous-unwind-tables",
     "-Os",
     "-D_FORTIFY_SOURCE=2",
     "-flto",
     "-Werror=vla",
   ]
+  ldflags = [ "-Wl,--gc-sections,--exclude-libs,ALL" ]
 
   external_deps = [
     "cJSON:cjson",
