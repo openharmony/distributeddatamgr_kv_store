@@ -89,10 +89,14 @@ ohos_shared_library("distributeddata") {
     "napi:ace_napi",
   ]
 
-  cflags = [
-    "-Wno-c99-designator",
+  cflags_cc = [
+    "-flto",
+    "-fvisibility=hidden",
+    "-Os",
     "-Werror=vla",
+    "-Wno-c99-designator",
   ]
+  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   subsystem_name = "distributeddatamgr"
   relative_install_dir = "module/data"
   part_name = "kv_store"

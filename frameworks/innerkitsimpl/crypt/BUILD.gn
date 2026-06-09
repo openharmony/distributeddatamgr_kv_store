@@ -32,7 +32,12 @@ ohos_shared_library("kv_store_crypt") {
   ]
 
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
-  cflags_cc = [ "-fvisibility=hidden", "-Werror=vla", ]
+  cflags_cc = [
+    "-flto",
+    "-fvisibility=hidden",
+    "-Os",
+    "-Werror=vla",
+  ]
 
   external_deps = [
     "c_utils:utils",

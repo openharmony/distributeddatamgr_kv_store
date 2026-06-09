@@ -71,10 +71,19 @@ taihe_shared_library("distributedkvstore_ani") {
   }
   cflags = [
     "-DHILOG_ENABLE",
+    "-flto",
     "-fPIC",
     "-g3",
+    "-Os",
     "-Werror=vla",
   ]
+  cflags_cc = [
+    "-flto",
+    "-fvisibility=hidden",
+    "-Os",
+    "-Werror=vla",
+  ]
+  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   external_deps = [
     "ability_runtime:abilitykit_native",
     "ability_runtime:ani_base_context",
