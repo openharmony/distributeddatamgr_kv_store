@@ -95,7 +95,15 @@ ohos_static_library("gaussdb_rd") {
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   cflags_cc = [
     "-fvisibility=hidden",
+    "-fvisibility-inlines-hidden",
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-fno-unwind-tables",
+    "-fno-asynchronous-unwind-tables",
+    "-flto",
     "-std=c++17",
+    "-Werror=vla",
+    "-Os",
   ]
 
   external_deps = [
