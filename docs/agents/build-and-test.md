@@ -33,6 +33,8 @@ rg -n "ZLOG[IWE].*%{public}.*(udid|uuid|ip|mac|path|passwrod|pwd)" frameworks in
 | `kv_store` | 构建全量部件镜像    | `./build.sh --product-name <product> --build-target kv_store` |
 | `kv_store_test` | 构建部件镜像和测试用例 | `./build.sh --product-name <product> --build-target kv_store_test` |
 
+环境变量：`<product>` — 传给 `./build.sh --product-name` 的产品占位符（示例 `rk3568`）。
+
 如果工作区使用 `hb`，等价模式是：
 
 ```bash
@@ -47,7 +49,9 @@ rg -n "ZLOG[IWE].*%{public}.*(udid|uuid|ip|mac|path|passwrod|pwd)" frameworks in
 
 报告验证时要明确：
 
-- 运行了哪些命令。
-- 如果无法运行完整构建，明确说明问题原因，并给出解决方案，但是不要直接进行问题解决。
+- 请求的行为已实现。
+- 相关构建/测试/安全自检/兼容性检查已执行，或已说明无法执行的原因。
+- 最终回复包含：变更摘要、变更文件列表、验证结果、剩余风险。
+- 不包含无关的格式化、重构或附带变更。
 
-环境变量：`<product>` — 传给 `./build.sh --product-name` 的产品占位符（示例 `rk3568`）。
+完成任务时，最终回复应包含：变更摘要、变更文件列表、验证命令与结果、兼容性/权限/DFX 影响（如相关）、剩余风险或后续事项。
