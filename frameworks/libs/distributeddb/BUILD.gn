@@ -124,7 +124,7 @@ ohos_shared_library("distributeddb") {
     "-flto",
     "-Werror=vla",
   ]
-  ldflags = [ "-Wl,--gc-sections,--exclude-libs,ALL" ]
+  ldflags = [ "-Wl,--gc-sections" ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
 
   external_deps = [
