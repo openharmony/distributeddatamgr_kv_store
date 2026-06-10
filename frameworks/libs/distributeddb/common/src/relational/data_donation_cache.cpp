@@ -62,12 +62,14 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
         LOGE("[QueryBinlog] Query err: %d", errCode);
         return errCode;
     }
-    size_t binlogNum = queryData.size();
-    for (size_t i = 0; i < binlogNum; i++) {
-        cacheWrite[i] = queryData[i];
+    if (queryData.size() >= GET_ALL_BATCH_NUM) {
+        LOGI("[QueryBinlog] queryData size is: %zu", queryData.size());
     }
-    // Write back to DataDonationCache
-    PushBatch(cacheWrite, binlogNum);
+    int ret = PushBatch(queryData, queryData.size());
+    if (ret != E_OK) {
+        LOGE("[QueryBinlog] PushBatch err: %d", ret);
+        return ret;
+    }
 
     // Read from DataDonationCache
     readNum = ReadBatch(cacheRead, readToken);

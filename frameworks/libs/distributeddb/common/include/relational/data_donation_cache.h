@@ -41,7 +41,6 @@ public:
     int UpdateCursor(const DdCursor &cursorIn, DdData &ddData);
 
     DdData cacheRead[GET_ALL_BATCH_NUM]{};
-    DdData cacheWrite[GET_ALL_BATCH_NUM]{};
 
 private:
     uint64_t cursor = UINT64_MAX; // The water level value set externally，cursor % capacity = front

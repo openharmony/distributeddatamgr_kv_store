@@ -58,8 +58,11 @@ public:
     }
 
     // expand first, then batch insert, ensuring all-or-nothing for the batch
-    int PushBatch(UqData *dataIn, size_t num)
+    int PushBatch(const std::vector<UqData> &dataIn, size_t num)
     {
+        if (num == 0) {
+            return E_OK;
+        }
         int ret = E_OK;
         ret = ExpandIfNeed(num);
         if (ret != E_OK) {
