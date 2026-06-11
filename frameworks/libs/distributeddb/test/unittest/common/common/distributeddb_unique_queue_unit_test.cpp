@@ -82,7 +82,8 @@ void DistributedDBUniqueQueue::PushBatchTest(size_t num, int ret)
 void DistributedDBUniqueQueue::ReadBatchTest(size_t readStart, size_t maxNum, bool success)
 {
     static const int batchNum = BATCH_NUM;
-    int data[batchNum]{};
+    std::vector<int> data;
+    data.reserve(batchNum);
     (void)queue.TryInitCursor(readStart);
     int readNum = queue.ReadBatch(data, maxNum);
     if (success) {

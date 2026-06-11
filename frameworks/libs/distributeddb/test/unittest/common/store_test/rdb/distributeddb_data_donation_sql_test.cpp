@@ -35,6 +35,7 @@ public:
     void PrepareTestData(const StoreInfo &info, int64_t count);
     static UtDateBaseSchemaInfo GetJsonFileSchema();
     void PrepareJsonFileData(const StoreInfo &info, int64_t count);
+    void PrepareMutiRelationData(const StoreInfo &info, int64_t count);
     void UpdateJsonFileData(const StoreInfo &info, int64_t begin, int64_t count);
     void DeleteJsonFileData(const StoreInfo &info, int64_t begin, int64_t count);
 
@@ -170,6 +171,21 @@ void DataDonationSqlGeneratorTest::PrepareJsonFileData(const StoreInfo &info, in
         std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
             std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
         EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+    }
+}
+
+void DataDonationSqlGeneratorTest::PrepareMutiRelationData(const StoreInfo &info, int64_t count)
+{
+    for (int64_t i = 0; i < count; ++i) {
+        std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlA, info), E_OK);
+        int relationNum = 500;
+        for (int64_t j = 0; j < relationNum; ++j) {
+            std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i * relationNum + j) + ", " +
+            std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
+            EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+        }
     }
 }
 
@@ -735,6 +751,61 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
 
     EXPECT_EQ(status, SUBSCRIBE_QUERY_END);
     EXPECT_EQ(totalRecords, dataCount * 2);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData012
+ * @tc.desc: Test QuerySubscribeOutput one mainTable data relation muti subTable data.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set binlog and schema.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
+
+    /**
+     * @tc.steps:step2. Insert 5000 data to 2 tables.
+     * @tc.expected: step2. OK.
+     */
+    const int64_t dataCount = 10;
+    PrepareMutiRelationData(storeInfo, dataCount);
+
+    /**
+     * @tc.steps:step3. Query using GET_NEW, has muti relation data.
+     * @tc.expected: step3. OK.
+     */
+    DBSubscribeCur cursorIn = {.queryType = SubQueryType::GET_NEW, .cursor = 0};
+    DBSubscribeCur cursorOut;
+    std::vector<VBucket> dataOut;
+    int donateCount = 0;
+    DBStatus status;
+    do {
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        cursorIn = cursorOut;
+        EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+        donateCount = donateCount + dataOut.size();
+        dataOut.clear();
+    } while (status == OK);
+    int expectCount = 5059;
+    EXPECT_EQ(donateCount, expectCount);
 }
 
 /**

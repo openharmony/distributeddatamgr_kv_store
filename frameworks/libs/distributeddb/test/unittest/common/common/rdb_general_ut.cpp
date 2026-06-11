@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "rdb_general_ut.h"
+#include "relational_store_client_utils.h"
 #include "rdb_data_generator.h"
 #include "runtime_config.h"
 #include "sqlite_relational_utils.h"
@@ -302,6 +303,19 @@ int RDBGeneralUt::ExecuteSQL(const std::string &sql, const StoreInfo &info)
         return -E_INVALID_DB;
     }
     return SQLiteUtils::ExecuteRawSQL(db, sql);
+}
+
+void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(const StoreInfo &info)
+{
+    auto db = GetSqliteHandle(info);
+    if (db == nullptr) {
+        LOGE("[RDBGeneralUt] Get null sqlite when insert data");
+        return;
+    }
+    sqlite3_set_json_parse_callback_binlog(db, &RelationalStoreClientUtils::BinlogSchemaGet);
+    sqlite3_set_xChange_callback_binlog(db,  [] (const char *dbPath, char *tableName) ->void {
+                                                printf("xChangeCallback dbPath:%s tableName:%s\n", dbPath, tableName);
+                                                });
 }
 
 int RDBGeneralUt::CreateDistributedTable(const StoreInfo &info, const std::string &table, TableSyncType type)
