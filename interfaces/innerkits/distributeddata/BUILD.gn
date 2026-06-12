@@ -123,10 +123,13 @@ ohos_shared_library("distributeddata_inner") {
 
   configs = [ ":distributeddatafwk_config" ]
   public_configs = [ ":distributeddatafwk_public_config" ]
-  cflags = [
-    "-Wno-c99-designator",
+  cflags_cc = [
+    "-flto",
+    "-Os",
     "-Werror=vla",
+    "-Wno-c99-designator",
   ]
+  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps = deps_config
   external_deps = external_deps_config
   if (dms_service_enable && qemu_disable) {
@@ -165,10 +168,14 @@ ohos_shared_library("distributeddata_client_sync") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
   ]
-  cflags = [
-    "-Wno-c99-designator",
+  cflags_cc = [
+    "-flto",
+    "-fvisibility=hidden",
+    "-Os",
     "-Werror=vla",
+    "-Wno-c99-designator",
   ]
+  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   configs = [ ":distributeddatafwk_config" ]
 
   deps = [
