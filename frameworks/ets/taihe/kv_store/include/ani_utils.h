@@ -44,12 +44,18 @@ public:
     template<typename T>
     static ani_status Wrap(ani_env *env, ani_object object, T *nativePtr, const char *propName = "nativePtr")
     {
+        if (env == nullptr) {
+            return ANI_INVALID_ARGS;
+        }
         return env->Object_SetFieldByName_Long(object, propName, reinterpret_cast<ani_long>(nativePtr));
     }
 
     template<typename T>
     static T* Unwrap(ani_env *env, ani_object object, const char *propName = "nativePtr")
     {
+        if (env == nullptr) {
+            return nullptr;
+        }
         ani_long nativePtr;
         if (ANI_OK != env->Object_GetFieldByName_Long(object, propName, &nativePtr)) {
             return nullptr;
