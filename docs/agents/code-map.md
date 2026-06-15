@@ -79,13 +79,14 @@ KV 客户端框架，CRUD 入口。这是最频繁修改的区域。
 
 ## `frameworks/libs/distributeddb/`
 
-KV 存储引擎 + 数据同步，底层 SQLite 操作核心。
+KV 存储 + 数据同步，底层 SQLite 操作核心。
 
 关键子目录：
 - `interfaces/include/`：公开头文件，`kv_store_nb_delegate.h`、`kv_store_delegate_manager.h` 等。
-- `interfaces/src/kv_store_nb_delegate_impl.cpp`：接口实现，实际存储路径。
+- `interfaces/src/kv_store_nb_delegate_impl.cpp`：kv接口实现，实际存储路径。
+- `interfaces/src/relational_store_delegate_impl.cpp`：rdb同步接口实现。
 - `storage/src/sqlite/`：SQLite 存储实现。
-- `syncer/src/`：数据同步实现（设备同步 + 云同步）。
+- `syncer/src/`：数据同步实现（端端同步 + 端云同步）。
 - `communicator/src/`：通信层实现。
 - `common/include/db_errno.h`：DB 层 errno 定义。
 - `common/include/log_print.h`：distributeddb 日志宏。
