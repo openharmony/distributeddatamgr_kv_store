@@ -1,0 +1,153 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+#include "kvstore_data_service_mgr.h"
+#include "log_print.h"
+#include "system_ability_definition.h"
+#include "system_ability_manager_mock.h"
+#include "ipc_object_stub.h"
+
+using namespace testing::ext;
+using namespace OHOS::DistributedKv;
+using namespace OHOS;
+using namespace std;
+using namespace testing;
+
+namespace {
+class KvStoreDataServiceMgrMockTest : public testing::Test {
+public:
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
+    void SetUp();
+    void TearDown();
+public:
+    static inline std::shared_ptr<SystemAbilityMock> sa = nullptr;
+    static inline sptr<SystemAbilityManagerMock> sam = nullptr;
+};
+
+void KvStoreDataServiceMgrMockTest::SetUpTestCase(void)
+{
+}
+
+void KvStoreDataServiceMgrMockTest::TearDownTestCase(void)
+{
+}
+
+void KvStoreDataServiceMgrMockTest::SetUp(void)
+{
+    sa = std::make_shared<SystemAbilityMock>();
+    ISystemAbilityBase::sab = sa;
+    sam = sptr(new SystemAbilityManagerMock());
+}
+
+void KvStoreDataServiceMgrMockTest::TearDown(void)
+{
+    sam = nullptr;
+    ISystemAbilityBase::sab = nullptr;
+    sa = nullptr;
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, ClearAppStorage_SamgrNull_001, TestSize.Level1)
+{
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(nullptr));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, ClearAppStorage_CheckSAFail_LoadSASuccess_002, TestSize.Level1)
+{
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
+        .WillOnce(Return(ERR_OK));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, ClearAppStorage_CheckSAFail_LoadSAFail_003, TestSize.Level1)
+{
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
+        .WillOnce(Return(-1));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, ClearAppStorage_CheckSASuccess_ProxyFail_004, TestSize.Level1)
+{
+    sptr<IRemoteObject> remoteObject = new IPCObjectStub();
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(remoteObject));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, LoadCallback_OnLoadSASuccess_005, TestSize.Level1)
+{
+    sptr<IRemoteObject> remoteObject = new IPCObjectStub();
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
+        .WillOnce(Invoke([&remoteObject](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
+            callback->OnLoadSystemAbilitySuccess(saId, remoteObject);
+            return ERR_OK;
+        }));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, LoadCallback_OnLoadSAFail_006, TestSize.Level1)
+{
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
+        .WillOnce(Invoke([](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
+            callback->OnLoadSystemAbilityFail(saId);
+            return ERR_OK;
+        }));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, LoadCallback_OnLoadSASuccess_WrongSAId_007, TestSize.Level1)
+{
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
+        .WillOnce(Invoke([](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
+            callback->OnLoadSystemAbilitySuccess(9999, nullptr);
+            return ERR_OK;
+        }));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+
+HWTEST_F(KvStoreDataServiceMgrMockTest, LoadCallback_OnLoadSASuccess_NullRemote_008, TestSize.Level1)
+{
+    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
+    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
+    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
+        .WillOnce(Invoke([](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
+            callback->OnLoadSystemAbilitySuccess(saId, nullptr);
+            return ERR_OK;
+        }));
+    int32_t result = KvStoreDataServiceMgr::ClearAppStorage("com.test.app", 100, 0, 123456);
+    EXPECT_EQ(result, ERROR);
+}
+}

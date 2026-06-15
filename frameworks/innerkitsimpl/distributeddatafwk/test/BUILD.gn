@@ -475,6 +475,86 @@ ohos_unittest("SwitchObserverBridgeTest") {
   deps = [ ":distributeddatafwk_src_file" ]
 }
 
+ohos_unittest("KvStoreDataServiceMgrMockTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "../../distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "../../distributeddatasvc/src/distributed_data_mgr.cpp",
+    "../../distributeddatasvc/src/kvstore_data_service_mgr.cpp",
+    "unittest/kvstore_data_service_mgr_mock_test.cpp",
+    "unittest/mock/src/system_ability_manager_mock.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  include_dirs = [ "unittest/mock/include" ]
+
+  cflags_cc = [
+    "-DHILOG_ENABLE",
+    "-Werror=vla",
+  ]
+
+  defines = [
+    "private = public",
+    "protected = public",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}
+
+ohos_unittest("KvStoreServiceDeathNotifierMockTest") {
+  module_out_path = module_output_path
+
+  sources = [
+    "../../distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "../../distributeddatasvc/src/distributed_data_mgr.cpp",
+    "../src/kvstore_service_death_notifier.cpp",
+    "../src/kvstore_client_death_observer.cpp",
+    "../src/ikvstore_client_death_observer.cpp",
+    "../../kvdb/src/task_executor.cpp",
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+    "unittest/kvstore_service_death_notifier_mock_test.cpp",
+    "unittest/mock/src/system_ability_manager_mock.cpp",
+  ]
+
+  configs = [ ":module_private_config" ]
+
+  include_dirs = [ "unittest/mock/include" ]
+
+  cflags_cc = [
+    "-DHILOG_ENABLE",
+    "-Werror=vla",
+  ]
+
+  defines = [
+    "private = public",
+    "protected = public",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "samgr:samgr_proxy",
+  ]
+
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -487,6 +567,8 @@ group("unittest") {
     ":DistributedKvDataManagerEncryptTest",
     ":DistributedKvDataManagerMultiUserTest",
     ":EndPointTest",
+    ":KvStoreDataServiceMgrMockTest",
+    ":KvStoreServiceDeathNotifierMockTest",
     ":KvUtilTest",
     ":KvstoreDatashareBridgeTest",
     ":LocalSubscribeDeviceStoreTest",
