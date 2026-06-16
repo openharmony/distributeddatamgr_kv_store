@@ -23,14 +23,13 @@
 ## 快速代码地图
 
 - `bundle.json`：组件元数据、feature flag、构建 group、inner kit 和测试目标。
-- `kv_store.gni`：共享 GN 变量，含 `dm_service_enable`、`dms_service_enable` 降级开关。
 - `frameworks/libs/distributeddb/distributeddb.gni`：distributeddb 源码聚合与 `kv_store_cloud`/`kv_store_device` feature flag。
 - `interfaces/jskits/`：JS 入口和 BUILD.gn（打包层）；NAPI C++ 实现见 `frameworks/jskitsimpl/`。
 - `frameworks/jskitsimpl/distributedkvstore/`：最新版 `@ohos.distributedKVStore` NAPI C++ 实现。
 - `frameworks/jskitsimpl/distributeddata/`：旧版 `@ohos.distributedData` NAPI C++ 实现(所有问题不需要更改)。
 - `frameworks/innerkitsimpl/kvdb/`：KV 客户端框架，CRUD 入口，锁模式与 Status 转换边界。
 - `frameworks/innerkitsimpl/distributeddatafwk/`：分布式数据管理框架。
-- `frameworks/innerkitsimpl/distributeddatasvc/`：服务端 IPC 代理，IPC 接口码变更需 CODEOWNERS 评审。
+- `frameworks/innerkitsimpl/distributeddatasvc/`：服务端 IPC 代理。
 - `frameworks/innerkitsimpl/crypt/`：加密/解密工具，`kv_store_crypt` 通过 dlopen 动态加载。
 - `frameworks/innerkitsimpl/dm/`/`dms/`：设备管理/分布式调度适配，`dm/dms_service_enable=false` 时 mock 替代。
 - `frameworks/libs/distributeddb/`：KV 存储引擎 + 数据同步，底层 SQLite 操作核心。
@@ -66,38 +65,24 @@ Where to look:
 |---|---|
 | 影响范围不清楚 | 先对照快速代码地图的 Where to look 表定位 |
 
-### 路径触发
-
-- `frameworks/innerkitsimpl/distributeddatasvc/` → IPC 接口码变更必须通知 CODEOWNERS 指定评审人
-- `interfaces/innerkits/distributeddata/include/store_errno.h` → 注意 Status enum 与 distributeddb errno 的转换边界
-- `frameworks/innerkitsimpl/kvdb/src/security_manager.cpp` → 注意 dlopen 动态加载加密模块的降级行为
-- `kv_store.gni` → 注意 `dm_service_enable` / `dms_service_enable` 降级开关
 
 ### 术语触发
 
 当任务、issue、log、API、变更文件中出现以下术语时，先理解风险再规划：
 
-| Term | Risk hint | Action |
-|---|---|---|
+| Term | Risk hint                                                                                     | Action                                   |
+|---|-----------------------------------------------------------------------------------------------|------------------------------------------|
 | Status / errno / ConvertStatus | innerkitsimpl 用 Status enum，distributeddb 用 int errno，跨层必须经 ConvertStatus 转换，直接混用会导致语义错误或静默丢错 | 对照 `store_errno.h` 与 `db_errno.h`，确认转换正确 |
-| IPC / 接口码 / interface code | IPC 接口码变更必须通知 CODEOWNERS 指定评审人；IPC_SEND 按引用捕获，禁止传入临时或已 move 对象 | 读 `CODEOWNERS`，确认评审流程 |
-| dlopen / kv_store_crypt / 加密降级 | 加密模块通过 dlopen 动态加载，缺失时 GetDelegate 返回 nullptr、GetDBPassword 返回空密码、加密数据库打开失败 | 检查 `security_manager.cpp` 降级路径 |
-| shared_lock / unique_lock / 锁模式 | CRUD 用 shared_lock（读锁），仅 Close 用 unique_lock（写锁）；禁止给 Put/Delete 加写锁 | 确认锁模式与并发设计一致 |
-| Anonymous / StoreUtil::Anonymous / 隐私 | udid/uuid/ip/mac/密钥/数据库路径必须匿名化后输出 | 检查日志是否有 `%{public}` 泄露隐私数据 |
-| NAPI / 回调参数 | NAPI 回调参数必须最后一个，禁止放中间 | 检查 NAPI 绑定函数签名 |
-| dm_service / dms_service / 降级开关 | `dm_service_enable=false` 时 dm mock 替代，`dms_service_enable=false` 时 dms mock 替代 | 读 `kv_store.gni` 确认开关状态 |
-| ConcurrentMap / Compute | Compute 语义：action 返回 false = 删除条目 | 读 `frameworks/common/concurrent_map.h` |
-
-在计划中声明：task category、documents read、constraints found、whether a skill/workflow should be used。
+| IPC / 接口码 / interface code | IPC 接口码变更必须接收到评审通过指令才能继续处理；IPC_SEND 按引用捕获，禁止传入临时或已 move 对象                                    | 读 `CODEOWNERS`，确认是哪些改动需要确认是否通过           |
+| shared_lock / unique_lock / 锁模式 | CRUD 用 shared_lock（读锁），仅 Close 用 unique_lock（写锁）；禁止给 Put/Delete 加写锁                           | 确认锁模式与并发设计一致                             |
+| Anonymous / StoreUtil::Anonymous / 隐私 | udid/uuid/ip/mac/密钥/数据库路径必须匿名化后输出                                                             | 检查日志是否有 `%{public}` 泄露隐私数据               |
+| NAPI / 回调参数 | NAPI 回调参数必须最后一个，禁止放中间                                                                         | 检查 NAPI 绑定函数签名                           |
+| ConcurrentMap / Compute | Compute 语义：action 返回 false = 删除条目                                                             | 读 `frameworks/common/concurrent_map.h`   |
 
 ## 硬约束
 
 ### 架构/领域不变量
 
-- innerkitsimpl 返回 `Status` enum（`store_errno.h`），distributeddb 返回 `int` errno（`db_errno.h`）。跨层调用必须经 `StoreUtil::ConvertStatus` 转换，不可直接混用。违反会导致语义错误、跨层传播不一致、静默丢错。
-- CRUD 操作用 `shared_lock`（读锁），仅 Close 用 `unique_lock`（写锁）。禁止给 Put/Delete 加写锁。
-- `kv_store_crypt` 通过 `dlopen` 动态加载（`security_manager.cpp`），缺失时 `GetDelegate()` 返回 nullptr、`GetDBPassword` 返回空密码、加密数据库打开失败。
-- IPC 接口码变更必须通知 CODEOWNERS 指定评审人。`IPC_SEND` 按引用捕获，禁止传入临时或已 move 对象（见 `kvdb_service_client.cpp`）。
 - `.cpp` 定义 `LOG_TAG`；udid/uuid/ip/mac/密钥/数据库路径 MUST 用 `StoreUtil::Anonymous()` 匿名化后再输出。NEVER 明文打印隐私数据。
 - 稳定性排查、日志打印排查、安全编码自检的完整清单见 `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md`。
 - 命名：PascalCase 方法/类、`camelCase_` 尾下划线成员变量、`UPPER_SNAKE_CASE` 常量；文件 `snake_case`，mock 加 `_mock`。
@@ -133,7 +118,6 @@ Where to look:
 - 是否涉及 IPC 接口码变更（需要 CODEOWNERS 评审）？
 - 是否涉及锁模式变更（shared_lock vs unique_lock）？
 - 是否涉及隐私数据日志？
-- 哪个 GN target 是覆盖该改动的最小有效构建或测试目标？
 
 ## 验证习惯
 
@@ -142,11 +126,6 @@ Where to look:
 ### 最小文本验证
 
 在本仓库根目录运行：
-
-```powershell
-git status --short
-git diff -- AGENTS.md
-```
 
 代码改动还应检查是否误用 public 日志打印隐私数据：
 
@@ -174,8 +153,6 @@ rg -n "ZLOG[IWE].*%{public}.*(udid|uuid|ip|mac|path|passwrod|pwd)" frameworks in
 
 - 公共 API 变更 → 构建受影响模块，运行附近单元测试，检查 API 兼容性
 - NAPI C++ 变更 → 构建 `kv_store`，运行 `frameworks/jskitsimpl/` 附近测试
-- IPC 接口码变更 → 通知 CODEOWNERS 评审，构建全量部件镜像
-- 加密行为变更 → 构建 `kv_store`，检查 dlopen 降级路径
 - 锁模式变更 → 构建并运行并发相关单元测试
 - 日志/DFX 变更 → 运行隐私检查命令，确认无 `%{public}` 泄露
 - 测试变更 → 运行变更的测试和至少一个附近相关测试
