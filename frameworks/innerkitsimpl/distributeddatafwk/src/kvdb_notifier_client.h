@@ -31,8 +31,6 @@ public:
     void SyncCompleted(const std::map<std::string, Status> &results, uint64_t sequenceId) override;
     void SyncCompleted(uint64_t seqNum, ProgressDetail &&detail) override;
 
-    void OnRemoteChange(const std::map<std::string, bool> &mask, int32_t dataType) override;
-
     void OnSwitchChange(const SwitchNotification &notification) override;
 
     void AddSyncCallback(const std::shared_ptr<KvStoreSyncCallback> callback, uint64_t sequenceId);
@@ -46,11 +44,8 @@ public:
     void AddCloudSyncCallback(uint64_t sequenceId, const AsyncDetail &async);
     void DeleteCloudSyncCallback(uint64_t sequenceId);
 
-    bool IsChanged(const std::string &deviceId, DataType dataType);
-
 private:
     ConcurrentMap<uint64_t, std::shared_ptr<KvStoreSyncCallback>> syncCallbackInfo_;
-    ConcurrentMap<std::string, std::pair<bool, bool>> remotes_;
     ConcurrentMap<uintptr_t, std::shared_ptr<KvStoreObserver>> switchObservers_;
     ConcurrentMap<uint64_t, AsyncDetail> cloudSyncCallbacks_;
 };

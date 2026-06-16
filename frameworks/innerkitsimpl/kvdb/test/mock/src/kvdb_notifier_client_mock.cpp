@@ -19,14 +19,6 @@ namespace OHOS::DistributedKv {
 
 KVDBNotifierClient::~KVDBNotifierClient() { }
 
-bool KVDBNotifierClient::IsChanged(const std::string &deviceId, DataType dataType)
-{
-    if (BKVDBNotifierClient::kVDBNotifierClient == nullptr) {
-        return false;
-    }
-    return BKVDBNotifierClient::kVDBNotifierClient->IsChanged(deviceId, dataType);
-}
-
 void KVDBNotifierClient::AddSyncCallback(const std::shared_ptr<KvStoreSyncCallback> callback, uint64_t sequenceId)
 {
     if (BKVDBNotifierClient::kVDBNotifierClient != nullptr) {
@@ -80,13 +72,6 @@ void KVDBNotifierClient::SyncCompleted(const std::map<std::string, Status> &resu
 {
     if (BKVDBNotifierClient::kVDBNotifierClient != nullptr) {
         return BKVDBNotifierClient::kVDBNotifierClient->SyncCompleted(results, sequenceId);
-    }
-}
-
-void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask, int32_t dataType)
-{
-    if (BKVDBNotifierClient::kVDBNotifierClient != nullptr) {
-        return BKVDBNotifierClient::kVDBNotifierClient->OnRemoteChange(mask, dataType);
     }
 }
 

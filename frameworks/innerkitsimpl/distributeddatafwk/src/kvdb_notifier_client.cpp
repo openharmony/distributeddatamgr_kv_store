@@ -20,7 +20,6 @@
 #include <cinttypes>
 #include <functional>
 #include "dds_trace.h"
-#include "dev_manager.h"
 #include "log_print.h"
 #include "store_util.h"
 
@@ -56,34 +55,6 @@ void KVDBNotifierClient::SyncCompleted(uint64_t seqNum, ProgressDetail &&detail)
     });
 }
 
-void KVDBNotifierClient::OnRemoteChange(const std::map<std::string, bool> &mask, int32_t dataType)
-{
-    ZLOGD("Remote changed mask:%{public}zu dataType:%{public}d", mask.size(), dataType);
-    DataType type = static_cast<DataType>(dataType);
-    for (const auto &[device, changed] : mask) {
-        auto clientUuid = DevManager::GetInstance().ToUUID(device);
-        if (clientUuid.empty()) {
-            continue;
-        }
-        if (!remotes_.Contains(clientUuid)) {
-            remotes_.InsertOrAssign(clientUuid, std::make_pair<bool, bool>(true, true));
-        }
-        remotes_.Compute(clientUuid, [isChange = changed, type](const auto &key, auto &value) -> bool {
-            switch (type) {
-                case DataType::TYPE_STATICS:
-                    value.first = isChange;
-                    break;
-                case DataType::TYPE_DYNAMICAL:
-                    value.second = isChange;
-                    break;
-                default:
-                    break;
-            }
-            return true;
-        });
-    }
-}
-
 void KVDBNotifierClient::OnSwitchChange(const SwitchNotification &notification)
 {
     switchObservers_.ForEachCopies(
@@ -91,25 +62,6 @@ void KVDBNotifierClient::OnSwitchChange(const SwitchNotification &notification)
             observer->OnSwitchChange(notification);
             return false;
     });
-}
-
-bool KVDBNotifierClient::IsChanged(const std::string &deviceId, DataType dataType)
-{
-    auto [exist, value] = remotes_.Find(deviceId);
-    ZLOGD("exist:%{public}d, statics:%{public}d dynamic:%{public}d",
-        exist, value.first, value.second);
-    if (!exist) {
-        return true;
-    }
-    switch (dataType) {
-        case DataType::TYPE_STATICS:
-            return value.first;
-        case DataType::TYPE_DYNAMICAL:
-            return value.second;
-        default:
-            break;
-    }
-    return true;
 }
 
 void KVDBNotifierClient::AddSyncCallback(

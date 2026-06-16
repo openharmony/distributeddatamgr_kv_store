@@ -134,7 +134,6 @@ private:
     Status DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     Status DoClientSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
-    bool IsRemoteChanged(const std::string &deviceId);
     void DoNotifyChange();
     void Register();
     void ReportDBFaultEvent(Status status, const std::string &functionName) const;
