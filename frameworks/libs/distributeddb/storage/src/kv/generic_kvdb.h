@@ -140,6 +140,11 @@ public:
     virtual int PreClose();
 
     void SetProperty(const Property &property);
+
+    void SetHighPerformanceReadMode(const bool enable);
+
+    bool GetHighPerformanceReadMode();
+
 protected:
     // Create a connection object, no DB ref increased.
     virtual GenericKvDBConnection *NewConnection(int &errCode) = 0;
@@ -179,6 +184,7 @@ protected:
     DeviceID devId_;
     mutable std::mutex propertyMutex_;
     Property property_;
+    std::atomic<bool> highPerformaceReadMode_;
 
 private:
     // Do commit notify in task pool.

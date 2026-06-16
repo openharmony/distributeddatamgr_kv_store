@@ -126,6 +126,9 @@ HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet001, TestSize.Level0)
     auto storeInfo3 = GetStoreInfo3();
     auto store3 = GetDelegate(storeInfo3);
     ASSERT_NE(store3, nullptr);
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    store3->Pragma(SET_HIGH_PERFORMANCE_READ_MODE, data);
     Value expectValue = {'v'};
     EXPECT_EQ(store3->Put({'k'}, expectValue), OK);
     Value actualValue;
@@ -166,6 +169,10 @@ HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet002, TestSize.Level0)
     auto storeInfo1 = GetStoreInfo1();
     auto store1 = GetDelegate(storeInfo1);
     ASSERT_NE(store1, nullptr);
+
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    store1->Pragma(SET_HIGH_PERFORMANCE_READ_MODE, data);
     Value expectValue = {'v'};
     EXPECT_EQ(store1->Put({'k'}, expectValue), OK);
     Value actualValue;
@@ -180,6 +187,7 @@ HWTEST_F(DistributedDBBasicKVTest, WhitelistKvGet002, TestSize.Level0)
 
     auto storeInfo2 = GetStoreInfo2();
     auto store2 = GetDelegate(storeInfo2);
+    store2->Pragma(LOGIC_DELETE_SYNC_DATA, data);
     ASSERT_NE(store2, nullptr);
     EXPECT_EQ(store2->Put({'k'}, expectValue), OK);
     EXPECT_EQ(store2->Get({'k'}, actualValue), OK);

@@ -133,6 +133,7 @@ enum PragmaCmd {
     LOGIC_DELETE_SYNC_DATA,
     LOGIC_DELETE_DEVICE_SYNC_DATA,
     SET_MAX_VALUE_SIZE,
+    SET_HIGH_PERFORMANCE_READ_MODE,
 };
 
 enum ResolutionPolicyType {

@@ -244,6 +244,7 @@ private:
     int SetMaxValueSize(uint32_t maxValueSize);
     int ForceCheckPoint() const;
 
+    int PragmaSetHighPerformanceReadMode(void *parameter);
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;
     int CalcHashDevID(PragmaDeviceIdentifier &pragmaDev);
 
@@ -255,7 +256,7 @@ private:
 
     int RemoveDeviceDataByCmd(void *parameter);
 
-    bool IsInWhitelist() const;
+    bool IsHighPerformaceReadMode() const;
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStoreConnection);
 
