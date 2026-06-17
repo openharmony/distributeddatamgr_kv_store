@@ -51,10 +51,7 @@
     "hisysevent_config": [],
     "deps": {
       "third_party": [
-        "bounds_checking_function",
-        "libuv",
-        "openssl",
-        "sqlite"
+        "libuv"
       ],
       "kernel_special": {},
       "board_special": {},
@@ -168,8 +165,7 @@
           "header": {
             "header_files": [
               "ikvdb_notifier.h",
-              "ikvstore_observer.h",
-              "kvstore_client_death_observer.h"
+              "ikvstore_observer.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include"
           }
