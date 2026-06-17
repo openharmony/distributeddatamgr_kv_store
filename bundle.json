@@ -51,7 +51,10 @@
     "hisysevent_config": [],
     "deps": {
       "third_party": [
-        "libuv"
+        "bounds_checking_function",
+        "libuv",
+        "openssl",
+        "sqlite"
       ],
       "kernel_special": {},
       "board_special": {},
