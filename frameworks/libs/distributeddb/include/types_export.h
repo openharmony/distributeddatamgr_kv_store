@@ -85,6 +85,11 @@ private:
 
 using PragmaData = void *;
 
+struct PragmaRemoveLocalDataInfo {
+    uint32_t limit = 0;
+    uint32_t deletedCount = 0;
+};
+
 struct PragmaEntryDeviceIdentifier {
     Key key;
     bool origDevice = true;

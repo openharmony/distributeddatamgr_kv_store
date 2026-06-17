@@ -1006,7 +1006,7 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload004, Test
  * @tc.require:
  * @tc.author: liaoyonghuang
  */
-HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, TestSize.Level1)
+HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, TestSize.Level2)
 {
     /**
      * @tc.steps: step1. Set max download task 1
@@ -1023,12 +1023,16 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, Test
     auto schema = GetSchema();
     int threadNum = 10;
     CloudSyncOption option = GetAsyncCloudSyncOption();
+    std::mutex dbMutex;
     std::vector<std::thread> syncThreads;
     for (int i = 0; i < threadNum; i++) {
         syncThreads.emplace_back([&]() {
             EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, cloudCount, 0, schema, virtualCloudDb_), OK);
             RelationalTestUtils::CloudBlockSync(option, delegate_);
-            DeleteLocalData(db_, "AsyncDownloadAssetsTest");
+            {
+                std::lock_guard<std::mutex> autoLock(dbMutex);
+                DeleteLocalData(db_, "AsyncDownloadAssetsTest");
+            }
         });
     }
     for (auto &thread : syncThreads) {
@@ -1036,6 +1040,12 @@ HWTEST_F(DistributedDBCloudAsyncDownloadAssetsTest, AsyncNormalDownload005, Test
     }
     auto manager = RuntimeContext::GetInstance()->GetAssetsDownloadManager();
     ASSERT_NE(manager, nullptr);
+    const int maxRetryCount = 100;
+    int retryCount = 0;
+    while (manager->GetCurrentDownloadCount() != 0u && retryCount < maxRetryCount) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        retryCount++;
+    }
     EXPECT_EQ(manager->GetCurrentDownloadCount(), 0u);
 }
 

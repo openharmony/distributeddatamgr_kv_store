@@ -402,6 +402,30 @@ namespace DistributedDB {
     
     constexpr const char *NATURALBASE_KV_AUX_SYNC_DATA_LOG_TABLE_NAME = "naturalbase_kv_aux_sync_data_log";
 
+    constexpr const char *REMOVE_LOCAL_DATA_BY_KEY_PATTERN_SQL =
+        "DELETE FROM local_data WHERE rowid IN ("
+        "SELECT rowid FROM local_data "
+        "WHERE (key LIKE 'KvStoreMetaData###%' "
+        "OR key LIKE 'KvStoreMetaDataLocal###%' "
+        "OR key LIKE 'SecretKey###%' "
+        "OR key LIKE 'StoreDebugInfo###%' "
+        "OR key LIKE 'StoreDfxInfo###%') "
+        "AND instr(key, '###/data/') > 0 "
+        "AND substr(key, instr(key, '###/data/') + 3) GLOB '/data/*/el*/*' "
+        "AND NOT substr(key, instr(key, '###/data/') + 3) GLOB '/data/*/el[0-5]/*' LIMIT ?);";
+
+    constexpr const char *REMOVE_LOCAL_DATA_BY_KEY_PATTERN_SQL_FROM_CACHEHANDLE =
+        "DELETE FROM maindb.local_data WHERE rowid IN ("
+        "SELECT rowid FROM maindb.local_data "
+        "WHERE (key LIKE 'KvStoreMetaData###%' "
+        "OR key LIKE 'KvStoreMetaDataLocal###%' "
+        "OR key LIKE 'SecretKey###%' "
+        "OR key LIKE 'StoreDebugInfo###%' "
+        "OR key LIKE 'StoreDfxInfo###%') "
+        "AND instr(key, '###/data/') > 0 "
+        "AND substr(key, instr(key, '###/data/') + 3) GLOB '/data/*/el*/*' "
+        "AND NOT substr(key, instr(key, '###/data/') + 3) GLOB '/data/*/el[0-5]/*' LIMIT ?);";
+
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
     const int BIND_LOCAL_TIMESTAMP_INDEX = 3;

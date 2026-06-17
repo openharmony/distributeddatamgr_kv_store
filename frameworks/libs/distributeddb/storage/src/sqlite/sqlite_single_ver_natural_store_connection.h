@@ -243,6 +243,7 @@ private:
     int PragmaSetMaxLogSize(uint64_t *limit);
     int SetMaxValueSize(uint32_t maxValueSize);
     int ForceCheckPoint() const;
+    int PragmaRemoveLocalDataByKeyPattern(void *parameter);
 
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;
     int CalcHashDevID(PragmaDeviceIdentifier &pragmaDev);

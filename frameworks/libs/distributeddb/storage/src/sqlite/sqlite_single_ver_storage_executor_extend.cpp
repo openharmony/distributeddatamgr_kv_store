@@ -602,4 +602,34 @@ int SQLiteSingleVerStorageExecutor::PutKvDataInner(SingleVerDataType type, const
     }
     return errCode;
 }
+
+int SQLiteSingleVerStorageExecutor::RemoveLocalDataByKeyPattern(uint32_t limit, uint32_t &deletedCount) const
+{
+    std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN)
+        ? REMOVE_LOCAL_DATA_BY_KEY_PATTERN_SQL_FROM_CACHEHANDLE
+        : REMOVE_LOCAL_DATA_BY_KEY_PATTERN_SQL;
+
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("[RemoveLocalDataByKeyPattern] GetStatement failed:%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, static_cast<int64_t>(limit));
+    if (errCode != E_OK) {
+        LOGE("[RemoveLocalDataByKeyPattern] Bind limit failed:%d", errCode);
+        return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        deletedCount = static_cast<uint32_t>(sqlite3_changes(dbHandle_));
+        errCode = E_OK;
+    } else {
+        LOGE("[RemoveLocalDataByKeyPattern] Step failed:%d", errCode);
+    }
+
+    return SQLiteUtils::ProcessStatementErrCode(statement, true, errCode);
+}
 } // namespace DistributedDB
