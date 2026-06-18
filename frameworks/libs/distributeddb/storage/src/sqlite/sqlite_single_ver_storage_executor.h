@@ -172,6 +172,8 @@ public:
 
     int CheckIntegrity() const;
 
+    int RemoveLocalDataByKeyPattern(uint32_t limit, uint32_t &deletedCount) const;
+
     int CheckQueryObjectLegal(QueryObject &queryObj) const;
 
     int CheckDataWithQuery(QueryObject query, std::vector<DataItem> &dataItems, const DeviceInfo &deviceInfo);

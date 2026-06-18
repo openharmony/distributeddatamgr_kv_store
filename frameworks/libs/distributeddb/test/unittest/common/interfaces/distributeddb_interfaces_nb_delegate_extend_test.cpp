@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <atomic>
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -108,6 +109,84 @@ namespace {
             delete devices;
             devices = nullptr;
         }
+    }
+
+    Key RemoveLocalMakeKey(const std::string &str)
+    {
+        return Key(str.begin(), str.end());
+    }
+
+    void OpenKvStoreForRemoveTest(const std::string &storeName)
+    {
+        KvStoreNbDelegate::Option option;
+        g_mgr.GetKvStore(storeName, option, g_kvNbDelegateCallback);
+        ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    }
+
+    void CloseAndDeleteKvStoreForRemoveTest(const std::string &storeName)
+    {
+        EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+        g_kvNbDelegatePtr = nullptr;
+        EXPECT_TRUE(g_mgr.DeleteKvStore(storeName) == OK);
+    }
+
+    void PutLocalEntries(const std::vector<Key> &keys, const Value &value)
+    {
+        for (const auto &key : keys) {
+            EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(key, value), OK);
+        }
+    }
+
+    void VerifyLocalDataNotFound(const std::vector<Key> &keys)
+    {
+        for (const auto &key : keys) {
+            Value getValue;
+            EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(key, getValue), NOT_FOUND);
+        }
+    }
+
+    void VerifyLocalDataCorrect(const std::vector<Key> &keys, const Value &expectedValue)
+    {
+        for (const auto &key : keys) {
+            Value getValue;
+            EXPECT_EQ(g_kvNbDelegatePtr->GetLocal(key, getValue), OK);
+            EXPECT_EQ(getValue, expectedValue);
+        }
+    }
+
+    DBStatus CallRemoveLocalDataByKeyPattern(uint32_t limit, uint32_t &deletedCount)
+    {
+        PragmaRemoveLocalDataInfo param;
+        param.limit = limit;
+        auto parameter = static_cast<PragmaData>(&param);
+        DBStatus status = g_kvNbDelegatePtr->Pragma(REMOVE_LOCAL_DATA_BY_KEY_PATTERN, parameter);
+        deletedCount = param.deletedCount;
+        return status;
+    }
+
+    int RemoveLocalDataBySteps(uint32_t limit)
+    {
+        uint32_t totalDeleted = 0;
+        bool isFinished = false;
+        while (!isFinished) {
+            uint32_t deletedCount = 0;
+            EXPECT_EQ(CallRemoveLocalDataByKeyPattern(limit, deletedCount), OK);
+            totalDeleted += deletedCount;
+            if (deletedCount < limit) {
+                isFinished = true;
+            }
+        }
+        return static_cast<int>(totalDeleted);
+    }
+
+    std::vector<Key> GenerateDeletableKeys(int count, const std::string &prefix = "KvStoreMetaData###/data/bn/el9/")
+    {
+        std::vector<Key> keys;
+        for (int i = 0; i < count; i++) {
+            std::string keyStr = prefix + std::to_string(i);
+            keys.push_back(RemoveLocalMakeKey(keyStr));
+        }
+        return keys;
     }
 
 class DistributedDBInterfacesNBDelegateExtendTest : public testing::Test {
@@ -1022,6 +1101,9 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest001, Te
     EXPECT_EQ(kvStoreImpl->SetRemotePushFinishedNotify(nullptr), DB_ERROR);
     EXPECT_EQ(kvStoreImpl->SetEqualIdentifier("", {}), DB_ERROR);
     EXPECT_EQ(kvStoreImpl->SetPushDataInterceptor(nullptr), DB_ERROR);
+    PragmaRemoveLocalDataInfo param;
+    auto parameter = static_cast<PragmaData>(&param);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(REMOVE_LOCAL_DATA_BY_KEY_PATTERN, parameter), DB_ERROR);
 
     /**
      * @tc.steps: step3. close kvStore.
@@ -1192,4 +1274,326 @@ HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, AbnormalKvStoreTest003, Te
     EXPECT_EQ(kvStoreObj.GetCloudTableSchema(tableName, tableSchema), -E_SCHEMA_MISMATCH);
 }
 #endif
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern001
+  * @tc.desc: Verify that Pragma can correctly delete data matching the pattern and return deletedCount
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xfz
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern001, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern001");
+
+    // step1: Insert data matching the pattern
+    std::vector<Key> targetKeys = {
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el1801832/data1"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el9abc/data2"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/elX/data3")
+    };
+    Value value = Value{'v', 'a', 'l', 'u', 'e'};
+    PutLocalEntries(targetKeys, value);
+
+    // step2: Call Pragma
+    uint32_t deletedCount = 0;
+    EXPECT_EQ(CallRemoveLocalDataByKeyPattern(10, deletedCount), OK);
+
+    // step3: Verify deletedCount
+    EXPECT_EQ(deletedCount, 3);
+
+    // step4: Verify data has been deleted
+    VerifyLocalDataNotFound(targetKeys);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern001");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern002
+  * @tc.desc: Verify GLOB pattern only deletes target data, not /el0/~/el5/ or non-pattern data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern002, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern002");
+
+    // step1: Insert data that should be deleted and should be kept
+    std::vector<Key> shouldDelete = {
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el180/a"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el9/b"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/elA/c"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el7/d")
+    };
+    std::vector<Key> shouldKeep = {
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el0/k1"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el1/k2"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el2/k3"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el3/k4"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el4/k5"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el5/k6"),
+        RemoveLocalMakeKey("RandomKey###/data/bn/el9/d")
+    };
+    Value value = Value{'v', 'a', 'l'};
+    PutLocalEntries(shouldDelete, value);
+    PutLocalEntries(shouldKeep, value);
+
+    // step2: Call Pragma
+    uint32_t deletedCount = 0;
+    EXPECT_EQ(CallRemoveLocalDataByKeyPattern(100, deletedCount), OK);
+
+    // step3: Verify deletedCount
+    EXPECT_EQ(deletedCount, 4);
+
+    // step4: Deleted data should not exist
+    VerifyLocalDataNotFound(shouldDelete);
+
+    // step5: Kept data should be intact
+    VerifyLocalDataCorrect(shouldKeep, value);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern002");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern003
+  * @tc.desc: Verify limit-based incremental deletion mechanism
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern003, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern003");
+
+    // step1: Insert 25 entries matching the pattern
+    const int totalCount = 25;
+    std::vector<Key> keys = GenerateDeletableKeys(totalCount);
+    Value value = Value{'v'};
+    PutLocalEntries(keys, value);
+
+    // step2: Incremental deletion with limit=10
+    int totalDeleted = RemoveLocalDataBySteps(10);
+
+    // step3: Verify all data deleted
+    VerifyLocalDataNotFound(keys);
+
+    // step4: Verify total deleted count
+    EXPECT_EQ(totalDeleted, totalCount);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern003");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern004
+  * @tc.desc: Verify OK returned with deletedCount=0 when no matching data exists
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern004, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern004");
+
+    // step1: Insert only non-matching data
+    std::vector<Key> keepKeys = {
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el0/data"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el5/data"),
+        RemoveLocalMakeKey("RandomKey###/data/bn/el9/data")
+    };
+    Value value = Value{'v', 'a', 'l'};
+    PutLocalEntries(keepKeys, value);
+
+    // step2: Call Pragma
+    uint32_t deletedCount = 1; // init to non-zero to verify it gets set to 0
+    EXPECT_EQ(CallRemoveLocalDataByKeyPattern(10, deletedCount), OK);
+
+    // step3: Verify deletedCount == 0
+    EXPECT_EQ(deletedCount, 0);
+
+    // step4: Non-matching data should be intact
+    VerifyLocalDataCorrect(keepKeys, value);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern004");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern005
+  * @tc.desc: Verify INVALID_ARGS returned when limit <= 0
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern005, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern005");
+    // limit = 0
+    PragmaRemoveLocalDataInfo param;
+    param.limit = 0;
+    auto parameter = static_cast<PragmaData>(&param);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(REMOVE_LOCAL_DATA_BY_KEY_PATTERN, parameter), INVALID_ARGS);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern005");
+}
+
+void CheckLocal(std::vector<Key>& keepKeys, std::atomic<bool>& readFailed, std::atomic<bool>& deleteDone)
+{
+    while (!deleteDone.load()) {
+        for (const auto &key : keepKeys) {
+            Value getValue;
+            DBStatus status = g_kvNbDelegatePtr->GetLocal(key, getValue);
+            if (status != OK) {
+                readFailed.store(true);
+            }
+        }
+    }
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern006
+  * @tc.desc: Verify concurrent read is not blocked during deletion and data remains consistent
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern006, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern006");
+    // step1: Insert 100 matching entries and 10 non-matching entries
+    const int deletableCount = 100;
+    const int keepCount = 10;
+    std::vector<Key> deletableKeys = GenerateDeletableKeys(deletableCount);
+    std::vector<Key> keepKeys;
+    Value value = Value{'v', 'a', 'l'};
+    for (int i = 0; i < keepCount; i++) {
+        keepKeys.push_back(RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el0/keep" + std::to_string(i)));
+    }
+    PutLocalEntries(deletableKeys, value);
+    PutLocalEntries(keepKeys, value);
+
+    // step2: Thread A deletes, Thread B reads concurrently
+    std::atomic<bool> readFailed{false};
+    std::atomic<bool> deleteDone{false};
+    auto readThread = [&keepKeys, &readFailed, &deleteDone]() {
+        CheckLocal(keepKeys, readFailed, deleteDone);
+    };
+    auto deleteThread = [&deleteDone]() {
+        RemoveLocalDataBySteps(10);
+        deleteDone.store(true);
+    };
+    std::thread tRead(readThread);
+    std::thread tDelete(deleteThread);
+    tDelete.join();
+    tRead.join();
+
+    // step3: Verify no read failure during concurrent access
+    EXPECT_FALSE(readFailed.load());
+
+    // step4: Verify non-matching data intact after deletion
+    VerifyLocalDataCorrect(keepKeys, value);
+
+    // step5: Verify matching data deleted
+    VerifyLocalDataNotFound(deletableKeys);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern006");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern007
+  * @tc.desc: Verify data consistency after deletion - remaining data can Get/PutLocal
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern007, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern007");
+
+    // step1: Insert 5 matching + 5 non-matching entries
+    std::vector<Key> deletableKeys = GenerateDeletableKeys(5);
+    std::vector<Key> keepKeys = {
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el0/data0"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el1/data1"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el2/data2"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el3/data3"),
+        RemoveLocalMakeKey("KvStoreMetaData###/data/bn/el4/data4")
+    };
+    Value oldValue = Value{'o', 'l', 'd'};
+    PutLocalEntries(deletableKeys, oldValue);
+    PutLocalEntries(keepKeys, oldValue);
+
+    // step2: Delete matching data
+    uint32_t deletedCount = 0;
+    EXPECT_EQ(CallRemoveLocalDataByKeyPattern(100, deletedCount), OK);
+    EXPECT_EQ(deletedCount, 5);
+
+    // step3: Verify remaining data value is correct
+    VerifyLocalDataCorrect(keepKeys, oldValue);
+
+    // step4: Update remaining data via PutLocal
+    Value newValue = Value{'n', 'e', 'w'};
+    for (const auto &key : keepKeys) {
+        EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(key, newValue), OK);
+    }
+
+    // step5: Verify updated value is correct
+    VerifyLocalDataCorrect(keepKeys, newValue);
+
+    // step6: Re-insert previously deleted keys
+    Value reinsertValue = Value{'r', 'e', 'i', 'n', 's', 'e', 'r', 't'};
+    for (const auto &key : deletableKeys) {
+        EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(key, reinsertValue), OK);
+    }
+    VerifyLocalDataCorrect(deletableKeys, reinsertValue);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern007");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern008
+  * @tc.desc: Verify data removed in transaction
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern008, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern008");
+
+    // step1: Insert 25 entries matching the pattern
+    const int totalCount = 25;
+    std::vector<Key> keys = GenerateDeletableKeys(totalCount);
+    Value value = Value{'v'};
+    PutLocalEntries(keys, value);
+
+    // step2: StartTransaction and Incremental deletion with limit=10
+    EXPECT_EQ(g_kvNbDelegatePtr->StartTransaction(), OK);
+    int totalDeleted = RemoveLocalDataBySteps(10);
+    EXPECT_EQ(g_kvNbDelegatePtr->Commit(), OK);
+    // step3: Verify all data deleted
+    VerifyLocalDataNotFound(keys);
+
+    // step4: Verify total deleted count
+    EXPECT_EQ(totalDeleted, totalCount);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern008");
+}
+
+/**
+  * @tc.name: RemoveLocalDataByKeyPattern009
+  * @tc.desc: Verify data removed in transaction
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateExtendTest, RemoveLocalDataByKeyPattern009, TestSize.Level1)
+{
+    OpenKvStoreForRemoveTest("RemoveLocalByKeyPattern009");
+
+    // step1: Insert 25 entries matching the pattern
+    const int totalCount = 25;
+    std::vector<Key> keys = GenerateDeletableKeys(totalCount);
+    Value value = Value{'v'};
+    PutLocalEntries(keys, value);
+
+    // step2: StartTransaction and Incremental deletion with limit=10
+    EXPECT_EQ(g_kvNbDelegatePtr->StartTransaction(), OK);
+    RemoveLocalDataBySteps(10);
+    EXPECT_EQ(g_kvNbDelegatePtr->Rollback(), OK);
+    // step3: Verify all data deleted
+    VerifyLocalDataCorrect(keys, value);
+    CloseAndDeleteKvStoreForRemoveTest("RemoveLocalByKeyPattern009");
+}
 }

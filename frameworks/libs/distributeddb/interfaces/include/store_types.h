@@ -133,6 +133,7 @@ enum PragmaCmd {
     LOGIC_DELETE_SYNC_DATA,
     LOGIC_DELETE_DEVICE_SYNC_DATA,
     SET_MAX_VALUE_SIZE,
+    REMOVE_LOCAL_DATA_BY_KEY_PATTERN,
 };
 
 enum ResolutionPolicyType {
