@@ -373,6 +373,8 @@ int SQLiteSingleVerNaturalStoreConnection::Pragma(int cmd, void *parameter)
             return PragmaSetMaxLogSize(static_cast<uint64_t *>(parameter));
         case PRAGMA_EXEC_CHECKPOINT:
             return ForceCheckPoint();
+        case PRAGMA_REMOVE_LOCAL_DATA_BY_KEY_PATTERN:
+            return PragmaRemoveLocalDataByKeyPattern(parameter);
         default:
             // Call of others.
             errCode = PragmaNext(cmd, parameter);
@@ -764,6 +766,54 @@ int SQLiteSingleVerNaturalStoreConnection::SetMaxValueSize(uint32_t maxValueSize
         return -E_INVALID_ARGS;
     }
     return naturalStore->SetMaxValueSize(maxValueSize);
+}
+
+int SQLiteSingleVerNaturalStoreConnection::PragmaRemoveLocalDataByKeyPattern(void *parameter)
+{
+    auto *param = static_cast<PragmaRemoveLocalDataInfo *>(parameter);
+    if (param == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    param->deletedCount = 0;
+    if (param->limit == 0) {
+        return -E_INVALID_ARGS;
+    }
+    SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+
+    std::lock_guard<std::mutex> lock(transactionMutex_);
+    int errCode = E_OK;
+    bool isAuto = false;
+    if (writeHandle_ == nullptr) {
+        isAuto = true;
+        errCode = StartTransactionInner(TransactType::IMMEDIATE);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    errCode = writeHandle_->RemoveLocalDataByKeyPattern(param->limit, param->deletedCount);
+
+    std::string appId = kvDB_->GetMyProperties().GetStringProp(DBProperties::APP_ID, "");
+    std::string storeId = kvDB_->GetMyProperties().GetStringProp(DBProperties::STORE_ID, "");
+    LOGI("[RemoveLocalDataByKeyPattern] appId: %s storeId: %s deletedCount: %u, errCode: %d",
+        DBCommon::StringMiddleMaskingWithLen(appId).c_str(),
+        DBCommon::StringMiddleMaskingWithLen(storeId).c_str(),
+        param->deletedCount, errCode);
+
+    if (isAuto) {
+        if (errCode != E_OK) {
+            int rollbackErrCode = RollbackInner();
+            return (rollbackErrCode != E_OK) ? rollbackErrCode : errCode;
+        } else {
+            SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+            SingleVerNaturalStoreCommitNotifyData *localCommittedData = nullptr;
+            errCode = CommitInner(committedData, localCommittedData);
+            NotifyDataAfterCommit(committedData, localCommittedData);
+        }
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerNaturalStoreConnection::ForceCheckPoint() const

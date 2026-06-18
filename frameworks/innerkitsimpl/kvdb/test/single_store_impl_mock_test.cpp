@@ -136,53 +136,6 @@ std::shared_ptr<SingleStoreImpl> SingleStoreImplMockTest::CreateKVStore(bool aut
 }
 
 /**
- * @tc.name: IsRemoteChanged
- * @tc.desc: is remote changed.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: cao zhijun
- */
-HWTEST_F(SingleStoreImplMockTest, IsRemoteChanged, testing::ext::TestSize.Level1)
-{
-    GTEST_LOG_(INFO) << "SingleStoreImplMockTest-begin IsRemoteChanged";
-    try {
-        std::shared_ptr<SingleStoreImpl> kvStore;
-        kvStore = CreateKVStore();
-        ASSERT_NE(kvStore, nullptr);
-        std::shared_ptr<KVDBServiceClient> client = make_shared<KVDBServiceClient>(nullptr);
-        ASSERT_NE(client, nullptr);
-        EXPECT_CALL(*devManagerMock, ToUUID(_)).WillOnce(Return(""));
-        bool ret = kvStore->IsRemoteChanged("123456789");
-        EXPECT_TRUE(ret);
-
-        EXPECT_CALL(*devManagerMock, ToUUID(_)).WillOnce(Return("123456789"));
-        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(nullptr));
-        ret = kvStore->IsRemoteChanged("123456789");
-        EXPECT_TRUE(ret);
-
-        EXPECT_CALL(*devManagerMock, ToUUID(_)).WillOnce(Return("123456789"));
-        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(client));
-        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillOnce(Return(nullptr));
-        ret = kvStore->IsRemoteChanged("123456789");
-        EXPECT_TRUE(ret);
-
-        sptr<KVDBNotifierClient> testAgent = new (std::nothrow) KVDBNotifierClient();
-        ASSERT_NE(testAgent, nullptr);
-        EXPECT_CALL(*devManagerMock, ToUUID(_)).WillOnce(Return("123456789"));
-        EXPECT_CALL(*kVDBServiceClientMock, GetInstance()).WillOnce(Return(client));
-        EXPECT_CALL(*kVDBServiceClientMock, GetServiceAgent(_)).WillOnce(Return(testAgent));
-        EXPECT_CALL(*kVDBNotifierClientMock, IsChanged(_, _)).WillOnce(Return(true));
-        ret = kvStore->IsRemoteChanged("123456789");
-        EXPECT_TRUE(ret);
-        kvStore = CreateKVStore(false, true, true);
-    } catch (...) {
-        EXPECT_TRUE(false);
-        GTEST_LOG_(INFO) << "SingleStoreImplMockTest-an exception occurred by IsRemoteChanged.";
-    }
-    GTEST_LOG_(INFO) << "SingleStoreImplMockTest-end IsRemoteChanged";
-}
-
-/**
  * @tc.name: OnRemoteDied
  * @tc.desc: remote died.
  * @tc.type: FUNC

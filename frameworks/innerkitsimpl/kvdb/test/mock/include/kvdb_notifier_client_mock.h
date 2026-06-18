@@ -22,7 +22,6 @@
 namespace OHOS::DistributedKv {
 class BKVDBNotifierClient {
 public:
-    virtual bool IsChanged(const std::string &, DataType) = 0;
     virtual void AddSyncCallback(const std::shared_ptr<KvStoreSyncCallback>, uint64_t) = 0;
     virtual void DeleteSyncCallback(uint64_t) = 0;
     virtual void AddCloudSyncCallback(uint64_t, const AsyncDetail &) = 0;
@@ -31,7 +30,6 @@ public:
     virtual void DeleteSwitchCallback(const std::string &, std::shared_ptr<KvStoreObserver>) = 0;
     virtual void SyncCompleted(uint64_t, ProgressDetail &&) = 0;
     virtual void SyncCompleted(const std::map<std::string, Status> &, uint64_t) = 0;
-    virtual void OnRemoteChange(const std::map<std::string, bool> &, int32_t) = 0;
     virtual void OnSwitchChange(const SwitchNotification &) = 0;
     BKVDBNotifierClient() = default;
     virtual ~BKVDBNotifierClient() = default;
@@ -42,7 +40,6 @@ public:
 
 class KVDBNotifierClientMock : public BKVDBNotifierClient {
 public:
-    MOCK_METHOD(bool, IsChanged, (const std::string &, DataType dataType));
     MOCK_METHOD(void, AddSyncCallback, (const std::shared_ptr<KvStoreSyncCallback>, uint64_t));
     MOCK_METHOD(void, DeleteSyncCallback, (uint64_t));
     MOCK_METHOD(void, AddCloudSyncCallback, (uint64_t, const AsyncDetail &));
@@ -51,7 +48,6 @@ public:
     MOCK_METHOD(void, DeleteSwitchCallback, (const std::string &, std::shared_ptr<KvStoreObserver>));
     MOCK_METHOD(void, SyncCompleted, (uint64_t, ProgressDetail &&));
     MOCK_METHOD(void, SyncCompleted, ((const std::map<std::string, Status> &), uint64_t));
-    MOCK_METHOD(void, OnRemoteChange, ((const std::map<std::string, bool> &), int32_t));
     MOCK_METHOD(void, OnSwitchChange, (const SwitchNotification &));
 };
 } // namespace OHOS::DistributedKv

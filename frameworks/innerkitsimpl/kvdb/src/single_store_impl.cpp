@@ -392,23 +392,6 @@ void SingleStoreImpl::GetEntries(const Key &prefix, const std::string &networkId
     onResult(status, std::move(entries));
 }
 
-bool SingleStoreImpl::IsRemoteChanged(const std::string &deviceId)
-{
-    auto clientUuid = DevManager::GetInstance().ToUUID(deviceId);
-    if (clientUuid.empty()) {
-        return true;
-    }
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        return true;
-    }
-    auto serviceAgent = service->GetServiceAgent({ appId_ });
-    if (serviceAgent == nullptr) {
-        return true;
-    }
-    return serviceAgent->IsChanged(clientUuid, static_cast<DataType>(dataType_));
-}
-
 Status SingleStoreImpl::GetEntries(const Key &prefix, std::vector<Entry> &entries) const
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
