@@ -105,9 +105,9 @@ ohos_source_set("distributeddata_inner") {
     "//foundation/filemanagement/file_api/interfaces/kits/js/src/mod_securitylabel",
     "//plugins/data/datasharepredicates/data_share",
     "${kv_store_base_path}/frameworks/innerkitsimpl/dm",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt",  
+    "${kv_store_base_path}/frameworks/innerkitsimpl/crypt",
     "${kv_store_base_path}/frameworks/innerkitsimpl/dms",
-]
+  ]
 
   deps = [
     "${kv_store_base_path}/databaseutils:database_utils",
