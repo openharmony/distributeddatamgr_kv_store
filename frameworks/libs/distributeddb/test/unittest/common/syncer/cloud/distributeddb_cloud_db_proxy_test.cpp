@@ -740,7 +740,6 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue002, TestSize.Level2)
     std::this_thread::sleep_for(std::chrono::seconds(1));
     close = true;
     cloudSyncer->Close();
-    RuntimeContext::GetInstance()->StopTaskPool();
     RefObject::KillAndDecObjRef(cloudSyncer);
 }
 
