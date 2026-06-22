@@ -1418,7 +1418,9 @@ std::string GetLocalSchemaStr1()
                 "TABLE_NAME": "STUDENT",
                 "DISTRIBUTED_FIELD": [{
                     "COL_NAME": "name",
-                    "EQUAL_CONSTRAINTS": [{"NOT_NULL": true, "HAS_DEFAULT": true}, {"NOT_NULL": false, "HAS_DEFAULT": true}]
+                    "EQUAL_CONSTRAINTS": [
+                        {"NOT_NULL": true, "HAS_DEFAULT": true}, {"NOT_NULL": false, "HAS_DEFAULT": true}
+                    ]
                 }]
             }]
         }
@@ -1449,7 +1451,9 @@ std::string GetRemoteSchemaStr1()
                 "TABLE_NAME": "STUDENT",
                 "DISTRIBUTED_FIELD": [{
                     "COL_NAME": "name",
-                    "EQUAL_CONSTRAINTS": [{"NOT_NULL": true, "HAS_DEFAULT": true}, {"NOT_NULL": false, "HAS_DEFAULT": true}]
+                    "EQUAL_CONSTRAINTS": [
+                        {"NOT_NULL": true, "HAS_DEFAULT": true}, {"NOT_NULL": false, "HAS_DEFAULT": true}
+                    ]
                 }]
             }]
         }
