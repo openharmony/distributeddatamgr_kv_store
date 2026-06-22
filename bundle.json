@@ -86,7 +86,8 @@
         "safwk",
         "samgr",
         "sqlite",
-        "zlib"
+        "zlib",
+        "taihe_ffi_gen"
       ]
     },
     "build": {
