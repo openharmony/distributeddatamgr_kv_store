@@ -99,9 +99,9 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     }
 
     DBDfxAdapter::StartTracing();
-    bool isInWhitelist = IsInWhitelist();
+    bool isHighPerformaceReadMode = IsHighPerformaceReadMode();
     // need to check if the transaction started
-    if (!isInWhitelist || transactionExeFlag_.load()) {
+    if (!isHighPerformaceReadMode || transactionExeFlag_.load()) {
         {
             std::lock_guard<std::mutex> lock(transactionMutex_);
             if (writeHandle_ != nullptr) {
@@ -390,6 +390,8 @@ int SQLiteSingleVerNaturalStoreConnection::PragmaNext(int cmd, void *parameter)
     switch (cmd) {
         case PRAGMA_SET_MAX_VALUE_SIZE:
             return SetMaxValueSize(*static_cast<uint32_t *>(parameter));
+        case PRAGMA_SET_HIGH_PERFORMANCE_READ_MODE:
+            return PragmaSetHighPerformanceReadMode(parameter);
         default:
             // Call Pragma() of super class.
             errCode = SyncAbleKvDBConnection::Pragma(cmd, parameter);
@@ -1878,6 +1880,19 @@ int SQLiteSingleVerNaturalStoreConnection::PragmaResultSetCacheMaxSize(PragmaDat
     return E_OK;
 }
 
+int SQLiteSingleVerNaturalStoreConnection::PragmaSetHighPerformanceReadMode(void *parameter)
+{
+    if (parameter == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    bool enable = *(static_cast<bool *>(parameter));
+    if (kvDB_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    kvDB_->SetHighPerformanceReadMode(enable);
+    return E_OK;
+}
+
 // use for getkvstore migrating cache data
 int SQLiteSingleVerNaturalStoreConnection::PragmaTriggerToMigrateData(const SecurityOption &secOption) const
 {
@@ -2209,14 +2224,12 @@ int SQLiteSingleVerNaturalStoreConnection::RemoveDeviceDataByCmd(void *parameter
     return naturalStore->RemoveDeviceData(*deviceName, false, false);
 }
 
-bool SQLiteSingleVerNaturalStoreConnection::IsInWhitelist() const
+bool SQLiteSingleVerNaturalStoreConnection::IsHighPerformaceReadMode() const
 {
     if (kvDB_ == nullptr) {
         return false;
     }
-
-    std::string appId = kvDB_->GetMyProperties().GetStringProp(DBProperties::APP_ID, "");
-    return appId == DBConstant::DISTRIBUTED_DEFAULT_APP_ID;
+    return kvDB_->GetHighPerformanceReadMode();
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

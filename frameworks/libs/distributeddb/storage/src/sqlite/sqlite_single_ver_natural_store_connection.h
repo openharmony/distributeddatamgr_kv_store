@@ -245,6 +245,7 @@ private:
     int ForceCheckPoint() const;
     int PragmaRemoveLocalDataByKeyPattern(void *parameter);
 
+    int PragmaSetHighPerformanceReadMode(void *parameter);
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;
     int CalcHashDevID(PragmaDeviceIdentifier &pragmaDev);
 
@@ -256,7 +257,7 @@ private:
 
     int RemoveDeviceDataByCmd(void *parameter);
 
-    bool IsInWhitelist() const;
+    bool IsHighPerformaceReadMode() const;
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStoreConnection);
 
