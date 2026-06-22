@@ -690,6 +690,7 @@ DistributedSchema SQLiteRelationalUtils::FilterRepeatDefine(const DistributedSch
 {
     DistributedSchema res;
     res.version = schema.version;
+    res.tableSyncPolicies = schema.tableSyncPolicies;
     std::set<std::string> tableName;
     std::list<DistributedTable> tableList;
     for (auto it = schema.tables.rbegin();it != schema.tables.rend(); it++) {

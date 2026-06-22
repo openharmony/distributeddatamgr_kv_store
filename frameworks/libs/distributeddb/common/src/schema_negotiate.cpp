@@ -105,6 +105,16 @@ SyncStrategy SchemaNegotiate::ConcludeSyncStrategy(const SyncOpinion &localOpini
     return outStrategy;
 }
 
+bool IsSyncField(const DistributedTable &table, const std::string &colName)
+{
+    for (const auto &field : table.fields) {
+        if (field.isP2pSync && DBCommon::CaseInsensitiveCompare(field.colName, colName)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSchemaObject &localSchema,
     const RelationalSchemaObject &remoteSchema, int &errCode)
 {
@@ -114,14 +124,29 @@ RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSche
             LOGW("[RelationalSchema][opinion] Table was missing in remote schema");
             continue;
         }
+        // Extract equal constraints from tableSyncPolicies for this table (non-sync fields only)
+        std::map<std::string, std::vector<EqualConstraint>> equalConstraints;
+        auto policyTable = localSchema.GetFieldSyncPolicy(it.first);
+        auto distributedTable = localSchema.GetDistributedTable(it.first);
+        for (const auto &field : policyTable.fieldSyncPolicies) {
+            if (field.equalConstraints.empty()) {
+                continue;
+            }
+            if (IsSyncField(distributedTable, field.colName)) {
+                continue;
+            }
+            equalConstraints[field.colName] = field.equalConstraints;
+        }
         // remote table is compatible(equal or upgrade) based on local table, permit sync and don't need check
-        int ret = it.second.CompareWithTable(remoteSchema.GetTable(it.first), localSchema.GetSchemaVersion());
+        int ret = it.second.CompareWithTable(remoteSchema.GetTable(it.first), localSchema.GetSchemaVersion(),
+            equalConstraints);
         if (ret != -E_RELATIONAL_TABLE_INCOMPATIBLE) {
             opinion[it.first] = {true, false, false};
             continue;
         }
         // local table is compatible upgrade based on remote table, permit sync and need check
-        ret = remoteSchema.GetTable(it.first).CompareWithTable(it.second, remoteSchema.GetSchemaVersion());
+        ret = remoteSchema.GetTable(it.first).CompareWithTable(it.second, remoteSchema.GetSchemaVersion(),
+            equalConstraints);
         if (ret != -E_RELATIONAL_TABLE_INCOMPATIBLE) {
             opinion[it.first] = {true, false, true};
             continue;

@@ -71,6 +71,10 @@ public:
     static constexpr const char *KEYWORD_DISTRIBUTED_COL_NAME = "COL_NAME";
     static constexpr const char *KEYWORD_DISTRIBUTED_IS_P2P_SYNC = "IS_P2P_SYNC";
     static constexpr const char *KEYWORD_DISTRIBUTED_IS_SPECIFIED = "IS_SPECIFIED";
+    static constexpr const char *KEYWORD_EQUAL_CONSTRAINTS = "EQUAL_CONSTRAINTS";
+    static constexpr const char *KEYWORD_EQUAL_NOT_NULL = "NOT_NULL";
+    static constexpr const char *KEYWORD_EQUAL_HAS_DEFAULT = "HAS_DEFAULT";
+    static constexpr const char *KEYWORD_FIELD_SYNC_POLICIES = "FIELD_SYNC_POLICIES";
 
     static const uint32_t SCHEMA_META_FEILD_COUNT_MAX;
     static const uint32_t SCHEMA_META_FEILD_COUNT_MIN;

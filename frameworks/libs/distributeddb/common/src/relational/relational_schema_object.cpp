@@ -1194,6 +1194,22 @@ bool RelationalSchemaObject::CheckDistributedSchemaChange(const DistributedSchem
             return true;
         }
     }
+    // Check tableSyncPolicies change
+    std::map<std::string, std::vector<FieldSyncPolicy>, CaseInsensitiveComparator> localPolicies;
+    for (const auto &policy : dbSchema_.tableSyncPolicies) {
+        localPolicies[policy.tableName] = policy.fieldSyncPolicies;
+    }
+    if (localPolicies.size() != schema.tableSyncPolicies.size()) {
+        return true;
+    }
+    for (const auto &policy : schema.tableSyncPolicies) {
+        if (localPolicies.find(policy.tableName) == localPolicies.end()) {
+            return true;
+        }
+        if (CheckFieldSyncPolicyChange(localPolicies[policy.tableName], policy.fieldSyncPolicies)) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -1216,6 +1232,35 @@ bool RelationalSchemaObject::CheckDistributedFieldChange(const std::vector<Distr
         }
         if (fields[field.colName].isSpecified != field.isSpecified) {
             return true;
+        }
+    }
+    return false;
+}
+
+bool RelationalSchemaObject::CheckFieldSyncPolicyChange(const std::vector<FieldSyncPolicy> &source,
+    const std::vector<FieldSyncPolicy> &target)
+{
+    std::map<std::string, FieldSyncPolicy, CaseInsensitiveComparator> fields;
+    for (const auto &field : source) {
+        fields[field.colName] = field;
+    }
+    if (fields.size() != target.size()) {
+        return true;
+    }
+    for (const auto &field : target) {
+        if (fields.find(field.colName) == fields.end()) {
+            return true;
+        }
+        const auto &srcConstraints = fields[field.colName].equalConstraints;
+        const auto &tgtConstraints = field.equalConstraints;
+        if (srcConstraints.size() != tgtConstraints.size()) {
+            return true;
+        }
+        for (size_t i = 0; i < srcConstraints.size(); i++) {
+            if (srcConstraints[i].notNull != tgtConstraints[i].notNull ||
+                srcConstraints[i].hasDefault != tgtConstraints[i].hasDefault) {
+                return true;
+            }
         }
     }
     return false;
@@ -1257,7 +1302,70 @@ std::string RelationalSchemaObject::GetDistributedSchemaString()
     if (!dbSchema_.tables.empty()) {
         res.pop_back();
     }
+    res += R"(],")";
+    res += SchemaConstant::KEYWORD_FIELD_SYNC_POLICIES;
+    res += R"(":[)";
+    for (const auto &policy : dbSchema_.tableSyncPolicies) {
+        res += GetOneTableSyncPolicyString(policy) + ",";
+    }
+    if (!dbSchema_.tableSyncPolicies.empty()) {
+        res.pop_back();
+    }
     res += R"(]})";
+    return res;
+}
+
+std::string RelationalSchemaObject::GetOneTableSyncPolicyString(const TableSyncPolicy &policy)
+{
+    std::string res;
+    res += R"({")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME;
+    res += R"(":")";
+    res += policy.tableName;
+    res += R"(", ")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_FIELD;
+    res += R"(":[)";
+    for (const auto &field : policy.fieldSyncPolicies) {
+        res += GetOneFieldSyncPolicyString(field) + ",";
+    }
+    if (!policy.fieldSyncPolicies.empty()) {
+        res.pop_back();
+    }
+    res += R"(]})";
+    return res;
+}
+
+std::string RelationalSchemaObject::GetOneFieldSyncPolicyString(const FieldSyncPolicy &field)
+{
+    std::string res;
+    res += R"({")";
+    res += SchemaConstant::KEYWORD_DISTRIBUTED_COL_NAME;
+    res += R"(":")";
+    res += field.colName;
+    if (!field.equalConstraints.empty()) {
+        res += R"(", ")";
+        res += SchemaConstant::KEYWORD_EQUAL_CONSTRAINTS;
+        res += R"(":[)";
+        bool first = true;
+        for (const auto &constraint : field.equalConstraints) {
+            if (!first) {
+                res += ",";
+            }
+            res += R"({")";
+            res += SchemaConstant::KEYWORD_EQUAL_NOT_NULL;
+            res += R"(":)";
+            res += constraint.notNull ? "true" : "false";
+            res += R"(,")";
+            res += SchemaConstant::KEYWORD_EQUAL_HAS_DEFAULT;
+            res += R"(":)";
+            res += constraint.hasDefault ? "true" : "false";
+            res += R"(})";
+            first = false;
+        }
+        res += R"(]})";
+    } else {
+        res += R"("})";
+    }
     return res;
 }
 
@@ -1292,7 +1400,8 @@ std::string RelationalSchemaObject::GetOneDistributedTableString(const Distribut
         } else {
             res += "false";
         }
-        res += R"(},)";
+        res += R"(})";
+        res += ",";
     }
     if (!table.fields.empty()) {
         res.pop_back();
@@ -1317,7 +1426,11 @@ int RelationalSchemaObject::ParseDistributedSchema(const JsonObject &inJsonObjec
     if (errCode != E_OK) {
         return errCode;
     }
-    return ParseDistributedTables(schemaObj);
+    errCode = ParseDistributedTables(schemaObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return ParseFieldSyncPolicies(schemaObj);
 }
 
 int RelationalSchemaObject::ParseDistributedVersion(const JsonObject &inJsonObject)
@@ -1448,6 +1561,123 @@ int RelationalSchemaObject::ParseDistributedField(const JsonObject &inJsonObject
     return E_OK;
 }
 
+int RelationalSchemaObject::ParseEqualConstraint(const JsonObject &inJsonObject, EqualConstraint &constraint) const
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_EQUAL_NOT_NULL})) {
+        return E_OK;
+    }
+
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_EQUAL_NOT_NULL,
+        FieldType::LEAF_FIELD_BOOL, true, fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[ParseEqualConstraint] Get NOT_NULL value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    constraint.notNull = fieldValue.boolValue;
+
+    if (inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_EQUAL_HAS_DEFAULT})) {
+        FieldValue hasDefaultValue;
+        errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_EQUAL_HAS_DEFAULT,
+            FieldType::LEAF_FIELD_BOOL, true, hasDefaultValue);
+        if (errCode != E_OK) {
+            LOGE("[ParseEqualConstraint] Get HAS_DEFAULT value failed: %d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+        constraint.hasDefault = hasDefaultValue.boolValue;
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseFieldSyncPolicies(const JsonObject &inJsonObject)
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_FIELD_SYNC_POLICIES})) {
+        return E_OK;
+    }
+
+    std::vector<JsonObject> policiesObj;
+    int errCode = SchemaUtils::ExtractJsonObjArray(inJsonObject,
+        SchemaConstant::KEYWORD_FIELD_SYNC_POLICIES, policiesObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    for (const auto &policyObj : policiesObj) {
+        if (!policyObj.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME})) {
+            continue;
+        }
+        FieldValue fieldValue;
+        errCode = GetMemberFromJsonObject(policyObj, SchemaConstant::KEYWORD_DISTRIBUTED_TABLE_NAME,
+            FieldType::LEAF_FIELD_STRING, true, fieldValue);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        TableSyncPolicy tablePolicy;
+        tablePolicy.tableName = fieldValue.stringValue;
+        errCode = ParseFieldSyncPolicyFields(policyObj, tablePolicy.fieldSyncPolicies);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        dbSchema_.tableSyncPolicies.push_back(std::move(tablePolicy));
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseFieldSyncPolicyFields(const JsonObject &inJsonObject,
+    std::vector<FieldSyncPolicy> &fields) const
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_DISTRIBUTED_FIELD})) {
+        return E_OK;
+    }
+
+    std::vector<JsonObject> fieldsObj;
+    int errCode = SchemaUtils::ExtractJsonObjArray(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_FIELD, fieldsObj);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    for (const auto &fieldObj : fieldsObj) {
+        FieldSyncPolicy field;
+        errCode = ParseFieldSyncPolicyField(fieldObj, field);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        fields.push_back(std::move(field));
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseFieldSyncPolicyField(const JsonObject &inJsonObject, FieldSyncPolicy &field) const
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::KEYWORD_DISTRIBUTED_COL_NAME,
+        FieldType::LEAF_FIELD_STRING, true, fieldValue);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    field.colName = fieldValue.stringValue;
+
+    // Parse equal constraints array if present: [{"NOT_NULL": true}, {"NOT_NULL": false}]
+    if (inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::KEYWORD_EQUAL_CONSTRAINTS})) {
+        std::vector<JsonObject> constraintsArray;
+        errCode = SchemaUtils::ExtractJsonObjArray(inJsonObject,
+            SchemaConstant::KEYWORD_EQUAL_CONSTRAINTS, constraintsArray);
+        if (errCode != E_OK) {
+            LOGE("[RelationalSchema][ParseFieldSyncPolicyField] Parse EQUAL_CONSTRAINTS array failed: %d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+        for (const auto &constraintObj : constraintsArray) {
+            EqualConstraint constraint;
+            errCode = ParseEqualConstraint(constraintObj, constraint);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+            field.equalConstraints.push_back(constraint);
+        }
+    }
+    return E_OK;
+}
+
 bool RelationalSchemaObject::IsNeedSkipSyncField(const FieldInfo &fieldInfo, const std::string &tableName,
     bool ignoreTableNonExist) const
 {
@@ -1517,6 +1747,18 @@ DistributedTable RelationalSchemaObject::GetDistributedTable(const std::string &
         return DBCommon::CaseInsensitiveCompare(distributedTable.tableName, table);
     });
     if (match == dbSchema_.tables.end()) {
+        return {};
+    }
+    return *match;
+}
+
+TableSyncPolicy RelationalSchemaObject::GetFieldSyncPolicy(const std::string &table) const
+{
+    auto match = std::find_if(dbSchema_.tableSyncPolicies.begin(), dbSchema_.tableSyncPolicies.end(),
+        [&table](const TableSyncPolicy &policy) {
+        return DBCommon::CaseInsensitiveCompare(policy.tableName, table);
+    });
+    if (match == dbSchema_.tableSyncPolicies.end()) {
         return {};
     }
     return *match;

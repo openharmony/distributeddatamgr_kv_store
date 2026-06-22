@@ -320,6 +320,21 @@ struct DbIdParam {
     int32_t instanceId = 0;
 };
 
+struct EqualConstraint {
+    bool notNull = false; // equivalent notNull values, e.g. {true, false}
+    bool hasDefault = false; // whether has DEFAULT constraint, must be true when notNull mismatch
+};
+
+struct FieldSyncPolicy {
+    std::string colName;
+    std::vector<EqualConstraint> equalConstraints;
+};
+
+struct TableSyncPolicy {
+    std::string tableName;
+    std::vector<FieldSyncPolicy> fieldSyncPolicies;
+};
+
 struct DistributedField {
     std::string colName;
     bool isP2pSync = false; // device p2p sync with this column when it was true
@@ -335,6 +350,7 @@ struct DistributedTable {
 struct DistributedSchema {
     uint32_t version = 0;
     std::vector<DistributedTable> tables;
+    std::vector<TableSyncPolicy> tableSyncPolicies;
 };
 
 // Table mode of device data for relational store

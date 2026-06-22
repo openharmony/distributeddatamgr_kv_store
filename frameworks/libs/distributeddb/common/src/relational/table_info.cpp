@@ -171,28 +171,35 @@ std::string FieldInfo::ToAttributeString() const
     return attrStr;
 }
 
-bool FieldInfo::CompareWithField(const DistributedDB::FieldInfo &inField, bool isLite) const
+bool FieldInfo::CompareWithField(const DistributedDB::FieldInfo &inField, bool isLite,
+    const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints) const
 {
-    bool res = CompareWithFieldInner(inField, isLite);
+    bool res = CompareWithFieldInner(inField, isLite, equalConstraints);
     if (!res) {
-        LOGE("[FieldInfo] Field is diff, ori[%s][%d][%s][%d][%s] in[%s][%d][%s][%d][%s]",
+        LOGE("[FieldInfo] Field is diff, ori[%s][%d][%s][%d][%s][%d] in[%s][%d][%s][%d][%s][%d]",
             DBCommon::StringMiddleMaskingWithLen(fieldName_).c_str(),
             static_cast<int>(storageType_),
             DBCommon::StringMiddleMaskingWithLen(dataType_).c_str(),
             static_cast<int>(hasDefaultValue_),
             DBCommon::StringMiddleMaskingWithLen(defaultValue_).c_str(),
+            static_cast<int>(isNotNull_),
             DBCommon::StringMiddleMaskingWithLen(inField.GetFieldName()).c_str(),
             static_cast<int>(inField.GetStorageType()),
             DBCommon::StringMiddleMaskingWithLen(inField.GetDataType()).c_str(),
             static_cast<int>(inField.HasDefaultValue()),
-            DBCommon::StringMiddleMaskingWithLen(inField.GetDefaultValue()).c_str());
+            DBCommon::StringMiddleMaskingWithLen(inField.GetDefaultValue()).c_str(),
+            static_cast<int>(inField.IsNotNull()));
     }
     return res;
 }
 
-bool FieldInfo::CompareWithFieldInner(const FieldInfo &inField, bool isLite) const
+bool FieldInfo::CompareWithFieldInner(const FieldInfo &inField, bool isLite,
+    const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints) const
 {
-    if (!DBCommon::CaseInsensitiveCompare(fieldName_, inField.GetFieldName()) || isNotNull_ != inField.IsNotNull()) {
+    if (!DBCommon::CaseInsensitiveCompare(fieldName_, inField.GetFieldName())) {
+        return false;
+    }
+    if (isNotNull_ != inField.IsNotNull() && !IsNotNullMismatchAllowed(inField, equalConstraints)) {
         return false;
     }
     if (isLite) {
@@ -212,6 +219,37 @@ bool FieldInfo::CompareWithFieldInner(const FieldInfo &inField, bool isLite) con
             (defaultValue_ == inField.GetDefaultValue());
     }
     return hasDefaultValue_ == inField.HasDefaultValue();
+}
+
+bool FieldInfo::IsNotNullMismatchAllowed(const FieldInfo &inField,
+    const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints) const
+{
+    // equalConstraints with both true and false means NOT NULL constraint is equivalent
+    auto it = equalConstraints.find(fieldName_);
+    if (it == equalConstraints.end() || it->second.size() <= 1) {
+        return false;
+    }
+    bool hasTrue = false;
+    bool hasFalse = false;
+    for (const auto &constraint : it->second) {
+        if (constraint.notNull) {
+            hasTrue = true;
+        }
+        if (!constraint.notNull) {
+            hasFalse = true;
+        }
+        // notNull mismatch is allowed by equal constraint, but hasDefault must be true for all constraints
+        if (!constraint.hasDefault) {
+            return false;
+        }
+    }
+    if (!hasTrue || !hasFalse) {
+        return false;
+    }
+    // notNull mismatch is allowed by equal constraint, but notNull side must have default value
+    bool notNullSideHasDefault = (isNotNull_ && hasDefaultValue_) ||
+        (inField.IsNotNull() && inField.HasDefaultValue());
+    return notNullSideHasDefault;
 }
 
 bool FieldInfo::IsAssetType() const
@@ -482,7 +520,8 @@ void TableInfo::AddUniqueDefineString(std::string &attrStr) const
     attrStr += "],";
 }
 
-int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string &schemaVersion) const
+int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string &schemaVersion,
+    const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints) const
 {
     if (!DBCommon::CaseInsensitiveCompare(tableName_, inTableInfo.GetTableName())) {
         LOGW("[Relational][Compare] Table name is not same, local table = %s, input table = %s",
@@ -497,7 +536,7 @@ int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string 
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
 
-    int fieldCompareResult = CompareWithTableFields(inTableInfo.GetFields());
+    int fieldCompareResult = CompareWithTableFields(inTableInfo.GetFields(), false, equalConstraints);
     if (fieldCompareResult == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
         LOGW("[Relational][Compare] Table fields are incompatible for table %s",
             DBCommon::StringMiddleMaskingWithLen(tableName_).c_str());
@@ -540,14 +579,16 @@ int TableInfo::CompareWithPrimaryKey(const std::map<int, FieldName> &local,
     return -E_RELATIONAL_TABLE_EQUAL;
 }
 
-int TableInfo::CompareWithTableFields(const FieldInfoMap &inTableFields, bool isLite) const
+int TableInfo::CompareWithTableFields(const FieldInfoMap &inTableFields, bool isLite,
+    const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints) const
 {
     auto itLocal = fields_.begin();
     auto itInTable = inTableFields.begin();
     int errCode = -E_RELATIONAL_TABLE_EQUAL;
     while (itLocal != fields_.end() && itInTable != inTableFields.end()) {
         if (DBCommon::CaseInsensitiveCompare(itLocal->first, itInTable->first)) { // Same field
-            if (!itLocal->second.CompareWithField(itInTable->second, isLite)) { // Compare field
+            // Compare field
+            if (!itLocal->second.CompareWithField(itInTable->second, isLite, equalConstraints)) {
                 LOGW("[Relational][Compare] Table field is incompatible"); // not compatible
                 return -E_RELATIONAL_TABLE_INCOMPATIBLE;
             }
