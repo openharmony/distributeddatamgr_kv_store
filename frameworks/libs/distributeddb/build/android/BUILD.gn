@@ -1,0 +1,122 @@
+# Copyright (c) 2026-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/distributeddb.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+config("distributeddb_client_config") {
+  visibility = [ ":*" ]
+  include_dirs = [
+    "${distributeddb_path}/interfaces/src/relational",
+    "${distributeddb_path}/common/include/cloud",
+    "${distributeddb_path}/common/include",
+    "${distributeddb_path}/interfaces/include",
+    "${distributeddb_path}/interfaces/include/cloud",
+    "${distributeddb_path}/include",
+    "${distributeddb_path}/storage/include",
+    "${distributeddb_path}/communicator/include",
+    "${distributeddb_path}/common/include/relational",
+    "${distributeddb_path}/storage/src/sqlite",
+    "${distributeddb_path}/storage/src",
+    "${distributeddb_path}/storage/src/kv",
+    "${distributeddb_path}/syncer/src",
+    "${distributeddb_path}/syncer/src/device",
+    "${distributeddb_path}/storage/src/gaussdb_rd",
+    "${distributeddb_path}/storage/src/sqlite/relational",
+    "${distributeddb_path}/storage/src/relational",
+  ]
+
+  defines = [
+    "_LARGEFILE64_SOURCE",
+    "_FILE_OFFSET_BITS=64",
+    "SQLITE_HAS_CODEC",
+    "SQLITE_ENABLE_JSON1",
+    "USING_HILOG_LOGGER",
+    "USE_SQLITE_SYMBOLS",
+    "USING_DB_JSON_EXTRACT_AUTOMATICALLY",
+    "JSONCPP_USE_BUILDER",
+    "OMIT_FLATBUFFER",
+    "OMIT_MULTI_VER",
+    "RELATIONAL_STORE",
+    "SQLITE_DISTRIBUTE_RELATIONAL",
+    "USE_DFX_ABILITY",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+    "OPENSSL_SUPPRESS_DEPRECATED",
+  ]
+  if (is_debug) {
+    defines += [ "TRACE_SQLITE_EXECUTE" ]
+  }
+  if (kv_store_cloud) {
+    defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
+  }
+  if (kv_store_device) {
+    defines += [ "USE_DISTRIBUTEDDB_DEVICE" ]
+  }
+}
+
+config("distributeddb_client_lite_config") {
+  visibility = [ ":*" ]
+  include_dirs = [
+    "//third_party/bounds_checking_function/include",
+    "//third_party/jsoncpp/include",
+    "//third_party/openssl/include",
+    "//third_party/sqlite/include",
+  ]
+  defines = [ "RDB_CLIENT" ]
+}
+
+config("distributeddb_client_public_config") {
+  visibility = [ "*:*" ]
+  include_dirs = [
+    "${distributeddb_path}/interfaces/include/relational",
+    "${distributeddb_path}/interfaces/include",
+    "${distributeddb_path}/include",
+  ]
+}
+
+ohos_source_set("distributeddb_client_lite_impl") {
+  sources = distributeddb_client_src
+  sources += distributeddb_base_src
+
+  configs = [
+    ":distributeddb_client_config",
+    ":distributeddb_client_lite_config",
+  ]
+  public_configs = [ ":distributeddb_client_public_config" ]
+
+  cflags = [ "-Wno-c99-designator" ]
+  cflags_cc = [
+    "-std=c++17",
+    "-fvisibility=hidden",
+    "-Werror=vla",
+  ]
+
+  deps = [
+    "//third_party/bounds_checking_function:libsec_static",
+    "//third_party/jsoncpp:jsoncpp_static",
+    "//third_party/openssl:libcrypto_static",
+    "//third_party/sqlite:sqlite_static",
+    "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_android",
+  ]
+
+
+  external_deps = [ "c_utils:utils" ]
+
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}
+
+group("distributeddb_client_lite") {
+  deps = [ ":distributeddb_client_lite_impl" ]
+}
