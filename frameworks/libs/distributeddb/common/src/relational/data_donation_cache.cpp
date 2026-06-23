@@ -48,7 +48,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
         LOGW("[QueryBinlog] Unexpected cursorIn %lu, cursor %lu, perhaps 1.reset, 2.cursorIn invalid.",
             cursorIn.cursor, cursor);
     }
-    int32_t readNum = 0;
+    size_t readNum = 0;
     size_t readToken = GET_NEW_BATCH_NUM;
 
     std::vector<DdData> queryData;
@@ -73,11 +73,8 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
 
     // Read from DataDonationCache
     readNum = ReadBatch(cacheRead, readToken);
-    if (readNum < 0) {
-        return -E_UNEXPECTED_DATA;
-    }
 
-    for (size_t i = 0; i < static_cast<size_t>(readNum); i++) {
+    for (size_t i = 0; i < readNum; i++) {
         data.emplace_back(cacheRead[i].data);
     }
     cursorOut.queryType = cursorIn.queryType;
