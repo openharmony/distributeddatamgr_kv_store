@@ -1251,11 +1251,17 @@ bool RelationalSchemaObject::CheckFieldSyncPolicyChange(const std::vector<FieldS
         if (fields.find(field.colName) == fields.end()) {
             return true;
         }
-        const auto &srcConstraints = fields[field.colName].equalConstraints;
-        const auto &tgtConstraints = field.equalConstraints;
+        auto srcConstraints = fields[field.colName].equalConstraints;
+        auto tgtConstraints = field.equalConstraints;
         if (srcConstraints.size() != tgtConstraints.size()) {
             return true;
         }
+        // Sort before comparing to eliminate order sensitivity
+        auto constraintLess = [](const EqualConstraint &a, const EqualConstraint &b) {
+            return a.notNull != b.notNull ? a.notNull < b.notNull : a.hasDefault < b.hasDefault;
+        };
+        std::sort(srcConstraints.begin(), srcConstraints.end(), constraintLess);
+        std::sort(tgtConstraints.begin(), tgtConstraints.end(), constraintLess);
         for (size_t i = 0; i < srcConstraints.size(); i++) {
             if (srcConstraints[i].notNull != tgtConstraints[i].notNull ||
                 srcConstraints[i].hasDefault != tgtConstraints[i].hasDefault) {
