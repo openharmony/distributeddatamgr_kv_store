@@ -989,4 +989,588 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, SchemaTableCompareTest, TestSi
     ret = table1.CompareWithLiteSchemaTable(table1);
     EXPECT_EQ(ret, E_OK);
 }
+
+/**
+ * @tc.name: EqualConstraintSerializeAndParseTest001
+ * @tc.desc: Test EqualConstraint serialization and deserialization in tableSyncPolicies
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintSerializeAndParseTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set distributed schema with tableSyncPolicies and verify serialization.
+     * @tc.expected: step1. Schema string contains FIELD_SYNC_POLICIES with EQUAL_CONSTRAINTS.
+     */
+    DistributedSchema schema{.version = 1};
+    DistributedTable table{.tableName = "STUDENT"};
+    DistributedField field{.colName = "name", .isP2pSync = false, .isSpecified = false};
+    table.fields.push_back(field);
+    schema.tables.push_back(table);
+
+    TableSyncPolicy policyTable{.tableName = "STUDENT"};
+    FieldSyncPolicy policyField{.colName = "name"};
+    EqualConstraint ec1{.notNull = true, .hasDefault = true};
+    EqualConstraint ec2{.notNull = false, .hasDefault = true};
+    policyField.equalConstraints = {ec1, ec2};
+    policyTable.fieldSyncPolicies.push_back(policyField);
+    schema.tableSyncPolicies.push_back(policyTable);
+
+    RelationalSchemaObject schemaObj;
+    schemaObj.SetDistributedSchema(schema);
+    std::string schemaStr = schemaObj.ToSchemaString();
+    EXPECT_NE(schemaStr.find("FIELD_SYNC_POLICIES"), std::string::npos);
+    EXPECT_NE(schemaStr.find("EQUAL_CONSTRAINTS"), std::string::npos);
+    EXPECT_NE(schemaStr.find("NOT_NULL"), std::string::npos);
+    EXPECT_NE(schemaStr.find("HAS_DEFAULT"), std::string::npos);
+
+    /**
+     * @tc.steps: step2. Parse schema string and verify tableSyncPolicies is preserved.
+     * @tc.expected: step2. tableSyncPolicies is correctly parsed after round-trip.
+     */
+    RelationalSchemaObject parsedObj;
+    int errCode = parsedObj.ParseFromSchemaString(schemaStr);
+    EXPECT_EQ(errCode, E_OK);
+    const auto &parsedSchema = parsedObj.GetDistributedSchema();
+    EXPECT_EQ(parsedSchema.tableSyncPolicies.size(), 1u);
+    EXPECT_EQ(parsedSchema.tableSyncPolicies[0].tableName, "STUDENT");
+    EXPECT_EQ(parsedSchema.tableSyncPolicies[0].fieldSyncPolicies.size(), 1u);
+    EXPECT_EQ(parsedSchema.tableSyncPolicies[0].fieldSyncPolicies[0].equalConstraints.size(), 2u);
+    bool foundTrue = false;
+    bool foundFalse = false;
+    bool allHasDefault = true;
+    for (const auto &ec : parsedSchema.tableSyncPolicies[0].fieldSyncPolicies[0].equalConstraints) {
+        if (ec.notNull) foundTrue = true;
+        if (!ec.notNull) foundFalse = true;
+        if (!ec.hasDefault) allHasDefault = false;
+    }
+    EXPECT_TRUE(foundTrue);
+    EXPECT_TRUE(foundFalse);
+    EXPECT_TRUE(allHasDefault);
+}
+
+/**
+ * @tc.name: EqualConstraintCompareWithTableTest001
+ * @tc.desc: Test CompareWithTable with isNotNull mismatch under different equalConstraints
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCompareWithTableTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create two tables with same fields but different isNotNull.
+     * @tc.expected: step1. Without equalConstraints, table is incompatible;
+     *               with equalConstraints, table is compatible.
+     */
+    FieldInfo field1;
+    field1.SetFieldName("id");
+    field1.SetNotNull(true);
+    field1.SetDefaultValue("0");
+
+    FieldInfo field2;
+    field2.SetFieldName("id");
+    field2.SetNotNull(false);
+    field2.SetDefaultValue("0");
+
+    TableInfo table1;
+    table1.SetTableName("test_table");
+    table1.AddField(field1);
+
+    TableInfo table2;
+    table2.SetTableName("test_table");
+    table2.AddField(field2);
+
+    // Without equalConstraints: isNotNull mismatch causes incompatibility
+    EXPECT_EQ(table1.CompareWithTable(table2, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    // With equalConstraints: isNotNull mismatch is allowed
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraints;
+    EqualConstraint ec1{.notNull = true, .hasDefault = true};
+    EqualConstraint ec2{.notNull = false, .hasDefault = true};
+    equalConstraints["id"] = {ec1, ec2};
+    int result = table1.CompareWithTable(table2, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2, equalConstraints);
+    EXPECT_NE(result, -E_RELATIONAL_TABLE_INCOMPATIBLE);
+}
+
+/**
+ * @tc.name: EqualConstraintCompareWithTableTest002
+ * @tc.desc: Test CompareWithTable with upgrade field (IsNotNull && !HasDefaultValue)
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCompareWithTableTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create local table with fewer fields, remote table has extra not-null field without default.
+     * @tc.expected: step1. Table is incompatible regardless of equalConstraints.
+     */
+    FieldInfo field1;
+    field1.SetFieldName("id");
+    field1.SetNotNull(false);
+
+    FieldInfo field2;
+    field2.SetFieldName("name");
+    field2.SetNotNull(true); // not null but no default value
+
+    TableInfo table1;
+    table1.SetTableName("test_table");
+    table1.AddField(field1);
+
+    TableInfo table2;
+    table2.SetTableName("test_table");
+    table2.AddField(field1);
+    table2.AddField(field2);
+
+    // Upgrade field with IsNotNull && !HasDefaultValue causes incompatibility
+    EXPECT_EQ(table1.CompareWithTable(table2, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraints;
+    EqualConstraint ec1;
+    ec1.notNull = true;
+    ec1.hasDefault = true;
+    EqualConstraint ec2;
+    ec2.notNull = false;
+    ec2.hasDefault = true;
+    equalConstraints["name"] = {ec1, ec2};
+    EXPECT_EQ(table1.CompareWithTable(table2, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2, equalConstraints),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    /**
+     * @tc.steps: step2. Remote table has extra not-null field with default value.
+     * @tc.expected: step2. With equalConstraints, table is compatible upgrade.
+     */
+    FieldInfo field2WithDefault;
+    field2WithDefault.SetFieldName("name");
+    field2WithDefault.SetNotNull(true);
+    field2WithDefault.SetDefaultValue("'unknown'");
+
+    TableInfo table2WithDefault;
+    table2WithDefault.SetTableName("test_table");
+    table2WithDefault.AddField(field1);
+    table2WithDefault.AddField(field2WithDefault);
+
+    int result = table1.CompareWithTable(table2WithDefault,
+        SchemaConstant::SCHEMA_SUPPORT_VERSION_V2, equalConstraints);
+    EXPECT_EQ(result, -E_RELATIONAL_TABLE_COMPATIBLE_UPGRADE);
+}
+
+/**
+ * @tc.name: EqualConstraintCheckDistributedSchemaChangeTest001
+ * @tc.desc: Test CheckDistributedSchemaChange detects tableSyncPolicies change
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCheckDistributedSchemaChangeTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Set distributed schema without tableSyncPolicies, then check with tableSyncPolicies.
+     * @tc.expected: step1. CheckDistributedSchemaChange returns true (changed).
+     */
+    DistributedSchema schema1{.version = 1};
+    DistributedTable table{.tableName = "test_table"};
+    DistributedField field{.colName = "name", .isP2pSync = false, .isSpecified = false};
+    table.fields.push_back(field);
+    schema1.tables.push_back(table);
+
+    RelationalSchemaObject schemaObj;
+    schemaObj.SetDistributedSchema(schema1);
+
+    DistributedSchema schema2{.version = 1};
+    DistributedTable table2{.tableName = "test_table"};
+    DistributedField field2{.colName = "name", .isP2pSync = false, .isSpecified = false};
+    table2.fields.push_back(field2);
+    schema2.tables.push_back(table2);
+
+    TableSyncPolicy policyTable{.tableName = "test_table"};
+    FieldSyncPolicy policyField{.colName = "name"};
+    EqualConstraint ec1{.notNull = true, .hasDefault = true};
+    EqualConstraint ec2{.notNull = false, .hasDefault = true};
+    policyField.equalConstraints = {ec1, ec2};
+    policyTable.fieldSyncPolicies.push_back(policyField);
+    schema2.tableSyncPolicies.push_back(policyTable);
+
+    EXPECT_TRUE(schemaObj.CheckDistributedSchemaChange(schema2));
+
+    /**
+     * @tc.steps: step2. Check with same tableSyncPolicies.
+     * @tc.expected: step2. CheckDistributedSchemaChange returns false (not changed).
+     */
+    schemaObj.SetDistributedSchema(schema2);
+    EXPECT_FALSE(schemaObj.CheckDistributedSchemaChange(schema2));
+}
+
+/**
+ * @tc.name: EqualConstraintCompareWithFieldTest001
+ * @tc.desc: Test CompareWithField with isNotNull mismatch and equalConstraints
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCompareWithFieldTest001, TestSize.Level1)
+{
+    FieldInfo field1;
+    field1.SetFieldName("name");
+    field1.SetNotNull(true);
+    field1.SetDefaultValue("0");
+
+    FieldInfo field2;
+    field2.SetFieldName("name");
+    field2.SetNotNull(false);
+    field2.SetDefaultValue("0");
+
+    /**
+     * @tc.steps: step1. Compare fields with isNotNull mismatch without equal constraint.
+     * @tc.expected: step1. Compare returns false (incompatible).
+     */
+    EXPECT_FALSE(field1.CompareWithField(field2, false));
+
+    /**
+     * @tc.steps: step2. Compare fields with isNotNull mismatch with equal constraint.
+     * @tc.expected: step2. Compare returns true (equal constraint allows mismatch).
+     */
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraints;
+    EqualConstraint ec1{.notNull = true, .hasDefault = true};
+    EqualConstraint ec2{.notNull = false, .hasDefault = true};
+    equalConstraints["name"] = {ec1, ec2};
+
+    EXPECT_TRUE(field1.CompareWithField(field2, false, equalConstraints));
+
+    /**
+     * @tc.steps: step3. Compare fields with equal constraint but different column name.
+     * @tc.expected: step3. Compare returns false (constraint does not match column).
+     */
+    std::map<std::string, std::vector<EqualConstraint>> wrongColConstraints;
+    EqualConstraint wec1{.notNull = true, .hasDefault = true};
+    EqualConstraint wec2{.notNull = false, .hasDefault = true};
+    wrongColConstraints["other_col"] = {wec1, wec2};
+    EXPECT_FALSE(field1.CompareWithField(field2, false, wrongColConstraints));
+
+    /**
+     * @tc.steps: step4. Compare fields with same isNotNull under no constraint.
+     * @tc.expected: step4. Compare returns true (compatible).
+     */
+    FieldInfo field3;
+    field3.SetFieldName("name");
+    field3.SetNotNull(true);
+    field3.SetDefaultValue("0");
+    EXPECT_TRUE(field1.CompareWithField(field3, false));
+}
+
+/**
+ * @tc.name: EqualConstraintCompareWithFieldTest002
+ * @tc.desc: Test CompareWithField with equal constraint but notNull side has no default value
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCompareWithFieldTest002, TestSize.Level1)
+{
+    FieldInfo field1;
+    field1.SetFieldName("name");
+    field1.SetNotNull(true);
+    // no default value
+
+    FieldInfo field2;
+    field2.SetFieldName("name");
+    field2.SetNotNull(false);
+
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraints;
+    EqualConstraint ec1{.notNull = true, .hasDefault = true};
+    EqualConstraint ec2{.notNull = false, .hasDefault = true};
+    equalConstraints["name"] = {ec1, ec2};
+
+    /**
+     * @tc.steps: step1. Compare fields with equal constraint but notNull side has no default value.
+     * @tc.expected: step1. Compare returns false (notNull side must have default value).
+     */
+    EXPECT_FALSE(field1.CompareWithField(field2, false, equalConstraints));
+
+    /**
+     * @tc.steps: step2. Add default value to notNull side, compare again.
+     * @tc.expected: step2. Compare returns true.
+     */
+    field1.SetDefaultValue("'unknown'");
+    field2.SetDefaultValue("'unknown'");
+    EXPECT_TRUE(field1.CompareWithField(field2, false, equalConstraints));
+}
+
+/**
+ * @tc.name: EqualConstraintCompareWithFieldTest003
+ * @tc.desc: Test CompareWithField with equal constraint but hasDefault is false
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCompareWithFieldTest003, TestSize.Level1)
+{
+    FieldInfo field1;
+    field1.SetFieldName("name");
+    field1.SetNotNull(true);
+    field1.SetDefaultValue("0");
+
+    FieldInfo field2;
+    field2.SetFieldName("name");
+    field2.SetNotNull(false);
+    field2.SetDefaultValue("0");
+
+    /**
+     * @tc.steps: step1. Compare fields with equal constraint but hasDefault is false.
+     * @tc.expected: step1. Compare returns false (hasDefault must be true for all constraints).
+     */
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraintsNoDefault;
+    EqualConstraint ec1{.notNull = true, .hasDefault = false};
+    EqualConstraint ec2{.notNull = false, .hasDefault = false};
+    equalConstraintsNoDefault["name"] = {ec1, ec2};
+    EXPECT_FALSE(field1.CompareWithField(field2, false, equalConstraintsNoDefault));
+
+    /**
+     * @tc.steps: step2. Compare fields with equal constraint but only one hasDefault is true.
+     * @tc.expected: step2. Compare returns false (all hasDefault must be true).
+     */
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraintsPartial;
+    EqualConstraint ec3{.notNull = true, .hasDefault = true};
+    EqualConstraint ec4{.notNull = false, .hasDefault = false};
+    equalConstraintsPartial["name"] = {ec3, ec4};
+    EXPECT_FALSE(field1.CompareWithField(field2, false, equalConstraintsPartial));
+
+    /**
+     * @tc.steps: step3. Compare fields with equal constraint and all hasDefault is true.
+     * @tc.expected: step3. Compare returns true.
+     */
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraintsAllDefault;
+    EqualConstraint ec5{.notNull = true, .hasDefault = true};
+    EqualConstraint ec6{.notNull = false, .hasDefault = true};
+    equalConstraintsAllDefault["name"] = {ec5, ec6};
+    EXPECT_TRUE(field1.CompareWithField(field2, false, equalConstraintsAllDefault));
+}
+
+/**
+ * @tc.name: EqualConstraintCompareWithTableTest003
+ * @tc.desc: Test CompareWithTable with EqualConstraint under STRONG-equivalent behavior
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintCompareWithTableTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create two tables with same fields but different isNotNull, with equal constraint.
+     * @tc.expected: step1. With equal constraint, table is compatible.
+     */
+    FieldInfo field1;
+    field1.SetFieldName("id");
+    field1.SetNotNull(true);
+    field1.SetDefaultValue("0");
+
+    FieldInfo field2;
+    field2.SetFieldName("id");
+    field2.SetNotNull(false);
+    field2.SetDefaultValue("0");
+
+    TableInfo table1;
+    table1.SetTableName("STUDENT");
+    table1.AddField(field1);
+
+    TableInfo table2;
+    table2.SetTableName("STUDENT");
+    table2.AddField(field2);
+
+    // Without equal constraint: incompatible
+    EXPECT_EQ(table1.CompareWithTable(table2, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2),
+        -E_RELATIONAL_TABLE_INCOMPATIBLE);
+
+    // With equal constraint: compatible
+    std::map<std::string, std::vector<EqualConstraint>> equalConstraints;
+    EqualConstraint ec1{.notNull = true, .hasDefault = true};
+    EqualConstraint ec2{.notNull = false, .hasDefault = true};
+    equalConstraints["id"] = {ec1, ec2};
+    int result = table1.CompareWithTable(table2, SchemaConstant::SCHEMA_SUPPORT_VERSION_V2, equalConstraints);
+    EXPECT_NE(result, -E_RELATIONAL_TABLE_INCOMPATIBLE);
+}
+
+std::string GetLocalSchemaStr1()
+{
+    return R""({
+        "SCHEMA_VERSION": "2.1",
+        "SCHEMA_TYPE": "RELATIVE",
+        "TABLE_MODE": "SPLIT_BY_DEVICE",
+        "TABLES": [{
+            "NAME": "STUDENT",
+            "DEFINE": {
+                "id": {"COLUMN_ID":1, "TYPE": "INTEGER", "NOT_NULL": true},
+                "name": {"COLUMN_ID":2, "TYPE": "TEXT", "NOT_NULL": true, "DEFAULT": "'unknown'"}
+            },
+            "PRIMARY_KEY": "id"
+        }],
+        "DISTRIBUTED_SCHEMA": {
+            "VERSION": 1,
+            "DISTRIBUTED_TABLE": [{
+                "TABLE_NAME": "STUDENT",
+                "DISTRIBUTED_FIELD": [{"COL_NAME": "name", "IS_P2P_SYNC": false, "IS_SPECIFIED": false}]
+            }],
+            "FIELD_SYNC_POLICIES": [{
+                "TABLE_NAME": "STUDENT",
+                "DISTRIBUTED_FIELD": [{
+                    "COL_NAME": "name",
+                    "EQUAL_CONSTRAINTS": [
+                        {"NOT_NULL": true, "HAS_DEFAULT": true}, {"NOT_NULL": false, "HAS_DEFAULT": true}
+                    ]
+                }]
+            }]
+        }
+    })"";
+}
+
+std::string GetRemoteSchemaStr1()
+{
+    return R""({
+        "SCHEMA_VERSION": "2.1",
+        "SCHEMA_TYPE": "RELATIVE",
+        "TABLE_MODE": "SPLIT_BY_DEVICE",
+        "TABLES": [{
+            "NAME": "STUDENT",
+            "DEFINE": {
+                "id": {"COLUMN_ID":1, "TYPE": "INTEGER", "NOT_NULL": true},
+                "name": {"COLUMN_ID":2, "TYPE": "TEXT", "NOT_NULL": false, "DEFAULT": "'unknown'"}
+            },
+            "PRIMARY_KEY": "id"
+        }],
+        "DISTRIBUTED_SCHEMA": {
+            "VERSION": 1,
+            "DISTRIBUTED_TABLE": [{
+                "TABLE_NAME": "STUDENT",
+                "DISTRIBUTED_FIELD": [{"COL_NAME": "name", "IS_P2P_SYNC": false, "IS_SPECIFIED": false}]
+            }],
+            "FIELD_SYNC_POLICIES": [{
+                "TABLE_NAME": "STUDENT",
+                "DISTRIBUTED_FIELD": [{
+                    "COL_NAME": "name",
+                    "EQUAL_CONSTRAINTS": [
+                        {"NOT_NULL": true, "HAS_DEFAULT": true}, {"NOT_NULL": false, "HAS_DEFAULT": true}
+                    ]
+                }]
+            }]
+        }
+    })"";
+}
+
+/**
+ * @tc.name: EqualConstraintNegotiateTest001
+ * @tc.desc: Test schema negotiate with EqualConstraint in fieldSyncPolicies
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintNegotiateTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create local schema with equal constraint in fieldSyncPolicies.
+     * Create remote schema with same table but name field is nullable.
+     * @tc.expected: step1. With equal constraint, negotiate should permit sync.
+     */
+    const std::string localSchemaStr = GetLocalSchemaStr1();
+    const std::string remoteSchemaStr = GetRemoteSchemaStr1();
+
+    RelationalSchemaObject localSchema;
+    int errCode = localSchema.ParseFromSchemaString(localSchemaStr);
+    EXPECT_EQ(errCode, E_OK);
+    EXPECT_EQ(localSchema.GetDistributedSchema().tableSyncPolicies.size(), 1u);
+    EXPECT_EQ(localSchema.GetDistributedSchema().tableSyncPolicies[0].tableName, "STUDENT");
+    EXPECT_EQ(localSchema.GetDistributedSchema().tableSyncPolicies[0].fieldSyncPolicies.size(), 1u);
+    EXPECT_EQ(localSchema.GetDistributedSchema().tableSyncPolicies[0].fieldSyncPolicies[0].equalConstraints.size(), 2u);
+
+    int negotiateErrCode = E_OK;
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchemaStr,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_RELEASE_11_0, negotiateErrCode);
+    // With equal constraint, isNotNull mismatch should not block sync
+    EXPECT_EQ(negotiateErrCode, E_OK);
+    EXPECT_FALSE(opinion.empty());
+    if (opinion.find("STUDENT") != opinion.end()) {
+        EXPECT_TRUE(opinion.at("STUDENT").permitSync);
+    }
+}
+
+std::string GetLocalSchemaStr2()
+{
+    return R""({
+        "SCHEMA_VERSION": "2.1",
+        "SCHEMA_TYPE": "RELATIVE",
+        "TABLE_MODE": "SPLIT_BY_DEVICE",
+        "TABLES": [{
+            "NAME": "STUDENT",
+            "DEFINE": {
+                "id": {"COLUMN_ID":1, "TYPE": "INTEGER", "NOT_NULL": true},
+                "name": {"COLUMN_ID":2, "TYPE": "TEXT", "NOT_NULL": true}
+            },
+            "PRIMARY_KEY": "id"
+        }],
+        "DISTRIBUTED_SCHEMA": {
+            "VERSION": 1,
+            "DISTRIBUTED_TABLE": [{
+                "TABLE_NAME": "STUDENT",
+                "DISTRIBUTED_FIELD": [{"COL_NAME": "name", "IS_P2P_SYNC": true, "IS_SPECIFIED": false}]
+            }],
+            "FIELD_SYNC_POLICIES": []
+        }
+    })"";
+}
+
+std::string GetRemoteSchemaStr2()
+{
+    return R""({
+        "SCHEMA_VERSION": "2.1",
+        "SCHEMA_TYPE": "RELATIVE",
+        "TABLE_MODE": "SPLIT_BY_DEVICE",
+        "TABLES": [{
+            "NAME": "STUDENT",
+            "DEFINE": {
+                "id": {"COLUMN_ID":1, "TYPE": "INTEGER", "NOT_NULL": true},
+                "name": {"COLUMN_ID":2, "TYPE": "TEXT", "NOT_NULL": false}
+            },
+            "PRIMARY_KEY": "id"
+        }],
+        "DISTRIBUTED_SCHEMA": {
+            "VERSION": 1,
+            "DISTRIBUTED_TABLE": [{
+                "TABLE_NAME": "STUDENT",
+                "DISTRIBUTED_FIELD": [{"COL_NAME": "name", "IS_P2P_SYNC": true, "IS_SPECIFIED": false}]
+            }],
+            "FIELD_SYNC_POLICIES": []
+        }
+    })"";
+}
+
+/**
+ * @tc.name: EqualConstraintNegotiateTest002
+ * @tc.desc: Test schema negotiate with isNotNull mismatch but no equal constraint
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, EqualConstraintNegotiateTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create local schema without equal constraint and a table with NOT_NULL field.
+     * Create remote schema with same table but field is nullable.
+     * @tc.expected: step1. Without equal constraint, negotiate should not permit sync.
+     */
+    const std::string localSchemaStr = GetLocalSchemaStr2();
+    const std::string remoteSchemaStr = GetRemoteSchemaStr2();
+
+    RelationalSchemaObject localSchema;
+    int errCode = localSchema.ParseFromSchemaString(localSchemaStr);
+    EXPECT_EQ(errCode, E_OK);
+
+    int negotiateErrCode = E_OK;
+    RelationalSyncOpinion opinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchemaStr,
+        static_cast<uint8_t>(SchemaType::RELATIVE), SOFTWARE_VERSION_RELEASE_11_0, negotiateErrCode);
+    // Without equal constraint, isNotNull mismatch should block sync
+    EXPECT_EQ(negotiateErrCode, -E_TABLE_FIELD_MISMATCH);
+}
 #endif

@@ -54,7 +54,8 @@ public:
     // return field define string like ("fieldName": "MY INT(21), NOT NULL, DEFAULT 123")
     std::string ToAttributeString() const;
 
-    bool CompareWithField(const FieldInfo &inField, bool isLite = false) const;
+    bool CompareWithField(const FieldInfo &inField, bool isLite = false,
+        const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints = {}) const;
 
     bool IsAssetType() const;
     bool IsAssetsType() const;
@@ -63,7 +64,10 @@ public:
     void SetCollateType(CollateType collateType);
 
 private:
-    bool CompareWithFieldInner(const FieldInfo &inField, bool isLite = false) const;
+    bool CompareWithFieldInner(const FieldInfo &inField, bool isLite = false,
+        const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints = {}) const;
+    bool IsNotNullMismatchAllowed(const FieldInfo &inField,
+        const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints) const;
     std::string fieldName_;
     std::string dataType_; // Type may be null
     StorageType storageType_ = StorageType::STORAGE_TYPE_NONE;
@@ -114,7 +118,8 @@ public:
     void SetUniqueDefine(const std::vector<CompositeFields> &uniqueDefine);
 
     int CompareWithTable(const TableInfo &inTableInfo,
-        const std::string &schemaVersion = SchemaConstant::SCHEMA_SUPPORT_VERSION_V2) const;
+        const std::string &schemaVersion = SchemaConstant::SCHEMA_SUPPORT_VERSION_V2,
+        const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints = {}) const;
     int CompareWithLiteSchemaTable(const TableInfo &liteTableInfo) const;
 
     std::map<FieldPath, SchemaAttribute> GetSchemaDefine() const;
@@ -167,7 +172,8 @@ private:
     void AddUniqueDefineString(std::string &attrStr) const;
 
     int CompareWithPrimaryKey(const std::map<int, FieldName> &local, const std::map<int, FieldName> &remove) const;
-    int CompareWithTableFields(const FieldInfoMap &inTableFields, bool isLite = false) const;
+    int CompareWithTableFields(const FieldInfoMap &inTableFields, bool isLite = false,
+        const std::map<std::string, std::vector<EqualConstraint>> &equalConstraints = {}) const;
     int CompareWithTableIndex(const IndexInfoMap &inTableIndex) const;
     int CompareWithTableUnique(const std::vector<CompositeFields> &inTableUnique) const;
     int CompareCompositeFields(const CompositeFields &local, const CompositeFields &remote) const;

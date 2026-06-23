@@ -79,6 +79,8 @@ public:
 
     DistributedTable GetDistributedTable(const std::string &table) const;
 
+    TableSyncPolicy GetFieldSyncPolicy(const std::string &table) const;
+
     std::map<std::string, bool> GetTableChangeStatus(const DistributedSchema &schema);
 private:
     int CompareAgainstSchemaObject(const std::string &inSchemaString, std::map<std::string, int> &cmpRst) const;
@@ -112,6 +114,11 @@ private:
     int ParseDistributedSchema(const JsonObject &inJsonObject); // parse distributed schema if need
     int ParseDistributedTables(const JsonObject &inJsonObject); // parse distributed tables if need
     int ParseDistributedTable(const JsonObject &inJsonObject); // parse distributed table if need
+    int ParseEqualConstraint(const JsonObject &inJsonObject,
+        EqualConstraint &constraint) const; // parse equal constraint
+    int ParseFieldSyncPolicies(const JsonObject &inJsonObject); // parse field sync policies
+    int ParseFieldSyncPolicyFields(const JsonObject &inJsonObject, std::vector<FieldSyncPolicy> &fields) const;
+    int ParseFieldSyncPolicyField(const JsonObject &inJsonObject, FieldSyncPolicy &field) const;
 
     void GenerateSchemaString();
     void GenerateTrackerSchemaString();
@@ -132,7 +139,11 @@ private:
 
     static bool CheckDistributedFieldChange(const std::vector<DistributedField> &source,
         const std::vector<DistributedField> &target);
+    static bool CheckFieldSyncPolicyChange(const std::vector<FieldSyncPolicy> &source,
+        const std::vector<FieldSyncPolicy> &target);
     static std::string GetOneDistributedTableString(const DistributedTable &table);
+    static std::string GetOneTableSyncPolicyString(const TableSyncPolicy &policy);
+    static std::string GetOneFieldSyncPolicyString(const FieldSyncPolicy &field);
     static int ParseDistributedFields(const JsonObject &inJsonObject, std::vector<DistributedField> &fields);
     static int ParseDistributedField(const JsonObject &inJsonObject, DistributedField &field);
 
