@@ -546,7 +546,7 @@ void DataDonationSchema::MergeRelationsMaps(DdTrigger &trigger)
     }
     // path cannot be empty
     size_t tryTimes = 10;
-    while (!InsertKeyOutAndCheckCompleted(path->second) && tryTimes-- > 0) {
+    while (!InsertKeyOutAndCheckCompleted(path->second) && (tryTimes-- > 0)) {
         auto subKey = path->second.relations.back();
         auto nextKey = foreignKeys.find(subKey.key.foreignField.table);
         if (nextKey == foreignKeys.end()) {

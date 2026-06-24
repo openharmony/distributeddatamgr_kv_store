@@ -75,7 +75,7 @@ public:
         return E_OK;
     }
 
-    int ReadBatch(UqData *dataOut, size_t maxNum)
+    size_t ReadBatch(UqData *dataOut, size_t maxNum)
     {
         size_t readNum = std::min(RemainReadSize(), maxNum);
         for (size_t i = 0; i < readNum; ++i) {

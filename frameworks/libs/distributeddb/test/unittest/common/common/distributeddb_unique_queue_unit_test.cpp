@@ -85,7 +85,7 @@ void DistributedDBUniqueQueue::ReadBatchTest(size_t readStart, size_t maxNum, bo
     std::vector<int> data;
     data.reserve(batchNum);
     (void)queue.TryInitCursor(readStart);
-    int readNum = queue.ReadBatch(data, maxNum);
+    size_t readNum = queue.ReadBatch(data, maxNum);
     if (success) {
         ASSERT_EQ(readNum, maxNum);
     } else {
