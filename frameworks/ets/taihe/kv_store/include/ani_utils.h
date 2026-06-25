@@ -57,7 +57,7 @@ public:
             return nullptr;
         }
         ani_long nativePtr;
-        if (ANI_OK != env->Object_GetFieldByName_Long(object, propName, &nativePtr)) {
+        if (env->Object_GetFieldByName_Long(object, propName, &nativePtr) != ANI_OK) {
             return nullptr;
         }
         return reinterpret_cast<T*>(nativePtr);

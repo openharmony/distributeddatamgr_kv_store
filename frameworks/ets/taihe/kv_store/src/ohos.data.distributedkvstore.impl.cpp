@@ -760,7 +760,7 @@ public:
         }
         bool isSchemaStore = IsSchemaStore();
         std::vector<DistributedKv::Entry> kvEntris;
-        if (false == ani_kvstoreutils::EntryArrayToNative(entries, kvEntris, isSchemaStore)) {
+        if (!ani_kvstoreutils::EntryArrayToNative(entries, kvEntris, isSchemaStore)) {
             ZLOGE("isSchemaStore, and value is not string");
             ThrowAniError(Status::INVALID_ARGUMENT, "");
             return;
