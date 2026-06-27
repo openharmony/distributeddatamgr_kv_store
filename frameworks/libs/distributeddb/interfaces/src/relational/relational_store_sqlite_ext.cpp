@@ -991,7 +991,6 @@ void BinlogDataChangedObserver(const char *dbPath, char *tableName)
     std::string hashFileName;
     int errCode = GetHashString(dbPath, hashFileName);
     if (errCode != DistributedDB::E_OK) {
-        LOGE("[BinlogDataChangedObserver] GetHashString err: %d", errCode);
         return;
     }
 
@@ -1017,8 +1016,7 @@ void BinlogDataChangedObserver(const char *dbPath, char *tableName)
             std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
             g_clientChangedDataMap[hashFileName] = data;
         }
-        ClientObserverCallback(hashFileName);
-        return;
+        return ClientObserverCallback(hashFileName);
     }
 
     std::vector<std::string> changedData = {std::string(tableName)};

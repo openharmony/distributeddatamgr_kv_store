@@ -154,10 +154,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
         return errCode;
     }
     std::vector<Field> assetsField;
-    errCode = CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
-    if (errCode != E_OK) {
-        LOGE("No assets need to be filled.");
-        return errCode;
+    CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
+    if (assetsField.empty()) {
+        return E_OK;
     }
     CloudStorageUtils::ChangeAssetsOnVBucketToAsset(vBucket, assetsField);
 

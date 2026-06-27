@@ -720,8 +720,8 @@ bool HandleAssetConflict(const Field &field, VBucket &local, VBucket &cloud,
         ProcessCloudAssetToLocal(cloudAsset, localAsset, isNeedKeepFlag);
     if (changedAsset.flag != static_cast<uint32_t>(AssetOpType::NO_CHANGE)) {
         assetsMap[field.colName] = Assets{changedAsset};
+        cloud[field.colName] = changedAsset;
     }
-    cloud[field.colName] = changedAsset;
     return isNeedKeepFlag;
 }
 
@@ -782,12 +782,14 @@ static void HandleCloudOnlyAssets(const Field &field, VBucket &cloud,
             MarkAssetsAsInsert(std::get<Assets>(cloudVal->second));
         if (!assetsToInsert.empty()) {
             assetsMap[field.colName] = assetsToInsert;
+            cloud[field.colName] = assetsToInsert;
         }
     } else if (IsDataContainField<Asset>(field.colName, cloud)) {
         Asset assetToInsert = useTempPath ?
             MarkAssetAsInsertWithTemp(std::get<Asset>(cloudVal->second)) :
             MarkAssetAsInsert(std::get<Asset>(cloudVal->second));
         assetsMap[field.colName] = Assets{assetToInsert};
+        cloud[field.colName] = assetToInsert;
     }
 }
 

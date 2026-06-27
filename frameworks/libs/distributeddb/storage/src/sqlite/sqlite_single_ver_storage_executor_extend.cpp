@@ -218,6 +218,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInner(const std::string &dev
         return E_OK;
 #endif
     }
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int errCode = CloudExcuteRemoveOrUpdate(REMOVE_CLOUD_ALL_HWM_DATA_SQL, "", "", true);
     if (errCode != E_OK) {
@@ -319,6 +320,7 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
         return E_OK;
 #endif
     }
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int errCode = E_OK;
     bool isDataExist = false;

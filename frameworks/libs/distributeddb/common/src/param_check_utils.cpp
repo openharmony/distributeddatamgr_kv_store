@@ -326,7 +326,7 @@ int ParamCheckUtils::FilterTableRemoveMap(std::map<std::string, std::vector<std:
     for (auto &iter : filterTableMap) {
         const std::string &tableName = iter.first;
         std::vector<std::string> &keepDevices = iter.second;
-        if (tableName.empty() || !ParamCheckUtils::CheckRelationalTableName(tableName)) {
+        if (!ParamCheckUtils::CheckRelationalTableName(tableName) || tableName.empty()) {
             LOGE("[CheckClearMap] invalid tableName, %s",
                 DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
             return -E_INVALID_ARGS;

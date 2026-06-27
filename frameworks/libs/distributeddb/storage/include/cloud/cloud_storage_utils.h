@@ -52,7 +52,7 @@ public:
         bool sortByUpper = false);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
-    static int GetAssetFieldsFromSchema(const TableSchema &tableSchema, const VBucket &vBucket,
+    static void GetAssetFieldsFromSchema(const TableSchema &tableSchema, const VBucket &vBucket,
         std::vector<Field> &fields);
     static void ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset);
     static AssetOpType StatusToFlag(AssetStatus status);
