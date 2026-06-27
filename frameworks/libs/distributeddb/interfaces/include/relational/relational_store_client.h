@@ -105,4 +105,9 @@ DB_API DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<s
     const DistributedDB::MatrixFileUpdateConfig &config);
 
 DB_API void Clean(bool isOpenSslClean);
+
+DB_API DistributedDB::DBStatus ArchiveSyncedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
+
+DB_API DistributedDB::DBStatus DeleteSyncedData(sqlite3 *db, const std::string &tableName,
+    const std::vector<std::vector<DistributedDB::Type>> &keys);
 #endif // RELATIONAL_STORE_CLIENT_H

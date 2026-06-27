@@ -25,13 +25,16 @@ public:
     ProcessRecorder() = default;
     ~ProcessRecorder() = default;
 
-    void ClearRecord();
-
     bool IsDownloadFinish(int userIndex, const std::string &table) const;
     void MarkDownloadFinish(int userIndex, const std::string &table, bool finish);
 
     bool IsUploadFinish(int userIndex, const std::string &table) const;
     void MarkUploadFinish(int userIndex, const std::string &table, bool finish);
+
+    bool IsDownloadResetFinish(int userIndex, const std::string &table) const;
+    void MarkDownloadResetFinish(int userIndex, const std::string &table);
+    bool IsUploadResetFinish(int userIndex, const std::string &table) const;
+    void MarkUploadResetFinish(int userIndex, const std::string &table);
 private:
     bool IsRecordFinish(int userIndex, const std::string &table,
         const std::map<int, std::map<std::string, bool>> &record) const;
@@ -41,6 +44,8 @@ private:
     mutable std::mutex recordMutex_;
     std::map<int, std::map<std::string, bool>> downloadRecord_; // record table download finish
     std::map<int, std::map<std::string, bool>> uploadRecord_;   // record table upload finish
+    std::map<int, std::map<std::string, bool>> downloadResetMark_; // record table download reset watermark finish
+    std::map<int, std::map<std::string, bool>> uploadResetMark_;   // record table upload reset upload mark finish
 };
 }
 

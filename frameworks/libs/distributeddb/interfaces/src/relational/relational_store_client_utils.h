@@ -36,6 +36,13 @@ public:
     static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath);
 
     static void StringToUpper(std::string &str);
+
+    static int ArchiveSyncedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
+
+    static int DeleteSyncedData(sqlite3 *db, const std::string &tableName,
+        const std::vector<std::vector<Type>> &keys);
+
+    static int CheckTable(sqlite3 *db, const std::string &tableName, bool isCheckTableMode, bool isTracker = false);
 private:
     static int CheckUpdateOption(sqlite3 *db, const UpdateOption &option);
 
@@ -57,7 +64,7 @@ private:
         bool isLog, int &index);
 
     static int GetTableAndColumnName(const JsonObject &jsonValue, std::string &tableName, std::string &columnName);
-    
+
     static int InitNewTableEntry(MonitorTableCol &table, const std::string &tableName, const std::string &columnName);
 
     static int TryAddColumnToTable(MonitorTableCol &table, const std::string &columnName);
@@ -73,6 +80,13 @@ private:
     static int ProcessUTDMapping(const JsonObject &utdMapping, MonitorTablesConfig *monitorConfig);
 
     static int GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath);
+
+    static int ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName, uint64_t cursor, bool isTracker);
+
+    static int DeleteSyncedDataInner(sqlite3 *db, const std::string &tableName,
+        const std::vector<std::vector<Type>> &keys);
+
+    static std::pair<int, std::vector<uint8_t>> GetHashKey(const std::vector<Type> &keys);
 };
 } // namespace DistributedDB
 #endif // RELATIONAL_STORE_CLIENT_UTILS_H

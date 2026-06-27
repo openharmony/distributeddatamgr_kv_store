@@ -580,4 +580,101 @@ void CloudSyncer::SetTaskErrorInfo(CloudTaskInfo &taskInfo, int errCode, const s
         taskInfo.errorMessage = errorMessage;
     }
 }
+
+int CloudSyncer::ResetCloudWaterMarkIfNeed(bool isFirstDownload)
+{
+    // only first download need to reset watermark
+    if (!isFirstDownload) {
+        return E_OK;
+    }
+    if (!IsCurrentNeedReset(true)) {
+        return E_OK;
+    }
+    if (IsCurrentDownloadResetFinish()) {
+        return E_OK;
+    }
+    std::string table;
+    int ret = GetCurrentTableName(table);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer][ResetCloudWaterMarkIfNeed] Get table name failed %d", ret);
+        return ret;
+    }
+    ret = CloudSyncUtils::ClearCloudWatermark({table}, storageProxy_);
+    if (ret != E_OK) {
+        return ret;
+    }
+    MarkCurrentDownloadResetFinish();
+    return E_OK;
+}
+
+int CloudSyncer::ResetUploadStatusIfNeed()
+{
+    if (!IsCurrentNeedReset(false)) {
+        return E_OK;
+    }
+    if (IsCurrentUploadResetFinish()) {
+        return E_OK;
+    }
+    std::string table;
+    int ret = GetCurrentTableName(table);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer][ResetUploadStatusIfNeed] Get table name failed %d", ret);
+        return ret;
+    }
+    ret = storageProxy_->ResetUploadStatus(table);
+    if (ret != E_OK) {
+        return ret;
+    }
+    MarkCurrentUploadResetFinish();
+    return ret;
+}
+
+bool CloudSyncer::IsCurrentNeedReset(bool isDownload)
+{
+    std::string table;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        auto iter = cloudTaskInfos_.find(currentContext_.currentTaskId);
+        if (iter == cloudTaskInfos_.end()) {
+            return false;
+        }
+        if (!iter->second.fullSync) {
+            return false;
+        }
+        if (isDownload && iter->second.mode == SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH) {
+            return false;
+        }
+        table = currentContext_.tableName;
+    }
+    auto obj = GetQuerySyncObject(table);
+    return !obj.IsContainQueryNodes();
+}
+
+bool CloudSyncer::IsCurrentDownloadResetFinish() const
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return currentContext_.processRecorder->IsDownloadResetFinish(currentContext_.currentUserIndex,
+        currentContext_.tableName);
+}
+
+bool CloudSyncer::IsCurrentUploadResetFinish() const
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    return currentContext_.processRecorder->IsUploadResetFinish(currentContext_.currentUserIndex,
+        currentContext_.tableName);
+}
+
+void CloudSyncer::MarkCurrentDownloadResetFinish()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.processRecorder->MarkDownloadResetFinish(currentContext_.currentUserIndex,
+        currentContext_.tableName);
+}
+
+void CloudSyncer::MarkCurrentUploadResetFinish()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.processRecorder->MarkUploadResetFinish(currentContext_.currentUserIndex,
+        currentContext_.tableName);
+}
 } // namespace DistributedDB

@@ -79,6 +79,7 @@ public:
     static int InitCursorToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
     static int InitKnowledgeTableTypeToMeta(sqlite3 *db, bool isMemory, const std::string &tableName);
     static int SetLogTriggerStatus(sqlite3 *db, bool status);
+    static std::string GetLogTriggerStatusSQL(bool status);
 
     static constexpr const uint32_t BATCH_GEN_LOG_SIZE = 1000;
     struct GenLogParam {
@@ -180,6 +181,8 @@ public:
     static std::map<int32_t, std::string> GetCloudFieldDataType();
 
     static int GetGidRecordCount(sqlite3 *db, const std::string &tableName, uint64_t &count);
+
+    static int ResetUploadStatus(sqlite3 *db, const std::string &tableName);
 #endif
 
     static int UpdateHashKey(sqlite3 *db, const std::string &tableName,

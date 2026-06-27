@@ -1264,6 +1264,7 @@ void SQLiteRelationalUtils::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.prepareTraceId = option.prepareTraceId;
     info.asyncDownloadAssets = option.asyncDownloadAssets;
     info.queryMode = option.queryMode;
+    info.fullSync = option.isFullSync;
 }
 
 int SQLiteRelationalUtils::PutCloudGid(sqlite3 *db, const std::string &tableName, std::vector<VBucket> &data)
@@ -1534,6 +1535,19 @@ int SQLiteRelationalUtils::GetGidRecordCount(sqlite3 *db, const std::string &tab
     if (errCode == E_OK) {
         LOGI("[GetGidRecordCount] Local[%s] exist %d record", DBCommon::StringMiddleMaskingWithLen(tableName).c_str(),
             ret);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::ResetUploadStatus(sqlite3 *db, const std::string &tableName)
+{
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag=flag&~" +
+        DBCommon::FlagToStr(LogInfoFlag::FLAG_UPLOAD_FINISHED) + " WHERE flag&" +
+        DBCommon::FlagToStr(LogInfoFlag::FLAG_LOCAL) + "!=0";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode == E_OK) {
+        LOGI("[SQLiteRDBUtils] Reset table[%s] upload status[%d]",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), sqlite3_changes(db));
     }
     return errCode;
 }

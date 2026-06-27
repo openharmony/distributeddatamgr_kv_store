@@ -938,10 +938,12 @@ int CloudSyncer::TryToAddSyncTask(CloudTaskInfo &&taskInfo)
     auto taskId = taskInfo.taskId;
     cloudTaskInfos_[taskId] = std::move(taskInfo);
     taskQueue_.insert({cloudTaskInfos_[taskId].priorityLevel, taskId});
-    LOGI("[CloudSyncer]Add task ok, storeId %.3s, priority %d, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d",
+    LOGI("[CloudSyncer]Add task ok, storeId %.3s, priority %d, priorityLevel %" PRId32 ", taskId %" PRIu64 " async %d"
+        " full %d",
         cloudTaskInfos_[taskId].storeId.c_str(), cloudTaskInfos_[taskId].priorityTask,
         cloudTaskInfos_[taskId].priorityLevel, cloudTaskInfos_[taskId].taskId,
-        static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets));
+        static_cast<int>(cloudTaskInfos_[taskId].asyncDownloadAssets),
+        static_cast<int>(cloudTaskInfos_[taskId].fullSync));
     MarkCurrentTaskPausedIfNeed(taskInfo);
     if (!cloudTaskInfos_[taskId].priorityTask) {
         MergeTaskInfo(cloudSchema, taskId);

@@ -507,6 +507,18 @@ void RDBGeneralUt::SetCloudDbConfig(const StoreInfo &info) const
         info.storeId.c_str(), info.userId.c_str());
 }
 
+CloudSyncOption RDBGeneralUt::GetCloudSyncOption()
+{
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    option.syncFlowType = SyncFlowType::NORMAL;
+    option.priorityTask = true;
+    option.compensatedSyncOnly = false;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    return option;
+}
+
 void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, DBStatus exceptStatus,
     DBStatus callbackExpect)
 {

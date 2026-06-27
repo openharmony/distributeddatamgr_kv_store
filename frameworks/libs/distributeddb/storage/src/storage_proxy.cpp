@@ -1034,4 +1034,14 @@ AssetConflictPolicy StorageProxy::GetAssetConflictPolicy() const
     }
     return store_->GetAssetConflictPolicy();
 }
+
+int StorageProxy::ResetUploadStatus(const std::string &table)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[ResetUploadStatus] store is null");
+        return -E_BUSY;
+    }
+    return store_->ResetUploadStatus(table);
+}
 }

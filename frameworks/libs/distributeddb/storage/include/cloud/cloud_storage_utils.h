@@ -241,6 +241,8 @@ private:
         bool &isAsyncAssetAbnormal);
 
     static bool CheckIsNilType(const VBucket &vBucket, const Field &field, int errCode);
+
+    static bool IsNeedResetCloudInfoInUpload(const VBucket &uploadExtend, const CloudWaterType &type);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

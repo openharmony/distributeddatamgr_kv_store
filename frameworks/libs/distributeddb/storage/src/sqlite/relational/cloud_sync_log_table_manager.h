@@ -43,7 +43,7 @@ private:
     std::vector<std::string> GetDropTriggers(const TableInfo &table) override;
     std::string CalcPrimaryKeyHashInner(const std::string &references, const std::vector<std::string> &sourceFields,
         const FieldInfoMap &fieldInfos) const;
-    std::string GetInsertLogSQL(const TableInfo &table, const std::string &identity, bool isReplace);
+    std::string GetInsertLogSQL(const TableInfo &table, const std::string &identity);
     std::string GetUpdateLog(const TableInfo &table, const std::string &identity) const;
     std::string GetUpdateConflictLog(const TableInfo &table, const std::string &identity);
     std::string GetInsertConflictSql(const TableInfo &table, const std::string &identity);

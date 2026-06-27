@@ -308,6 +308,8 @@ public:
     int DropTempTable(const std::string &tableName) const;
 
     int GetGidRecordCount(const std::string &tableName, uint64_t &count) const;
+
+    int ResetUploadStatus(const std::string &table) const;
 #endif
     int DeleteDistributedExceptDeviceTable(const std::string &removedTable,
         const std::vector<std::string> &keepDevices, int64_t &changedRows) const;

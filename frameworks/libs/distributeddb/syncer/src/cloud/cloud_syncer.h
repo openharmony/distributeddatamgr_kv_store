@@ -615,6 +615,16 @@ protected:
 
     bool IsUploadOnlyTask(TaskId taskId);
 
+    int ResetCloudWaterMarkIfNeed(bool isFirstDownload);
+
+    int ResetUploadStatusIfNeed();
+
+    bool IsCurrentNeedReset(bool isDownload);
+    bool IsCurrentDownloadResetFinish() const;
+    bool IsCurrentUploadResetFinish() const;
+    void MarkCurrentDownloadResetFinish();
+    void MarkCurrentUploadResetFinish();
+
     mutable std::mutex dataLock_;
     TaskId lastTaskId_;
     std::multimap<int, TaskId, std::greater<int>> taskQueue_;

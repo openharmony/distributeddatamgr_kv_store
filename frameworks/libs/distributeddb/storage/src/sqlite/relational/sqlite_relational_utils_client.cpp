@@ -129,15 +129,21 @@ int SQLiteRelationalUtils::InitKnowledgeTableTypeToMeta(sqlite3 *db, bool isMemo
 
 int SQLiteRelationalUtils::SetLogTriggerStatus(sqlite3 *db, bool status)
 {
-    const std::string key = "log_trigger_switch";
-    std::string val = status ? "true" : "false";
-    std::string sql = "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
-        " VALUES ('" + key + "', '" + val + "')";
+    std::string sql = GetLogTriggerStatusSQL(status);
     int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
     if (errCode != E_OK) {
+        std::string val = status ? "true" : "false";
         LOGE("Set log trigger to %s failed. errCode=%d", val.c_str(), errCode);
     }
     return errCode;
+}
+
+std::string SQLiteRelationalUtils::GetLogTriggerStatusSQL(bool status)
+{
+    const std::string key = "log_trigger_switch";
+    std::string val = status ? "true" : "false";
+    return "INSERT OR REPLACE INTO " + std::string(DBConstant::RELATIONAL_PREFIX) + "metadata" +
+        " VALUES ('" + key + "', '" + val + "')";
 }
 
 int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity, const TableInfo &tableInfo,

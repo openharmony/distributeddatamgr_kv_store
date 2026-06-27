@@ -16,13 +16,6 @@
 #include "process_recorder.h"
 
 namespace DistributedDB {
-void ProcessRecorder::ClearRecord()
-{
-    std::lock_guard<std::mutex> autoLock(recordMutex_);
-    downloadRecord_.clear();
-    uploadRecord_.clear();
-}
-
 bool ProcessRecorder::IsDownloadFinish(int userIndex, const std::string &table) const
 {
     return IsRecordFinish(userIndex, table, downloadRecord_);
@@ -41,6 +34,26 @@ bool ProcessRecorder::IsUploadFinish(int userIndex, const std::string &table) co
 void ProcessRecorder::MarkUploadFinish(int userIndex, const std::string &table, bool finish)
 {
     RecordFinish(userIndex, table, finish, uploadRecord_);
+}
+
+bool ProcessRecorder::IsDownloadResetFinish(int userIndex, const std::string &table) const
+{
+    return IsRecordFinish(userIndex, table, downloadResetMark_);
+}
+
+void ProcessRecorder::MarkDownloadResetFinish(int userIndex, const std::string &table)
+{
+    RecordFinish(userIndex, table, true, downloadResetMark_);
+}
+
+bool ProcessRecorder::IsUploadResetFinish(int userIndex, const std::string &table) const
+{
+    return IsRecordFinish(userIndex, table, uploadResetMark_);
+}
+
+void ProcessRecorder::MarkUploadResetFinish(int userIndex, const std::string &table)
+{
+    RecordFinish(userIndex, table, true, uploadResetMark_);
 }
 
 bool ProcessRecorder::IsRecordFinish(int userIndex, const std::string &table,

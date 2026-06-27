@@ -950,6 +950,21 @@ int RelationalSyncAbleStorage::GetGidRecordCount(const std::string &tableName, u
     });
     return readHandle->GetGidRecordCount(tableName, count);
 }
+
+int RelationalSyncAbleStorage::ResetUploadStatus(const std::string &table)
+{
+    int errCode = E_OK;
+    auto *writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
+    if (writeHandle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([this, writeHandle] {
+        auto handle = writeHandle;
+        ReleaseHandle(handle);
+    });
+    return writeHandle->ResetUploadStatus(table);
+}
 #endif
 
 void RelationalSyncAbleStorage::SetLocalHashDevId(const std::string &devId)
