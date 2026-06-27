@@ -735,10 +735,9 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetStatusForAssetOnly(
         return errCode;
     }
     std::vector<Field> assetsField;
-    errCode = CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
-    if (errCode != E_OK) {
-        LOGE("No assets need to be filled when download assets only, err:%d.", errCode);
-        return errCode;
+    CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
+    if (assetsField.empty()) {
+        return E_OK;
     }
 
     sqlite3_stmt *stmt = nullptr;

@@ -1031,4 +1031,4 @@ bool TableInfo::IsView() const
 {
     return type_ == TYPE_VIEW;
 }
-} // namespace DistributeDB
+} // namespace DistributedDB

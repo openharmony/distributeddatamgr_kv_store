@@ -292,7 +292,7 @@ std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const
     return pkMap;
 }
 
-int CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, const VBucket &vBucket,
+void CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, const VBucket &vBucket,
     std::vector<Field> &fields)
 {
     for (const auto &field: tableSchema.fields) {
@@ -306,10 +306,6 @@ int CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, 
         }
         fields.push_back(field);
     }
-    if (fields.empty()) {
-        return -E_CLOUD_ERROR;
-    }
-    return E_OK;
 }
 
 bool CloudStorageUtils::IsContainsPrimaryKey(const TableSchema &tableSchema)

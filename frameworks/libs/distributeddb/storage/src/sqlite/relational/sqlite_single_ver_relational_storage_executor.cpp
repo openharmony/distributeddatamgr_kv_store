@@ -907,8 +907,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckDataConflictDefeated(const Da
     rowId = logInfoGet.dataKey;
     isExist =
         (errCode != -E_NOT_FOUND) && (((logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) == 0) ||
-                                         (logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) ==
-                                             static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE));
+        (logInfoGet.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) ==
+        static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE));
     if ((dataItem.flag & DataItem::REMOTE_DEVICE_DATA_MISS_QUERY) != DataItem::REMOTE_DEVICE_DATA_MISS_QUERY &&
         mode_ == DistributedTableMode::SPLIT_BY_DEVICE) {
         isDefeated = false; // no need to solve conflict except miss query data
