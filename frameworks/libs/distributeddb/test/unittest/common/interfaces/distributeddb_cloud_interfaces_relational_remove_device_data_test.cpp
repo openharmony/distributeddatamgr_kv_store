@@ -1107,7 +1107,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     std::string device;
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
-    CheckLocalLogCount(db, { g_tableName1 }, { deleteCount });
+    CheckLocalLogCount(db, { g_tableName1 }, { 0 });
     CloseDb();
 }
 

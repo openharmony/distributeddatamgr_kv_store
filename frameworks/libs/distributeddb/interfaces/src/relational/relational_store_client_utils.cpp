@@ -17,6 +17,7 @@
 
 #include "db_common.h"
 #include "db_errno.h"
+#include "dfx_helper.h"
 #include "log_print.h"
 #include "res_finalizer.h"
 #include "sqlite_relational_utils.h"
@@ -31,39 +32,9 @@ int RelationalStoreClientUtils::UpdateDataLog(sqlite3 *db, const DistributedDB::
     if (errCode != E_OK) {
         return errCode;
     }
-    bool isCreate = false;
-    errCode = SQLiteUtils::CheckTableExists(db, DBCommon::GetMetaTableName(), isCreate);
+    errCode = CheckTable(db, option.tableName, true);
     if (errCode != E_OK) {
         return errCode;
-    }
-    if (!isCreate) {
-        LOGE("[RDBClientUtils] UpdateDataLog meta not found",
-            DBCommon::StringMiddleMaskingWithLen(option.tableName).c_str());
-        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
-    }
-    auto [ret, rdbSchema] = GetRDBSchema(db, false);
-    if (ret != E_OK) {
-        return ret;
-    }
-    isCreate = false;
-    errCode = SQLiteUtils::CheckTableExists(db, option.tableName, isCreate);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (!isCreate) {
-        LOGE("[RDBClientUtils] UpdateDataLog table[%s] not found",
-            DBCommon::StringMiddleMaskingWithLen(option.tableName).c_str());
-        return -E_TABLE_NOT_FOUND;
-    }
-    auto tableInfo = rdbSchema.GetTable(option.tableName);
-    if (tableInfo.GetTableName().empty()) {
-        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
-    }
-    auto tableMode = rdbSchema.GetTableMode();
-    if (tableMode != DistributedTableMode::COLLABORATION) {
-        LOGE("[RDBClientUtils] UpdateDataLog table[%s] mode[%d] not collaboration",
-            DBCommon::StringMiddleMaskingWithLen(option.tableName).c_str(), static_cast<int>(tableMode));
-        return -E_NOT_SUPPORT;
     }
     return UpdateDataLogInner(db, option);
 }
@@ -78,7 +49,7 @@ std::pair<int, RelationalSchemaObject> RelationalStoreClientUtils::GetRDBSchema(
     Value schemaVal;
     errCode = SQLiteRelationalUtils::GetKvData(db, false, schema, schemaVal); // save schema to meta_data
     if (errCode == -E_NOT_FOUND) {
-        LOGD("[RDBClientUtils] Not found rdb schema in db");
+        LOGD("[RDBClientUtils] Not found rdb schema[%d] in db", static_cast<int>(isTracker));
         errCode = E_OK;
         return res;
     }
@@ -619,5 +590,219 @@ void RelationalStoreClientUtils::StringToUpper(std::string &str)
     std::transform(str.cbegin(), str.cend(), str.begin(), [](unsigned char c) {
         return std::toupper(c);
     });
+}
+
+int RelationalStoreClientUtils::ArchiveSyncedData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
+{
+    if (db == nullptr) {
+        LOGE("[RDBClientUtils] Archive synced data failed, db is null");
+        return -E_INVALID_ARGS;
+    }
+    std::string tag = std::string("archive synced data for [")
+        .append(DBCommon::StringMiddleMaskingWithLen(tableName)).append("]");
+    auto helper = DFXHelper::GetCostTimeHelper(tag);
+    auto errCode = CheckTable(db, tableName, false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CheckTable(db, tableName, false, true);
+    bool isTracker = false;
+    if (errCode == -E_DISTRIBUTED_SCHEMA_NOT_FOUND) {
+        errCode = E_OK;
+    } else if (errCode == E_OK) {
+        isTracker = true;
+    } else {
+        LOGE("[RDBClientUtils] Analyze tracer[%s] failed %d",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
+        return errCode;
+    }
+    return SQLiteUtils::TransactionProcess(db, TransactType::IMMEDIATE, [&db, &tableName, &cursor, isTracker]() {
+        return ArchiveSyncedDataInner(db, tableName, cursor, isTracker);
+    });
+}
+
+int RelationalStoreClientUtils::DeleteSyncedData(sqlite3 *db, const std::string &tableName,
+    const std::vector<std::vector<Type>> &keys)
+{
+    if (db == nullptr) {
+        LOGE("[RDBClientUtils] Delete synced data failed, db is null");
+        return -E_INVALID_ARGS;
+    }
+    std::string tag = std::string("delete synced data for [")
+        .append(DBCommon::StringMiddleMaskingWithLen(tableName)).append("]");
+    auto helper = DFXHelper::GetCostTimeHelper(tag);
+    auto errCode = CheckTable(db, tableName, false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return SQLiteUtils::TransactionProcess(db, TransactType::IMMEDIATE, [&db, &tableName, &keys]() {
+        return DeleteSyncedDataInner(db, tableName, keys);
+    });
+}
+
+int RelationalStoreClientUtils::CheckTable(sqlite3 *db, const std::string &tableName, bool isCheckTableMode,
+    bool isTracker)
+{
+    bool isCreate = false;
+    auto errCode = SQLiteUtils::CheckTableExists(db, DBCommon::GetMetaTableName(), isCreate);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCreate) {
+        LOGE("[RDBClientUtils] Meta[%s] not found",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+    }
+    auto [ret, rdbSchema] = GetRDBSchema(db, isTracker);
+    if (ret != E_OK) {
+        return ret;
+    }
+    isCreate = false;
+    errCode = SQLiteUtils::CheckTableExists(db, tableName, isCreate);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCreate) {
+        LOGE("[RDBClientUtils] Table[%s] not found",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
+        return -E_TABLE_NOT_FOUND;
+    }
+    auto distributedTable = isTracker ? rdbSchema.GetTrackerTable(tableName).GetTableName() :
+        rdbSchema.GetTable(tableName).GetTableName();
+    if (distributedTable.empty()) {
+        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+    }
+    auto tableMode = rdbSchema.GetTableMode();
+    if (isCheckTableMode && tableMode != DistributedTableMode::COLLABORATION) {
+        LOGE("[RDBClientUtils] Table[%s] mode[%d] not collaboration",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), static_cast<int>(tableMode));
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
+}
+
+int RelationalStoreClientUtils::ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName, uint64_t cursor,
+    bool isTracker)
+{
+    std::vector<std::pair<std::string, std::function<void()>>> executeSQL;
+    executeSQL.push_back({SQLiteRelationalUtils::GetLogTriggerStatusSQL(false), nullptr});
+    std::string logTable = DBCommon::GetLogTableName(tableName);
+    std::string sql = "UPDATE " + logTable + " SET flag=flag|" +
+        DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED) +
+        " WHERE flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + "=0 ";
+    // mark cloud data is archived
+    auto updateSQL = sql + "AND flag&0x2=0 AND cursor<=" + std::to_string(cursor);
+    executeSQL.push_back({updateSQL, nullptr});
+    // mark local data is archived
+    updateSQL = sql + "AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_LOCAL) + "!=0";
+    executeSQL.push_back({updateSQL, nullptr});
+    auto deleteSQL = "DELETE FROM " + logTable + " WHERE flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DELETE) + "!=0"
+        " AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + "=0";
+    if (isTracker) {
+        deleteSQL += " AND (extend_field='{}' OR extend_field IS NULL)";
+    }
+    executeSQL.push_back({deleteSQL, nullptr});
+    // delete archived data
+    deleteSQL = "DELETE FROM " + tableName + " WHERE _rowid_ IN ("
+        "SELECT " + tableName + "._rowid_ FROM " + tableName + ", " + logTable + " WHERE " + tableName + "._rowid_=" +
+        logTable + ".data_key AND " + logTable + ".flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED) + "!=0)";
+    executeSQL.push_back({deleteSQL, [db, &tableName]() {
+        LOGI("[RDBClientUtils] Table[%s] archived[%d]",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), sqlite3_changes(db));
+    }});
+    // mark archived data log's data key to -1
+    updateSQL = "UPDATE " + logTable + " SET data_key=-1 WHERE data_key > -1 AND flag&" +
+        DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED) + "!=0";
+    executeSQL.push_back({updateSQL, nullptr});
+    executeSQL.push_back({SQLiteRelationalUtils::GetLogTriggerStatusSQL(true), nullptr});
+    return SQLiteUtils::ExecuteRawSQL(db, executeSQL);
+}
+
+int RelationalStoreClientUtils::DeleteSyncedDataInner(sqlite3 *db, const std::string &tableName,
+    const std::vector<std::vector<Type>> &keys)
+{
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag=" +
+        DBCommon::FlagToStr(LogInfoFlag::FLAG_DELETE) + "|" + DBCommon::FlagToStr(LogInfoFlag::FLAG_LOCAL) +
+        "|"+ DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + " WHERE hash_key=?";
+    sqlite3_stmt *stmt = nullptr;
+    auto errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    ResFinalizer finalizer([stmt]() {
+        sqlite3_stmt *release = stmt;
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(release, true, ret);
+        if (ret != E_OK) {
+            LOGW("[RDBClientUtils]DeleteSyncedData release failed[%d]", ret);
+        }
+    });
+    int64_t change = 0;
+    for (const auto &row : keys) {
+        auto [ret, hash] = GetHashKey(row);
+        if (ret != E_OK) {
+            return ret;
+        }
+        ret = SQLiteUtils::BindBlobToStatement(stmt, 1, hash);
+        if (ret != E_OK) {
+            LOGE("[RDBClientUtils]DeleteSyncedData bind failed[%d]", ret);
+            return ret;
+        }
+        ret = SQLiteUtils::StepNext(stmt);
+        if (ret != -E_FINISHED) {
+            LOGE("[RDBClientUtils]DeleteSyncedData step failed[%d]", ret);
+            return ret;
+        }
+        change += sqlite3_changes(db);
+        SQLiteUtils::ResetStatement(stmt, false, errCode);
+        if (errCode != E_OK) {
+            LOGE("[RDBClientUtils]DeleteSyncedData reset failed[%d]", ret);
+            return errCode;
+        }
+    }
+    LOGI("[RDBClientUtils] Table[%s] pk[%zu] delete[%d]",
+         DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), keys.size(), change);
+    return E_OK;
+}
+
+std::pair<int, std::vector<uint8_t>> RelationalStoreClientUtils::GetHashKey(const std::vector<Type> &keys)
+{
+    std::pair<int, std::vector<uint8_t>> res;
+    auto &[errCode, hash] = res;
+    std::vector<uint8_t> hashValue;
+    for (const auto &key : keys) {
+        if (key.index() != TYPE_INDEX<std::string> && key.index() != TYPE_INDEX<int64_t>) {
+            LOGE("[RDBClientUtils] Not support pk type[%zu]", key.index());
+            errCode = -E_NOT_SUPPORT;
+            return res;
+        }
+        std::string keyStr;
+        if (key.index() == TYPE_INDEX<std::string>) {
+            keyStr = std::get<std::string>(key);
+        } else {
+            keyStr = std::to_string(std::get<int64_t>(key));
+        }
+        std::vector<uint8_t> tmpHashValue;
+        std::vector<uint8_t> oriValue(keyStr.begin(), keyStr.end());
+        errCode = DBCommon::CalcValueHash(oriValue, tmpHashValue);
+        if (errCode != E_OK) {
+            LOGE("[RDBClientUtils] Cal hash failed[%d]", errCode);
+            return res;
+        }
+        hashValue.insert(hashValue.end(), tmpHashValue.begin(), tmpHashValue.end());
+    }
+    if (keys.size() == 1u) {
+        hash = hashValue;
+    } else if (keys.empty()) {
+        auto empty = std::string("");
+        hash = std::vector<uint8_t>(empty.begin(), empty.end());
+    } else {
+        errCode = DBCommon::CalcValueHash(hashValue, hash);
+        if (errCode != E_OK) {
+            LOGE("[RDBClientUtils] Cal final hash failed[%d]", errCode);
+            return res;
+        }
+    }
+    return res;
 }
 } // namespace DistributedDB

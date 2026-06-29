@@ -306,6 +306,10 @@ int CloudSyncer::PrepareAndUpload(const CloudTaskInfo &taskInfo, size_t index)
         LOGE("[CloudSyncer] Invalid taskInfo table");
         return -E_INVALID_ARGS;
     }
+    errCode = ResetUploadStatusIfNeed();
+    if (errCode != E_OK) {
+        return errCode;
+    }
     errCode = DoUpload(taskInfo.taskId, index == (taskInfo.table.size() - 1u), taskInfo.lockAction);
     if (errCode == -E_CLOUD_VERSION_CONFLICT) {
         {
@@ -1107,8 +1111,13 @@ void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const Inne
 
 int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
 {
+    int errCode = ResetCloudWaterMarkIfNeed(isFirstDownload);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] reset cloud water mark failed[%d]", errCode);
+        return errCode;
+    }
     SyncParam param;
-    int errCode = GetSyncParamForDownload(taskId, param);
+    errCode = GetSyncParamForDownload(taskId, param);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] get sync param for download failed %d", errCode);
         return errCode;

@@ -210,4 +210,9 @@ int DBCommon::CreateDirectory(const std::string &directory)
     }
     return E_OK;
 }
+
+std::string DBCommon::FlagToStr(LogInfoFlag flag)
+{
+    return std::to_string(static_cast<int64_t>(flag));
+}
 } // namespace DistributedDB

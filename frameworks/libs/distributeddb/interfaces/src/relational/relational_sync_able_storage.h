@@ -293,10 +293,13 @@ public:
     std::vector<std::string> GetLocalPkNames(const std::string &tableName) override;
 
     AssetConflictPolicy GetAssetConflictPolicy() const override;
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int DropTempTable(const std::string &tableName) override;
 
     int DeleteCloudNoneExistRecord(const std::string &tableName, std::pair<bool, bool> isNeedDeleted) override;
+
+    int ResetUploadStatus(const std::string &table) override;
 #endif
 protected:
     int FillReferenceData(CloudSyncData &syncData);

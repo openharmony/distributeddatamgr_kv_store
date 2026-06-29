@@ -724,4 +724,43 @@ int SQLiteUtils::BindType(sqlite3_stmt *statement, const Type &type, int cid)
         }
     }
 }
+
+int SQLiteUtils::TransactionProcess(sqlite3 *db, TransactType type, const std::function<int()> &func)
+{
+    if (func == nullptr) {
+        LOGE("[SQLiteUtils][TransactionProcess] func is nullptr");
+        return -E_INVALID_ARGS;
+    }
+    auto errCode = BeginTransaction(db, type);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = func();
+    if (errCode != E_OK) {
+        auto ret = RollbackTransaction(db);
+        if (ret != E_OK) {
+            LOGW("[SQLiteUtils][TransactionProcess] Rollback transaction failed: %d", ret);
+        }
+        return errCode;
+    }
+    errCode = CommitTransaction(db);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][TransactionProcess] Commit transaction failed: %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::vector<std::pair<std::string, std::function<void()>>> &sql)
+{
+    for (const auto &[sqlStr, func] : sql) {
+        auto errCode = ExecuteRawSQL(db, sqlStr);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (func) {
+            func();
+        }
+    }
+    return E_OK;
+}
 } // namespace DistributedDB

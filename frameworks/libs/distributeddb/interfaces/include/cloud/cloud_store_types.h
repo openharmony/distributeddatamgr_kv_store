@@ -130,6 +130,7 @@ struct CloudSyncOption {
     bool asyncDownloadAssets = false;
     QueryMode queryMode = QueryMode::UPLOAD_AND_DOWNLOAD;
     SyncFlowType syncFlowType = SyncFlowType::NORMAL;
+    bool isFullSync = false;
 };
 
 enum class QueryNodeType : uint32_t {

@@ -1650,19 +1650,20 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
     } else {
         setFlag = SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC;
     }
-    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " + setFlag +
+    std::string cleanLogSql = "DELETE FROM " + logTableName +
+        " WHERE " + FLAG_IS_CLOUD_CONSISTENCY + " AND " + DATA_IS_DELETE + ";";
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
+    if (errCode != E_OK) {
+        LOGE("delete cloud log failed, %d", errCode);
+        return errCode;
+    }
+    cleanLogSql = "UPDATE " + logTableName + " SET " + CloudDbConstant::FLAG + " = " + setFlag +
         ", " + VERSION + " = '', " + DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '', " +
         SHARING_RESOURCE + " = '' " + "WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
         CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
-    if (errCode != E_OK) {
-        LOGE("clean cloud log failed, %d", errCode);
-        return errCode;
-    }
-    cleanLogSql = "DELETE FROM " + logTableName + " WHERE " + FLAG_IS_CLOUD + " AND " + DATA_IS_DELETE + ";";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
-        LOGE("delete cloud log failed, %d", errCode);
+        LOGE("clean cloud log failed, %d", errCode);
         return errCode;
     }
     // set all flag logout and data upload is not finished.
@@ -2078,6 +2079,11 @@ int SQLiteSingleVerRelationalStorageExecutor::RemoveCloudNoneExistRecordAssets(c
 int SQLiteSingleVerRelationalStorageExecutor::GetGidRecordCount(const std::string &tableName, uint64_t &count) const
 {
     return SQLiteRelationalUtils::GetGidRecordCount(dbHandle_, tableName, count);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::ResetUploadStatus(const std::string &table) const
+{
+    return SQLiteRelationalUtils::ResetUploadStatus(dbHandle_, table);
 }
 #endif
 

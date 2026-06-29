@@ -221,6 +221,8 @@ public:
     bool IsSkipDownloadAssets() const;
 
     AssetConflictPolicy GetAssetConflictPolicy() const;
+
+    int ResetUploadStatus(const std::string &table);
 protected:
     void Init();
 private:

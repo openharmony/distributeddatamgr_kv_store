@@ -29,15 +29,16 @@ public:
     using TaskId = uint64_t;
     struct CloudTaskInfo {
         bool priorityTask = false;
-        int32_t priorityLevel = 0;
         bool compensatedTask = false;
         bool isAssetsOnly = false;
         bool pause = false;
         bool resume = false;
         bool merge = false;
         bool asyncDownloadAssets = false;
+        bool fullSync = false; // reset download and upload mark when sync
         int errCode = 0;
         int tempErrCode = 0;
+        int32_t priorityLevel = 0;
         QueryMode queryMode = QueryMode::UPLOAD_AND_DOWNLOAD;
         SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
         SyncFlowType syncFlowType = SyncFlowType::NORMAL;
@@ -45,6 +46,7 @@ public:
         LockAction lockAction = LockAction::INSERT;
         TaskId taskId = 0u;
         int64_t timeout = 0;
+        uint32_t groupNum = 0;
         SyncProcessCallback callback;
         std::vector<std::string> table;
         std::vector<std::string> devices;
@@ -52,7 +54,6 @@ public:
         std::vector<std::string> users;
         std::string storeId;
         std::string prepareTraceId;
-        uint32_t groupNum = 0;
         AssetsGroupMap assetsGroupMap;
         std::string errorMessage;
     };

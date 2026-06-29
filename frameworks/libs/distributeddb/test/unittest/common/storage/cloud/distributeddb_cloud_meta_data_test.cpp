@@ -335,6 +335,7 @@ namespace {
         std::vector<VBucket> extend;
         EXPECT_EQ(proxyObj.PutCloudGid(TABLE_NAME_1, extend), -E_INVALID_DB);
         EXPECT_EQ(proxyObj.DeleteCloudNoneExistRecord(TABLE_NAME_1), -E_INVALID_DB);
+        EXPECT_EQ(proxyObj.ResetUploadStatus(TABLE_NAME_1), -E_BUSY);
     }
 
     /**

@@ -100,6 +100,8 @@ protected:
 
     std::shared_ptr<VirtualAssetLoader> GetVirtualAssetLoader() const;
 
+    static CloudSyncOption GetCloudSyncOption();
+
     void CloudBlockSync(const StoreInfo &from, const Query &query, DBStatus exceptStatus = OK,
         DBStatus callbackExpect = OK);
 

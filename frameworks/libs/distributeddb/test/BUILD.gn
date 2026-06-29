@@ -1044,6 +1044,12 @@ distributeddb_unittest("DistributedDBDataDonationSqlTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBRdbFullCloudSyncTest") {
+  sources = [
+    "unittest/common/store_test/rdb/distributeddb_rdb_full_cloud_sync_test.cpp",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -1151,6 +1157,7 @@ group("unittest") {
     ":DistributedDBRDBPermissionSyncTest",
     ":DistributedDBRDBSqliteUtilsTest",
     ":DistributedDBRDBUpgradeTest",
+    ":DistributedDBRdbFullCloudSyncTest",
     ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",
@@ -1198,6 +1205,7 @@ group("unittest") {
 
   if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
     deps += [
+      ":DistributedDBDataDonationSqlTest",
       ":DistributedDBInterfacesDatabaseRdKernelTest",
       ":DistributedDBInterfacesImportAndExportRdTest",
       ":DistributedDBInterfacesNBDelegateRdTest",
@@ -1207,7 +1215,6 @@ group("unittest") {
       ":DistributedDBStorageRdSingleVerNaturalExecutorTest",
       ":DistributedDBStorageRdSingleVerNaturalStoreTest",
       ":DistributedDBStorageRdSingleVerStorageEngineTest",
-      ":DistributedDBDataDonationSqlTest",
     ]
   }
 }

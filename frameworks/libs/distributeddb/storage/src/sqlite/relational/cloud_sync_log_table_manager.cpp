@@ -120,7 +120,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += GetInsertCondition(table);
     insertTrigger += "BEGIN\n";
     insertTrigger += CloudStorageUtils::GetCursorIncSql(tableName) + "\n";
-    insertTrigger += GetInsertLogSQL(table, identity, true);
+    insertTrigger += GetInsertLogSQL(table, identity);
     insertTrigger += ";\n";
     insertTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::INSERT);
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
@@ -231,30 +231,26 @@ std::string CloudSyncLogTableManager::GetInsertCondition(const TableInfo &table)
     return condition;
 }
 
-std::string CloudSyncLogTableManager::GetInsertLogSQL(const TableInfo &table, const std::string &identity,
-    bool isReplace)
+std::string CloudSyncLogTableManager::GetInsertLogSQL(const TableInfo &table, const std::string &identity)
 {
     std::string sql;
     auto &tableName = table.GetTableName();
     auto logTblName = DBCommon::GetLogTableName(tableName);
     sql += "\t INSERT ";
-    if (isReplace) {
-        sql += "OR REPLACE ";
-    }
     sql += "INTO " + logTblName;
     sql += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
     sql += " extend_field, cursor, version, sharing_resource, status)";
     sql += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     sql += " get_raw_sys_time(), get_raw_sys_time(), 0x02|0x20, ";
-    sql += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
-    sql += logTblName + " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
-    sql += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
-    sql += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END, ";
+    sql += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
     sql += table.GetTrackerTable().GetAssignValSql();
     sql += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
     sql += "(SELECT CASE WHEN version IS NULL THEN '' ELSE version END FROM " + logTblName;
     sql += " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
-    sql += "), '', 0)";
+    sql += "), '', 0) ON CONFLICT(" + GetUpdateConflictKey(table);
+    sql += ") DO UPDATE SET data_key=EXCLUDED.data_key, device=EXCLUDED.device,"
+           " timestamp=EXCLUDED.timestamp, flag=EXCLUDED.flag, extend_field=EXCLUDED.extend_field,"
+           " cursor=EXCLUDED.cursor, status=EXCLUDED.status";
     return sql;
 }
 

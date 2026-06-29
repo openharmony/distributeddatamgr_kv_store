@@ -370,6 +370,11 @@ public:
     {
         return AssetConflictPolicy::CONFLICT_POLICY_DEFAULT;
     }
+
+    virtual int ResetUploadStatus([[gnu::unused]] const std::string &table)
+    {
+        return E_OK;
+    }
 };
 }
 

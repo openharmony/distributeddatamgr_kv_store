@@ -548,7 +548,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, CloudSyncTest004, TestSize.Level1)
     DeleteUserTableRecord(sharedParentTableName_, 0, 1);
     DeleteUserTableRecord(sharedChildTableName_, 0, 1);
     RelationalTestUtils::CloudBlockSync(query, delegate_);
-    CheckDistributedSharedData({"400", "600"});
+    CheckDistributedSharedData({"", ""});
 }
 
 /**

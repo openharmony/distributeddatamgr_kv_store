@@ -17,6 +17,7 @@
 
 #include "db_common.h"
 #include "db_errno.h"
+#include "dfx_helper.h"
 #include "cloud/cloud_db_constant.h"
 #include "kv_store_errno.h"
 #include "log_print.h"
@@ -101,7 +102,9 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
 {
     LOGI("[RelationalStore Delegate] Create distributed table for [%s length[%u]], type[%d]",
         DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), static_cast<int>(type));
-    auto start = std::chrono::steady_clock::now();
+    std::string tag = std::string("[RelationalStore Delegate] create distributed table for [")
+        .append(DBCommon::StringMiddleMaskingWithLen(tableName)).append("]");
+    auto helper = DFXHelper::GetCostTimeHelper(tag);
     if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
         LOGE("[RelationalStore Delegate] Invalid table name.");
         return INVALID_ARGS;
@@ -135,12 +138,6 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::str
     }
 
     int errCode = conn_->CreateDistributedTable(tableName, type, config.isAsync);
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-    if (duration > CloudDbConstant::DFX_TIME_THRESHOLD) {
-        int64_t costTimeMs = duration.count();
-        LOGW("[RelationalStore Delegate] Create distributed table for [%s length[%u]] cost:%" PRIi64 "ms",
-            DBCommon::StringMiddleMasking(tableName).c_str(), tableName.length(), costTimeMs);
-    }
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] Create Distributed table failed:%d", errCode);
         return TransferDBErrno(errCode);
@@ -370,7 +367,9 @@ DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schem
 {
     LOGI("[RelationalStore Delegate] create tracker table for [%s length[%u]]",
         DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.length());
-    auto start = std::chrono::steady_clock::now();
+    std::string tag = std::string("[RelationalStore Delegate] create tracker table for [")
+        .append(DBCommon::StringMiddleMaskingWithLen(schema.tableName)).append("]");
+    auto helper = DFXHelper::GetCostTimeHelper(tag);
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");
         return DB_ERROR;
@@ -384,12 +383,6 @@ DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schem
         return INVALID_ARGS;
     }
     int errCode = conn_->SetTrackerTable(schema);
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-    if (duration > CloudDbConstant::DFX_TIME_THRESHOLD) {
-        int64_t costTimeMs = duration.count();
-        LOGW("[RelationalStore Delegate] create tracker table for [%s length[%u]] cost:%" PRIi64 "ms",
-            DBCommon::StringMiddleMasking(schema.tableName).c_str(), schema.tableName.length(), costTimeMs);
-    }
     if (errCode != E_OK) {
         if (errCode == -E_WITH_INVENTORY_DATA) {
             LOGI("[RelationalStore Delegate] create tracker table for the first time.");

@@ -231,6 +231,10 @@ public:
     static int BindType(sqlite3_stmt *statement, const Type &type, int cid);
 
     static int SetBinlogEnabled(sqlite3 *db, bool enabled);
+
+    static int TransactionProcess(sqlite3 *db, TransactType type, const std::function<int()> &func);
+
+    static int ExecuteRawSQL(sqlite3 *db, const std::vector<std::pair<std::string, std::function<void()>>> &sql);
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

@@ -995,6 +995,13 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSql(UpdateRecordFlagStruct upd
     return sql;
 }
 
+bool CloudStorageUtils::IsNeedResetCloudInfoInUpload(const VBucket &uploadExtend, const CloudWaterType &type)
+{
+    return (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
+        (type == CloudWaterType::UPDATE || type == CloudWaterType::DELETE)) ||
+        (type == CloudWaterType::DELETE && !DBCommon::IsRecordError(uploadExtend));
+}
+
 std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &tableName, bool recordConflict,
     const LogInfo &logInfo, const VBucket &uploadExtend, const CloudWaterType &type)
 {
@@ -1017,8 +1024,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &t
             "flag & ~" + compensatedBit + " & ~" + inconsistencyBit + " ELSE flag & ~" + compensatedBit;
     }
     sql += " END), status = (CASE WHEN status == 2 THEN 3 WHEN (status == 1 AND timestamp = ?) THEN 0 ELSE status END)";
-    if (DBCommon::IsCloudRecordNotFound(uploadExtend) &&
-        (type == CloudWaterType::UPDATE || type == CloudWaterType::DELETE)) {
+    if (IsNeedResetCloudInfoInUpload(uploadExtend, type)) {
         sql += ", cloud_gid = '', version = '' ";
     }
     sql += " WHERE ";

@@ -43,28 +43,6 @@ struct LogInfo {
     uint64_t cloud_flag = 0; // use for kv cloud log table
 };
 
-enum class LogInfoFlag : uint32_t {
-    FLAG_CLOUD = 0x0, // same as device sync
-    FLAG_DELETE = 0x1,
-    FLAG_LOCAL = 0x2,
-    FLAG_FORCE_PUSH_IGNORE = 0x4, // use in RDB
-    FLAG_LOGIC_DELETE = 0x8, // use in RDB
-    FLAG_WAIT_COMPENSATED_SYNC = 0x10,
-    FLAG_DEVICE_CLOUD_INCONSISTENCY = 0x20,
-    FLAG_KV_FORCE_PUSH_IGNORE = 0x40,
-    FLAG_KV_LOGIC_DELETE = 0x80,
-    FLAG_CLOUD_WRITE = 0x100,
-    FLAG_SYSTEM_RECORD = 0x200,
-    FLAG_UPLOAD_FINISHED = 0x400,
-    FLAG_LOGIC_DELETE_FOR_LOGOUT = 0x800,
-    FLAG_ASSET_DOWNLOADING_FOR_ASYNC = 0x1000,
-    FLAG_LOGIN_USER = 0x2000, // same hash key, login user's data
-    FLAG_CLOUD_UPDATE_LOCAL = 0x4000,  // 1 indicates an update on the cloud side, and 0 indicates data inserted on the
-                                       // cloud side or data operated locally
-    FLAG_KNOWLEDGE_INVERTED_WRITE = 0x8000, // knowledge process written to inverted table
-    FLAG_KNOWLEDGE_VECTOR_WRITE = 0x10000,  // knowledge process written to vector table
-};
-
 struct RowDataWithLog {
     LogInfo logInfo;
     RowData rowData;
