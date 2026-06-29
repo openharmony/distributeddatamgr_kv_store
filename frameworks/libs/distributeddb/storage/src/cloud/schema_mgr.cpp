@@ -200,6 +200,7 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
 {
     DataBaseSchema cloudSchema = schema;
     DataBaseSchema cloudSharedSchema;
+    std::string schemaInfo = "[SchemaMgr] Set cloud schema ";
     for (const auto &tableSchema : cloudSchema.tables) {
         if (tableSchema.name.empty() || tableSchema.sharedTableName.empty()) {
             continue;
@@ -212,11 +213,13 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
         sharedTableFields.push_back(privilegeField);
         TableSchema sharedTableSchema = { tableSchema.sharedTableName, tableSchema.sharedTableName, sharedTableFields };
         cloudSharedSchema.tables.push_back(sharedTableSchema);
+        schemaInfo += "[" + DBCommon::StringMiddleMaskingWithLen(tableSchema.name) + "]";
     }
     for (const auto &sharedTableSchema : cloudSharedSchema.tables) {
         cloudSchema.tables.push_back(sharedTableSchema);
     }
     cloudSchema_ = std::make_shared<DataBaseSchema>(cloudSchema);
+    LOGI("%s", schemaInfo.c_str());
 }
 
 std::shared_ptr<DataBaseSchema> SchemaMgr::GetCloudDbSchema()
@@ -227,7 +230,6 @@ std::shared_ptr<DataBaseSchema> SchemaMgr::GetCloudDbSchema()
 int SchemaMgr::GetCloudTableSchema(const TableName &tableName, TableSchema &retSchema)
 {
     if (cloudSchema_ == nullptr) {
-        LOGE("[SchemaMgr] get cloud table schema failed, cloud schema is nullptr");
         return -E_SCHEMA_MISMATCH;
     }
     for (const TableSchema &tableSchema : cloudSchema_->tables) {

@@ -563,7 +563,7 @@ void AutoLaunch::OnlineCallBack(const std::string &device, bool isConnect)
 
 void AutoLaunch::OnlineCallBackTask()
 {
-    LOGI("[AutoLaunch] OnlineCallBackTask");
+    LOGD("[AutoLaunch] OnlineCallBackTask");
     // <identifier, <userId, AutoLaunchItem>>
     std::map<std::string, std::map<std::string, AutoLaunchItem>> doOpenMap;
     GetDoOpenMap(doOpenMap);
@@ -574,7 +574,7 @@ void AutoLaunch::OnlineCallBackTask()
 void AutoLaunch::GetDoOpenMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    LOGI("[AutoLaunch] GetDoOpenMap");
+    LOGD("[AutoLaunch] GetDoOpenMap");
     for (auto &items : autoLaunchItemMap_) {
         for (auto &iter : items.second) {
             bool isDualTupleMode = iter.second.propertiesPtr->GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
@@ -631,7 +631,7 @@ void AutoLaunch::GetConnInDoOpenMapInner(std::pair<const std::string, std::map<s
 
 void AutoLaunch::GetConnInDoOpenMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap)
 {
-    LOGI("[AutoLaunch] GetConnInDoOpenMap doOpenMap.size():%zu", doOpenMap.size());
+    LOGD("[AutoLaunch] GetConnInDoOpenMap doOpenMap.size():%zu", doOpenMap.size());
     if (doOpenMap.empty()) {
         return;
     }
@@ -651,7 +651,7 @@ void AutoLaunch::GetConnInDoOpenMap(std::map<std::string, std::map<std::string, 
 void AutoLaunch::UpdateGlobalMap(std::map<std::string, std::map<std::string, AutoLaunchItem>> &doOpenMap)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-    LOGI("[AutoLaunch] UpdateGlobalMap");
+    LOGD("[AutoLaunch] UpdateGlobalMap");
     for (const auto &items : doOpenMap) {
         for (const auto &iter : items.second) {
             if (iter.second.conn != nullptr) {
@@ -665,7 +665,7 @@ void AutoLaunch::UpdateGlobalMap(std::map<std::string, std::map<std::string, Aut
         }
     }
     cv_.notify_all();
-    LOGI("[AutoLaunch] UpdateGlobalMap finish notify_all");
+    LOGD("[AutoLaunch] UpdateGlobalMap finish notify_all");
 }
 
 void AutoLaunch::ReceiveUnknownIdentifierCallBackTask(const std::string &identifier, const std::string &userId)

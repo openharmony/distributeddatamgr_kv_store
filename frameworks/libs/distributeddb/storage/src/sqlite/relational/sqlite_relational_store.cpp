@@ -2158,7 +2158,7 @@ std::pair<int, CreateDistributedTableParam> SQLiteRelationalStore::GetCreateDisT
     param.tableName = tableName;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     if (storageEngine_ == nullptr) {
-        LOGW("[RelationalStore] storageEngine is null when create distributed table");
+        LOGW("[RDBStore] storageEngine is null when create distributed table");
         errCode = -E_INVALID_DB;
         return res;
     }
@@ -2167,7 +2167,7 @@ std::pair<int, CreateDistributedTableParam> SQLiteRelationalStore::GetCreateDisT
     if (errCode == E_OK) {
         param.cloudTable = schema;
     } else {
-        LOGW("[RelationalStore] get cloud table err[%d] when create distributed table", errCode);
+        LOGW("[RDBStore] get cloud table err[%d] when create dis table", errCode);
         errCode = E_OK;
     }
 #endif

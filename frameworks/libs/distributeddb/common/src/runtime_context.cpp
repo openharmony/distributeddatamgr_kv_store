@@ -27,7 +27,7 @@ RuntimeContext *RuntimeContext::GetInstance()
     if (instance_.load(std::memory_order_acquire) == nullptr) {
         if (instance_ == nullptr) {
             instance_.store(new RuntimeContextImpl(), std::memory_order_release);
-            LOGI("DistributedDB Version : %s", SOFTWARE_VERSION_STRING);
+            LOGD("DistributedDB Version : %s", SOFTWARE_VERSION_STRING);
         }
     }
     return instance_.load(std::memory_order_acquire);

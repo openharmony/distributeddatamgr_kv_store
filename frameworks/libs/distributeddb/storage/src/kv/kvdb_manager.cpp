@@ -626,7 +626,7 @@ IKvDB *KvDBManager::OpenNewDatabase(const KvDBProperties &property, int &errCode
     }
     auto identifier = DBCommon::TransferStringToHex(property.GetStringProp(KvDBProperties::IDENTIFIER_DATA, ""));
     auto dbDir = property.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
-    LOGI("Database identifier:%.6s, dir:%.6s", identifier.c_str(), dbDir.c_str());
+    LOGI("db id:%.6s, dir:%.6s", identifier.c_str(), dbDir.c_str());
     // Register the callback function when the database is closed, triggered when kvdb free
     kvDB->OnClose([kvDB, this]() {
         this->RemoveKvDBFromCache(kvDB);

@@ -394,6 +394,7 @@ void SQLiteSingleVerStorageExecutor::InitCurrentMaxStamp(Timestamp &maxStamp)
     errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         maxStamp = static_cast<uint64_t>(sqlite3_column_int64(statement, 0)); // get the first column
+        errCode = E_OK;
     }
     SQLiteUtils::ResetStatement(statement, true, errCode);
     if (errCode != E_OK) {

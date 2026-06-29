@@ -1082,7 +1082,6 @@ int GenericSyncer::CloseInner(bool isClosedOperation)
     {
         std::lock_guard<std::mutex> lock(syncerLock_);
         if (!initialized_) {
-            LOGW("[Syncer] CloseInner[%.3s] don't close", label_.c_str());
             return -E_NOT_INIT;
         }
         initialized_ = false;

@@ -197,7 +197,7 @@ int SQLiteSingleVerDatabaseUpgrader::UpgradeFromDatabaseVersion(int version)
 {
     std::vector<std::string> sqls;
     bool isCreateUpgradeFile = false;
-    LOGI("[SqlSingleUp] metaSplit[%d], secLabel[%d], secFlag[%d], version[%d]",
+    LOGI("[SqlUp] meta[%d] label[%d] flag[%d] ver[%d]",
         isMetaUpgrade_, secOpt_.securityLabel, secOpt_.securityFlag, version);
     SetUpgradeSqls(version, sqls, isCreateUpgradeFile);
     for (const auto &item : sqls) {

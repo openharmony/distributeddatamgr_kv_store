@@ -444,7 +444,7 @@ int SQLiteSingleRelationalStorageEngine::CleanDistributedDeviceTable(std::vector
     errCode = handle->CheckAndCleanDistributedTable(schema_.GetTableNames(), missingTables);
     if (errCode == E_OK) {
         if (missingTables.empty()) {
-            LOGI("Missing table is empty.");
+            LOGD("Missing table is empty.");
             ReleaseExecutor(handle);
             return errCode;
         }

@@ -428,7 +428,7 @@ int SQLiteSingleVerNaturalStore::AddSubscribe(const std::string &subscribeId, co
 int SQLiteSingleVerNaturalStore::SetMaxLogSize(uint64_t limit)
 {
     if (maxLogSize_ != limit) {
-        LOGI("Set the max log size to %" PRIu64, limit);
+        LOGD("Set the max log size to %" PRIu64, limit);
     }
     maxLogSize_.store(limit);
     return E_OK;
