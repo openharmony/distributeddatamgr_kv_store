@@ -112,7 +112,7 @@ IRelationalStore *RelationalStoreInstance::OpenDatabase(const RelationalDBProper
     }
 
     db->OnClose([this, properties]() {
-        LOGI("Remove from the cache");
+        LOGD("Remove from the cache");
         this->RemoveKvDBFromCache(properties);
     });
 

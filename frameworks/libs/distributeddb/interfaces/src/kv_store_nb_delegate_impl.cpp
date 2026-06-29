@@ -1298,7 +1298,9 @@ KvStoreNbDelegate::DatabaseStatus KvStoreNbDelegateImpl::GetDatabaseStatus() con
         return status;
     }
     status.isRebuild = conn_->IsRebuild();
-    LOGI("[KvStoreNbDelegate] rebuild %d", static_cast<int>(status.isRebuild));
+    if (status.isRebuild) {
+        LOGI("[KvStoreNbDelegate] rebuild[%s]", DBCommon::StringMiddleMaskingWithLen(storeId_).c_str());
+    }
     return status;
 }
 

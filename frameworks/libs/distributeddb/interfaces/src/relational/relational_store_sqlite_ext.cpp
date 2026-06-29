@@ -341,7 +341,7 @@ public:
             return inst;
         }
         timeHelperInstance_ = std::make_shared<TimeHelperManager>();
-        LOGI("[TimeHelper] init");
+        LOGD("[TimeHelper] init");
         return timeHelperInstance_;
     }
 

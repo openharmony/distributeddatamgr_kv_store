@@ -1832,7 +1832,6 @@ int SQLiteSingleVerNaturalStore::GetSchema(SchemaObject &schema) const
         errCode = schema.ParseFromSchemaString(schemaValue);
     } else {
         std::string label = MyProp().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
-        LOGI("[SqlSinStore] [%.3s] Get schema error:%d.", label.c_str(), errCode);
     }
     ReleaseHandle(handle);
     return errCode;

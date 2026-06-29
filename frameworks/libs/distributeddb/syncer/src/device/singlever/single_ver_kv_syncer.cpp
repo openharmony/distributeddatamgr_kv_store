@@ -38,7 +38,7 @@ SingleVerKVSyncer::~SingleVerKVSyncer()
 
 void SingleVerKVSyncer::EnableAutoSync(bool enable)
 {
-    LOGI("[Syncer] EnableAutoSync enable = %d, Label=%s", enable, label_.c_str());
+    LOGD("[Syncer] EnableAutoSync enable = %d, Label=%s", enable, label_.c_str());
     if (autoSyncEnable_ == enable) {
         return;
     }

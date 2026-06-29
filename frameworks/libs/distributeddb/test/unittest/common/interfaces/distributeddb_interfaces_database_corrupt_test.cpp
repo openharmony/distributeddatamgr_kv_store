@@ -546,6 +546,8 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseRebuildTest001, Tes
     ASSERT_EQ(g_kvNbDelegateStatus, OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    KvStoreNbDelegate::DatabaseStatus actualStatus = g_kvNbDelegatePtr->GetDatabaseStatus();
+    EXPECT_EQ(actualStatus.isRebuild, false);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     /**
      * @tc.steps: step2. Modify database file and get the kv store
@@ -555,7 +557,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseRebuildTest001, Tes
     g_mgr.GetKvStore(storeId, nbOption, g_kvNbDelegateCallback);
     ASSERT_EQ(g_kvNbDelegateStatus, OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    KvStoreNbDelegate::DatabaseStatus actualStatus = g_kvNbDelegatePtr->GetDatabaseStatus();
+    actualStatus = g_kvNbDelegatePtr->GetDatabaseStatus();
     EXPECT_EQ(actualStatus.isRebuild, true);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);

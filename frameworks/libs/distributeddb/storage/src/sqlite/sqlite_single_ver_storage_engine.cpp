@@ -817,8 +817,6 @@ int SQLiteSingleVerStorageEngine::EndCreateExecutor(sqlite3 *db, SecurityOption 
     errCode = SqliteLogTableManager::CreateKvSyncLogTable(db);
     if (errCode != E_OK) {
         LOGE("[SqlSinEngine] create cloud log table failed, errCode = [%d]", errCode);
-    } else {
-        LOGI("[SqlSinEngine] create cloud log table success");
     }
     return errCode;
 }

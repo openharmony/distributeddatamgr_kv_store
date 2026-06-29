@@ -837,7 +837,7 @@ int CloudSyncer::GetUploadCountByTable(const CloudSyncer::TaskId &taskId, int64_
 void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string &tableName,
     bool needNotify)
 {
-    LOGI("[CloudSyncer] There is no need to doing upload, as the upload data count is zero.");
+    LOGI("[CloudSyncer] The upload count is 0");
     InnerProcessInfo innerProcessInfo;
     innerProcessInfo.tableName = tableName;
     innerProcessInfo.upLoadInfo.total = 0;  // count is zero
