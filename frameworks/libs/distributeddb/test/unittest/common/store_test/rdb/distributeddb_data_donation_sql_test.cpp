@@ -1510,6 +1510,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData015, Tes
         }
         idx++;
     } while (status == OK);
+    EXPECT_EQ(cursorOut.cursor, dataCount - 1);
     EXPECT_EQ(totalRecords, dataCount + CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL);
 }
 }

@@ -48,47 +48,50 @@ int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *ha
     int errCode = E_OK;
     std::vector<std::pair<std::string, int64_t>> cursorValues;
     std::vector<std::pair<std::string, int64_t>> maxRowids;
-
-    if (cursorIn.cursor == 0) {
+    cursorOut.queryType = cursorIn.queryType;
+    bool needInit = (cursorIn.cursor == 0) && (!getAllCache_.isValid || getAllCache_.mainTable != mainTable);
+    if (needInit) {
         // First query: initialize
-        errCode = InitGetAllQuery(dbPath, tableNames, handle, maxRowids);
+        errCode = InitGetAllQuery(dbPath, tableNames, handle, maxRowids, cursorOut.cursor);
     } else {
         // Subsequent query: load from cache or file
         errCode = LoadCursorFromCacheOrFile(mainTable, dbPath, cursorValues, maxRowids);
         // If the cursor fails to load, try restart the query
         if (errCode != E_OK) {
             LOGW("[QueryStorage] load cursor failed and try requery: %d", errCode);
-            errCode = InitGetAllQuery(dbPath, tableNames, handle, maxRowids);
+            errCode = InitGetAllQuery(dbPath, tableNames, handle, maxRowids, cursorOut.cursor);
         }
     }
-
     if (errCode != E_OK) {
         return errCode;
     }
 
     SQLiteSingleVerRelationalStorageExecutor::GetAllQueryResult result;
     errCode = handle->QuerySubscribeOutputWithCursor(path, cursorValues, maxRowids, result);
+    if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
+        return errCode;
+    }
 
-    GetAllCursorCache newCache;
-    newCache.mainTable = result.mainTable;
-    newCache.dbPath = result.dbPath;
-    newCache.cursorValues = result.cursorValues;
-    newCache.maxRowids = result.maxRowids;
-    newCache.sessionCursor = result.sessionCursor;
-    newCache.isValid = true;
-    UpdateGetAllCache(newCache);
-
+    if (!result.dataOut.empty()) {
+        GetAllCursorCache newCache;
+        newCache.mainTable = result.mainTable;
+        newCache.dbPath = result.dbPath;
+        newCache.cursorValues = result.cursorValues;
+        newCache.maxRowids = result.maxRowids;
+        newCache.sessionCursor = result.sessionCursor;
+        newCache.isValid = true;
+        UpdateGetAllCache(newCache);
+    }
     data = result.dataOut;
-    cursorOut.queryType = cursorIn.queryType;
     cursorOut.cursor = result.sessionCursor;
-
     return errCode;
 }
 
 int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
     const std::vector<std::string> &tableNames,
     SQLiteSingleVerRelationalStorageExecutor *handle,
-    std::vector<std::pair<std::string, int64_t>> &maxRowids)
+    std::vector<std::pair<std::string, int64_t>> &maxRowids,
+    uint64_t &cursorOut)
 {
     // Clear old cache
     getAllCache_.isValid = false;
@@ -110,6 +113,7 @@ int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
 
     // If main table is empty, finish
     if (!maxRowids.empty() && maxRowids[0].second == 0) {
+        cursorOut = 0;
         return -E_SUBSCRIBE_QUERY_END;
     }
 
@@ -168,7 +172,6 @@ int DataDonationCache::FlushGetAllCursorCache()
     }
 
     LOGI("[FlushGetAllCursorCache] Persisted cursor for table %s", getAllCache_.mainTable.c_str());
-    getAllCache_.isValid = false;  // Clear cache
     return E_OK;
 }
 

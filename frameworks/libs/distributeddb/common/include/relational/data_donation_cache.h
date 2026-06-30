@@ -68,7 +68,8 @@ private:
     int InitGetAllQuery(const std::string &dbPath,
         const std::vector<std::string> &tableNames,
         SQLiteSingleVerRelationalStorageExecutor *handle,
-        std::vector<std::pair<std::string, int64_t>> &maxRowids);
+        std::vector<std::pair<std::string, int64_t>> &maxRowids,
+        uint64_t &cursorOut);
 
     int LoadCursorFromCacheOrFile(const std::string &mainTable, const std::string &dbPath,
         std::vector<std::pair<std::string, int64_t>> &cursorValues,

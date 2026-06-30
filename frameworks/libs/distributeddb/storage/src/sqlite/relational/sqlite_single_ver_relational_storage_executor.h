@@ -339,12 +339,6 @@ private:
     int GetQuerySubscribeSql(const DataDonationSchema::DdRelationsPath &path,
         const std::vector<std::pair<std::string, int64_t>> &cursorValues,
         const std::vector<std::pair<std::string, int64_t>> &maxRowids, std::string &sql) const;
-    int InitFullQuery(const std::string &mainTable, const std::string &dbPath,
-        const std::vector<std::string> &tableNames, int64_t &maxRowid,
-        std::vector<std::pair<std::string, int64_t>> &maxRowids);
-    int ResumeFullQuery(const std::string &mainTable, const std::string &dbPath, int64_t &maxRowid,
-        std::vector<std::pair<std::string, int64_t>> &cursorValues,
-        std::vector<std::pair<std::string, int64_t>> &maxRowids) const;
     void ExtractAndRemoveRowid(const std::vector<std::string> &tableNames, std::vector<VBucket> &dataOut,
         std::vector<std::pair<std::string, int64_t>> &cursorValues) const;
 

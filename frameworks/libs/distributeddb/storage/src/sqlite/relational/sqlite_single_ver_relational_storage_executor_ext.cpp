@@ -61,7 +61,11 @@ int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutputWithCursor(
             static_cast<int64_t>(SubDataOpType::OP_INSERT));
     }
 
-    if (!result.maxRowids.empty()) {
+    if (!result.cursorValues.empty()) {
+        // Use the last actually-read rowid of the main table as the session cursor (query progress)
+        result.sessionCursor = static_cast<uint64_t>(result.cursorValues[0].second);
+    } else if (!result.maxRowids.empty()) {
+        // Fallback to main table maxRowid when no data is read, indicates the session has covered the upper bound
         result.sessionCursor = static_cast<uint64_t>(result.maxRowids[0].second);
     }
 
@@ -69,58 +73,6 @@ int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutputWithCursor(
         return -E_SUBSCRIBE_QUERY_END;
     }
     return E_OK;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::InitFullQuery(const std::string &mainTable,
-    const std::string &dbPath, const std::vector<std::string> &tableNames, int64_t &maxRowid,
-    std::vector<std::pair<std::string, int64_t>> &maxRowids)
-{
-    int errCode = DataDonationUtils::CheckBinlogDirExist(dbPath);
-    if (errCode != E_OK) {
-        LOGE("[InitFullQuery] Binlog dir not exist: %d", errCode);
-        return errCode;
-    }
-
-    for (const auto &tableName : tableNames) {
-        int64_t tableMaxRowid = 0;
-        errCode = GetMaxRowid(tableName, tableMaxRowid);
-        if (errCode != E_OK) {
-            LOGE("[InitFullQuery] GetMaxRowid for %s failed: %d", tableName.c_str(), errCode);
-            return errCode;
-        }
-        maxRowids.emplace_back(tableName, tableMaxRowid);
-    }
-
-    if (!maxRowids.empty()) {
-        maxRowid = maxRowids[0].second;
-    }
-    if (maxRowid == 0) {
-        return -E_SUBSCRIBE_QUERY_END;
-    }
-
-    errCode = DataDonationUtils::SaveRowidHwm(dbPath, mainTable, {}, maxRowids);
-    if (errCode != E_OK) {
-        LOGE("[InitFullQuery] SaveRowidHwm failed: %d", errCode);
-        return errCode;
-    }
-
-    errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_reset_search_hwm_binlog(dbHandle_));
-    if (errCode != E_OK) {
-        LOGE("[InitFullQuery] sqlite3_reset_search_hwm_binlog failed: %d", errCode);
-    }
-    return errCode;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::ResumeFullQuery(const std::string &mainTable,
-    const std::string &dbPath, int64_t &maxRowid,
-    std::vector<std::pair<std::string, int64_t>> &cursorValues,
-    std::vector<std::pair<std::string, int64_t>> &maxRowids) const
-{
-    int errCode = DataDonationUtils::LoadRowidHwm(dbPath, mainTable, maxRowid, cursorValues, maxRowids);
-    if (errCode != E_OK) {
-        LOGE("[ResumeFullQuery] LoadRowidHwm failed: %d", errCode);
-    }
-    return errCode;
 }
 
 void SQLiteSingleVerRelationalStorageExecutor::ExtractAndRemoveRowid(const std::vector<std::string> &tableNames,
