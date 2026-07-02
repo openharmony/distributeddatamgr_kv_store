@@ -109,7 +109,7 @@ std::string AniStringUtils::ToStd(ani_env *env, ani_string ani_str)
     }
     ani_size strSize = 0;
     auto status = env->String_GetUTF8Size(ani_str, &strSize);
-    if (ANI_OK != status) {
+    if (status != ANI_OK) {
         ZLOGI("String_GetUTF8Size failed");
         return std::string();
     }
@@ -119,7 +119,7 @@ std::string AniStringUtils::ToStd(ani_env *env, ani_string ani_str)
 
     ani_size bytesWritten = 0;
     status = env->String_GetUTF8(ani_str, utf8Buffer, strSize + 1, &bytesWritten);
-    if (ANI_OK != status) {
+    if (status != ANI_OK) {
         ZLOGI("String_GetUTF8Size failed");
         return std::string();
     }
@@ -135,7 +135,7 @@ ani_string AniStringUtils::ToAni(ani_env *env, const std::string& str)
         return nullptr;
     }
     ani_string aniStr = nullptr;
-    if (ANI_OK != env->String_NewUTF8(str.data(), str.size(), &aniStr)) {
+    if (env->String_NewUTF8(str.data(), str.size(), &aniStr) != ANI_OK) {
         ZLOGI("Unsupported ANI_VERSION_1");
         return nullptr;
     }
@@ -173,15 +173,15 @@ bool AniCreateTuple(ani_env* env, ani_ref item1, ani_ref item2, ani_tuple_value 
     ani_class tupleCls {};
     ani_method tupleCtorMethod {};
     ani_object tupleObj {};
-    if (ANI_OK != env->FindClass("std.core.Tuple2", &tupleCls)) {
+    if (env->FindClass("std.core.Tuple2", &tupleCls) != ANI_OK) {
         ZLOGE("FindClass std.core.Tuple2 failed");
         return false;
     }
-    if (ANI_OK != env->Class_FindMethod(tupleCls, "<ctor>", nullptr, &tupleCtorMethod)) {
+    if (env->Class_FindMethod(tupleCls, "<ctor>", nullptr, &tupleCtorMethod) != ANI_OK) {
         ZLOGE("Class_FindMethod ctor failed");
         return false;
     }
-    if (ANI_OK != env->Object_New(tupleCls, tupleCtorMethod, &tupleObj, item1, item2)) {
+    if (env->Object_New(tupleCls, tupleCtorMethod, &tupleObj, item1, item2) != ANI_OK) {
         ZLOGE("Object_New tupleCls failed");
         return false;
     }

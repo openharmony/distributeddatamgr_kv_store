@@ -398,7 +398,7 @@ bool EntryArrayToNative(::taihe::array_view<::ohos::data::distributedkvstore::En
     for (auto &[key, value] : mapInfo) {
         ani_ref strRef = ani_utils::AniStringUtils::ToAni(env, key);
         ani_object valueObj = {};
-        if (ANI_OK != ani_utils::AniCreateInt(env, value, valueObj)) {
+        if (ani_utils::AniCreateInt(env, value, valueObj) != ANI_OK) {
             break;
         }
         ani_tuple_value tupleItem {};
