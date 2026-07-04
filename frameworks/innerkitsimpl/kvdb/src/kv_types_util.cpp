@@ -272,12 +272,12 @@ bool Unmarshalling(Statistic &output, MessageParcel &data)
 template<>
 bool Marshalling(const CloudConfig &input, MessageParcel &data)
 {
-    return Marshal(data, input.enableCloud, input.autoSync);
+    return Marshal(data, input.enableCloud, input.autoSync, input.filterMode);
 }
 template<>
 bool Unmarshalling(CloudConfig &output, MessageParcel &data)
 {
-    return Unmarshal(data, output.enableCloud, output.autoSync);
+    return Unmarshal(data, output.enableCloud, output.autoSync, output.filterMode);
 }
 
 template<>
