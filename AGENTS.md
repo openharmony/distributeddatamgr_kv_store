@@ -1,208 +1,185 @@
-# distributeddatamgr_kv_store — Agent 指令
+# AGENTS.md
 
-本文件是 Agent 行为护栏，不是项目 README。Agent 能自己探索出来的少写；Agent 猜不准、猜错代价高、团队必须统一执行的内容要写。
+本文件是 AI Agent 处理本仓库任务时的轻量入口。所有架构背景、约束边界、构建与验证知识已整合在本文件中，无需再读取其他文档页。
 
-## Meta 规则
+## 阅读策略
 
-- 用户只要求调研、检视或对比时，禁止直接实现；必须等用户明确要求改代码
-- 优先选择最小改动，不要顺手重构、加注释、调格式
-- 引用构建或测试命令前，必须从 `BUILD.gn` 核对真实目标名
-- AGENTS.md 只记录 Agent 无法从代码推导出的约束；长解释应沉淀到 `docs/`
-- 修改时机：代码修改完成后再更新 AGENTS.md；同一 PR 同步更新条件：目录/模块增删重命名、构建/测试命令变更、核心依赖增删、踩坑≥2次、探索求证≥3次、跨模块依赖增删；纯实现细节改动不更新
-- 禁止在本文档中写入密钥、Token、真实服务端点或生产专用变量
+本文件已整合所有必要知识。按任务类型对照对应章节即可：
 
-## 1. Code map
+1. 需要改某个模块，先对照快速代码地图的 Where to look 表定位。
+2. 涉及错误码、锁模式、加密、IPC 等边界问题，对照知识路由中的术语触发表。
+3. 规划验证，对照验证习惯章节。
 
-本 AGENTS.md 适用于仓库根目录。当前无子目录 AGENTS.md。
+## 仓库定位
 
-本仓库实现 OpenHarmony 分布式键值数据库组件（`@ohos/kv_store` v3.1.0，子系统 `distributeddatamgr`），为设备应用提供键值对数据管理能力。主要语言：C++17、ArkTS/ETS、JavaScript 绑定代码、GN。对外接口层：InnerKit、NAPI、CJ FFI、Taihe/ANI。
+`distributeddatamgr_kv_store` 是 OpenHarmony 分布式键值数据库组件。
 
-最重要的架构边界：innerkitsimpl（客户端框架，返回 `Status` enum）与 distributeddb（存储引擎，返回 `int` errno）之间的错误码转换边界。跨层调用必须经 `StoreUtil::ConvertStatus` 转换，不可直接混用。
+在 OpenHarmony 源码树中的位置：
 
-Key areas:
+```text
+//foundation/distributeddatamgr/kv_store
+```
 
-| 目录 | 职责与风险 | 依赖 | 被谁依赖 |
-|---|---|---|---|
-| `interfaces/jskits/distributedkvstore/` | NAPI JS API 层，兼容性敏感 | kvdb | 应用层 |
-| `interfaces/jskits/distributeddata/` | 旧版 NAPI JS API 层，兼容性敏感 | distributeddatafwk | 应用层 |
-| `frameworks/innerkitsimpl/kvdb/` | KV 客户端框架，CRUD 入口，锁模式和 Status 转换边界 | common, distributeddb | jskits/distributedkvstore |
-| `frameworks/innerkitsimpl/distributeddatafwk/` | 分布式数据管理框架 | common, kvdb | jskits/distributeddata |
-| `frameworks/innerkitsimpl/distributeddatasvc/` | 服务端 IPC 代理，IPC 接口码变更需 CODEOWNERS 评审 | common, ipc | datamgr_service |
-| `frameworks/innerkitsimpl/crypt/` | 加密/解密工具，`kv_store_crypt` 通过 dlopen 动态加载 | common, openssl | kvdb |
-| `frameworks/innerkitsimpl/dm/` | 设备管理适配，dm_service_enable=false 时 mock 替代 | common, device_manager | kvdb, distributeddatafwk |
-| `frameworks/innerkitsimpl/dms/` | 分布式调度适配，dms_service_enable=false 时 mock 替代 | common, dmsfwk | distributeddatafwk |
-| `frameworks/libs/distributeddb/` | KV 存储引擎 + 数据同步，底层 SQLite 操作核心 | common, sqlite, openssl | innerkitsimpl/kvdb |
-| `frameworks/common/` | 日志、类型转换、任务调度、ConcurrentMap | hilog | innerkitsimpl/*, distributeddb |
-| `databaseutils/` | ACL 权限工具 | c_utils | innerkitsimpl/kvdb |
-| `frameworks/ets/taihe/kv_store/` + `interfaces/cj/` | Taihe/ANI + CJ FFI 接口层 | — | — |
+## 快速代码地图
 
-高频修改路径：`kvdb/`、`distributeddb/`、`distributeddatafwk/`。当前未记录有意设计的循环依赖。若发现循环依赖，先创建 issue 并在此记录。
+- `bundle.json`：组件元数据、feature flag、构建 group、inner kit 和测试目标。
+- `frameworks/libs/distributeddb/distributeddb.gni`：distributeddb 源码聚合与 `kv_store_cloud`/`kv_store_device` feature flag。
+- `interfaces/jskits/`：JS 入口和 BUILD.gn（打包层）；NAPI C++ 实现见 `frameworks/jskitsimpl/`。
+- `frameworks/jskitsimpl/distributedkvstore/`：最新版 `@ohos.distributedKVStore` NAPI C++ 实现。
+- `frameworks/jskitsimpl/distributeddata/`：旧版 `@ohos.distributedData` NAPI C++ 实现(所有问题不需要更改)。
+- `frameworks/innerkitsimpl/kvdb/`：KV 客户端框架，CRUD 入口，锁模式与 Status 转换边界。**高频修改**：`single_store_impl.cpp`、`security_manager.cpp`。
+- `frameworks/innerkitsimpl/distributeddatafwk/`：分布式数据管理框架。
+- `frameworks/innerkitsimpl/distributeddatasvc/`：服务端 IPC 代理，`DataMgrServiceProxy` 通过 `SendRequest()` 与 kv_store 服务进程通信。
+- `frameworks/innerkitsimpl/crypt/`：加密/解密工具，`kv_store_crypt` 通过 dlopen 动态加载（`KVDBCryptoImpl`，AES-256-GCM）。
+- `frameworks/innerkitsimpl/dm/`/`dms/`：设备管理/分布式调度适配，`dm/dms_service_enable=false` 时 mock 替代。
+- `frameworks/libs/distributeddb/`：KV 存储引擎 + 数据同步，底层 SQLite 操作核心。**高频修改**：`kv_store_nb_delegate_impl.cpp`、`sqlite_local_kvdb_connection.cpp`。
+- `frameworks/common/`：日志、类型转换、任务调度、ConcurrentMap。**稳定**：改动较少。
+- `frameworks/cj/`：CJ FFI 实现。
+- `frameworks/ets/taihe/kv_store/`：ANI/Taihe 静态绑定。
+- `databaseutils/`：ACL 权限工具。
+- `interfaces/innerkits/distributeddata/`：InnerKit 公开头文件（`store_errno.h`、`single_kvstore.h` 等）。
+- `interfaces/innerkits/distributeddatamgr/`：分布式数据管理 InnerKit（`distributed_data_mgr.h`）。
 
 Where to look:
 
 | 任务类型 | 先看哪里 |
 |---|---|
-| 公共 API / SDK 行为变更 | `interfaces/jskits/`、`store_errno.h` |
-| 存储引擎行为变更 | `frameworks/libs/distributeddb/`、`db_errno.h` |
+| 公共 API / SDK 行为变更 | `frameworks/jskitsimpl/distributedkvstore/`、`interfaces/innerkits/distributeddata/include/store_errno.h` |
+| 存储引擎行为变更 | `frameworks/libs/distributeddb/`、`frameworks/libs/distributeddb/common/include/db_errno.h` |
 | IPC 接口码变更 | `frameworks/innerkitsimpl/distributeddatasvc/`、`CODEOWNERS` |
-| 加密行为变更 | `frameworks/innerkitsimpl/crypt/`、`security_manager.cpp` |
+| 加密行为变更 | `frameworks/innerkitsimpl/crypt/`、`frameworks/innerkitsimpl/kvdb/src/security_manager.cpp` |
 | 日志 / DFX 变更 | `frameworks/common/log_print.h` |
-| 数据写入路径追踪 | `single_store_impl.cpp` → `kv_store_nb_delegate_impl.cpp` |
-| 并发容器逻辑 | `concurrent_map.h` |
-| 构建配置变更 | `kv_store.gni`、`distributeddb.gni` |
+| 数据写入路径追踪 | `frameworks/innerkitsimpl/kvdb/src/single_store_impl.cpp` → `frameworks/libs/distributeddb/interfaces/src/kv_store_nb_delegate_impl.cpp` |
+| 并发容器逻辑 | `frameworks/common/concurrent_map.h` |
+| 构建配置变更 | `kv_store.gni`、`frameworks/libs/distributeddb/distributeddb.gni` |
 | 新增/删除依赖 | `bundle.json` |
 | 测试变更 | `frameworks/*/test/`、`test/unittest/`、`test/fuzztest/`；先看附近测试模式 |
 
-## 2. Knowledge routing
+## 知识路由
 
-不要把以下文件当作可选背景。任务命中触发条件时，必须在规划前读取对应关键文件（含源码头文件、配置文件、PR 模板等）。
+按任务类型、修改路径、或领域术语决定下一步动作：
 
-### Task-based routing
+### 任务触发
 
-- 公共 API / SDK 行为变更 → 读 `store_errno.h`（错误码边界）+ `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md`（兼容性自检）
-- IPC 接口码变更 → 读 `CODEOWNERS`（必须通知指定评审人）
-- 错误处理变更 → 读 `store_errno.h` + `db_errno.h`（两层 errno）
-- 日志 / DFX 变更 → 读 `log_print.h` + `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md`（日志安全自检）
-- 并发容器逻辑变更 → 读 `concurrent_map.h`（Compute：action 返回 false = 删除条目）
-- 构建配置变更 → 读 `kv_store.gni` + `distributeddb.gni`（特性开关）
-- 依赖增删 → 读 `bundle.json`
-- 权限/安全变更 → 读 `CODEOWNERS`（权限评审归属）+ `security_manager.cpp`（加密降级）
-- 跨设备行为变更 → 读 `kv_store.gni`（降级开关）+ `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md`（兼容自检）
+| 任务或问题 | 动作 |
+|---|---|
+| 影响范围不清楚 | 先对照快速代码地图的 Where to look 表定位 |
+| 数据写入/读取行为异常 | 跟数据写入路径：`js_single_kv_store.cpp` → `single_store_impl.cpp` → `kv_store_nb_delegate_impl.cpp` → `sqlite_local_kvdb_connection.cpp` |
+| 数据同步失败或回调不触发 | 看同步侧路：`kv_store_nb_delegate_impl.cpp` 中 Pragma(PRAGMA_SYNC_DEVICES) → `syncer_proxy.h` → `generic_syncer.cpp` → `sync_engine.cpp` |
+| 云同步行为异常 | 看云同步侧路：`icloud_syncer.h` → `cloud_syncer.h` → `cloud_sync_state_machine.h` → `CloudMergeStrategy` |
+| IPC 通信失败 / 服务端不通 | 看 IPC 侧路：`datamgr_service_proxy.cpp` → `distributeddata_ipc_interface_code.h`；确认 SAID=1301 |
+| 加密/解密异常 / 密钥生成失败 | 看加密侧路：`security_manager.cpp` → dlopen(`libkv_store_crypt.z.so`) → `kv_store_crypt.cpp`；确认 asm 符号名匹配 |
+| 设备管理异常 / UUID 转换错误 | 看 `dev_manager.h` → dlopen(dm_adapter) → `device_adapter.cpp`；检查 `dm_service_enable` feature flag |
+| 数据库创建/打开失败 | 看 `single_store_impl.cpp` 的 `OpenKvStore` 流程 + `store_factory.cpp`；检查 bundleId 和 ACL 权限 |
+| 备份/恢复行为异常 | 看 `backup_manager.h` + `single_store_impl.cpp` 中 Backup/Restore 路径；检查备份目录 ACL 权限 |
 
-### Path-based routing
 
-- `interfaces/jskits/` → 读 `store_errno.h`
-- `frameworks/innerkitsimpl/distributeddatasvc/` → 读 `CODEOWNERS`
-- `frameworks/innerkitsimpl/kvdb/` → 读 `concurrent_map.h`
-- `frameworks/libs/distributeddb/` → 读 `db_errno.h`
-- `frameworks/innerkitsimpl/crypt/` → 读 `security_manager.cpp`
+### 术语触发
 
-### Vocabulary-based routing
+当任务、issue、log、API、变更文件中出现以下术语时，先理解风险再规划：
 
-任务、issue、日志、API、变更文件中出现以下术语时，在规划前读取对应文档：
+| Term | Risk hint                                                                                     | Action                                   |
+|---|-----------------------------------------------------------------------------------------------|------------------------------------------|
+| Status / errno / ConvertStatus | innerkitsimpl 用 Status enum，distributeddb 用 int errno，跨层必须经 ConvertStatus 转换，直接混用会导致语义错误或静默丢错 | 对照 `store_errno.h` 与 `db_errno.h`，确认转换正确 |
+| IPC / 接口码 / interface code | IPC 接口码变更必须接收到评审通过指令才能继续处理；IPC_SEND 按引用捕获，禁止传入临时或已 move 对象                                    | 读 `CODEOWNERS`，确认是哪些改动需要确认是否通过           |
+| shared_lock / unique_lock / 锁模式 | CRUD 用 shared_lock（读锁），仅 Close 用 unique_lock（写锁）；禁止给 Put/Delete 加写锁                           | 确认锁模式与并发设计一致                             |
+| Anonymous / StoreUtil::Anonymous / 隐私 | udid/uuid/ip/mac/密钥/数据库路径必须匿名化后输出                                                             | 检查日志是否有 `%{public}` 泄露隐私数据               |
+| NAPI / 回调参数 | NAPI 回调参数必须最后一个，禁止放中间                                                                         | 检查 NAPI 绑定函数签名                           |
+| ConcurrentMap / Compute | Compute 语义：action 返回 false = 删除条目                                                             | 读 `frameworks/common/concurrent_map.h`   |
+| Delegate / nb_delegate / KvStoreNbDelegateImpl | `KvStoreNbDelegateImpl` 是 innerkitsimpl 到 distributeddb 的桥接层，持有 `IKvDBConnection* conn_`；`KvStoreNbDelegate` 是 `SingleStoreImpl` 中 `DBStore` 的类型别名。混淆 delegate 与 connection 会导致修改错误的抽象层 | 确认修改的是接口层 delegate 还是内部 connection |
+| Feature flag (kv_store_cloud / kv_store_device) | `distributeddb.gni` 中 `kv_store_cloud=true` / `kv_store_device=true`，映射到 BUILD.gn 中 `USE_DISTRIBUTEDDB_CLOUD` / `USE_DISTRIBUTEDDB_DEVICE`。改错 flag 导致同步代码静默不编译 | 修改同步相关代码时必须同时检查 gni flag 和 BUILD.gn define 映射 |
+| kv_store_crypt / dlopen / asm 符号 | 加密模块通过 `dlopen("libkv_store_crypt.z.so")` 动态加载，符号名 `CreateKvdbCryptoDelegate` / `GenerateKvdbRandomNum` 必须匹配。符号不匹配时加密静默失败，`SecurityManager` 无限重试 | 修改加密代码时确认 asm 符号名在 `kv_store_crypt.cpp` 与 `security_manager.cpp` 之间一致 |
+| dm_service_enable / dms_service_enable / mock | feature flag 控制真实 dm/dms 适配器还是 mock。mock 在 `kvstoremock/`。flag 状态错误意味着设备管理静默失败 | 修改设备管理代码前检查 feature flag；确保 mock 和真实适配器接口保持对齐 |
+| ICloudSyncer / CloudSyncer / ISyncer | 云同步走 `ICloudSyncer` → `CloudSyncer` → `CloudSyncStateMachine`，设备同步走 `ISyncer` → `GenericSyncer` → `SyncStateMachine`。两条路径参数和回调不同，混用会导致错误 | 确认修改的是云同步还是设备同步路径；`CloudTaskInfo` 与 `SyncParam` 字段不同 |
+| Checkpoint / EXEC_CHECKPOINT / RetryWithCheckPoint | `RetryWithCheckPoint()` 在 WAL 溢出（`LOG_OVER_LIMITS`）时执行 checkpoint 后重试。跳过 checkpoint 会导致数据操作永久失败 | NEVER 移除 RetryWithCheckPoint；理解 LOG_OVER_LIMITS 是可通过 checkpoint 恢复的 |
+| Pragma / PragmaCmd | distributeddb 内部控制接口。`Sync()` 实际通过 `Pragma(PRAGMA_SYNC_DEVICES)` 执行。`g_pragmaMap[]` 在 `kv_store_nb_delegate_impl.cpp` 映射外部→内部 PragmaCmd。混淆两者导致命令路由错误 | 新增 Pragma 命令时必须同时更新 `store_types.h` 的 PragmaCmd 和 `kvdb_pragma.h` 的内部 PragmaCmd，并在 `g_pragmaMap[]` 中添加映射 |
+| Rekey / CipherPassword | 数据库重加密会修改 cipher password。重密钥期间禁用手动同步（`DisableManualSync()`/`EnableManualSync()`）。错误的重密钥流程导致数据库损坏 | 重密钥期间禁止发起同步；必须验证 RekeyRecover 路径 |
+| SyncOperation / OP_BUSY_FAILURE / E_BUSY | `SyncOperation` 跟踪每设备同步状态。`OP_BUSY_FAILURE` 映射自 `-E_BUSY`。SQLite `BUSY_TIMEOUT_MS=3000`（3秒）。移除 busy 处理会导致操作失败被静默丢弃 | NEVER 移除 E_BUSY 处理；BUSY_TIMEOUT 可通过 Pragma 配置；db close 期间同步引擎返回 -E_BUSY |
+| ObserverBridge / StoreObserver | `ObserverBridge` 将 innerkitsimpl 的 `KvStoreObserver` 桥接到 distributeddb 的 `StoreObserver`，用 `Convertor` 转换变更通知。桥接方向错误会丢失通知 | 修改通知格式时验证 ObserverBridge 中的 Convertor 转换方向 |
+| Snapshot / KvStoreSnapshotDelegate | 只读快照。`KvStoreSnapshotDelegateImpl` 包装 `IKvDBSnapshot`。快照必须用后释放。快照数据与实时数据分离 | NEVER 通过快照修改数据；必须通过 `ReleaseKvStoreSnapshot()` 释放快照 |
+| BackupManager / autoBackup | `BackupManager` 单例处理自动数据库备份。`autoBackup_` flag 控制是否初始化。`Backup()/Restore()/DeleteBackup()` 为公共 API。备份目录 ACL 权限错误会导致备份失败 | 验证备份目录 ACL 权限；确认 autoBackup_ flag 状态 |
+| Convertor / DeviceConvertor | innerkitsimpl Key/Value 与 distributeddb DBKey/DBValue 之间的转换器。设备存储和本地存储用不同实现。错误的 Convertor 导致 key 格式不匹配 | 修改 key 格式或前缀逻辑时验证 Convertor 转换方向 |
 
-| 术语 | 风险提示 | 读 |
-|---|---|---|
-| Status / 错误码 | innerkitsimpl `Status` enum，distributeddb `int` errno，不可混用 | `store_errno.h` + `db_errno.h` |
-| Compute / ConcurrentMap | action 返回 `false` = 删除条目，不是失败 | `concurrent_map.h` |
-| IPC 接口码 | 变更必须通知 CODEOWNERS 指定评审人 | `CODEOWNERS` |
-| OMIT_MULTI_VER | 永久禁用多版本路径，`KVStoreDelegateImpl` 是死代码 | `kv_store.gni` + `distributeddb/BUILD.gn` |
-| dlopen / kv_store_crypt | 加密插件动态加载，缺失时静默失败，不是链接依赖 | `security_manager.cpp` |
-| shared_lock / unique_lock | CRUD 用 shared_lock，仅 Close 用 unique_lock | `single_store_impl.cpp` |
-| NAPI 回调 | 回调参数必须是最后一个，禁止放中间 | `interfaces/jskits/distributedkvstore/` |
-| IPC_SEND | 按引用捕获，禁止传入临时或已 move 对象 | `kvdb_service_client.cpp` |
-| Anonymous | udid/uuid/ip/mac/密钥/路径必须用 `StoreUtil::Anonymous()` 匿名化 | `store_util.cpp` |
-| sanitize / branch_protector | 主共享库必须完整配置 ubsan+boundary_sanitize+cfi+cfi_cross_dso+branch_protector_ret | 各 `BUILD.gn` |
-| dms/dm_service_enable | 分布式调度/设备管理降级开关 | `kv_store.gni` |
+## 硬约束
 
-规划阶段声明：开始编辑前，在 plan 中说明任务类别、已读文档、发现约束、是否需要使用 skill/workflow。
+### 架构/领域不变量
 
-## 3. Constraints and boundaries
-
-### Architecture/domain invariants
-
-- innerkitsimpl `Status` enum ↔ distributeddb `int` errno；跨层必须经 `StoreUtil::ConvertStatus` 转换，不可混用。
-- `OMIT_MULTI_VER` 永久禁用多版本路径。`KVStoreDelegateImpl` 是死代码，不可作为实际路径。
-- CRUD 用 `shared_lock`，仅 Close 用 `unique_lock`；禁止给 Put/Delete 加写锁。
-- `kv_store_crypt` 通过 `dlopen` 动态加载；缺失时加密静默失败。
-- IPC 接口码变更必须通知 CODEOWNERS。
-- NAPI 回调参数必须最后一个，禁止放中间。
-- 公共 API 表达稳定能力意图，不是内部实现细节。
-
-### Do not
-
-- NEVER 明文打印 udid / uuid / ip / mac / 密钥 / 数据库路径 — 必须用 `StoreUtil::Anonymous()` 匿名化
-- NEVER 在锁内发送 IPC
-- NEVER 声称"已完成"而不运行测试
-- NEVER 用户说"调研一下"时直接实现
-- NEVER 编造不存在的 API 签名或 GN 目标名
-- NEVER 为通过测试删除日志、事件、错误码或诊断信息
-- NEVER 改公共 API 签名/错误码/权限行为/生命周期语义，除非任务明确要求
-- NEVER 修改 IPC 接口码而不通知 CODEOWNERS 指定评审人
-- NEVER 执行破坏性设备操作，影响真实设备前必须确认
-
-Always（强约束，非铁律）：
-- Always 将捕获栈变量引用的 lambda 异步到其它线程时，确认引用生命周期安全
-- Always 将外部传入裸指针先检查再使用，禁止直接构造为智能指针
-- Always 用安全替代方案替代 `realloc` / `alloca`
-- Always 引用多版本代码前检查 `OMIT_MULTI_VER` 已禁用，实际路径是 `KvStoreNbDelegateImpl`
-
-### Known Pitfalls
-
-**P1: Compute 返回 false = 删除条目** — Agent 误认为"操作失败"导致静默删除；正确写法：保留条目时 action 返回 true；来源：`concurrent_map.h` Compute 接口语义
-
-**P2: KVStoreDelegateImpl 是死代码** — OMIT_MULTI_VER 在 `distributeddb/BUILD.gn` 中定义为编译宏；`kv_store_delegate_impl.h` 整个类被 `#ifndef OMIT_MULTI_VER` 包裹（line 19-117）；实际 Put 路径：`SingleStoreImpl::Put` → `dbStore_->Put()`（`DBStore = KvStoreNbDelegate`，见 `single_store_impl.h:40`）
-
-### Ask before
-
-新增生产依赖 / 改公共 API 语义 / 改权限模型或信任边界 / 改协议兼容性或持久化数据格式 / 删除兼容性 shim 或迁移逻辑 / 运行可能影响连接设备的命令。
-
-### 编码约定
-
-- 不可派生加 `final`；共享库 `-fvisibility=hidden` 仅导出必要符号。单函数超 80 行应拆分。
-- 错误处理：innerkitsimpl `Status` enum / distributeddb `int` errno；跨层必须用 `StoreUtil::ConvertStatus` 转换。
-- 日志：`.cpp` 定义 `LOG_TAG`；敏感数据 MUST 用 `StoreUtil::Anonymous()` 匿名化后再输出；innerkitsimpl 用 `%{public}s`，distributeddb 用 `s{private}`。
+- `.cpp` 定义 `LOG_TAG`；udid/uuid/ip/mac/密钥/数据库路径 MUST 用 `StoreUtil::Anonymous()` 匿名化后再输出。NEVER 明文打印隐私数据。
+- 稳定性排查、日志打印排查、安全编码自检的完整清单见 `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md`。
 - 命名：PascalCase 方法/类、`camelCase_` 尾下划线成员变量、`UPPER_SNAKE_CASE` 常量；文件 `snake_case`，mock 加 `_mock`。
-- 导出：主共享库必须配置 `sanitize = { ubsan, boundary_sanitize, cfi, cfi_cross_dso }` + `branch_protector_ret = "pac_ret"`；dm/dms/crypt/taihe 尚未全量覆盖，新增目标须补齐。
-- 命名空间：innerkitsimpl `OHOS::DistributedKv`；distributeddb `DistributedDB`。include guard：innerkitsimpl `OHOS_DISTRIBUTED_DATA_*_H`；distributeddb `DISTRIBUTEDDB_*_H`。
-- `IPC_SEND` 按引用捕获，禁止传入临时或已 move 对象。版权头：Apache 2.0 14 行。Mock: `kvdb/test/mock/include/`+`src/`，`B*`→`*Mock`→`MOCK_METHOD`。
+- 共享库 `-fvisibility=hidden` 仅导出必要符号。
 
-## 4. Verification
+### 禁止事项
 
-构建/测试命令必须从根 `BUILD.gn` 或 `bundle.json` 核对真实 GN 目标名后再执行。
+- NEVER 在锁内发送 IPC。
+- NEVER 明文打印 udid/uuid/ip/mac/密钥/数据库路径 — 必须用 `StoreUtil::Anonymous()` 匿名化。
+- NEVER 为通过测试删除日志、事件、错误码或诊断信息。
+- NEVER 改公共 API 签名/错误码/权限行为/生命周期语义，除非任务明确要求。
+- NEVER 直接混用 Status enum 与 int errno，必须经 ConvertStatus 转换。
+- NEVER 给 Put/Delete 加写锁。
+- NEVER 重构旧版 `@ohos.distributedData`（`frameworks/jskitsimpl/distributeddata/`），除非任务明确要求。
+- NEVER 在 NAPI 回调参数中间位置放回调，回调必须最后一个参数。
 
-### Minimum checks
+### 必须先问人
 
-- Build + Test：`./build.sh --product-name <product> --ccache --build-target kv_store_test`（如可本地执行）
-- CI 门禁等价：`./build.sh --product-name <product> --gn-args use_thin_lto=false --ccache --build-target kv_store_test`
-- Lint/static check：无独立工具；编译期 `-Werror=vla` + sanitize + `-fvisibility=hidden` 集成在构建中
-- Compatibility check：API 变更时比对 `store_errno.h` 错误码兼容性
+- IPC 接口码变更。
+- 公共 API 签名、错误码、权限行为或生命周期语义变更。
+- 新增/删除依赖。
+- 加密行为变更。
+- 锁模式变更。
+- 用户只要求调研、检视或对比时，禁止直接实现 — 先确认意图。
+
+### 影响面分析清单
+
+实现前先回答：
+- 改动影响哪个 API 面：NAPI JS、ANI/Taihe、CJ FFI、InnerKit，还是仅内部？
+- 是否涉及两层错误码（Status vs errno）的转换？
+- 是否涉及 IPC 接口码变更（需要 CODEOWNERS 评审）？
+- 是否涉及锁模式变更（shared_lock vs unique_lock）？
+- 是否涉及隐私数据日志？
+
+## 验证习惯
+
+涉及代码修改时，选择单元测试目标，进行完整单元运行测试。
+
+### 最小文本验证
+
+在本仓库根目录运行：
+
+代码改动还应检查是否误用 public 日志打印隐私数据：
+
+```powershell
+rg -n "ZLOG[IWE].*%{public}.*(udid|uuid|ip|mac|path|passwrod|pwd)" frameworks interfaces
+```
+
+### 测试与构建目标
 
 | 目标 | 用途 | 命令 |
 |---|---|---|
-| `kv_store_test` | 部件级全量单测（由构建框架从 `bundle.json` test 条目聚合） | `./build.sh --product-name <product> --ccache --build-target kv_store_test` |
-| `unittest` | innerkitsimpl + common 单测 | `./build.sh --product-name <product> --build-target unittest` |
-| `build_native_test` | distributeddatafwk + distributeddb 原生单测 | `./build.sh --product-name <product> --build-target build_native_test` |
-| `fuzztest` | 全量 fuzz 测试 | `./build.sh --product-name <product> --build-target fuzztest` |
-| `distributedtest` | 分布式跨设备集成测试 | `./build.sh --product-name <product> --build-target distributedtest` |
-
-构建单个模块：`./build.sh --product-name <product> --build-target <gn_target>`（先确认最近的 `BUILD.gn` 中存在该目标）。禁止宽泛产品级全量构建，除非用户明确要求。
-
-单元测试约定：C++ GTest+GMock (`ohos_unittest`) / JS `ohos_js_unittest`；文件 `_test.cpp` / `*JsTest.js`；TDD: RED (MUST 看到失败) → GREEN → IMPROVE。
-
-Task-specific checks:
-
-| 任务类型 | 验证要求 |
-|---|---|
-| 公共 API 变更 | 构建 + 跑单测 + 检查 `store_errno.h` 错误码兼容性 + 更新 API 文档 |
-| C++ 存储引擎变更 | 构建 `distributeddb` + 跑 `build_native_test` + 跑附近单测 |
-| IPC 接口码变更 | 构建 + 跑单测 + 通知 CODEOWNERS 评审人 |
-| 日志 / DFX 变更 | 构建 + 跑附近单测 + 不可删除已有日志/事件/错误码 |
-| 加密行为变更 | 构建 `kv_store_crypt` + 跑 security_manager 测试 + 验证 dlopen fallback |
-| 跨设备行为变更 | 跑 `distributedtest`（如可执行）+ 跑 `unittest` |
-| 仅测试变更 | 跑变更的测试 + 至少一个附近相关测试 |
-| NAPI JS API 变更 | 构建 jskits 模块 + 跑 JS 单测 + 验证回调参数位置 |
-
-Done definition：任务完成仅当 — 行为已实现；相关构建/测试已运行或已说明无法运行原因；最终回复包含变更摘要、变更文件、验证结果、剩余风险；不包含无关格式化/重构/顺手改动。
-
-Final response format：完成非平凡任务时回复包含 — 变更摘要 / 变更文件列表 / 验证命令与结果 / 兼容性/权限/DFX/跨设备影响（如相关） / 剩余风险或后续事项。
+| `kv_store` | 构建全量部件镜像 | `./build.sh --product-name <product> --build-target kv_store` |
+| `kv_store_test` | 构建部件镜像和测试用例 | `./build.sh --product-name <product> --build-target kv_store_test` |
 
 环境变量：`<product>` — 传给 `./build.sh --product-name` 的产品占位符（示例 `rk3568`）。
 
-## 文档索引
+如果工作区使用 `hb`，等价模式是：
 
-新增核心文档时应放入 `docs/`。当前高频仓库文档如下：
+| 目标 | 用途 | 命令 |
+|---|---|---|
+| `kv_store` | 独立编译镜像 | `hb build kv_store` |
+| `kv_store_test` | 独立编译镜像和测试用例 | `hb build kv_store -t` |
 
-| 路径 | 标题 | 加载场景 | 稳定性 |
-|---|---|---|---|
-| `.gitee/PULL_REQUEST_TEMPLATE.zh-CN.md` | PR 稳定性/日志/安全自检清单 | 提交 PR 前 | 稳定 |
-| `interfaces/innerkits/distributeddata/include/store_errno.h` | Status 错误码定义 | 修改 innerkitsimpl 错误处理 | 稳定 |
-| `frameworks/libs/distributeddb/common/include/db_errno.h` | DB 层 errno 定义 | 修改 distributeddb 错误处理 | 稳定 |
-| `frameworks/common/log_print.h` | 日志宏与 LogLabel 定义 | 新增日志或修改日志 domain | 稳定 |
-| `frameworks/common/concurrent_map.h` | ConcurrentMap API 与 Compute 语义 | 修改并发容器逻辑 | 稳定 |
-| `CODEOWNERS` | IPC 接口码评审归属 | 修改 IPC 接口码 | 稳定 |
-| `kv_store.gni` / `distributeddb.gni` | GN 编译参数与特性开关 | 修改构建配置 | 稳定 |
-| `bundle.json` | 部件声明与依赖列表 | 新增/删除依赖 | 中等 |
-| `README_zh.md` | 项目简介与目录说明 | 新人了解项目 | 稳定 |
+### 任务级验证
 
-新增、删除或重命名文档时，必须在同一 PR 中更新本索引。
+- 公共 API 变更 → 构建受影响模块，运行附近单元测试，检查 API 兼容性
+- NAPI C++ 变更 → 构建 `kv_store`，运行 `frameworks/jskitsimpl/` 附近测试
+- 锁模式变更 → 构建并运行并发相关单元测试
+- 日志/DFX 变更 → 运行隐私检查命令，确认无 `%{public}` 泄露
+- 测试变更 → 运行变更的测试和至少一个附近相关测试
+
+### Done 定义
+
+任务完成仅当：
+- 请求的行为已实现。
+- 相关构建/测试/安全自检/兼容性检查已执行，或已说明无法执行的原因。
+- 最终回复包含：变更摘要、变更文件列表、验证命令与结果、兼容性/权限/DFX 影响（如相关）、剩余风险。
+- 不包含无关的格式化、重构或附带变更。
