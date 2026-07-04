@@ -44,17 +44,12 @@ public:
 
     DISABLE_COPY_ASSIGN_MOVE(StorageEngineManager);
 
-private:
     StorageEngineManager();
     ~StorageEngineManager();
-
+private:
     // Get a StorageEngineManager instance, Singleton mode
     static std::shared_ptr<StorageEngineManager> GetInstance();
 
-    static void DoDelete(StorageEngineManager *obj)
-    {
-        delete obj;
-    }
     int RegisterLockStatusListener();
 
     void LockStatusNotifier(bool isAccessControlled);

@@ -147,7 +147,7 @@ std::shared_ptr<StorageEngineManager> StorageEngineManager::GetInstance()
     }
     std::unique_lock<std::shared_mutex> writeLock(instanceMutex_);
     if (instance_ == nullptr && !IsInstanceDestroyed()) {
-        instance_ = std::shared_ptr<StorageEngineManager>(new StorageEngineManager(), &StorageEngineManager::DoDelete);
+        instance_ = std::make_shared<StorageEngineManager>();
     }
 
     if (instance_ != nullptr && !isRegLockStatusListener_) {
