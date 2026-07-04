@@ -549,7 +549,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, MultipleFieldsTest001, TestSize.Level0)
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_SetSubscribeCursorBasicTest001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorBasicTest001, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetTestSchema());
@@ -601,7 +601,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorNotSupportTest001, Test
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_SetSubscribeCursorDifferentCursorTest001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorDifferentCursorTest001, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetTestSchema());
@@ -625,7 +625,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_SetSubscribeCursorDifferentCurso
     EXPECT_EQ(status, OK);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -668,7 +668,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData001, Tes
     EXPECT_EQ(delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut), INVALID_ARGS);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData002, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -710,7 +710,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData002, Tes
     EXPECT_EQ(totalRecords, 2 * dataCount);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData003, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData003, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -751,7 +751,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData003, Tes
     EXPECT_EQ(totalRecords, dataCount * 2);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData004, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData004, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -796,7 +796,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData004, Tes
     EXPECT_EQ(totalRecords, dataCount * 2);
 }
 
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData005, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -851,7 +851,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData005, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_ClientSchemaParseTest001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest001, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. set schema on service side.
@@ -918,7 +918,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_BinlogDataChangeObserverTest001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Set schema and observer by enable binlog.
@@ -981,7 +981,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_BinlogDataChangeObserverTest001,
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData006, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData006, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -1006,7 +1006,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData006, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData007, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData007, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Set subscribe schema.
@@ -1055,7 +1055,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData007, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData008, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData008, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Set subscribe schema.
@@ -1098,13 +1098,13 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData008, Tes
 }
 
 /**
- * @tc.name: DISABLED_QueryBinlogSubscribeData009
+ * @tc.name: QueryBinlogSubscribeData009
  * @tc.desc: Test QuerySubscribeOutput GET_NEW when data deleted.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData009, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -1156,13 +1156,13 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData009, Tes
 }
 
 /**
- * @tc.name: DISABLED_QueryBinlogSubscribeData010
+ * @tc.name: QueryBinlogSubscribeData010
  * @tc.desc: Test QuerySubscribeOutput GET_ALL when data deleted.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData010, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData010, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -1204,7 +1204,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData010, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData011, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData011, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. set binlog and schema.
@@ -1255,7 +1255,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData011, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData012, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. set binlog and schema.
@@ -1310,7 +1310,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData012, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryWithSameCursorTest001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryWithSameCursorTest001, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Set subscribe schema.
@@ -1363,13 +1363,13 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryWithSameCursorTest001, Test
 }
 
 /**
- * @tc.name: DISABLED_QueryBinlogSubscribeData013
+ * @tc.name: QueryBinlogSubscribeData013
  * @tc.desc: Test get ALL query where joined tables require continued querying
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData013, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData013, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -1426,7 +1426,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData013, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData014, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData014, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
@@ -1472,7 +1472,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData014, Tes
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, DISABLED_QueryBinlogSubscribeData015, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
