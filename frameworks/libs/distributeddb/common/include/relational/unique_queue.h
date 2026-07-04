@@ -31,7 +31,7 @@ class UniqueQueue {
 public:
     UniqueQueue()
     {
-        data.resize(capacity);
+        data_.resize(capacity_);
     }
 
     ~UniqueQueue()
@@ -42,17 +42,17 @@ public:
     static constexpr size_t MAX_CAP = 10240;     // maximum capacity
     void InitByFront(size_t frontIn = 0)
     {
-        front = frontIn % capacity;
-        rear = front;
-        read = front;
-        filter.clear();
+        front_ = frontIn % capacity_;
+        rear_ = front_;
+        read_ = front_;
+        filter_.clear();
     }
 
     int Init(uint64_t newCap = INIT_CAP, size_t frontIn = 0)
     {
         // create new array
-        data.resize(newCap);
-        capacity = newCap;
+        data_.resize(newCap);
+        capacity_ = newCap;
         InitByFront(frontIn);
         return E_OK;
     }
@@ -79,7 +79,7 @@ public:
     {
         size_t readNum = std::min(RemainReadSize(), maxNum);
         for (size_t i = 0; i < readNum; ++i) {
-            dataOut[i] = data[(read + i) % capacity];
+            dataOut[i] = data_[(read_ + i) % capacity_];
         }
         AdvanceRead(readNum);
         return readNum;
@@ -87,17 +87,20 @@ public:
 
     int TryInitCursor(size_t readIn)
     {
-        if (readIn == front) {
-        } else if (IndexHasRead(readIn)) {
-            LOGI("read cache repeat, [%d, %d), cur %d.", front, read, readIn);
-            read = readIn;
-        } else if (readIn == read) {
-            LOGE("read without clear read cache %d. %d", read, -E_INVALID_ARGS);
+        if (IndexHasRead(readIn)) {
+            LOGI("read cache repeat, [%d, %d), cur %d.", front_, read_, readIn);
+            read_ = readIn;
+            return E_OK;
+        }
+
+        if (readIn == front_) {
+        } else if (readIn == read_) {
+            LOGW("read without clear read cache %d.", read_);
         } else if (QueueSize() == 0) {
             LOGI("Queue is empty, re-init");
             InitByFront(readIn);
         } else {
-            LOGE("invalid read start %d, read cache %d. %d", readIn, read, -E_INVALID_ARGS);
+            LOGE("invalid read start %d, read cache %d. %d", readIn, read_, -E_INVALID_ARGS);
             return -E_INVALID_ARGS;
         }
         return E_OK;
@@ -105,32 +108,32 @@ public:
 
     bool IsFull() const
     {
-        return (capacity == MAX_CAP && ((rear + 1) % capacity) == front);
+        return (capacity_ == MAX_CAP && ((rear_ + 1) % capacity_) == front_);
     }
 
     bool IsEmpty() const
     {
-        return rear == front;
+        return rear_ == front_;
     }
 
     size_t Capacity() const
     {
-        return capacity;
+        return capacity_;
     }
 
     size_t QueueSize() const
     {
-        return (capacity + rear - front) % capacity;
+        return (capacity_ + rear_ - front_) % capacity_;
     }
 
     size_t RemainReadSize() const
     {
-        return (capacity + rear - read) % capacity;
+        return (capacity_ + rear_ - read_) % capacity_;
     }
 
     size_t ReadCacheSize() const
     {
-        return (capacity + read - front) % capacity;
+        return (capacity_ + read_ - front_) % capacity_;
     }
 
     UqData* AdvanceFront(size_t num)
@@ -139,15 +142,15 @@ public:
             return nullptr;
         }
 
-        size_t newFront = (front + num) % capacity;
-        if (newFront == read || IndexHasRead(newFront)) {
-            front = newFront;
+        size_t newFront = (front_ + num) % capacity_;
+        if (newFront == read_ || IndexHasRead(newFront)) {
+            front_ = newFront;
         } else {
-            front = read;
+            front_ = read_;
             LOGW("new front %d out of range, read %d, rear %d, cap %d, force set front %d.",
-                newFront, read, rear, capacity, front);
+                newFront, read_, rear_, capacity_, front_);
         }
-        return &data[(front - 1 + capacity) % capacity];
+        return &data_[(front_ - 1 + capacity_) % capacity_];
     }
 
 private:
@@ -158,15 +161,15 @@ private:
 
     void AdvanceRear(size_t num)
     {
-        rear = (rear + num) % capacity;
-        if (rear != 0) {
+        rear_ = (rear_ + num) % capacity_;
+        if (rear_ != 0) {
             return;
         }
         // queue wrapped around, update wrap count and filter info
-        loop++;
-        for (auto it = filter.begin(); it != filter.end();) {
-            if (it->second.loop + 1 < loop || !IndexInQueue(it->second.index)) {
-                it = filter.erase(it);
+        loop_++;
+        for (auto it = filter_.begin(); it != filter_.end();) {
+            if (it->second.loop + 1 < loop_ || !IndexInQueue(it->second.index)) {
+                it = filter_.erase(it);
             } else {
                 it++;
             }
@@ -175,47 +178,47 @@ private:
 
     void AdvanceRead(size_t num)
     {
-        read = (read + num) % capacity;
+        read_ = (read_ + num) % capacity_;
     }
 
     void ClearReadSize()
     {
-        read = front;
+        read_ = front_;
     }
 
     bool IndexHasRead(size_t index) const
     {
-        if (front <= read) {
-            return (front <= index) && (index < read);
+        if (front_ <= read_) {
+            return (front_ <= index) && (index < read_);
         } else {
-            return (front <= index) || (index < read);
+            return (front_ <= index) || (index < read_);
         }
     }
 
     bool IndexInQueue(size_t index) const
     {
-        if (front <= rear) {
-            return (front <= index) && (index < rear);
+        if (front_ <= rear_) {
+            return (front_ <= index) && (index < rear_);
         } else {
-            return (front <= index) || (index < rear);
+            return (front_ <= index) || (index < rear_);
         }
     }
 
     int PushNew(const UqData &item)
     {
-        auto i = rear;
-        FilterNode node = {loop, i};
-        data[i] = item;
+        auto i = rear_;
+        FilterNode node = {loop_, i};
+        data_[i] = item;
         AdvanceRear(1);
-        filter.insert({data[i], node});
+        filter_.insert({data_[i], node});
         return E_OK;
     }
 
     void UpdateRemainRead(size_t newIdx, const FilterNode &filterNode)
     {
-        auto itRange = filter.equal_range(data[newIdx]);
+        auto itRange = filter_.equal_range(data_[newIdx]);
         for (auto it = itRange.first; it != itRange.second; it++) {
-            if (it->second.loop + 1 < loop || !IndexInQueue(it->second.index) || IndexHasRead(filterNode.index)) {
+            if (it->second.loop + 1 < loop_ || !IndexInQueue(it->second.index) || IndexHasRead(filterNode.index)) {
                 continue;
             }
             it->second.index = newIdx;
@@ -225,24 +228,24 @@ private:
     int Push(const UqData &item)
     {
         // insert when oldKey not exist
-        auto oldKeyRange = filter.equal_range(item);
+        auto oldKeyRange = filter_.equal_range(item);
         if (oldKeyRange.first == oldKeyRange.second) {
             return PushNew(item);
         }
         auto oldKey = oldKeyRange.first;
         for (; oldKey != oldKeyRange.second; oldKey++) {
-            if (oldKey->second.loop + 1 < loop || !IndexInQueue(oldKey->second.index) ||
+            if (oldKey->second.loop + 1 < loop_ || !IndexInQueue(oldKey->second.index) ||
                 IndexHasRead(oldKey->second.index)) {
                 continue;
             }
             // oldKey not read, need update
-            size_t i = oldKey->second.index % capacity;
-            data[i] = item;
+            size_t i = oldKey->second.index % capacity_;
+            data_[i] = item;
             // move updated key to the end
-            for (; (i + 1) % capacity != rear; i = (i + 1) % capacity) {
-                std::swap(data[i], data[(i + 1) % capacity]);
+            for (; (i + 1) % capacity_ != rear_; i = (i + 1) % capacity_) {
+                std::swap(data_[i], data_[(i + 1) % capacity_]);
                 UpdateRemainRead(i, oldKey->second);
-                UpdateRemainRead((i + 1) % capacity, oldKey->second);
+                UpdateRemainRead((i + 1) % capacity_, oldKey->second);
             }
             return E_OK;
         }
@@ -252,20 +255,20 @@ private:
 
     int Expand()
     {
-        if (capacity >= MAX_CAP) {
+        if (capacity_ >= MAX_CAP) {
             LOGE("UniqueQueue capacity reach limit.");
-            return E_MAX_LIMITS;
+            return -E_MAX_LIMITS;
         }
         // preserve existing queue elements and their count, as well as read cache count
         size_t dataNum = QueueSize();
         size_t readNum = ReadCacheSize();
-        size_t oldFront = front;
-        size_t oldCap = capacity;
-        std::vector<UqData> oldData = std::move(data);
+        size_t oldFront = front_;
+        size_t oldCap = capacity_;
+        std::vector<UqData> oldData = std::move(data_);
         size_t newCap = std::min(MAX_CAP, oldCap + EXTEND_STEP);
         int ret = Init(newCap, oldFront);
         if (ret != 0) {
-            data = std::move(oldData);
+            data_ = std::move(oldData);
             return ret;
         }
 
@@ -281,7 +284,7 @@ private:
     int ExpandIfNeed(size_t num)
     {
         int ret = E_OK;
-        while (num + QueueSize() + 1 > capacity) {  // one slot in capacity is unusable
+        while (num + QueueSize() + 1 > capacity_) {  // one slot in capacity is unusable
             ret = Expand();
             if (ret != E_OK) {
                 LOGE("Expand capacity add %d failed. %d", num, ret);
@@ -290,16 +293,16 @@ private:
         }
         return ret;
     }
-    size_t capacity = INIT_CAP;  // current capacity
-    size_t front = 0; // queue front (next position to dequeue)
-    size_t rear = 0; // queue rear (next position to enqueue)
-    size_t read = 0; // already read (data from front to read is previously read-out data, temporarily cached)
+    size_t capacity_ = INIT_CAP;  // current capacity
+    size_t front_ = 0; // queue front (next position to dequeue)
+    size_t rear_ = 0; // queue rear (next position to enqueue)
+    size_t read_ = 0; // already read (data from front to read is previously read-out data, temporarily cached)
     // queue wrap-around count, inherits previous loop on expansion;
     // edge case: loop incremented but no wrap after expansion, >2 covers this
-    uint64_t loop = 0;
+    uint64_t loop_ = 0;
 
-    std::vector<UqData> data;
-    std::unordered_multimap<UqData, FilterNode, UqHash, UqEqualTo> filter;
+    std::vector<UqData> data_;
+    std::unordered_multimap<UqData, FilterNode, UqHash, UqEqualTo> filter_;
 };
 
 }  // namespace DistributedDB

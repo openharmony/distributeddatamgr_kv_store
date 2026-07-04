@@ -73,7 +73,8 @@ int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
 
 int CloudSyncer::Sync(const CloudTaskInfo &taskInfo)
 {
-    int errCode = CloudSyncUtils::CheckParamValid(taskInfo.devices, taskInfo.mode);
+    int errCode = CloudSyncUtils::CheckParamValid(taskInfo.devices, taskInfo.mode,
+        GetAssetConflictPolicy(false), taskInfo.asyncDownloadAssets);
     if (errCode != E_OK) {
         return errCode;
     }

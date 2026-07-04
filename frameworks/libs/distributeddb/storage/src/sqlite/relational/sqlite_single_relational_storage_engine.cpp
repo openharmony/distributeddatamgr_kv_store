@@ -627,7 +627,7 @@ int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &conditio
 }
 
 int SQLiteSingleRelationalStorageEngine::QuerySubscribeOutput(
-    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &dataOut)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
@@ -757,8 +757,15 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::SetSubscribeCursor(const DBSubscribeCur &cursorIn)
+int SQLiteSingleRelationalStorageEngine::SetSubscribeCursor(const DBSubscribeCursor &cursorIn)
 {
+    if (cursorIn.queryType == SubQueryType::GET_ALL) {
+        std::lock_guard<std::mutex> autoLock(donationCacheMutex_);
+        int errCode = dataDonationCache_.FlushGetAllCursorCache();
+        LOGI("[SetSubscribeCursor] GET_ALL flushed, errCode=%d", errCode);
+        return errCode;
+    }
+
     DdCursor ddCursor;
     ddCursor.type = static_cast<DonationType>(cursorIn.queryType);
     ddCursor.cursor = cursorIn.cursor;
@@ -770,11 +777,13 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeCursor(const DBSubscribeCur
     if (errCode != E_OK) {
         return errCode;
     }
+
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
         errCode));
     if (handle == nullptr) {
         return errCode;
     }
+
     sqlite3 *db = nullptr;
     if (handle->GetDbHandle(db) != E_OK) {
         LOGE("[SetSubscribeCursor] invalid db");
@@ -1826,13 +1835,13 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &s
         LOGE("[RDBEngine] Set subscribe schema err: %d", errCode);
         return errCode;
     }
-    // save schema to meta_data
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(false, OperatePerm::NORMAL_PERM,
-        errCode));
+
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode, true));
     ResFinalizer finalizer([this, errCode, handle]() {
         {
             auto releaseHandle = handle;
-            ReleaseExecutor(releaseHandle);
+            ReleaseExecutor(releaseHandle, true);
             if (errCode == E_OK) {
                 return;
             }
@@ -1856,6 +1865,7 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &s
         LOGE("[SetSubscribeSchema] Save data donation schema failed:%d", errCode);
         return errCode;
     }
+    DataDonationUtils::SetGetSchemaCallback(db);
 
     {
         std::lock_guard<std::mutex> autoLock(donationCacheMutex_);
@@ -1868,13 +1878,14 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &s
 int SQLiteSingleRelationalStorageEngine::SetTrackerMatrixInfo(const MatrixFileInfo &info)
 {
     int errCode = E_OK;
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
-        errCode));
+    bool isExternal = true;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(false, OperatePerm::NORMAL_PERM,
+        errCode, isExternal));
     if (handle == nullptr) {
         return errCode;
     }
-    ResFinalizer finalizer([this, &handle]() {
-        this->ReleaseExecutor(handle);
+    ResFinalizer finalizer([this, &handle, isExternal]() {
+        this->ReleaseExecutor(handle, isExternal);
     });
     return handle->SetTrackerMatrixInfo(info);
 }

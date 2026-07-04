@@ -118,6 +118,7 @@ void DistributedDBDeviceIdentifierTest::TearDown(void)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(TIME_LAG));
     StorageEngineManager::DeleteInstance();
+    StorageEngineManager::SetInstanceDestroyed(false);
 }
 
 /**

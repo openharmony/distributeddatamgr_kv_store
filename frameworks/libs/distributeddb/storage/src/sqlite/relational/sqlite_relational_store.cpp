@@ -1268,7 +1268,7 @@ int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = CloudSyncUtils::CheckSyncOptionCompatibility(option);
+    errCode = CloudSyncUtils::CheckSyncOptionCompatibility(option, storageEngine_->IsCurrentLogicDelete());
     if (errCode != E_OK) {
         return errCode;
     }

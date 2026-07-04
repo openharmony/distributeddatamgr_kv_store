@@ -165,6 +165,8 @@ public:
 
     bool IsUseFromTables() const;
 
+    bool IsUseFrom() const;
+
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
@@ -189,7 +191,7 @@ private:
     int sortType_ = 0;
     std::vector<std::string> tables_;
 
-    bool useFromTable_ = false;
+    bool isUseFrom_ = false;
     bool isUseFromTables_ = false;
     std::string fromTable_;
     std::list<std::string> tableSequence_;

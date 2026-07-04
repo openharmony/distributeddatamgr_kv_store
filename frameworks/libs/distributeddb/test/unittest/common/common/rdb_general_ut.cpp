@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "rdb_general_ut.h"
-#include "relational_store_client_utils.h"
 #include "rdb_data_generator.h"
 #include "runtime_config.h"
 #include "sqlite_relational_utils.h"
@@ -312,7 +311,8 @@ void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(const StoreInfo &info)
         LOGE("[RDBGeneralUt] Get null sqlite when insert data");
         return;
     }
-    sqlite3_set_json_parse_callback_binlog(db, &RelationalStoreClientUtils::BinlogSchemaGet);
+    sqlite3_set_json_parse_callback_binlog(db, &DataDonationUtils::BinlogSchemaGet);
+    sqlite3_free_json_parse_callback_binlog(db, &DataDonationUtils::FreeMonitorConfig);
     sqlite3_set_xChange_callback_binlog(db,  [] (const char *dbPath, char *tableName) ->void {
                                                 printf("xChangeCallback dbPath:%s tableName:%s\n", dbPath, tableName);
                                                 });
@@ -542,7 +542,7 @@ void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, Syn
 void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const CloudSyncOption &option,
     DBStatus expectStatus, DBStatus callbackExpect)
 {
-    LOGI("[RDBGeneralUt] Begin cloud sync with option, app %s store %s user %s", from.appId.c_str(),
+    LOGI("[RDBGeneralUt] Begin cloud sync, app %s store %s user %s", from.appId.c_str(),
         from.storeId.c_str(), from.userId.c_str());
     auto delegate = GetDelegate(from);
     ASSERT_NE(delegate, nullptr);

@@ -2352,7 +2352,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 
 /*
  * @tc.name: CleanCloudDataTableTest010
- * @tc.desc: test reference property
+ * @tc.desc: clear reference property
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: xiefengzhu
@@ -2431,7 +2431,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CloudInsuff
     int localCount = 20;
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     /**
-     * @tc.steps: step2. prepare compensated task
+     * @tc.steps: step2. prepare compensation task
      */
     int upIdx = 0;
     g_virtualCloudDb->ForkUpload([&upIdx](const std::string &tableName, VBucket &extend) {

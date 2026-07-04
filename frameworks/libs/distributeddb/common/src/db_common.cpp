@@ -16,7 +16,6 @@
 #include "db_common.h"
 
 #include <atomic>
-#include <charconv>
 #include <climits>
 #include <cstdio>
 #ifndef _WIN32
@@ -683,12 +682,6 @@ bool DBCommon::CheckCloudSyncConfigValid(const CloudSyncConfig &config)
         return false;
     }
     return true;
-}
-
-bool DBCommon::ConvertToUInt64(const std::string &str, uint64_t &value)
-{
-    auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
-    return errCode == std::errc{} && ptr == str.data() + str.size();
 }
 
 bool CmpModifyTime(const std::string &preModifyTimeStr, const std::string &curModifyTimeStr)

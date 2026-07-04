@@ -63,6 +63,7 @@ public:
         VBucket &localAssetInfo);
     static int GetRecordPrefix(size_t idx, ICloudSyncer::SyncParam &param, const ICloudSyncer::DataInfo &dataInfo,
         Type &prefix, std::vector<Type> &pkVals);
+    static void MergeAssetWithId(VBucket &cloud, VBucket &local);
 private:
     static bool TagDownloadAssetsTimeFirstInner(const AssetRecordInfo &info, VBucket &local, VBucket &cloud,
         std::map<std::string, Assets> &assetsMap);
@@ -72,6 +73,8 @@ private:
         std::map<std::string, Assets> &assetsMap);
     static void TagDownloadAssetsTempPathInner(const AssetRecordInfo &info, VBucket &local, VBucket &cloud,
         std::map<std::string, Assets> &assetsMap);
+    static void MergeAssetsWithIdInner(Assets &cloud, const Assets &local);
+    static void MergeAssetWithIdInner(Asset &cloud, const Asset &local);
 };
 } // namespace DistributedDB
 #endif // CLOUD_SYNC_TAG_ASSETS_H

@@ -645,6 +645,7 @@ void SyncAbleKvDB::FillSyncInfo(const CloudSyncOption &option, const SyncProcess
     info.storeId = MyProp().GetStringProp(DBProperties::STORE_ID, "");
     info.merge = option.merge;
     info.prepareTraceId = option.prepareTraceId;
+    info.queryMode = option.queryMode;
     if (option.queryMode == QueryMode::UPLOAD_ONLY) {
         QuerySyncObject query(option.query);
         query.SetTableName(CloudDbConstant::CLOUD_KV_TABLE_NAME);
@@ -689,10 +690,15 @@ int SyncAbleKvDB::CheckSyncOption(const CloudSyncOption &option, const CloudSync
     if (!CheckSchemaSupportForCloudSync()) {
         return -E_NOT_SUPPORT;
     }
-    if (option.queryMode == QueryMode::UPLOAD_ONLY &&
-        QueryObject::IsContainOtherNodes(option.query, {QueryObjType::QUERY_BY_KEY_PREFIX})) {
-        LOGE("[SyncAbleKvDB][Sync] sync with not support query");
-        return -E_NOT_SUPPORT;
+    if (option.queryMode == QueryMode::UPLOAD_ONLY) {
+        if (QueryObject::IsUseFrom(option.query) || QueryObject::IsUseFromTables(option.query)) {
+            LOGE("[SyncAbleKvDB][Sync] sync with invalid from or from tables");
+            return -E_INVALID_ARGS;
+        }
+        if (QueryObject::IsContainOtherNodes(option.query, {QueryObjType::QUERY_BY_KEY_PREFIX})) {
+            LOGE("[SyncAbleKvDB][Sync] sync with not support query");
+            return -E_NOT_SUPPORT;
+        }
     }
     return E_OK;
 }

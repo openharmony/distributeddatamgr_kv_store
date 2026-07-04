@@ -190,7 +190,7 @@ int SQLiteRelationalStore::CheckTableSyncType(const std::string &tableName, Tabl
         return errCode;
     }
     if (!isCreated) {
-        LOGE("[SQLiteRelationalStore] table %s does not exist in the database",
+        LOGE("[SQLiteRelationalStore] table %s dose not exist in the database",
             DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
         return -E_TABLE_NOT_FOUND;
     }
@@ -279,17 +279,18 @@ int SQLiteRelationalStore::SetBinlogEnabled(bool enabled)
         return errCode;
     }
     // rollback
+    int errCodeRollback = E_OK;
     for (bool external : std::as_const(isExternal)) {
-        errCode = SetBinlogEnabled(false, external);
-        if (errCode != E_OK) {
+        errCodeRollback = SetBinlogEnabled(false, external);
+        if (errCodeRollback != E_OK) {
             break;
         }
     }
-    if (errCode == E_OK) {
+    if (errCodeRollback == E_OK) {
         std::lock_guard<std::mutex> lock(initalMutex_);
         isBinlogEnabled_ = false;
     }
-    return errCode;
+    return (errCode == E_OK) ? errCodeRollback : errCode;
 }
 
 int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal) const
@@ -308,17 +309,17 @@ int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal) const
         return errCode;
     }
     errCode = SQLiteUtils::SetBinlogEnabled(db, enabled);
-    ReleaseHandle(handle, isExternal);
     if (errCode != E_OK) {
         LOGE("[RelationalStore][SetBinlogEnabled] Set binlog enabled failed:%d, external:%d, enabled:%d",
             errCode, isExternal, enabled);
     } else {
         DataDonationUtils::SetDataChangedObserver(db);
     }
+    ReleaseHandle(handle, isExternal);
     return errCode;
 }
 
-int SQLiteRelationalStore::SetSubscribeCursor(const DBSubscribeCur &cursorIn)
+int SQLiteRelationalStore::SetSubscribeCursor(const DBSubscribeCursor &cursorIn)
 {
     if (sqliteStorageEngine_ == nullptr) {
         LOGE("[RelationalStore][SetSubscribeCursor] sqliteStorageEngine was not initialized");
@@ -338,7 +339,7 @@ int SQLiteRelationalStore::SetTrackerMatrixInfo(const MatrixFileInfo &info)
 }
 
 int SQLiteRelationalStore::QuerySubscribeOutput(
-    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
+    const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &dataOut)
 {
     if (sqliteStorageEngine_ == nullptr) {
         return -E_INVALID_DB;

@@ -184,7 +184,7 @@ protected:
     DeviceID devId_;
     mutable std::mutex propertyMutex_;
     Property property_;
-    std::atomic<bool> highPerformanceReadMode_;
+    std::atomic<bool> highPerformaceReadMode_;
 
 private:
     // Do commit notify in task pool.

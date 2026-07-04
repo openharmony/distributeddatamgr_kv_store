@@ -616,6 +616,29 @@ Asset ProcessCloudAssetToLocal(const Asset &cloudAsset, const Asset &localAsset,
     return updateAsset;
 }
 
+// Process single cloud asset to local asset based on temp path conflict resolution policy
+// Compare hash first, if same skip; if different mark cloud as update (cloud wins)
+Asset ProcessCloudAssetToLocalTempPath(const Asset &cloudAsset, const Asset &localAsset)
+{
+    if (localAsset.hash == cloudAsset.hash && !AssetOperationUtils::IsAssetNeedDownload(localAsset)) {
+        Asset noChangeAsset = localAsset;
+        noChangeAsset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        noChangeAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL) |
+            (noChangeAsset.status & static_cast<uint32_t>(AssetStatus::TEMP_PATH));
+        return noChangeAsset;
+    }
+    // Hash is different, cloud wins, mark as update with TEMP
+    Asset updateAsset = localAsset;
+    updateAsset.hash = cloudAsset.hash;
+    updateAsset.assetId = cloudAsset.assetId;
+    updateAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
+    updateAsset.status = static_cast<uint32_t>(AssetStatus::DOWNLOADING | AssetStatus::TEMP_PATH);
+    Timestamp timestamp;
+    OS::GetCurrentSysTimeInMicrosecond(timestamp);
+    updateAsset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
+    return updateAsset;
+}
+
 // Process cloud assets to local assets based on temp path conflict resolution policy
 // Compare hash first, if same skip; if different mark cloud as update (cloud wins)
 Assets ProcessCloudAssetsToLocalTempPath(const Assets &cloudAssets, const Assets &localAssets,
@@ -635,46 +658,11 @@ Assets ProcessCloudAssetsToLocalTempPath(const Assets &cloudAssets, const Assets
             insertAsset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
             result.push_back(insertAsset);
         } else {
-            // Cloud asset found locally, compare hash
             const Asset &localAsset = localAssets[it->second];
-            if (localAsset.hash == cloudAsset.hash) {
-                continue;
-            }
-            // Hash is different, cloud wins, mark as update with TEMP
-            Asset updateAsset = localAsset;
-            updateAsset.hash = cloudAsset.hash;
-            updateAsset.assetId = cloudAsset.assetId;
-            updateAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
-            updateAsset.status = static_cast<uint32_t>(AssetStatus::DOWNLOADING | AssetStatus::TEMP_PATH);
-            Timestamp timestamp;
-            OS::GetCurrentSysTimeInMicrosecond(timestamp);
-            updateAsset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
-            result.push_back(updateAsset);
+            result.push_back(ProcessCloudAssetToLocalTempPath(cloudAsset, localAsset));
         }
     }
     return result;
-}
-
-// Process single cloud asset to local asset based on temp path conflict resolution policy
-// Compare hash first, if same skip; if different mark cloud as update (cloud wins)
-Asset ProcessCloudAssetToLocalTempPath(const Asset &cloudAsset, const Asset &localAsset)
-{
-    if (localAsset.hash == cloudAsset.hash) {
-        Asset noChangeAsset = localAsset;
-        noChangeAsset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
-        noChangeAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
-        return noChangeAsset;
-    }
-    // Hash is different, cloud wins, mark as update with TEMP
-    Asset updateAsset = localAsset;
-    updateAsset.hash = cloudAsset.hash;
-    updateAsset.assetId = cloudAsset.assetId;
-    updateAsset.flag = static_cast<uint32_t>(AssetOpType::UPDATE);
-    updateAsset.status = static_cast<uint32_t>(AssetStatus::DOWNLOADING | AssetStatus::TEMP_PATH);
-    Timestamp timestamp;
-    OS::GetCurrentSysTimeInMicrosecond(timestamp);
-    updateAsset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
-    return updateAsset;
 }
 
 // Handle conflict when both local and cloud have Assets type
@@ -720,8 +708,8 @@ bool HandleAssetConflict(const Field &field, VBucket &local, VBucket &cloud,
         ProcessCloudAssetToLocal(cloudAsset, localAsset, isNeedKeepFlag);
     if (changedAsset.flag != static_cast<uint32_t>(AssetOpType::NO_CHANGE)) {
         assetsMap[field.colName] = Assets{changedAsset};
-        cloud[field.colName] = changedAsset;
     }
+    cloud[field.colName] = changedAsset;
     return isNeedKeepFlag;
 }
 
@@ -875,6 +863,48 @@ void CloudSyncTagAssets::HandleAssetFieldLocalNoneExist(const Field &field, cons
     } else if (IsDataContainField<Asset>(field.colName, cloud)) {
         Asset assetToInsert = MarkAssetAsInsert(std::get<Asset>(cloudType));
         assetsMap[field.colName] = Assets{assetToInsert};
+    }
+}
+
+void CloudSyncTagAssets::MergeAssetWithId(VBucket &cloud, VBucket &local)
+{
+    for (const auto &[col, value]: local) {
+        if (value.index() == TYPE_INDEX<Assets> && IsDataContainField<Assets>(col, cloud)) {
+            auto &cloudAssets = std::get<Assets>(cloud[col]);
+            auto &localAssets = std::get<Assets>(value);
+            MergeAssetsWithIdInner(cloudAssets, localAssets);
+            continue;
+        }
+        if (value.index() == TYPE_INDEX<Asset> && IsDataContainField<Asset>(col, cloud)) {
+            auto &cloudAsset = std::get<Asset>(cloud[col]);
+            auto &localAsset = std::get<Asset>(value);
+            MergeAssetWithIdInner(cloudAsset, localAsset);
+            continue;
+        }
+        cloud[col] = value;
+    }
+}
+
+void CloudSyncTagAssets::MergeAssetsWithIdInner(Assets &cloud, const Assets &local)
+{
+    for (auto &localAsset : local) {
+        auto assetIt = std::find_if(cloud.begin(), cloud.end(),
+            [&localAsset](const Asset &a) { return a.name == localAsset.name; });
+        if (assetIt != cloud.end()) {
+            auto id = assetIt->assetId;
+            AssetOperationUtils::CopyAsset(localAsset, *assetIt);
+            assetIt->assetId = id;
+        }
+    }
+    cloud = local;
+}
+
+void CloudSyncTagAssets::MergeAssetWithIdInner(Asset &cloud, const Asset &local)
+{
+    if (cloud.name == local.name) {
+        auto id = cloud.assetId;
+        AssetOperationUtils::CopyAsset(local, cloud);
+        cloud.assetId = id;
     }
 }
 } // namespace DistributedDB

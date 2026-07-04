@@ -125,7 +125,7 @@ ohos_fuzztest("JsonInnerCollectionFuzzTest") {
 
   ldflags += [ "--coverage" ]
 
-  cflags_cc = [ "--coverage" ]
+  cflags_cc = [ "--coverage", "-Werror=vla" ]
 
   sources = [ "jsoninnercollection_fuzzer.cpp" ]
 }

@@ -28,14 +28,24 @@ public:
     DataDonationSqlGenerator() = default;
     ~DataDonationSqlGenerator() = default;
 
-    int GenerateQuerySql(const DataDonationSchema::DdRelationsPath &path, int64_t cursor, std::string &sql) const;
+    int GenerateQuerySql(const DataDonationSchema::DdRelationsPath &path,
+        const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        const std::vector<std::pair<std::string, int64_t>> &maxRowids, std::string &sql) const;
+    static std::string BuildFromTableName(const DataDonationSchema::DdRelationsPath &path);
+    static std::vector<std::string> GetJoinedTableNames(const DataDonationSchema::DdRelationsPath &path);
 
 private:
     std::string BuildSelectClause(const DataDonationSchema::DdRelationsPath &path) const;
+    std::string BuildRowidSelectClause(const std::vector<std::string> &tableNames) const;
     std::string BuildFromClause(const DataDonationSchema::DdRelationsPath &path) const;
     std::string BuildJoinClauses(const DataDonationSchema::DdRelationsPath &path,
         const std::set<std::string> &requiredTables) const;
-    std::string BuildPaginationClause(int64_t cursor) const;
+    std::string BuildRowidClause(const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        const std::vector<std::pair<std::string, int64_t>> &maxRowids, const std::string &mainTable) const;
+    std::string BuildLexicographicWhere(const std::vector<std::pair<std::string, int64_t>> &cursorValues) const;
+    std::string BuildMaxRowidConstraints(const std::vector<std::pair<std::string, int64_t>> &maxRowids,
+        const std::string &mainTable) const;
+    std::string BuildOrderByClause(const std::vector<std::string> &tableNames) const;
     std::set<std::string> AnalyzeRequiredTables(const DataDonationSchema::DdRelationsPath &path) const;
     std::string FormatFieldRef(const std::string &table, const std::string &field) const;
     int ValidatePath(const DataDonationSchema::DdRelationsPath &path) const;

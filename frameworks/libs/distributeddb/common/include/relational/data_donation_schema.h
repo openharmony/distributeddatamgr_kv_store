@@ -56,6 +56,7 @@ public:
         DdForeignKey key; // Store the association hops from this table to the target key
         DdField localField; // keyOut field, local table field, empty means no output needed
         DdField foreignField; // keyOut field, foreign table field, empty means no output needed
+        DdField primaryKeyField; // primaryKey field of this table
     };
     struct DdRelationsPath {
         // Currently, trigger conditions are not distinguished during Query
@@ -71,6 +72,9 @@ public:
 
     // If no path is found, no wakeup is needed
     DataDonationSchema::DdRelationsPath& GetRelationPath(const std::string &table);
+
+    std::string GetPrimaryKey(const std::string &table) const;
+
     // Used for full donation, provides keysOut via the shortest path
     DataDonationSchema::DdRelationsPath& GetRelationPath();
 private:
@@ -79,6 +83,7 @@ private:
     // Fields and conditions that trigger the change
     std::unordered_map<std::string, DdTrigger> triggers;
     std::unordered_map<std::string, DdForeignKey> foreignKeys;
+    std::unordered_map<std::string, std::string> primaryKeys;
     vector<DdKeyOut> keysOut;  // Output keys
     std::string FieldTypeString(FieldType inType) const;
     int ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field, JsonObject &out) const;
@@ -92,6 +97,7 @@ private:
     int DecodeForeignKeys(const JsonObject &src);
     void DecodeMappings4Trigger(const std::vector<JsonObject> &mappings);
     int DecodeForeignKeyFromField(const std::string &tableName, const JsonObject &field);
+    int DecodePrimaryKeyFromField(const std::string &tableName, const JsonObject &field);
     int DecodeTriggers(const JsonObject &src);
     void MergeRelationsMaps(DdTrigger &trigger);
     int DecodeRelationsMaps();

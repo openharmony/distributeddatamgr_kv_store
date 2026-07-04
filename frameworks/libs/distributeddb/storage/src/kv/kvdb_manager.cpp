@@ -26,9 +26,10 @@
 
 namespace DistributedDB {
 const std::string KvDBManager::PROCESS_LABEL_CONNECTOR = "-";
-std::atomic<KvDBManager *> KvDBManager::instance_{nullptr};
+std::shared_ptr<KvDBManager> KvDBManager::instance_ = nullptr;
 std::mutex KvDBManager::kvDBLock_;
-std::mutex KvDBManager::instanceLock_;
+std::shared_mutex KvDBManager::instanceMutex_;
+std::atomic<bool> KvDBManager::instanceDestroyed_{false};
 std::map<std::string, OS::FileHandle *> KvDBManager::locks_;
 std::mutex KvDBManager::fileHandleMutex_;
 
@@ -176,7 +177,7 @@ void KvDBManager::RemoveDBDirectory(const KvDBProperties &properties)
 // Used to open a kvdb with the given property
 IKvDB *KvDBManager::OpenDatabase(const KvDBProperties &property, int &errCode)
 {
-    KvDBManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         errCode = -E_OUT_OF_MEMORY;
         return nullptr;
@@ -509,7 +510,7 @@ bool KvDBManager::IsOpenMemoryDb(const KvDBProperties &properties, const std::ma
 // used to get kvdb size with the given property.
 int KvDBManager::CalculateKvStoreSize(const KvDBProperties &properties, uint64_t &size)
 {
-    KvDBManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         LOGE("Failed to get KvDBManager instance!");
         return -E_OUT_OF_MEMORY;
@@ -570,7 +571,7 @@ IKvDB *KvDBManager::GetKvDBFromCacheByIdentify(const std::string &identifier,
 
 int KvDBManager::CheckDatabaseFileStatus(const KvDBProperties &properties)
 {
-    KvDBManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         LOGE("Failed to get KvDBManager instance!");
         return -E_OUT_OF_MEMORY;
@@ -645,7 +646,7 @@ IKvDB *KvDBManager::OpenNewDatabase(const KvDBProperties &property, int &errCode
 // return BUSY if in use
 int KvDBManager::RemoveDatabase(const KvDBProperties &properties)
 {
-    KvDBManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         LOGE("Failed to get kvdb manager while removing the db!");
         return -E_OUT_OF_MEMORY;
@@ -689,18 +690,17 @@ std::string KvDBManager::GenerateKvDBDataDirIdentifier(const KvDBProperties &pro
     return property.GetStringProp(KvDBProperties::DATA_DIR_IDENTIFIER, "");
 }
 
-KvDBManager *KvDBManager::GetInstance()
+std::shared_ptr<KvDBManager> KvDBManager::GetInstance()
 {
-    // For Double-Checked Locking, we need check instance_ twice
-    if (instance_ == nullptr) {
-        std::lock_guard<std::mutex> lockGuard(instanceLock_);
-        if (instance_ == nullptr) {
-            instance_ = new (std::nothrow) KvDBManager();
-            if (instance_ == nullptr) {
-                LOGE("failed to new KvDBManager!");
-                return nullptr;
-            }
+    {
+        std::shared_lock<std::shared_mutex> readLock(instanceMutex_);
+        if (instance_ != nullptr) {
+            return instance_;
         }
+    }
+    std::unique_lock<std::shared_mutex> writeLock(instanceMutex_);
+    if (instance_ == nullptr && !IsInstanceDestroyed()) {
+        instance_ = std::make_shared<KvDBManager>();
     }
     if (IKvDBFactory::GetCurrent() == nullptr) {
         IKvDBFactory::Register(&g_defaultFactory);
@@ -710,11 +710,12 @@ KvDBManager *KvDBManager::GetInstance()
 
 void KvDBManager::DeleteInstance()
 {
-    KvDBManager *inst = nullptr;
+    std::shared_ptr<KvDBManager> inst;
     {
-        std::lock_guard<std::mutex> lockGuard(instanceLock_);
+        std::unique_lock<std::shared_mutex> writeLock(instanceMutex_);
+        SetInstanceDestroyed(true);
         inst = instance_;
-        instance_ = nullptr;
+        instance_.reset();
     }
     if (inst != nullptr) {
         {
@@ -723,28 +724,24 @@ void KvDBManager::DeleteInstance()
                 if (entry.second != nullptr) {
                     entry.second->ClearCloseNotifiers();
                     entry.second->SetCorruptHandler(nullptr);
-                    RefObject::KillAndDecObjRef(entry.second);
                 }
             }
-            inst->localKvDBs_.clear();
             for (const auto &entry : inst->multiVerNaturalStores_) {
                 if (entry.second != nullptr) {
                     entry.second->ClearCloseNotifiers();
                     entry.second->SetCorruptHandler(nullptr);
-                    RefObject::KillAndDecObjRef(entry.second);
                 }
             }
-            inst->multiVerNaturalStores_.clear();
             for (const auto &entry : inst->singleVerNaturalStores_) {
                 if (entry.second != nullptr) {
                     entry.second->ClearCloseNotifiers();
                     entry.second->SetCorruptHandler(nullptr);
-                    RefObject::KillAndDecObjRef(entry.second);
                 }
             }
+            inst->localKvDBs_.clear();
+            inst->multiVerNaturalStores_.clear();
             inst->singleVerNaturalStores_.clear();
         }
-        delete inst;
     }
     {
         std::lock_guard<std::mutex> fileLock(fileHandleMutex_);
@@ -754,6 +751,16 @@ void KvDBManager::DeleteInstance()
         }
         locks_.clear();
     }
+}
+
+bool KvDBManager::IsInstanceDestroyed()
+{
+    return instanceDestroyed_.load(std::memory_order_acquire);
+}
+
+void KvDBManager::SetInstanceDestroyed(bool isDestroyed)
+{
+    instanceDestroyed_.store(isDestroyed, std::memory_order_release);
 }
 
 // Save to IKvDB to the global map
@@ -888,13 +895,17 @@ IKvDB *KvDBManager::FindKvDBFromCache(const KvDBProperties &properties, const st
 int KvDBManager::SetProcessLabel(const std::string &appId, const std::string &userId)
 {
     std::string label = appId + PROCESS_LABEL_CONNECTOR + userId;
-    RuntimeContext::GetInstance()->SetProcessLabel(label);
+    auto rtCtx = RuntimeContext::GetInstance();
+    if (rtCtx == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
+    rtCtx->SetProcessLabel(label);
     return E_OK;
 }
 
 void KvDBManager::RestoreSyncableKvStore()
 {
-    KvDBManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         return;
     }
@@ -904,7 +915,7 @@ void KvDBManager::RestoreSyncableKvStore()
 
 void KvDBManager::SetDatabaseCorruptionHandler(const KvStoreCorruptionHandler &handler)
 {
-    KvDBManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         return;
     }
@@ -940,7 +951,12 @@ void KvDBManager::DataBaseCorruptNotify(const std::string &appId, const std::str
 void KvDBManager::DataBaseCorruptNotifyAsync(const std::string &appId, const std::string &userId,
     const std::string &storeId)
 {
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(
+    auto rtCtx = RuntimeContext::GetInstance();
+    if (rtCtx == nullptr) {
+        LOGE("[KvDBManager][CorruptNotify] RuntimeContext is null.");
+        return;
+    }
+    int errCode = rtCtx->ScheduleTask(
         [this, appId, userId, storeId] { DataBaseCorruptNotify(appId, userId, storeId); });
     if (errCode != E_OK) {
         LOGE("[KvDBManager][CorruptNotify] ScheduleTask failed, errCode = %d.", errCode);

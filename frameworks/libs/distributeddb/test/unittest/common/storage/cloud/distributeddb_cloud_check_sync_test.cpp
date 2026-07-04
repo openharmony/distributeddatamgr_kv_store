@@ -367,7 +367,7 @@ void DistributedDBCloudCheckSyncTest::InsertUserTableRecord(const std::string &t
         string sql = "INSERT OR REPLACE INTO " + tableName
             + " (id, name, height, photo, age) VALUES ('" + std::to_string(i) + "', 'Local"
             + std::to_string(i) + "', '155.10',  'text', ";
-        sql += ageChange? std::to_string(i) : "21";
+        sql += ageChange ? std::to_string(i) : "21";
         sql += ");";
         ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
     }

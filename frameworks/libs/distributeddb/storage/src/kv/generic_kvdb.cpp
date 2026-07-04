@@ -29,7 +29,7 @@ DEFINE_OBJECT_TAG_FACILITIES(GenericKvDB);
 
 GenericKvDB::GenericKvDB()
     : performance_(nullptr),
-      highPerformanceReadMode_(false),
+      highPerformaceReadMode_(false),
       eventNotifyCounter_(0),
       connectionCount_(0),
       notificationChain_(nullptr),
@@ -465,11 +465,11 @@ void GenericKvDB::SetProperty(const Property &property)
 
 void GenericKvDB::SetHighPerformanceReadMode(const bool enable)
 {
-    highPerformanceReadMode_.store(enable);
+    highPerformaceReadMode_.store(enable);
 }
 
 bool GenericKvDB::GetHighPerformanceReadMode()
 {
-    return highPerformanceReadMode_.load();
+    return highPerformaceReadMode_.load();
 }
 } // namespace DistributedDB

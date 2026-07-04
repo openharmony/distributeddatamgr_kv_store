@@ -48,6 +48,7 @@ public:
     static void SetToDownload(bool isSkipDownloadAssets, VBucket &record);
     static bool IsAssetToDownload(const Asset &asset);
     static void CopyAsset(const Asset &from, Asset &to);
+    static uint32_t GetHighBitMask(uint32_t status);
 private:
     static void Init();
     static AssetOperationUtils::AssetOpType DefaultOperation(const Asset &, const Assets &);
@@ -64,7 +65,6 @@ private:
         std::map<std::string, Assets> &beFilledAssets);
     static bool IsFirstDownloadAsset(const Asset &asset);
     static void SetToDownloadIfDownloading(Asset &asset);
-    static uint32_t GetHighBitMask(uint32_t status);
     static constexpr uint32_t BIT_MASK_COUNT = 16;
 };
 }

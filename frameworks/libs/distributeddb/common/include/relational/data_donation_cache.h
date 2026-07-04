@@ -36,9 +36,11 @@ constexpr size_t GET_NEW_BATCH_NUM = 100;
 class DataDonationCache : public UniqueQueue<DdData, DdDataHash, std::equal_to<DdData>> {
 public:
     int SetSchema(const std::string &schema);
-    int Query(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &data);
+    int Query(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
+        DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
     int UpdateCursor(const DdCursor &cursorIn, DdData &ddData);
+
+    int FlushGetAllCursorCache();
 
     DdData cacheRead[GET_ALL_BATCH_NUM]{};
 
@@ -46,10 +48,33 @@ private:
     uint64_t cursor = UINT64_MAX; // The water level value set externally，cursor % capacity = front
     DataDonationSchema ddSchema;
 
-    int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &data);
-    int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &data);
+    struct GetAllCursorCache {
+        std::string mainTable;
+        std::string dbPath;
+        std::vector<std::pair<std::string, int64_t>> cursorValues;
+        std::vector<std::pair<std::string, int64_t>> maxRowids;
+        uint64_t sessionCursor = 0;
+        bool isValid = false;
+    };
+
+    GetAllCursorCache getAllCache_;
+
+    int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
+        DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
+
+    int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
+        DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
+
+    int InitGetAllQuery(const std::string &dbPath,
+        const std::vector<std::string> &tableNames,
+        SQLiteSingleVerRelationalStorageExecutor *handle,
+        std::vector<std::pair<std::string, int64_t>> &maxRowids);
+
+    int LoadCursorFromCacheOrFile(const std::string &mainTable, const std::string &dbPath,
+        std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        std::vector<std::pair<std::string, int64_t>> &maxRowids);
+
+    void UpdateGetAllCache(const GetAllCursorCache &newCache);
 };
 
 }  // namespace DistributedDB

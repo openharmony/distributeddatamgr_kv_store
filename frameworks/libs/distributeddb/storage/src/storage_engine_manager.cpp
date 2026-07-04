@@ -22,8 +22,9 @@
 
 namespace DistributedDB {
 volatile bool StorageEngineManager::isRegLockStatusListener_ = false;
-std::mutex StorageEngineManager::instanceLock_;
-std::atomic<StorageEngineManager *> StorageEngineManager::instance_{nullptr};
+std::shared_mutex StorageEngineManager::instanceMutex_;
+std::shared_ptr<StorageEngineManager> StorageEngineManager::instance_ = nullptr;
+std::atomic<bool> StorageEngineManager::instanceDestroyed_{false};
 std::mutex StorageEngineManager::storageEnginesLock_;
 
 namespace {
@@ -57,7 +58,7 @@ StorageEngineManager::~StorageEngineManager()
 
 StorageEngine *StorageEngineManager::GetStorageEngine(const KvDBProperties &property, int &errCode)
 {
-    StorageEngineManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         LOGE("[StorageEngineManager] GetInstance failed");
         errCode = -E_OUT_OF_MEMORY;
@@ -100,7 +101,7 @@ int StorageEngineManager::ReleaseStorageEngine(StorageEngine *storageEngine)
         return E_OK;
     }
 
-    StorageEngineManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         LOGE("[StorageEngineManager] Release GetInstance failed");
         return -E_OUT_OF_MEMORY;
@@ -112,7 +113,7 @@ int StorageEngineManager::ReleaseStorageEngine(StorageEngine *storageEngine)
 
 int StorageEngineManager::ForceReleaseStorageEngine(const std::string &identifier)
 {
-    StorageEngineManager *manager = GetInstance();
+    auto manager = GetInstance();
     if (manager == nullptr) {
         LOGE("[StorageEngineManager] Force release GetInstance failed");
         return -E_OUT_OF_MEMORY;
@@ -136,24 +137,23 @@ int StorageEngineManager::ExecuteMigration(StorageEngine *storageEngine)
     return -E_INVALID_DB;
 }
 
-StorageEngineManager *StorageEngineManager::GetInstance()
+std::shared_ptr<StorageEngineManager> StorageEngineManager::GetInstance()
 {
-    // For Double-Checked Locking, we need check instance_ twice
-    if (instance_ == nullptr) {
-        std::lock_guard<std::mutex> lockGuard(instanceLock_);
-        if (instance_ == nullptr) {
-            instance_ = new (std::nothrow) StorageEngineManager();
-            if (instance_ == nullptr) {
-                LOGE("[StorageEngineManager] Failed to alloc the engine manager!");
-                return nullptr;
-            }
+    {
+        std::shared_lock<std::shared_mutex> readLock(instanceMutex_);
+        if (instance_ != nullptr) {
+            return instance_;
         }
     }
+    std::unique_lock<std::shared_mutex> writeLock(instanceMutex_);
+    if (instance_ == nullptr && !IsInstanceDestroyed()) {
+        instance_ = std::shared_ptr<StorageEngineManager>(new StorageEngineManager(), &StorageEngineManager::DoDelete);
+    }
 
-    if (!isRegLockStatusListener_) {
+    if (instance_ != nullptr && !isRegLockStatusListener_) {
         std::lock_guard<std::mutex> mgrLock(storageEnginesLock_);
         if (!isRegLockStatusListener_) {
-            int errCode = (instance_.load())->RegisterLockStatusListener();
+            int errCode = instance_->RegisterLockStatusListener();
             if (errCode == E_OK) {
                 isRegLockStatusListener_ = true;
                 LOGW("[StorageEngineManager] Register lock status listener.");
@@ -165,22 +165,35 @@ StorageEngineManager *StorageEngineManager::GetInstance()
 
 void StorageEngineManager::DeleteInstance()
 {
-    StorageEngineManager *inst = nullptr;
+    std::shared_ptr<StorageEngineManager> inst;
     {
-        std::lock_guard<std::mutex> lockGuard(instanceLock_);
+        std::unique_lock<std::shared_mutex> writeLock(instanceMutex_);
+        SetInstanceDestroyed(true);
         inst = instance_;
-        instance_ = nullptr;
-    }
-    if (inst != nullptr) {
-        delete inst;
+        instance_.reset();
     }
     isRegLockStatusListener_ = false;
 }
 
+bool StorageEngineManager::IsInstanceDestroyed()
+{
+    return instanceDestroyed_.load(std::memory_order_acquire);
+}
+
+void StorageEngineManager::SetInstanceDestroyed(bool isDestroyed)
+{
+    instanceDestroyed_.store(isDestroyed, std::memory_order_release);
+}
+
 int StorageEngineManager::RegisterLockStatusListener()
 {
+    auto rtCtx = RuntimeContext::GetInstance();
+    if (rtCtx == nullptr) {
+        LOGE("[StorageEngineManager] RuntimeContext is null, cannot register lock status listener.");
+        return -E_OUT_OF_MEMORY;
+    }
     int errCode = E_OK;
-    lockStatusListener_ = RuntimeContext::GetInstance()->RegisterLockStatusLister(
+    lockStatusListener_ = rtCtx->RegisterLockStatusLister(
         [this](void *lockStatus) {
             if (lockStatus == nullptr) {
                 return;
@@ -190,7 +203,12 @@ int StorageEngineManager::RegisterLockStatusListener()
             if (isLocked) {
                 return;
             }
-            int taskErrCode = RuntimeContext::GetInstance()->ScheduleTask(
+            auto rtCtxInner = RuntimeContext::GetInstance();
+            if (rtCtxInner == nullptr) {
+                LOGE("[StorageEngineManager] RuntimeContext is null, cannot schedule LockStatusNotifier.");
+                return;
+            }
+            int taskErrCode = rtCtxInner->ScheduleTask(
                 [this, isLocked] { LockStatusNotifier(isLocked); });
             if (taskErrCode != E_OK) {
                 LOGE("[StorageEngineManager] LockStatusNotifier ScheduleTask failed : %d", taskErrCode);

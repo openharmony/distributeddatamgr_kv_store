@@ -158,7 +158,8 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
     return !isSame;
 }
 
-int CloudSyncUtils::CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode)
+int CloudSyncUtils::CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode,
+    AssetConflictPolicy policy, bool isAsyncDownloadAssets)
 {
     if (devices.size() != 1) {
         LOGE("[CloudSyncer] invalid devices size %zu", devices.size());
@@ -177,6 +178,10 @@ int CloudSyncUtils::CheckParamValid(const std::vector<DeviceID> &devices, SyncMo
     if (mode < SyncMode::SYNC_MODE_PUSH_ONLY || mode > SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL) {
         LOGE("[CloudSyncer] invalid mode %d", static_cast<int>(mode));
         return -E_INVALID_ARGS;
+    }
+    if (isAsyncDownloadAssets && policy == AssetConflictPolicy::CONFLICT_POLICY_TEMP_PATH) {
+        LOGE("[CloudSyncer] not support async download assets with policy[%" PRIu32 "]", static_cast<uint32_t>(policy));
+        return -E_NOT_SUPPORT;
     }
     return E_OK;
 }
@@ -1178,7 +1183,7 @@ int CloudSyncUtils::CheckSyncOptionParams(const CloudSyncOption &option)
     return E_OK;
 }
 
-int CloudSyncUtils::CheckSyncOptionCompatibility(const CloudSyncOption &option)
+int CloudSyncUtils::CheckSyncOptionCompatibility(const CloudSyncOption &option, bool isLogicDelete)
 {
     if (option.compensatedSyncOnly && option.asyncDownloadAssets) {
         LOGE("[CloudSyncUtils] compensatedSyncOnly is not compatible with asyncDownloadAssets");
@@ -1194,6 +1199,11 @@ int CloudSyncUtils::CheckSyncOptionCompatibility(const CloudSyncOption &option)
     }
     if (option.compensatedSyncOnly && option.queryMode == QueryMode::UPLOAD_ONLY) {
         LOGE("[CloudSyncUtils] Do not support sync when compensatedSyncOnly and UPLOAD_ONLY");
+        return -E_NOT_SUPPORT;
+    }
+    if (isLogicDelete && (option.mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH ||
+        option.mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PULL)) {
+        LOGE("[CloudSyncUtils] not support custom sync mode %d when logic delete is enabled", option.mode);
         return -E_NOT_SUPPORT;
     }
     return E_OK;
@@ -1278,8 +1288,36 @@ void CloudSyncUtils::GetDownloadListIfNeed(DownloadList &changeList, const Downl
     for (const auto &tuple : downloadList) {
         if (!CloudSyncUtils::IsContainNotDownload(tuple)) {
             changeList.push_back(tuple);
+        } else {
+            auto filteredAssets = CloudSyncUtils::FilterDeleteAssetsOnly(
+                std::get<CloudSyncUtils::ASSETS_INDEX>(tuple));
+            if (!filteredAssets.empty()) {
+                changeList.push_back(std::make_tuple(std::get<GID_INDEX>(tuple),
+                    std::get<PREFIX_INDEX>(tuple), std::get<STRATEGY_INDEX>(tuple),
+                    std::move(filteredAssets), std::get<HASH_KEY_INDEX>(tuple),
+                    std::get<PRIMARY_KEY_INDEX>(tuple), std::get<TIMESTAMP_INDEX>(tuple)));
+            }
         }
     }
+}
+
+std::map<std::string, Assets> CloudSyncUtils::FilterDeleteAssetsOnly(
+    const std::map<std::string, Assets> &assetsMap)
+{
+    std::map<std::string, Assets> result;
+    for (const auto &[col, assets] : assetsMap) {
+        Assets deleteAssets;
+        for (const auto &asset : assets) {
+            auto lowFlag = AssetOperationUtils::EraseBitMask(asset.flag);
+            if (lowFlag == static_cast<uint32_t>(DistributedDB::AssetOpType::DELETE)) {
+                deleteAssets.push_back(asset);
+            }
+        }
+        if (!deleteAssets.empty()) {
+            result[col] = std::move(deleteAssets);
+        }
+    }
+    return result;
 }
 
 void CloudSyncUtils::FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend,

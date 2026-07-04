@@ -25,7 +25,7 @@ namespace {
 void QueryExpression::AssemblyQueryInfo(const QueryObjType queryOperType, const std::string& field,
     const QueryValueType type, const std::vector<FieldValue> &values, bool isNeedFieldPath = true)
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].AssemblyQueryInfo(queryOperType, field, type, values, isNeedFieldPath);
         SetNotSupportIfNeed(queryOperType);
         return;
@@ -195,7 +195,7 @@ void QueryExpression::Or()
 
 void QueryExpression::QueryByPrefixKey(const std::vector<uint8_t> &key)
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].QueryByPrefixKey(key);
         validStatus_ = -E_NOT_SUPPORT;
         return;
@@ -208,7 +208,7 @@ void QueryExpression::QueryByPrefixKey(const std::vector<uint8_t> &key)
 
 void QueryExpression::QueryByKeyRange(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd)
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].QueryByKeyRange(keyBegin, keyEnd);
         validStatus_ = -E_NOT_SUPPORT;
         return;
@@ -231,7 +231,7 @@ void QueryExpression::SetAssetsOnlyValidStatusIfNeed(int status)
 void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
 {
     isAssetsOnly_ = true;
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].QueryAssetsOnly(assets);
         SetAssetsOnlyValidStatusIfNeed(expressions_[fromTable_].GetExpressionStatusForAssetsOnly());
         return;
@@ -276,7 +276,7 @@ void QueryExpression::QueryAssetsOnly(const AssetsMap &assets)
 
 void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].QueryBySuggestIndex(indexName);
         validStatus_ = -E_NOT_SUPPORT;
         return;
@@ -289,7 +289,7 @@ void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
 
 void QueryExpression::InKeys(const std::set<Key> &keys)
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].InKeys(keys);
         validStatus_ = -E_NOT_SUPPORT;
         return;
@@ -353,7 +353,7 @@ const std::set<Key> &QueryExpression::GetKeys() const
 
 void QueryExpression::BeginGroup()
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].BeginGroup();
         return;
     }
@@ -370,7 +370,7 @@ void QueryExpression::BeginGroup()
 
 void QueryExpression::EndGroup()
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].EndGroup();
         return;
     }
@@ -407,7 +407,7 @@ int QueryExpression::GetSortType() const
 
 void QueryExpression::SetSortType(bool isAsc)
 {
-    if (useFromTable_) {
+    if (isUseFrom_) {
         expressions_[fromTable_].SetSortType(isAsc);
         validStatus_ = -E_NOT_SUPPORT;
         return;
@@ -435,7 +435,7 @@ void QueryExpression::SetTables(const std::vector<std::string> &tableNames)
     }
     tables_ = syncTable;
     isUseFromTables_ = true;
-    if (useFromTable_) {
+    if (isUseFrom_) {
         validStatus_ = validStatus_ != E_OK ? validStatus_ : -E_NOT_SUPPORT;
     }
     SetNotSupportIfCondition();
@@ -443,7 +443,7 @@ void QueryExpression::SetTables(const std::vector<std::string> &tableNames)
 
 void QueryExpression::From(const std::string &tableName)
 {
-    useFromTable_ = true;
+    isUseFrom_ = true;
     fromTable_ = tableName;
     for (const auto &item: tableSequence_) {
         if (item == tableName) {
@@ -473,7 +473,7 @@ int QueryExpression::GetExpressionStatusForAssetsOnly() const
 
 std::vector<QueryExpression> QueryExpression::GetQueryExpressions() const
 {
-    if (!useFromTable_) {
+    if (!isUseFrom_) {
         return {};
     }
     std::vector<QueryExpression> res;
@@ -564,5 +564,10 @@ uint32_t QueryExpression::GetGroupNum() const
 bool QueryExpression::IsUseFromTables() const
 {
     return isUseFromTables_;
+}
+
+bool QueryExpression::IsUseFrom() const
+{
+    return isUseFrom_;
 }
 } // namespace DistributedDB

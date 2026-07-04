@@ -13,7 +13,7 @@
 import("//build/test.gni")
 import("../distributeddb.gni")
 
-module_output_path = "kv_store/distributeddb"
+module_output_path = "kv_store/kv_store"
 
 ###############################################################################
 config("gaussdb_rd_config") {
@@ -92,6 +92,7 @@ config("module_private_config") {
     "../gaussdb_rd/include/grd_base",
     "../gaussdb_rd/include/grd_document",
     "../gaussdb_rd/include/grd_kv",
+    "../gaussdb_rd/src/common/include",
   ]
 
   defines = [

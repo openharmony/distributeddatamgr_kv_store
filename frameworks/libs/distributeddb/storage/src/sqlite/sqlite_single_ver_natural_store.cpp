@@ -378,6 +378,7 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
         if (storageEngine_ == nullptr) {
             return errCode;
         }
+        RefObject::IncObjRef(storageEngine_);
     }
 
     if (storageEngine_->IsEngineCorrupted()) { // LCOV_EXCL_BR_LINE
@@ -1291,6 +1292,7 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
         if (storageEngine_ != nullptr) {
             storageEngine_->ClearEnginePasswd();
             (void)StorageEngineManager::ReleaseStorageEngine(storageEngine_);
+            RefObject::DecObjRef(storageEngine_);
             storageEngine_ = nullptr;
         }
     }

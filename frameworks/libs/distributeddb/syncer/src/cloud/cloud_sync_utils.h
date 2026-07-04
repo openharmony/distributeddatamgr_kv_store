@@ -55,7 +55,8 @@ public:
 
     static bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo);
 
-    static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
+    static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode,
+        AssetConflictPolicy policy, bool isAsyncDownloadAssets);
 
     static LogInfo GetCloudLogInfo(VBucket &datum);
 
@@ -168,7 +169,7 @@ public:
 
     static int CheckSyncOptionParams(const CloudSyncOption &option);
 
-    static int CheckSyncOptionCompatibility(const CloudSyncOption &option);
+    static int CheckSyncOptionCompatibility(const CloudSyncOption &option, bool isLogicDelete);
 
     static int SaveDupChangedData(ICloudSyncer::SyncParam &param);
 
@@ -179,6 +180,8 @@ public:
 
     static void GetDownloadListIfNeed(DownloadList &changeList, const DownloadList &downloadList,
         bool isNeedDownloadAssets);
+
+    static std::map<std::string, Assets> FilterDeleteAssetsOnly(const std::map<std::string, Assets> &assetsMap);
 
     static void FillCloudErrorActionFromExtend(const std::vector<VBucket> &extend,
         ICloudSyncer::InnerProcessInfo &info);
