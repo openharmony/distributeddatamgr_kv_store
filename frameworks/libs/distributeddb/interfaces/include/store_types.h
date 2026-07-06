@@ -135,6 +135,7 @@ enum PragmaCmd {
     SET_MAX_VALUE_SIZE,
     REMOVE_LOCAL_DATA_BY_KEY_PATTERN,
     SET_HIGH_PERFORMANCE_READ_MODE,
+    GET_PAGE_SIZE,
 };
 
 enum ResolutionPolicyType {

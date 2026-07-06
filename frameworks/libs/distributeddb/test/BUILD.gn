@@ -92,6 +92,7 @@ config("module_private_config") {
     "../gaussdb_rd/include/grd_base",
     "../gaussdb_rd/include/grd_document",
     "../gaussdb_rd/include/grd_kv",
+    "../gaussdb_rd/src/common/include",
   ]
 
   defines = [

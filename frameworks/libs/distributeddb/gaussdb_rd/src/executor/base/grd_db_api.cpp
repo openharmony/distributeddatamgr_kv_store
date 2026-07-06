@@ -102,3 +102,13 @@ GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
     }
     return GRD_DBApiInfo->IndexPreloadApi(db, collectionName);
 }
+
+GRD_API GRD_DbValueT GRD_GetConfig(GRD_DB *db, GRD_ConfigTypeE type)
+{
+    GRD_DbValueT invalidValue = {GRD_DB_DATATYPE_NULL, {0}};
+    if (GRD_DBApiInfo->GetConfigApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return invalidValue;
+    }
+    return GRD_DBApiInfo->GetConfigApi(db, type);
+}

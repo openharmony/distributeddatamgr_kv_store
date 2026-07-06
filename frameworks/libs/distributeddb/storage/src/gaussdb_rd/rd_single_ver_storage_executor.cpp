@@ -373,6 +373,19 @@ int RdSingleVerStorageExecutor::ForceCheckPoint() const
     return RdFlush(db_, 0);
 }
 
+int RdSingleVerStorageExecutor::GetPageSize(int &pageSize) const
+{
+    if (db_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    GRD_DbValueT result = GRD_GetConfig(db_, GRD_CONFIG_PAGE_SIZE);
+    if (result.type != GRD_DB_DATATYPE_INTEGER) {
+        return -E_INVALID_DATA;
+    }
+    pageSize = static_cast<int>(result.value.longValue);
+    return E_OK;
+}
+
 int RdSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key &key, const Value &value)
 {
     std::string collectionName;

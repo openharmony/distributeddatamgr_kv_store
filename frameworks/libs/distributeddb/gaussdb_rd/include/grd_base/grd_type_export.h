@@ -85,6 +85,51 @@ typedef struct GRD_DB GRD_DB;
 typedef struct GRD_KVBatch GRD_KVBatchT;
 
 /**
+ * @brief Config type for GRD_GetConfig
+ */
+typedef enum {
+    GRD_CONFIG_USER_VERSION,
+    GRD_CONFIG_DATA_VERSION,
+    GRD_CONFIG_GRAPH_VERSION,
+    GRD_CONFIG_GRAPH_SYSTEM_VERSION,
+    GRD_CONFIG_PAGE_SIZE,
+    GRD_CONFIG_BOTTOM,
+} GRD_ConfigTypeE;
+
+/**
+ * @brief Data type for GRD_DbValueT
+ */
+typedef enum {
+    GRD_DB_DATATYPE_INTEGER = 0,
+    GRD_DB_DATATYPE_FLOAT,
+    GRD_DB_DATATYPE_TEXT,
+    GRD_DB_DATATYPE_BLOB,
+    GRD_DB_DATATYPE_FLOATVECTOR,
+    GRD_DB_DATATYPE_JSONSTR,
+    GRD_DB_DATATYPE_NULL,
+    GRD_DB_DATATYPE_LIST,
+    GRD_DB_DATATYPE_BOTTOM
+} GRD_DbDataTypeE;
+
+/**
+ * @brief Value container for GRD_GetConfig
+ */
+typedef struct GRD_DbValueT {
+    GRD_DbDataTypeE type;
+    union {
+        int64_t longValue;
+        double doubleValue;
+        struct {
+            union {
+                const void *strAddr;
+                void *freeAddr;
+            };
+            uint32_t length;
+        };
+    } value;
+} GRD_DbValueT;
+
+/**
  * @brief Flags for create and drop collection
  */
 #define CHK_EXIST_COLLECTION 1

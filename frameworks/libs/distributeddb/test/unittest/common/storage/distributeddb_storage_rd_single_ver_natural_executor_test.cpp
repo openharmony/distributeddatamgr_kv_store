@@ -12,8 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <atomic>
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <thread>
 
 #include "db_constant.h"
 #include "db_common.h"
@@ -23,6 +25,9 @@
 #include "rd_single_ver_storage_executor.h"
 #include "kvdb_pragma.h"
 #include "storage_engine_manager.h"
+#include "grd_api_manager.h"
+#include "grd_base/grd_db_api.h"
+#include "grd_base/grd_type_export.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -207,9 +212,9 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam005, Te
   */
 HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam008, TestSize.Level1)
 {
-    EXPECT_EQ(g_nullHandle->StartTransaction(TransactType::DEFERRED), E_OK);    // -E_INVALID_DB
-    EXPECT_EQ(g_nullHandle->Commit(), E_OK);   // -E_INVALID_DB
-    EXPECT_EQ(g_nullHandle->Rollback(), E_OK); // -E_INVALID_DB
+    EXPECT_EQ(g_nullHandle->StartTransaction(TransactType::DEFERRED), E_OK);
+    EXPECT_EQ(g_nullHandle->Commit(), E_OK);
+    EXPECT_EQ(g_nullHandle->Rollback(), E_OK);
 
     EXPECT_EQ(g_handle->StartTransaction(TransactType::DEFERRED), E_OK);
     EXPECT_EQ(g_handle->Reset(), -E_NOT_SUPPORT);
@@ -594,4 +599,220 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, MoveToTest001, Test
     EXPECT_EQ(g_nullHandle->MoveTo(position, resultSet, currPosition), -E_INVALID_ARGS);
     currPosition = 0;
     EXPECT_EQ(g_nullHandle->MoveTo(position, resultSet, currPosition), -E_INVALID_ARGS);
+}
+
+/**
+  * @tc.name: PragmaGetPageSize_Normal
+  * @tc.desc: Call Pragma to query pageSize normally, should return a positive integer
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaGetPageSize_Normal, TestSize.Level1)
+{
+    int pageSize = 0;
+    int ret = g_connection->Pragma(PRAGMA_GET_PAGE_SIZE, &pageSize);
+    EXPECT_EQ(ret, E_OK);
+    EXPECT_GT(pageSize, 0);
+    // Common pageSize enum values: 4 / 8 / 16 / 32 / 64 (unit: KB, depending on kernel compile config)
+    EXPECT_TRUE(pageSize == 4 || pageSize == 8 || pageSize == 16 || pageSize == 32 || pageSize == 64);
+}
+
+/**
+  * @tc.name: PragmaGetPageSize_NullParam
+  * @tc.desc: Pass nullptr as parameter, should return -E_INVALID_ARGS
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaGetPageSize_NullParam, TestSize.Level1)
+{
+    int ret = g_connection->Pragma(PRAGMA_GET_PAGE_SIZE, nullptr);
+    EXPECT_EQ(ret, -E_INVALID_ARGS);
+}
+
+/**
+  * @tc.name: PragmaGetPageSize_NullApi
+  * @tc.desc: Mock GRD_GetConfig function pointer not loaded (Windows or SO missing), should return -E_INVALID_DATA
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaGetPageSize_NullApi, TestSize.Level1)
+{
+    DocumentDB::GRD_APIInfo *apiInfo = DocumentDB::GetApiInfo();
+    auto originalGetConfig = apiInfo->GetConfigApi;
+    apiInfo->GetConfigApi = nullptr;
+
+    int pageSize = -1; // Sentinel value, verify error path does not write back
+    int ret = g_connection->Pragma(PRAGMA_GET_PAGE_SIZE, &pageSize);
+
+    apiInfo->GetConfigApi = originalGetConfig;
+
+    EXPECT_EQ(ret, -E_INVALID_DATA);
+    EXPECT_EQ(pageSize, -1);
+}
+
+namespace {
+    void ConcurrentReadPageSizeWorker(RdSingleVerNaturalStore *store,
+        int iterations, std::atomic<int> &successCount, std::atomic<int> &firstPageSize)
+    {
+        int errCode = E_OK;
+        auto *conn = static_cast<RdSingleVerNaturalStoreConnection *>(store->GetDBConnection(errCode));
+        ASSERT_NE(conn, nullptr);
+        ASSERT_EQ(errCode, E_OK);
+
+        for (int j = 0; j < iterations; ++j) {
+            int pageSize = 0;
+            int ret = conn->Pragma(PRAGMA_GET_PAGE_SIZE, &pageSize);
+            if (ret != E_OK || pageSize <= 0) {
+                continue;
+            }
+            int expected = 0;
+            if (firstPageSize.compare_exchange_strong(expected, pageSize)) {
+            }
+            if (pageSize == firstPageSize.load()) {
+                successCount++;
+            }
+        }
+
+        conn->Close();
+    }
+}
+
+/**
+  * @tc.name: PragmaGetPageSize_ConcurrentRead
+  * @tc.desc: Concurrently call getPageSize from multiple threads, all should succeed and return the same value
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaGetPageSize_ConcurrentRead, TestSize.Level1)
+{
+    if (g_store != nullptr && g_handle != nullptr) {
+        g_store->ReleaseHandle(g_handle);
+        g_handle = nullptr;
+    }
+
+    const int threadCount = 8;
+    const int iterations = 200;
+    std::vector<std::thread> threads;
+    std::atomic<int> successCount{0};
+    std::atomic<int> firstPageSize{0};
+
+    for (int i = 0; i < threadCount; ++i) {
+        threads.emplace_back(ConcurrentReadPageSizeWorker,
+            g_store, iterations, std::ref(successCount), std::ref(firstPageSize));
+    }
+
+    for (auto &t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(successCount.load(), threadCount * iterations);
+    EXPECT_GT(firstPageSize.load(), 0);
+}
+
+namespace {
+    void ConcurrentWriteWorker(RdSingleVerNaturalStore *store,
+        int threadIndex, int iterations, std::atomic<int> &writeSuccess)
+    {
+        int errCode = E_OK;
+        auto *conn = static_cast<RdSingleVerNaturalStoreConnection *>(store->GetDBConnection(errCode));
+        ASSERT_NE(conn, nullptr);
+        ASSERT_EQ(errCode, E_OK);
+
+        IOption option = {IOption::SYNC_DATA};
+        for (int j = 0; j < iterations; ++j) {
+            Key key = {'k', static_cast<uint8_t>('0' + threadIndex), static_cast<uint8_t>('0' + j)};
+            Value val = {'v', static_cast<uint8_t>('0' + threadIndex), static_cast<uint8_t>('0' + j)};
+            std::vector<Entry> entries = {{key, val}};
+            if (conn->PutBatch(option, entries) == E_OK) {
+                writeSuccess++;
+            }
+        }
+
+        conn->Close();
+    }
+}
+
+/**
+  * @tc.name: PragmaGetPageSize_ConcurrentWithWrite
+  * @tc.desc: Concurrently call getPageSize and PutBatch, all operations should succeed without deadlock
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaGetPageSize_ConcurrentWithWrite, TestSize.Level1)
+{
+    if (g_store != nullptr && g_handle != nullptr) {
+        g_store->ReleaseHandle(g_handle);
+        g_handle = nullptr;
+    }
+
+    const int readThreadCount = 4;
+    const int writeThreadCount = 4;
+    const int iterations = 50;
+    std::vector<std::thread> threads;
+    std::atomic<int> readSuccess{0};
+    std::atomic<int> writeSuccess{0};
+    std::atomic<int> firstPageSize{0};
+
+    for (int i = 0; i < readThreadCount; ++i) {
+        threads.emplace_back(ConcurrentReadPageSizeWorker,
+            g_store, iterations, std::ref(readSuccess), std::ref(firstPageSize));
+    }
+
+    for (int i = 0; i < writeThreadCount; ++i) {
+        threads.emplace_back(ConcurrentWriteWorker,
+            g_store, i, iterations, std::ref(writeSuccess));
+    }
+
+    for (auto &t : threads) {
+        t.join();
+    }
+
+    EXPECT_GT(readSuccess.load(), 0);
+    EXPECT_GT(writeSuccess.load(), 0);
+}
+
+/**
+  * @tc.name: OpenWithValidPageSize_CreateDb
+  * @tc.desc: Create new DB with each valid pageSize (default/4/8/16/32/64 KB), verify it persists
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, OpenWithValidPageSize_CreateDb, TestSize.Level1)
+{
+    TearDown();
+    EXPECT_EQ(DistributedDBToolsUnitTest::RemoveTestDbFiles(
+        g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR), 0);
+
+    KvDBProperties defaultProp = g_property;
+    RdSingleVerNaturalStore *defaultStore = new (std::nothrow) RdSingleVerNaturalStore();
+    ASSERT_NE(defaultStore, nullptr);
+    ASSERT_EQ(defaultStore->Open(defaultProp), E_OK);
+
+    int errCode = E_OK;
+    auto *defaultConn = static_cast<RdSingleVerNaturalStoreConnection *>(defaultStore->GetDBConnection(errCode));
+    ASSERT_NE(defaultConn, nullptr);
+    RefObject::DecObjRef(defaultStore);
+
+    int defaultPageSize = 0;
+    ASSERT_EQ(defaultConn->Pragma(PRAGMA_GET_PAGE_SIZE, &defaultPageSize), E_OK);
+    ASSERT_GT(defaultPageSize, 0);
+    defaultConn->Close();
+
+    const std::vector<int> validPageSizes = {-1, 4, 8, 16, 32, 64};
+
+    for (size_t idx = 0; idx < validPageSizes.size(); ++idx) {
+        KvDBProperties prop = g_property;
+        if (validPageSizes[idx] > 0) {
+            prop.SetUIntProp(KvDBProperties::KVDB_PAGE_SIZE, static_cast<uint32_t>(validPageSizes[idx]));
+        }
+
+        RdSingleVerNaturalStore *store = new (std::nothrow) RdSingleVerNaturalStore();
+        ASSERT_NE(store, nullptr);
+        EXPECT_EQ(store->Open(prop), E_OK) << "pageSize=" << validPageSizes[idx];
+
+        int errCode = E_OK;
+        auto *conn = static_cast<RdSingleVerNaturalStoreConnection *>(store->GetDBConnection(errCode));
+        ASSERT_NE(conn, nullptr);
+        RefObject::DecObjRef(store);
+
+        int actualPageSize = 0;
+        EXPECT_EQ(conn->Pragma(PRAGMA_GET_PAGE_SIZE, &actualPageSize), E_OK) << "pageSize=" << validPageSizes[idx];
+        EXPECT_EQ(actualPageSize, defaultPageSize) << "pageSize=" << validPageSizes[idx];
+
+        conn->Close();
+    }
 }

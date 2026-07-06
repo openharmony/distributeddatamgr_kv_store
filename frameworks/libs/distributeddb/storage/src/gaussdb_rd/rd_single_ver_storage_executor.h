@@ -169,6 +169,8 @@ public:
 
     int CheckIntegrity() const;
 
+    int GetPageSize(int &pageSize) const;
+
     int CheckQueryObjectLegal(QueryObject &queryObj) const;
 
     int CheckDataWithQuery(QueryObject query, std::vector<DataItem> &dataItems, const DeviceInfo &deviceInfo);

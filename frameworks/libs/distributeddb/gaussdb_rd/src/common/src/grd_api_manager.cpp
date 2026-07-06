@@ -40,6 +40,14 @@ static std::mutex g_apiInfoMutex;
 static bool g_isGmdbLib = false;
 
 namespace DocumentDB {
+GRD_DbValueT GRD_GetConfigInner(GRD_DB *db, GRD_ConfigTypeE type)
+{
+    (void)db;
+    (void)type;
+    GRD_DbValueT invalidValue = {GRD_DB_DATATYPE_NULL, {0}};
+    return invalidValue;
+}
+
 void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
 {
     GRD_DBApiInfo.DBOpenApi = GRD_DBOpenInner;
@@ -72,6 +80,7 @@ void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVBatchPutApi = GRD_KVBatchPutInner;
     GRD_DBApiInfo.KVBatchDelApi = GRD_KVBatchDelInner;
     GRD_DBApiInfo.KVBatchDestroyApi = GRD_KVBatchDestroyInner;
+    GRD_DBApiInfo.GetConfigApi = GRD_GetConfigInner;
 }
 
 void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
@@ -109,6 +118,7 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVBatchPutApi = (KVBatchPut)dlsym(g_library, "GRD_KVBatchPut");
     GRD_DBApiInfo.KVBatchDelApi = (KVBatchDel)dlsym(g_library, "GRD_KVBatchDel");
     GRD_DBApiInfo.KVBatchDestroyApi = (KVBatchDestroy)dlsym(g_library, "GRD_KVBatchDestroy");
+    GRD_DBApiInfo.GetConfigApi = (GetConfig)dlsym(g_library, "GRD_GetConfig");
 #endif
 }
 

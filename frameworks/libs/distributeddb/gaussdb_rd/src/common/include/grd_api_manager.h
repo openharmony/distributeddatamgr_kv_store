@@ -57,6 +57,7 @@ typedef int32_t (*KVBatchPushback)(const void *key, uint32_t keyLen, const void 
 typedef int32_t (*KVBatchPut)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDel)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDestroy)(GRD_KVBatchT *batch);
+typedef GRD_DbValueT (*GetConfig)(GRD_DB *db, GRD_ConfigTypeE type);
 struct GRD_APIInfo {
     DBOpen DBOpenApi = nullptr;
     DBClose DBCloseApi = nullptr;
@@ -90,6 +91,7 @@ struct GRD_APIInfo {
     KVBatchDel KVBatchPutApi = nullptr;
     KVBatchDel KVBatchDelApi = nullptr;
     KVBatchDestroy KVBatchDestroyApi = nullptr;
+    GetConfig GetConfigApi = nullptr;
 };
 GRD_APIInfo *GetApiInfo(void);
 void GetApiInfoInstance(void);
