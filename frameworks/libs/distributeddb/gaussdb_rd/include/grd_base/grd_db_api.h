@@ -34,6 +34,8 @@ GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint
 GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName);
 
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags);
+
+GRD_API GRD_DbValueT GRD_GetConfig(GRD_DB *db, GRD_ConfigTypeE type);
 #ifdef __cplusplus
 }
 #endif // __cplusplus

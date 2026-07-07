@@ -191,10 +191,12 @@ int RdSingleVerNaturalStoreConnection::Pragma(int cmd, void *parameter)
     switch (cmd) {
         case PRAGMA_EXEC_CHECKPOINT:
             return ForceCheckPoint();
+        case PRAGMA_GET_PAGE_SIZE:
+            return GetPageSize(parameter);
         default:
             break;
     }
-    LOGD("Rd Pragma only support check point for now:%d", cmd);
+    LOGD("Rd Pragma only support check point and get page size for now:%d", cmd);
     return -E_NOT_SUPPORT;
 }
 
@@ -223,6 +225,29 @@ int RdSingleVerNaturalStoreConnection::ForceCheckPoint() const
     }
 
     errCode = handle->ForceCheckPoint();
+    ReleaseExecutor(handle);
+    return errCode;
+}
+
+int RdSingleVerNaturalStoreConnection::GetPageSize(void *parameter) const
+{
+    if (parameter == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+
+    int errCode = E_OK;
+    RdSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
+    if (handle == nullptr) {
+        LOGE("[RdSingleVerConnection]::[GetPageSize] Get executor failed, errCode = [%d]", errCode);
+        return errCode;
+    }
+
+    int pageSize = 0;
+    errCode = handle->GetPageSize(pageSize);
+    if (errCode == E_OK) {
+        *static_cast<int *>(parameter) = pageSize;
+    }
+
     ReleaseExecutor(handle);
     return errCode;
 }
