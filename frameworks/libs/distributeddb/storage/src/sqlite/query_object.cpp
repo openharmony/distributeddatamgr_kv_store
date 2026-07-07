@@ -633,5 +633,17 @@ bool QueryObject::IsContainOtherNodes(const Query &query, const std::set<QueryOb
         return false;
     });
 }
+
+bool QueryObject::IsUseFrom(const Query &query)
+{
+    auto expression = GetQueryInfo::GetQueryExpression(query);
+    return expression.IsUseFrom();
+}
+
+bool QueryObject::IsUseFromTables(const Query &query)
+{
+    auto expression = GetQueryInfo::GetQueryExpression(query);
+    return expression.IsUseFromTables();
+}
 }
 

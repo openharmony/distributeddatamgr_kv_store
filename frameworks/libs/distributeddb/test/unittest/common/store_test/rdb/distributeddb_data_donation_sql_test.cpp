@@ -13,7 +13,11 @@
  * limitations under the License.
  */
 
+#include <fcntl.h>
 #include <gtest/gtest.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
 #include "cloud/cloud_storage_utils.h"
 #include "data_donation_sql_generator.h"
 #include "distributeddb_data_donation_schema_json.h"
@@ -36,11 +40,18 @@ public:
     static UtDateBaseSchemaInfo GetJsonFileSchema();
     void PrepareJsonFileData(const StoreInfo &info, int64_t count);
     void PrepareMutiRelationData(const StoreInfo &info, int64_t count);
+    void InsertDataWithoutMainTable(const StoreInfo &info, int64_t count);
     void UpdateJsonFileData(const StoreInfo &info, int64_t begin, int64_t count);
     void DeleteJsonFileData(const StoreInfo &info, int64_t begin, int64_t count);
+    void DeleteFromNonKeyoutTable(const StoreInfo &info, int64_t begin, int64_t count);
+    std::string InitMatrixFile();
 
 protected:
     DataDonationSqlGenerator generator_;
+
+    static constexpr size_t MAX_SLOT_NUM = 100;
+    static constexpr size_t MATRIX_FILE_SLOT_SIZE = sizeof(uint64_t);
+    static constexpr size_t MATRIX_FILE_SIZE = MAX_SLOT_NUM * MATRIX_FILE_SLOT_SIZE;
 };
 
 void DataDonationSqlGeneratorTest::SetUp()
@@ -51,6 +62,24 @@ void DataDonationSqlGeneratorTest::SetUp()
 void DataDonationSqlGeneratorTest::TearDown()
 {
     RDBGeneralUt::TearDown();
+}
+
+std::string DataDonationSqlGeneratorTest::InitMatrixFile()
+{
+    std::string matrixFilePath = GetTestDir() + "/matrixFile";
+
+    int fd = open(matrixFilePath.c_str(), O_RDWR | O_CREAT, 0660);
+    if (fd == -1) {
+        return "";
+    }
+
+    int ret = ftruncate(fd, MATRIX_FILE_SIZE);
+    close(fd);
+    if (ret != 0) {
+        unlink(matrixFilePath.c_str());
+        return "";
+    }
+    return matrixFilePath;
 }
 
 UtDateBaseSchemaInfo DataDonationSqlGeneratorTest::GetTestSchema()
@@ -144,6 +173,13 @@ UtDateBaseSchemaInfo DataDonationSqlGeneratorTest::GetJsonFileSchema()
     tableB.fieldInfo.push_back(fileId);
     tableB.fieldInfo.push_back(cateId);
     info.tablesInfo.push_back(tableB);
+
+    UtTableSchemaInfo tableC;
+    tableC.name = "TableC";
+    tableC.fieldInfo.push_back(idFieldA);
+    tableC.fieldInfo.push_back(fileId);
+    tableC.fieldInfo.push_back(cateId);
+    info.tablesInfo.push_back(tableC);
     return info;
 }
 
@@ -189,6 +225,23 @@ void DataDonationSqlGeneratorTest::PrepareMutiRelationData(const StoreInfo &info
     }
 }
 
+void DataDonationSqlGeneratorTest::InsertDataWithoutMainTable(const StoreInfo &info, int64_t count)
+{
+    for (int64_t i = 0; i < count; ++i) {
+        std::string sqlC = "INSERT INTO TableC VALUES(" + std::to_string(i) + ", " +
+            std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlC, info), E_OK);
+    }
+}
+
+void DataDonationSqlGeneratorTest::DeleteFromNonKeyoutTable(const StoreInfo &info, int64_t begin, int64_t count)
+{
+    for (int64_t i = begin; i < begin + count; ++i) {
+        std::string sqlC = "DELETE FROM TableC where id = " + std::to_string(i);
+        EXPECT_EQ(ExecuteSQL(sqlC, info), E_OK);
+    }
+}
+
 void DataDonationSqlGeneratorTest::UpdateJsonFileData(const StoreInfo &info, int64_t begin, int64_t count)
 {
     for (int64_t i = begin; i < begin + count; ++i) {
@@ -228,9 +281,12 @@ HWTEST_F(DataDonationSqlGeneratorTest, SingleTableTest001, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId] FROM A LIMIT 100 OFFSET 0");
+    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], A._rowid_ AS [A._rowid_] FROM A WHERE A._rowid_ <= 50000"
+        " ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -255,10 +311,18 @@ HWTEST_F(DataDonationSqlGeneratorTest, TwoTableJoinTest001, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB, relationBC}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 555, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues = {{"A", 555}, {"B", 100}, {"C", 500}};
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}, {"B", 2000}, {"C", 4000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], B.KeyId AS [B.KeyId], C.name AS [C.name] FROM A LEFT JOIN B"
-        " ON A.id = B.id LEFT JOIN C ON B.id = C.id LIMIT 100 OFFSET 555");
+    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], B.KeyId AS [B.KeyId], C.name AS [C.name],"
+        " A._rowid_ AS [A._rowid_], B._rowid_ AS [B._rowid_], C._rowid_ AS [C._rowid_]"
+        " FROM A LEFT JOIN B ON A.id = B.id LEFT JOIN C ON B.id = C.id"
+        " WHERE ((A._rowid_ > 555) OR (A._rowid_ = 555 AND B._rowid_ > 100)"
+        " OR (A._rowid_ = 555 AND B._rowid_ = 100 AND C._rowid_ > 500))"
+        " AND A._rowid_ <= 50000 AND (B._rowid_ IS NULL OR B._rowid_ <= 2000)"
+        " AND (C._rowid_ IS NULL OR C._rowid_ <= 4000)"
+        " ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -288,10 +352,20 @@ HWTEST_F(DataDonationSqlGeneratorTest, MultiTableJoinTest001, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB, relationBC, relationCD}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 100, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues = {{"A", 100}, {"B", 50}, {"C", 200}, {"D", 300}};
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}, {"B", 3000}, {"C", 2000}, {"D", 1000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(sql, "SELECT A.name AS [A.name], D.age AS [D.age] FROM A LEFT JOIN B ON A.id = B.id LEFT JOIN C"
-        " ON B.id = C.id LEFT JOIN D ON C.id = D.id LIMIT 100 OFFSET 100");
+    EXPECT_EQ(sql, "SELECT A.name AS [A.name], D.age AS [D.age],"
+        " A._rowid_ AS [A._rowid_], B._rowid_ AS [B._rowid_], C._rowid_ AS [C._rowid_], D._rowid_ AS [D._rowid_]"
+        " FROM A LEFT JOIN B ON A.id = B.id LEFT JOIN C ON B.id = C.id LEFT JOIN D ON C.id = D.id"
+        " WHERE ((A._rowid_ > 100) OR (A._rowid_ = 100 AND B._rowid_ > 50)"
+        " OR (A._rowid_ = 100 AND B._rowid_ = 50 AND C._rowid_ > 200)"
+        " OR (A._rowid_ = 100 AND B._rowid_ = 50 AND C._rowid_ = 200 AND D._rowid_ > 300))"
+        " AND A._rowid_ <= 50000 AND (B._rowid_ IS NULL OR B._rowid_ <= 3000)"
+        " AND (C._rowid_ IS NULL OR C._rowid_ <= 2000)"
+        " AND (D._rowid_ IS NULL OR D._rowid_ <= 1000)"
+        " ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -311,9 +385,12 @@ HWTEST_F(DataDonationSqlGeneratorTest, EmptyForeignFieldTest001, TestSize.Level0
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId] FROM A LIMIT 100 OFFSET 0");
+    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], A._rowid_ AS [A._rowid_] FROM A WHERE A._rowid_ <= 50000"
+        " ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -333,9 +410,12 @@ HWTEST_F(DataDonationSqlGeneratorTest, PaginationTest001, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 1000, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues = {{"A", 1000}};
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId] FROM A LIMIT 100 OFFSET 1000");
+    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], A._rowid_ AS [A._rowid_] FROM A WHERE ((A._rowid_ > 1000))"
+        " AND A._rowid_ <= 50000 ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -355,7 +435,9 @@ HWTEST_F(DataDonationSqlGeneratorTest, InvalidPathTest001, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"", {relationAB}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids;
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }
 
@@ -371,7 +453,9 @@ HWTEST_F(DataDonationSqlGeneratorTest, InvalidPathTest002, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids;
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }
 
@@ -392,7 +476,9 @@ HWTEST_F(DataDonationSqlGeneratorTest, InvalidPathTest003, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids;
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }
 
@@ -413,7 +499,9 @@ HWTEST_F(DataDonationSqlGeneratorTest, InvalidPathTest004, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids;
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, -E_INVALID_ARGS);
 }
 
@@ -442,10 +530,16 @@ HWTEST_F(DataDonationSqlGeneratorTest, MultipleFieldsTest001, TestSize.Level0)
     DataDonationSchema::DdRelationsPath path = {"A", {relationAB, relationBC1}};
 
     std::string sql;
-    int errCode = generator_.GenerateQuerySql(path, 0, sql);
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}, {"B", 2000}, {"C", 4000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(sql, "SELECT A.name AS [A.name], C.name AS [C.name] FROM A LEFT JOIN B"
-        " ON A.id = B.id LEFT JOIN C ON B.id = C.id LIMIT 100 OFFSET 0");
+    EXPECT_EQ(sql, "SELECT A.name AS [A.name], C.name AS [C.name],"
+        " A._rowid_ AS [A._rowid_], B._rowid_ AS [B._rowid_], C._rowid_ AS [C._rowid_]"
+        " FROM A LEFT JOIN B ON A.id = B.id LEFT JOIN C ON B.id = C.id"
+        " WHERE A._rowid_ <= 50000 AND (B._rowid_ IS NULL OR B._rowid_ <= 2000)"
+        " AND (C._rowid_ IS NULL OR C._rowid_ <= 4000)"
+        " ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -468,7 +562,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorBasicTest001, TestSize.
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
     
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;
     
@@ -492,7 +586,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorNotSupportTest001, Test
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
     cursorIn.cursor = 0;
     
@@ -520,7 +614,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorDifferentCursorTest001,
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
     
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 100;
     DBStatus status = delegate->SetSubscribeCursor(cursorIn);
@@ -537,7 +631,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     
-    const int64_t dataCount = 501;
+    const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL + 1;
     PrepareJsonFileData(storeInfo, dataCount);
     
     auto delegate = GetDelegate(storeInfo);
@@ -546,11 +640,11 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
 
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
     cursorIn.cursor = 0;
     
-    DBSubscribeCur cursorOut;
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int64_t totalRecords = 0;
     int64_t incId = 0;
@@ -558,7 +652,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
     do {
         dataOut = {};
         status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
-        EXPECT_EQ(status, dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT ? SUBSCRIBE_QUERY_END : OK);
+        EXPECT_EQ(status, dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL ? SUBSCRIBE_QUERY_END : OK);
         totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
         cursorIn = cursorOut;
         for (const auto &vbucket : dataOut) {
@@ -571,6 +665,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
         }
     } while (status == OK);
     EXPECT_EQ(totalRecords, dataCount);
+    EXPECT_EQ(delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut), INVALID_ARGS);
 }
 
 HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Level0)
@@ -586,17 +681,16 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Lev
     auto db = GetSqliteHandle(storeInfo);
     ASSERT_NE(db, nullptr);
     ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
     const int64_t dataCount = 501;
     PrepareJsonFileData(storeInfo, dataCount);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;
     
-    DBSubscribeCur cursorOut;
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int64_t totalRecords = 0;
     DBStatus status = DBStatus::OK;
@@ -629,17 +723,16 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData003, TestSize.Lev
     auto db = GetSqliteHandle(storeInfo);
     ASSERT_NE(db, nullptr);
     ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
     const int64_t dataCount = 501;
     PrepareJsonFileData(storeInfo, dataCount);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 100;
     
-    DBSubscribeCur cursorOut;
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int64_t totalRecords = 0;
     DBStatus status = DBStatus::OK;
@@ -671,20 +764,19 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData004, TestSize.Lev
     auto db = GetSqliteHandle(storeInfo);
     ASSERT_NE(db, nullptr);
     ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
     int64_t dataCount = 501;
     int64_t updCnt = 100;
     PrepareJsonFileData(storeInfo, dataCount);
     UpdateJsonFileData(storeInfo, 0, updCnt);
     DeleteJsonFileData(storeInfo, 100, updCnt);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;
     
-    DBSubscribeCur cursorOut;
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int64_t totalRecords = 0;
     int idx = 0;
@@ -701,7 +793,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData004, TestSize.Lev
         }
         EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
     } while (status == OK);
-    EXPECT_EQ(totalRecords, (dataCount * 2 - updCnt) + updCnt * 2 + updCnt);
+    EXPECT_EQ(totalRecords, dataCount * 2);
 }
 
 HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Level0)
@@ -717,19 +809,18 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
     auto db = GetSqliteHandle(storeInfo);
     ASSERT_NE(db, nullptr);
     ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
     int64_t dataCount = 100;
     int64_t updCnt = 100;
     PrepareJsonFileData(storeInfo, dataCount);
     DeleteJsonFileData(storeInfo, 0, updCnt);
-
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;
     
-    DBSubscribeCur cursorOut;
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int64_t totalRecords = 0;
     int idx = 0;
@@ -751,6 +842,410 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
 
     EXPECT_EQ(status, SUBSCRIBE_QUERY_END);
     EXPECT_EQ(totalRecords, dataCount * 2);
+}
+
+/**
+ * @tc.name: ClientSchemaParseTest001
+ * @tc.desc: Test binlog parse schema.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set schema on service side.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. parse schema on client side.
+     * @tc.expected: step2. OK.
+     */
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str());
+    EXPECT_NE(monitorConfig, nullptr);
+    EXPECT_EQ(monitorConfig->tableCount, 9);
+
+    DataDonationUtils::FreeMonitorConfig(monitorConfig);
+}
+
+/**
+ * @tc.name: ClientSchemaParseError001
+ * @tc.desc: Test binlog parse schema on error.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. parse schema when db path is null.
+     * @tc.expected: step1. return nullptr.
+     */
+    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(nullptr);
+    EXPECT_EQ(monitorConfig, nullptr);
+
+    /**
+     * @tc.steps:step2. parse schema when db schema is not set.
+     * @tc.expected: step2. return nullptr.
+     */
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str());
+    EXPECT_EQ(monitorConfig, nullptr);
+
+    /**
+     * @tc.steps:step3. parse schema when db path invalid.
+     * @tc.expected: step3. return nullptr.
+     */
+    std::string invalidDbPath = "not_a_path";
+    monitorConfig = DataDonationUtils::BinlogSchemaGet(invalidDbPath.c_str());
+    EXPECT_EQ(monitorConfig, nullptr);
+    DataDonationUtils::FreeMonitorConfig(monitorConfig);
+}
+
+/**
+ * @tc.name: BinlogDataChangeObserverTest001
+ * @tc.desc: Test binlog data change observer.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set schema and observer by enable binlog.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+    ASSERT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. Set matrix file info.
+     * @tc.expected: step2. OK.
+     */
+    std::string filePath = InitMatrixFile();
+    ASSERT_TRUE(!filePath.empty());
+    MatrixFileInfo info = {
+        .matrixFilePath = filePath,
+        .matrixTables = {{"TableA", 0}, {"TableB", 1}},
+        .fullSyncOffset = 2
+    };
+    ASSERT_EQ(delegate->SetTrackerMatrixInfo(info), OK);
+
+    /**
+     * @tc.steps:step3. matrix file updated after data change.
+     * @tc.expected: step3. OK.
+     */
+    int i = 1;
+    SqlCondition condition = {
+        .sql = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')",
+        .bindArgs = {},
+        .readOnly = false
+    };
+    std::vector<VBucket> dataOut;
+    ASSERT_EQ(delegate->ExecuteSql(condition, dataOut), OK);
+
+    auto [errCode, filePtr] = DataDonationUtils::MmapMatrixFile(info.matrixFilePath);
+    ASSERT_NE(filePtr, nullptr);
+    EXPECT_EQ(filePtr->GetValueByIndex(0), 1u);
+    EXPECT_EQ(filePtr->GetValueByIndex(1), 0u);
+    EXPECT_EQ(filePtr->GetValueByIndex(2), 0u);
+
+    filePtr = nullptr;
+    unlink(filePath.c_str());
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData006
+ * @tc.desc: Test QuerySubscribeOutput interface with not enabled binlog.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData006, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_ALL;
+    cursorIn.cursor = 0;
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_NE(status, OK);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData007
+ * @tc.desc: Test QuerySubscribeOutput GET_NEW when no data in main table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set subscribe schema.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
+
+    /**
+     * @tc.steps:step2. Insert 10 data to table C only, main table is empty
+     * @tc.expected: step2. OK.
+     */
+    const int64_t dataCount = 10;
+    InsertDataWithoutMainTable(storeInfo, dataCount);
+
+    /**
+     * @tc.steps:step3. Query using GET_NEW
+     * @tc.expected: step3. data out is empty.
+     */
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    cursorIn.cursor = 0;
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_EQ(status, SUBSCRIBE_QUERY_END);
+    EXPECT_TRUE(dataOut.empty());
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData008
+ * @tc.desc: Test QuerySubscribeOutput GET_NEW when primaryKey not foreginKey.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set subscribe schema.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
+
+    /**
+     * @tc.steps:step2. Insert 10 data to table A and B
+     * @tc.expected: step2. OK.
+     */
+    const int64_t dataCount = 10;
+    PrepareJsonFileData(storeInfo, dataCount);
+
+    /**
+     * @tc.steps:step3. Query using GET_NEW
+     * @tc.expected: step3. data out is not empty.
+     */
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    cursorIn.cursor = 0;
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_EQ(status, SUBSCRIBE_QUERY_END);
+    EXPECT_FALSE(dataOut.empty());
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData009
+ * @tc.desc: Test QuerySubscribeOutput GET_NEW when data deleted.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+
+    const int64_t dataCount = 10;
+    for (int64_t i = 0; i < dataCount; ++i) {
+        std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlA, storeInfo), E_OK);
+        
+        std::string sqlB = "DELETE FROM TableA WHERE id=" + std::to_string(i);
+        EXPECT_EQ(ExecuteSQL(sqlB, storeInfo), E_OK);
+    }
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
+    
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    cursorIn.cursor = 0;
+    
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = DBStatus::OK;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        EXPECT_EQ(status, dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT ? SUBSCRIBE_QUERY_END : OK);
+        cursorIn = cursorOut;
+        for (const auto &vbucket : dataOut) {
+            int64_t opType = 0;
+            EXPECT_EQ(CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::SUB_DATA_OP_TYPE, vbucket, opType), E_OK);
+            EXPECT_EQ(opType, static_cast<int64_t>(SubDataOpType::OP_DELETE));
+            int64_t val = 0;
+            EXPECT_EQ(CloudStorageUtils::GetValueFromVBucket("TableA.KeyId", vbucket, val), E_OK);
+            Type cloudValue;
+            EXPECT_EQ(CloudStorageUtils::GetTypeCaseInsensitive("TableB.Id", vbucket, cloudValue), true);
+        }
+        EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+    } while (status == OK);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData010
+ * @tc.desc: Test QuerySubscribeOutput GET_ALL when data deleted.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData010, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 2;
+    PrepareJsonFileData(storeInfo, dataCount);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_ALL;
+    cursorIn.cursor = 0;
+    
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    int64_t totalRecords = 0;
+    DBStatus status = DBStatus::OK;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
+        cursorIn = cursorOut;
+        if (totalRecords == CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL) {
+            DeleteJsonFileData(storeInfo, 500, 500);
+        }
+    } while (status == OK);
+    EXPECT_EQ(totalRecords, dataCount);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData011
+ * @tc.desc: Test QuerySubscribeOutput GET_NEW when data deleted from non-keyOut table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData011, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set binlog and schema.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
+
+    /**
+     * @tc.steps:step2. Insert 10 data to 3 tables, then delete them.
+     * @tc.expected: step2. OK.
+     */
+    const int64_t dataCount = 10;
+    const int keyOutNum = 2;
+    PrepareJsonFileData(storeInfo, dataCount);
+    InsertDataWithoutMainTable(storeInfo, dataCount);
+    DeleteJsonFileData(storeInfo, 0, dataCount);
+    DeleteFromNonKeyoutTable(storeInfo, 0, dataCount);
+
+    /**
+     * @tc.steps:step3. Query using GET_NEW, only contain delete records for keyOut tables.
+     * @tc.expected: step3. OK.
+     */
+    DBSubscribeCursor cursorIn = {.queryType = SubQueryType::GET_NEW, .cursor = 0};
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_EQ(status, SUBSCRIBE_QUERY_END);
+    EXPECT_EQ(dataOut.size(), dataCount * keyOutNum);
 }
 
 /**
@@ -792,8 +1287,8 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Lev
      * @tc.steps:step3. Query using GET_NEW, has muti relation data.
      * @tc.expected: step3. OK.
      */
-    DBSubscribeCur cursorIn = {.queryType = SubQueryType::GET_NEW, .cursor = 0};
-    DBSubscribeCur cursorOut;
+    DBSubscribeCursor cursorIn = {.queryType = SubQueryType::GET_NEW, .cursor = 0};
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int donateCount = 0;
     DBStatus status;
@@ -809,101 +1304,213 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Lev
 }
 
 /**
- * @tc.name: ClientSchemaParseTest001
- * @tc.desc: Test binlog parse schema.
+ * @tc.name: QueryWithSameCursorTest001
+ * @tc.desc: Test QuerySubscribeOutput GET_NEW with same cursor twice.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest001, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryWithSameCursorTest001, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. set schema on service side.
+     * @tc.steps:step1. Set subscribe schema.
      * @tc.expected: step1. OK.
      */
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
-
+    
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
 
     /**
-     * @tc.steps:step2. parse schema on client side.
+     * @tc.steps:step2. Insert 101 data
      * @tc.expected: step2. OK.
      */
-    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
-    MonitorTablesConfig *monitorConfig = RelationalStoreClientUtils::BinlogSchemaGet(dbPath.c_str());
-    EXPECT_NE(monitorConfig, nullptr);
+    const int64_t dataCount = 101;
+    PrepareJsonFileData(storeInfo, dataCount);
 
-    for (int i = 0; i < monitorConfig->tableCount; i++) {
-        MonitorTableCol table = monitorConfig->tables[i];
-        for (int j = 0; j < table.colCount; j++) {
-            free(table.cols[j]);
-            table.cols[j] = nullptr;
-        }
-        free(table.cols);
-    }
-    free(monitorConfig->tables);
-    free(monitorConfig);
+    /**
+     * @tc.steps:step3. Query using GET_NEW
+     * @tc.expected: step3. OK.
+     */
+    DBSubscribeCursor cursorIn = {.queryType = SubQueryType::GET_NEW, .cursor = 0};
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(dataOut.size(), 100);
+    EXPECT_EQ(cursorOut.cursor, 100);
+
+    /**
+     * @tc.steps:step4. Query again using same cursor
+     * @tc.expected: step4. data is the same as first time.
+     */
+    dataOut.clear();
+    cursorOut.cursor = 0;
+    status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(dataOut.size(), 100);
+    EXPECT_EQ(cursorOut.cursor, 100);
 }
 
 /**
- * @tc.name: ClientSchemaParseError001
- * @tc.desc: Test binlog parse schema on error.
+ * @tc.name: QueryBinlogSubscribeData013
+ * @tc.desc: Test get ALL query where joined tables require continued querying
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
  */
-HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. parse schema when db path is null.
-     * @tc.expected: step1. return nullptr.
-     */
-    MonitorTablesConfig *monitorConfig = RelationalStoreClientUtils::BinlogSchemaGet(nullptr);
-    EXPECT_EQ(monitorConfig, nullptr);
-
-    /**
-     * @tc.steps:step2. parse schema when db schema is not set.
-     * @tc.expected: step2. return nullptr.
-     */
-    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
-    monitorConfig = RelationalStoreClientUtils::BinlogSchemaGet(dbPath.c_str());
-    EXPECT_EQ(monitorConfig, nullptr);
-
-    /**
-     * @tc.steps:step3. parse schema when db path invalid.
-     * @tc.expected: step3. return nullptr.
-     */
-    std::string invalidDbPath = "not_a_path";
-    monitorConfig = RelationalStoreClientUtils::BinlogSchemaGet(invalidDbPath.c_str());
-    EXPECT_EQ(monitorConfig, nullptr);
-}
-
-/**
- * @tc.name: QueryBinlogSubscribeData006
- * @tc.desc: Test QuerySubscribeOutput interface with not enabled binlog.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: test
- */
-HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData006, TestSize.Level0)
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData013, TestSize.Level0)
 {
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+    const int64_t dataCount = 2001;
+    for (int64_t i = 0; i < dataCount; ++i) {
+        std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlA, storeInfo), E_OK);
+        std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
+            std::to_string(i % 2) + ", " + "'cate_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlB, storeInfo), E_OK);
+    }
+    for (int64_t i = 10000; i < 10000 + dataCount; ++i) {
+        std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlA, storeInfo), E_OK);
+        std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
+            std::to_string(22000 - i) + ", " + "'cate_" + std::to_string(i) + "')";
+        EXPECT_EQ(ExecuteSQL(sqlB, storeInfo), E_OK);
+    }
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
     
-    DBSubscribeCur cursorIn;
+    DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
     cursorIn.cursor = 0;
-    DBSubscribeCur cursorOut;
+
+    DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
-    DBStatus status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
-    EXPECT_NE(status, OK);
+    DBStatus status = DBStatus::OK;
+    size_t totalRecords = 0;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        cursorIn = cursorOut;
+        totalRecords = totalRecords + dataOut.size();
+        EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+    } while (status == OK);
+    size_t expectRecords = 6001;
+    EXPECT_EQ(totalRecords, expectRecords);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData014
+ * @tc.desc: Test GET_ALL query without set cursor but after reopening the db
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData014, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 2;
+    PrepareJsonFileData(storeInfo, dataCount);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_ALL;
+    cursorIn.cursor = 0;
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    int64_t totalRecords = 0;
+    DBStatus status = DBStatus::OK;
+    int idx = 0;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
+        cursorIn = cursorOut;
+        if (idx == 0) {
+            CloseAllDelegate();
+            ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+            delegate = GetDelegate(storeInfo);
+            ASSERT_NE(delegate, nullptr);
+            EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+            EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON),
+                DBStatus::OK);
+        }
+        idx++;
+    } while (status == OK);
+    EXPECT_EQ(totalRecords, dataCount + CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData015
+ * @tc.desc: Test GET_ALL query after reopening the db
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 3;
+    PrepareJsonFileData(storeInfo, dataCount);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_ALL;
+    cursorIn.cursor = 0;
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    int64_t totalRecords = 0;
+    DBStatus status = DBStatus::OK;
+    int idx = 0;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
+        cursorIn = cursorOut;
+        if (idx == 1) {
+            CloseAllDelegate();
+            ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+            delegate = GetDelegate(storeInfo);
+            ASSERT_NE(delegate, nullptr);
+            EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+            EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON),
+                DBStatus::OK);
+        } else {
+            EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+        }
+        idx++;
+    } while (status == OK);
+    EXPECT_EQ(cursorOut.cursor, dataCount - 1);
+    EXPECT_EQ(totalRecords, dataCount + CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL);
 }
 }

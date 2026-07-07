@@ -68,7 +68,7 @@ ohos_fuzztest("StorageFuzzTest") {
 
   ldflags = [ "--coverage" ]
 
-  cflags_cc = [ "--coverage" ]
+  cflags_cc = [ "--coverage", "-Werror=vla" ]
 
   fuzz_config_file = "../storage_fuzzer"
 

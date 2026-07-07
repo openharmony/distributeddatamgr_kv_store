@@ -726,11 +726,11 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue002, TestSize.Level2)
     ASSERT_NE(cloudSyncer, nullptr);
     cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
-    std::atomic<bool> close = false;
-    cloudSyncer->SetDownloadFunc([cloudSyncer, &close]() {
+    std::shared_ptr<std::atomic<bool>> close = std::make_shared<std::atomic<bool>>(false);
+    cloudSyncer->SetDownloadFunc([cloudSyncer, close]() {
         std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
         cloudSyncer->PauseCurrentTask();
-        EXPECT_TRUE(close);
+        EXPECT_TRUE(*close);
         return -E_TASK_PAUSED;
     });
     /**
@@ -738,7 +738,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue002, TestSize.Level2)
      */
     EXPECT_EQ(cloudSyncer->Sync({ "cloud" }, SyncMode::SYNC_MODE_CLOUD_MERGE, { TABLE_NAME }, nullptr, 0), E_OK);
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    close = true;
+    *close = true;
     cloudSyncer->Close();
     RefObject::KillAndDecObjRef(cloudSyncer);
 }
@@ -1042,7 +1042,8 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncUtilsTest, TestSize.Level0)
      */
     const std::vector<DeviceID> devices = {"test"};
     int mode = 10; // set metaMode to 10 not in enum class MetaMode
-    int ret = utilsObj.CheckParamValid(devices, static_cast<SyncMode>(mode));
+    int ret = utilsObj.CheckParamValid(devices, static_cast<SyncMode>(mode),
+        AssetConflictPolicy::CONFLICT_POLICY_DEFAULT, false);
     EXPECT_EQ(ret, -E_INVALID_ARGS);
     VBucket record;
     const std::vector<std::string> pkColNames;

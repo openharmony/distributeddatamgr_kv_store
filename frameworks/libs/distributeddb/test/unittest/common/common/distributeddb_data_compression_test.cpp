@@ -81,8 +81,9 @@ public:
 void DistributedDBDataCompressionTest::SetUpTestCase(void)
 {
 #ifndef OMIT_ZLIB
+    static std::unique_ptr<ZlibCompression> zlibComp;
     if (DataCompression::GetInstance(CompressAlgorithm::ZLIB) == nullptr) {
-        new ZlibCompression();
+        zlibComp.reset(new ZlibCompression());
     }
 #endif
 }

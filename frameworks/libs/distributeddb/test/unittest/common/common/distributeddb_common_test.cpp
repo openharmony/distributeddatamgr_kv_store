@@ -31,7 +31,6 @@
 #include "runtime_context.h"
 #include "storage_engine_manager.h"
 #include "task_queue.h"
-#include "thread_pool_stub.h"
 #include "time_tick_monitor.h"
 #include "user_change_monitor.h"
 #include "relational_store_instance.h"
@@ -68,6 +67,12 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+    void SetInstanceDestroyedFalse()
+    {
+        KvDBManager::SetInstanceDestroyed(false);
+        StorageEngineManager::SetInstanceDestroyed(false);
+        Logger::SetInstanceDestroyed(false);
+    }
 };
 
 void DistributedDBCommonTest::SetUpTestCase(void)
@@ -93,7 +98,7 @@ void DistributedDBCommonTest::TearDown(void)
         LOGI("rm test db files error!");
     }
     // set the instance destroyed flag to false, for next test case
-    Logger::SetInstanceDestroyed(false);
+    SetInstanceDestroyedFalse();
 }
 
 /**
@@ -1156,11 +1161,12 @@ HWTEST_F(DistributedDBCommonTest, LoggerLogWithNullLoggerTest, TestSize.Level1)
  */
 HWTEST_F(DistributedDBCommonTest, KvDBManagerDeleteInstance001, TestSize.Level0)
 {
-    auto *inst = KvDBManager::GetInstance();
+    auto inst = KvDBManager::GetInstance();
     ASSERT_NE(inst, nullptr);
     KvDBManager::DeleteInstance();
-
-    auto *inst2 = KvDBManager::GetInstance();
+    SetInstanceDestroyedFalse();
+    
+    auto inst2 = KvDBManager::GetInstance();
     ASSERT_NE(inst2, nullptr);
     KvDBManager::DeleteInstance();
     KvDBManager::DeleteInstance();
@@ -1174,7 +1180,7 @@ HWTEST_F(DistributedDBCommonTest, KvDBManagerDeleteInstance001, TestSize.Level0)
  */
 HWTEST_F(DistributedDBCommonTest, KvDBManagerDeleteInstance002, TestSize.Level0)
 {
-    auto *inst = KvDBManager::GetInstance();
+    auto inst = KvDBManager::GetInstance();
     ASSERT_NE(inst, nullptr);
 
     std::vector<std::thread> threads;
@@ -1243,29 +1249,6 @@ HWTEST_F(DistributedDBCommonTest, RelationalStoreInstanceDeleteInstance002, Test
 }
 
 /**
- * @tc.name: ThreadPoolStubDeleteInstance001
- * @tc.desc: Test ThreadPoolStub deleteInstance
- * @tc.type: FUNC
- * @tc.author: xfz
- */
-HWTEST_F(DistributedDBCommonTest, ThreadPoolStubDeleteInstance001, TestSize.Level0)
-{
-    auto &inst = ThreadPoolStub::GetInstance();
-    TaskId taskId = 0;
-    int errCode = inst.ScheduleTask([]() {}, taskId);
-    EXPECT_EQ(errCode, E_OK);
-
-    ThreadPoolStub::DeleteInstance();
-
-    auto &inst2 = ThreadPoolStub::GetInstance();
-    errCode = inst2.ScheduleTask([]() {}, taskId);
-    EXPECT_EQ(errCode, E_OK);
-
-    ThreadPoolStub::DeleteInstance();
-    ThreadPoolStub::DeleteInstance();
-}
-
-/**
  * @tc.name: RuntimeContextDeleteInstance001
  * @tc.desc: Test RuntimeContext DeleteInstance
  * @tc.type: FUNC
@@ -1273,12 +1256,12 @@ HWTEST_F(DistributedDBCommonTest, ThreadPoolStubDeleteInstance001, TestSize.Leve
  */
 HWTEST_F(DistributedDBCommonTest, RuntimeContextDeleteInstance001, TestSize.Level0)
 {
-    RuntimeConfig::Clean();
-    auto *inst = RuntimeContext::GetInstance();
+    auto inst = RuntimeContext::GetInstance();
     ASSERT_NE(inst, nullptr);
     RuntimeContext::DeleteInstance();
+    SetInstanceDestroyedFalse();
 
-    auto *inst2 = RuntimeContext::GetInstance();
+    auto inst2 = RuntimeContext::GetInstance();
     ASSERT_NE(inst2, nullptr);
     RuntimeContext::DeleteInstance();
     RuntimeContext::DeleteInstance();
@@ -1292,7 +1275,7 @@ HWTEST_F(DistributedDBCommonTest, RuntimeContextDeleteInstance001, TestSize.Leve
  */
 HWTEST_F(DistributedDBCommonTest, RuntimeContextDeleteInstance002, TestSize.Level0)
 {
-    auto *inst = RuntimeContext::GetInstance();
+    auto inst = RuntimeContext::GetInstance();
     ASSERT_NE(inst, nullptr);
 
     std::vector<std::thread> threads;
@@ -1321,9 +1304,9 @@ HWTEST_F(DistributedDBCommonTest, RuntimeContextDeleteInstance002, TestSize.Leve
  */
 HWTEST_F(DistributedDBCommonTest, RuntimeContextClean001, TestSize.Level0)
 {
-    auto *runtimeCtx = RuntimeContext::GetInstance();
+    auto runtimeCtx = RuntimeContext::GetInstance();
     ASSERT_NE(runtimeCtx, nullptr);
-    auto *kvdbMgr = KvDBManager::GetInstance();
+    auto kvdbMgr = KvDBManager::GetInstance();
     ASSERT_NE(kvdbMgr, nullptr);
     int errCode = E_OK;
     KvDBProperties property;
@@ -1335,29 +1318,49 @@ HWTEST_F(DistributedDBCommonTest, RuntimeContextClean001, TestSize.Level0)
     ASSERT_NE(storageEngine, nullptr);
     StorageEngineManager::ReleaseStorageEngine(storageEngine);
     RuntimeConfig::Clean();
+    SetInstanceDestroyedFalse();
 
-    auto *runtimeCtx2 = RuntimeContext::GetInstance();
+    auto runtimeCtx2 = RuntimeContext::GetInstance();
     ASSERT_NE(runtimeCtx2, nullptr);
-    auto *kvdbMgr2 = KvDBManager::GetInstance();
+    auto kvdbMgr2 = KvDBManager::GetInstance();
     ASSERT_NE(kvdbMgr2, nullptr);
     int errCode2 = E_OK;
     StorageEngine *storageEngine2 = StorageEngineManager::GetStorageEngine(property, errCode2);
     ASSERT_EQ(errCode2, E_OK);
     ASSERT_NE(storageEngine2, nullptr);
     StorageEngineManager::ReleaseStorageEngine(storageEngine2);
-
-    Logger::SetInstanceDestroyed(false);
+    RuntimeConfig::Clean();
 }
 
 /**
- * @tc.name: RuntimeContextCleanConcurrent001
+ * @tc.name: RuntimeContextClean002
+ * @tc.desc: Test RuntimeContext clean before closeKvStore
+ * @tc.type: FUNC
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBCommonTest, RuntimeContextClean002, TestSize.Level0)
+{
+    std::string storeId = "RuntimeContextClean002";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.isNeedIntegrityCheck = true;
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_mgr.DeleteKvStore(storeId);
+    RuntimeConfig::Clean();
+}
+
+/**
+ * @tc.name: CleanConcurrent001
  * @tc.desc: Test RuntimeContext clean concurrent
  * @tc.type: FUNC
  * @tc.author: xfz
  */
-HWTEST_F(DistributedDBCommonTest, RuntimeContextCleanConcurrent001, TestSize.Level1)
+HWTEST_F(DistributedDBCommonTest, CleanConcurrent001, TestSize.Level0)
 {
-    auto *inst = RuntimeContext::GetInstance();
+    auto inst = RuntimeContext::GetInstance();
     ASSERT_NE(inst, nullptr);
 
     std::vector<std::thread> threads;
@@ -1372,11 +1375,9 @@ HWTEST_F(DistributedDBCommonTest, RuntimeContextCleanConcurrent001, TestSize.Lev
             });
         }
     }
-
     for (auto &thread : threads) {
         thread.join();
     }
-
-    Logger::SetInstanceDestroyed(false);
+    RuntimeConfig::Clean();
 }
 }

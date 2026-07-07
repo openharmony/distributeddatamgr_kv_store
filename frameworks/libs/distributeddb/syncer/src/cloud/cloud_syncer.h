@@ -606,7 +606,7 @@ protected:
 
     std::vector<Field> GetCurrentAssetFields();
 
-    AssetConflictPolicy GetAssetConflictPolicy();
+    AssetConflictPolicy GetAssetConflictPolicy(bool isCheckTask = true);
 
     int UpdateAssetStatus(const std::string &table, std::vector<VBucket> &assetInfo);
 
@@ -614,6 +614,10 @@ protected:
         bool &isNeedDownload);
 
     bool IsUploadOnlyTask(TaskId taskId);
+
+    bool IsCurrentPushOnlyTask();
+
+    bool IsCurrentMergeDataTask();
 
     int ResetCloudWaterMarkIfNeed(bool isFirstDownload);
 

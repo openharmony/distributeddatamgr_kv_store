@@ -15,6 +15,7 @@
 
 #include "rdb_general_ut.h"
 #include "cloud/asset_operation_utils.h"
+#include "cloud/cloud_db_constant.h"
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 using namespace testing::ext;
@@ -34,6 +35,13 @@ protected:
         const std::vector<std::string> &tables = {SYNC_TABLE_A});
     void PrepareToDownloadEnv();
     static CloudSyncOption GetSyncOption();
+    static Asset CreateAsset(const std::string &name, const std::string &hash,
+        uint32_t status = static_cast<uint32_t>(AssetStatus::NORMAL),
+        const std::string &createTime = "1", const std::string &modifyTime = "1");
+    void InsertCloudRecord(int64_t id, const Assets &assets, const std::string &gid,
+        int64_t modifyTime = 1);
+    void UpdateCloudRecord(int64_t id, const Assets &assets, const std::string &gid,
+        int64_t modifyTime = 2);
     StoreInfo info1_ = {USER_ID, APP_ID, STORE_ID_1};
     StoreInfo info2_ = {USER_ID, APP_ID, STORE_ID_2};
 };
@@ -358,6 +366,64 @@ CloudSyncOption DistributedDBSkipDownloadAssetsTest::GetSyncOption()
     return option;
 }
 
+Asset DistributedDBSkipDownloadAssetsTest::CreateAsset(const std::string &name, const std::string &hash,
+    uint32_t status, const std::string &createTime, const std::string &modifyTime)
+{
+    Asset asset;
+    asset.name = name;
+    asset.hash = hash;
+    asset.status = status;
+    asset.createTime = createTime;
+    asset.modifyTime = modifyTime;
+    return asset;
+}
+
+void DistributedDBSkipDownloadAssetsTest::InsertCloudRecord(int64_t id, const Assets &assets,
+    const std::string &gid, int64_t modifyTime)
+{
+    auto cloudDB = GetVirtualCloudDb();
+    ASSERT_NE(cloudDB, nullptr);
+    std::vector<VBucket> records;
+    VBucket record;
+    constexpr int64_t insertIntColFactor = 10;
+    record["id"] = id;
+    record["intCol"] = id * insertIntColFactor;
+    record["stringCol"] = std::string("cloud_insert_") + std::to_string(id);
+    record["assets"] = assets;
+    records.push_back(std::move(record));
+    std::vector<VBucket> extends;
+    VBucket extend;
+    extend[CloudDbConstant::GID_FIELD] = gid;
+    extend[CloudDbConstant::CREATE_FIELD] = int64_t(1);
+    extend[CloudDbConstant::MODIFY_FIELD] = modifyTime;
+    extend[CloudDbConstant::DELETE_FIELD] = false;
+    extends.push_back(std::move(extend));
+    EXPECT_EQ(cloudDB->BatchInsertWithGid(SYNC_TABLE_A, std::move(records), extends), DBStatus::OK);
+}
+
+void DistributedDBSkipDownloadAssetsTest::UpdateCloudRecord(int64_t id, const Assets &assets,
+    const std::string &gid, int64_t modifyTime)
+{
+    auto cloudDB = GetVirtualCloudDb();
+    ASSERT_NE(cloudDB, nullptr);
+    std::vector<VBucket> records;
+    VBucket record;
+    constexpr int64_t updateIntColFactor = 100;
+    record["id"] = id;
+    record["intCol"] = id * updateIntColFactor;
+    record["stringCol"] = std::string("cloud_update_") + std::to_string(id);
+    record["assets"] = assets;
+    records.push_back(std::move(record));
+    std::vector<VBucket> extends;
+    VBucket extend;
+    extend[CloudDbConstant::GID_FIELD] = gid;
+    extend[CloudDbConstant::CREATE_FIELD] = int64_t(1);
+    extend[CloudDbConstant::MODIFY_FIELD] = modifyTime;
+    extend[CloudDbConstant::DELETE_FIELD] = false;
+    extends.push_back(std::move(extend));
+    EXPECT_EQ(cloudDB->BatchUpdate(SYNC_TABLE_A, std::move(records), extends), DBStatus::OK);
+}
+
 /**
  * @tc.name: CloudSyncWithSkipDownloadAssetsTest001
  * @tc.desc: Test data with to_download will be downloaded by asset only.
@@ -415,6 +481,52 @@ HWTEST_F(DistributedDBSkipDownloadAssetsTest, CloudSyncWithSkipDownloadAssetsTes
     EXPECT_NO_FATAL_FAILURE(CheckAssets(info2_, sql, false, [](const Asset &asset) {
         EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD));
     }));
+}
+
+/**
+ * @tc.name: CloudSyncWithSkipDownloadAssetsTest004
+ * @tc.desc: Test DELETE assets are processed when skipDownloadAssets=true
+ * @tc.type: FUNC
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBSkipDownloadAssetsTest, CloudSyncWithSkipDownloadAssetsTest004, TestSize.Level0)
+{
+    Assets cloudAssets = {
+        CreateAsset("assets_0", "hash_0"),
+        CreateAsset("assets_1", "hash_1")
+    };
+    InsertCloudRecord(1, cloudAssets, "0");
+
+    ASSERT_NO_FATAL_FAILURE(SetCloudSyncConfig(info2_, {.skipDownloadAssets = true}));
+    auto option = GetSyncOption();
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, option, OK, OK));
+
+    EXPECT_EQ(CountTableData(info2_, SYNC_TABLE_A), 1);
+    std::string sql = std::string("SELECT assets FROM ").append(SYNC_TABLE_A);
+    int assetCount = 0;
+    EXPECT_NO_FATAL_FAILURE(CheckAssets(info2_, sql, false, [&assetCount](const Asset &asset) {
+        assetCount++;
+        auto lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
+        EXPECT_TRUE((lowStatus & static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD)) != 0);
+    }));
+    EXPECT_EQ(assetCount, 2);
+
+    Assets updatedAssets = {
+        CreateAsset("assets_0", "hash_0_v2", static_cast<uint32_t>(AssetStatus::NORMAL), "1", "2")
+    };
+    UpdateCloudRecord(1, updatedAssets, "0", 2);
+
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info2_, option, OK, OK));
+
+    sql = std::string("SELECT assets FROM ").append(SYNC_TABLE_A);
+    int finalAssetCount = 0;
+    EXPECT_NO_FATAL_FAILURE(CheckAssets(info2_, sql, false, [&finalAssetCount](const Asset &asset) {
+        finalAssetCount++;
+        EXPECT_EQ(asset.name, std::string("assets_0"));
+        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status),
+            static_cast<uint32_t>(AssetStatus::TO_DOWNLOAD));
+    }));
+    EXPECT_EQ(finalAssetCount, 1);
 }
 }
 #endif // USE_DISTRIBUTEDDB_CLOUD

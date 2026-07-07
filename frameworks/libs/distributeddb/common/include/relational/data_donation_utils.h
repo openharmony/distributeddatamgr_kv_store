@@ -21,6 +21,7 @@
 #include "cloud/cloud_store_types.h"
 #include "data_donation_types.h"
 #include "data_donation_schema.h"
+#include "matrix_file.h"
 #include "sqlite3sym.h"
 
 namespace DistributedDB {
@@ -31,7 +32,9 @@ struct DonateDataCursor {
 };
 
 struct DonateDataField {
-    VBucket field;
+    std::vector<std::string> field;
+    std::vector<int> colType;
+    std::vector<uint32_t> opType;
     std::pair<int, uint64_t> binlogCursor;
 };
 
@@ -67,8 +70,9 @@ public:
 
     static void SetDataChangedObserver(sqlite3 *db);
     static int SetTrackerMatrixInfo(sqlite3 *db, const MatrixFileInfo &info);
-    static int GetTrackerMatrixInfo(const std::string dbPath, const MatrixFileInfo &info);
-    static uint64_t *MmapMatrixFile(const std::string &path, size_t mmapSize, int32_t &fileFd);
+    static int UnsetTrackerMatrixInfo(sqlite3 *db);
+    static int FindMatrixFileInfo(const std::string &hashFileName, MatrixFileInfo &fileInfo);
+    static std::pair<int, std::shared_ptr<MatrixFile>> MmapMatrixFile(const std::string &path);
     static int UpdateMatrixFile(const MatrixFileInfo &fileInfo, const std::vector<std::string> &changedData,
         const MatrixFileUpdateConfig &config);
 
@@ -78,6 +82,27 @@ public:
     static bool GetSchemaPathByDbPath(const std::string &dbPath, std::string &output);
 
     static void FilterNonOutputKeys(DdData &dataRow, const std::vector<DataDonationSchema::DdKeyOut> &keyOut);
+
+    static bool IsTableInKeyOut(const std::string &tableName, const std::vector<DataDonationSchema::DdKeyOut> &keyOut);
+
+    static bool IsDonationDataEmpty(const VBucket &bucket);
+
+    static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath);
+
+    static int FreeMonitorConfig(MonitorTablesConfig *monitorConfig);
+
+    static void SetGetSchemaCallback(sqlite3 *db);
+
+    static Type ConvertStrToType(const std::string &str, int colType);
+
+    static int CheckBinlogDirExist(const std::string &dbPath);
+    static std::string GetRowidHwmFilePath(const std::string &dbPath);
+    static int SaveRowidHwm(const std::string &dbPath, const std::string &tableName,
+        const std::vector<std::pair<std::string, int64_t>> &cursorValues = {},
+        const std::vector<std::pair<std::string, int64_t>> &maxRowids = {});
+    static int LoadRowidHwm(const std::string &dbPath, const std::string &tableName, int64_t &maxRowid,
+        std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        std::vector<std::pair<std::string, int64_t>> &maxRowids);
 
 private:
     static std::string JoinPrimaryKey(const std::vector<DonateDataField> &changedData);
@@ -90,12 +115,13 @@ private:
     static std::string GetSelectFieldName(const std::string &tableName, const std::string &columnName);
 
     static std::vector<uint64_t> GetMatrixTableIndexs(const MatrixFileInfo &matrixFileInfo,
-        const std::vector<std::string> &changedData);
+        const std::vector<std::string> &changedData, const MatrixFileUpdateConfig &config);
+    
+    static bool IsFilePathValid(const std::string &path);
 
     static void DataChangedObserver(const char *dbPath, char *tableName);
 
     static bool GetDbFileName(sqlite3 *db, std::string &fileName);
-    static int GetHashString(const std::string &str, std::string &dst);
 
     static std::string GenerateSqlByTableName(const std::string &tableName,
         const DataDonationSchema::DdRelationsPath &path, const BinlogChangedData &changedData);
@@ -106,7 +132,39 @@ private:
     static void ExtractPkValueFromRow(const BinlogSearchResult &row, const std::string &pkColumn,
         uint32_t cloudOpType, const std::pair<int, uint64_t> &batchCursor, BinlogChangedData &changedData);
 
+    static int GetTableAndColumnName(const JsonObject &jsonValue, std::string &tableName, std::string &columnName);
+    
+    static int InitNewTableEntry(MonitorTableCol &table, const std::string &tableName, const std::string &columnName);
+
+    static int TryAddColumnToTable(MonitorTableCol &table, const std::string &columnName);
+
+    static int AddColumnsToMonitor(const JsonObject &jsonValue, MonitorTablesConfig *monitorConfig);
+
+    static int ReadJsonConfigFromFile(const std::string &dbPath, std::string &jsonStr);
+
+    static int ParseSearchConfig(const std::string &jsonStr, JsonObject &searchConfig);
+
+    static int ProcessMappings(const JsonObject &part, MonitorTablesConfig *monitorConfig);
+
+    static int ProcessUTDMapping(const JsonObject &utdMapping, MonitorTablesConfig *monitorConfig);
+
+    static int ExtractTableAndColumnName(const JsonObject &mapping, MonitorTablesConfig *monitorConfig);
+
+    static int ExtractFunction(const JsonObject &mapping, MonitorTablesConfig *monitorConfig);
+
+    static int GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath);
+
+    static int ParseHwmFile(const std::string &filePath, JsonObject &root);
+    static int UpdateOrInsertCursorEntry(JsonObject &tableEntry,
+        const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        const std::vector<std::pair<std::string, int64_t>> &maxRowids);
+    static int ParseCursorFromHwm(const JsonObject &tableEntry,
+        std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        std::vector<std::pair<std::string, int64_t>> &maxRowids);
+    static int WriteHwmFile(const std::string &filePath, const JsonObject &root);
+
     static constexpr const char *DATA_DONATION_SCHEMA_FILE = "data_donation_schema.json";
+    static constexpr const char *ROWID_HWM_FILE = "subscribe_rowid_hwm.json";
 };
 
 }

@@ -184,3 +184,110 @@ HWTEST_F(DistributedDBDataDonationSchemaUnitTest, Dfx_GetRelationPathFailed4Inva
     ASSERT_EQ(path.table, "");
     ASSERT_TRUE(path.relations.empty());
 }
+
+/**
+ * @tc.name: FunctionTest_RootTableGetRelationPath_001
+ * @tc.desc: Test GetRelationPath for a root table (table with no outgoing FK but with keyOut mapping).
+ *           This tests the fix for MergeRelationsMaps which now handles root tables correctly.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBDataDonationSchemaUnitTest, FunctionTest_RootTableGetRelationPath_001, TestSize.Level0)
+{
+    // Use the existing ddSchema which is already working
+    // The existing schema has TableA with keyOut and tables pointing to TableA
+    DataDonationSchema::DdRelationsPath &path = ddSchema.GetRelationPath("TableA");
+    // TableA should have valid path (it's the root table that other tables point to)
+    EXPECT_EQ(path.table, "TableA");
+    EXPECT_FALSE(path.relations.empty());
+}
+
+/**
+ * @tc.name: FunctionTest_RootTableWithChildTables_001
+ * @tc.desc: Test GetRelationPath for a root table with child tables having FK to it.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBDataDonationSchemaUnitTest, FunctionTest_RootTableWithChildTables_001, TestSize.Level0)
+{
+    // Use existing ddSchema - TableC has FK to TableA
+    DataDonationSchema::DdRelationsPath &pathC = ddSchema.GetRelationPath("TableC");
+    EXPECT_EQ(pathC.table, "TableC");
+    EXPECT_FALSE(pathC.relations.empty());
+
+    // TableB also has FK to TableA
+    DataDonationSchema::DdRelationsPath &pathB = ddSchema.GetRelationPath("TableB");
+    EXPECT_EQ(pathB.table, "TableB");
+    EXPECT_FALSE(pathB.relations.empty());
+}
+
+/**
+ * @tc.name: FunctionTest_GetDefaultRelationPath_001
+ * @tc.desc: Test GetRelationPath() (default) returns proper path for keyOut without condition.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBDataDonationSchemaUnitTest, FunctionTest_GetDefaultRelationPath_001, TestSize.Level0)
+{
+    // Use existing ddSchema which has proper configuration
+    DataDonationSchema::DdRelationsPath &path = ddSchema.GetRelationPath();
+    EXPECT_NE(path.table, "");
+    EXPECT_FALSE(path.relations.empty());
+}
+
+/**
+ * @tc.name: FunctionTest_NeedWakeupForRootTable_001
+ * @tc.desc: Test NeedWakeup returns correct value for root table triggers.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBDataDonationSchemaUnitTest, FunctionTest_NeedWakeupForRootTable_001, TestSize.Level0)
+{
+    // Test that NeedWakeup works for TableA (root table with no outgoing FK)
+    DataDonationSchema::DdTrigger trigger;
+    trigger.table = "TableA";
+    DataDonationSchema::DdCondition condition;
+    trigger.fields.insert({"KeyId", condition});
+    EXPECT_TRUE(ddSchema.NeedWakeup(trigger));
+
+    // Test with condition that matches
+    condition.enable = true;
+    condition.field = {"TableA", "filter"};
+    condition.value = 1;
+    trigger.fields.clear();
+    trigger.fields.insert({"KeyId", condition});
+    EXPECT_TRUE(ddSchema.NeedWakeup(trigger));
+}
+
+/**
+ * @tc.name: DecodeSchemaErrorTest_001
+ * @tc.desc: Test schema decoding when missing search config.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBDataDonationSchemaUnitTest, DecodeSchemaErrorTest_001, TestSize.Level0)
+{
+    std::string schemaStr = R"({
+        "dbSchema": [{
+            "tables": [
+                {
+                    "tableName": "table1",
+                    "fields": [{
+                        "columnName": "column1",
+                        "type": "Integer",
+                        "primaryKey": true
+                    }]
+                }
+            ]
+        }],
+        "searchConfig": {}
+    })";
+
+    DataDonationSchema schema;
+    EXPECT_EQ(schema.Init(schemaStr), -E_INVALID_ARGS);
+}

@@ -429,5 +429,95 @@ HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy009, TestSize.Lev
     EXPECT_EQ(loader->GetBatchDownloadCount(), 0);
     EXPECT_EQ(uploadCount, 1);
 }
+
+/**
+ * @tc.name: AssetConflictPolicy010
+ * @tc.desc: Test force push.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy010, TestSize.Level0)
+{
+    CloudSyncConfig config = {
+        .assetPolicy = AssetConflictPolicy::CONFLICT_POLICY_TIME_FIRST
+    };
+    ASSERT_NO_FATAL_FAILURE(SetCloudSyncConfig(info1_, config));
+    // set cloud data modifyTime to 0 and make sure record conflict result is local win
+    const int begin = 0;
+    const int count = 1;
+    ASSERT_EQ(InsertLocalDBData(begin, count, info1_), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InsertCloudData(begin, count, CLOUD_SYNC_TABLE_B, INT64_MAX, 0));
+    Query query = Query::Select().FromTable({CLOUD_SYNC_TABLE_B});
+    ASSERT_NO_FATAL_FAILURE(CloudBlockSync(info1_, query, SyncMode::SYNC_MODE_CLOUD_FORCE_PULL, OK, OK));
+    auto cloud = GetVirtualCloudDb();
+    cloud->ForkBeforeBatchUpdate(nullptr);
+    std::string sql = std::string("SELECT assetCol FROM ").append(CLOUD_SYNC_TABLE_B);
+    EXPECT_NO_FATAL_FAILURE(CheckAssets(info1_, sql, false, [](const Asset &asset) {
+        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::NORMAL));
+        EXPECT_EQ(asset.modifyTime, std::to_string(INT64_MAX));
+    }));
+    auto loader = GetVirtualAssetLoader();
+    ASSERT_NE(loader, nullptr);
+    EXPECT_EQ(loader->GetBatchDownloadCount(), 1);
+}
+
+/**
+ * @tc.name: AssetConflictPolicy011
+ * @tc.desc: Test cloud sync with not support param.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy011, TestSize.Level0)
+{
+    CloudSyncConfig config = {
+        .assetPolicy = AssetConflictPolicy::CONFLICT_POLICY_TIME_FIRST
+    };
+    ASSERT_NO_FATAL_FAILURE(SetCloudSyncConfig(info1_, config));
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    option.syncFlowType = SyncFlowType::NORMAL;
+    option.query = Query::Select().FromTable({CLOUD_SYNC_TABLE_B});
+    option.priorityTask = true;
+    option.compensatedSyncOnly = false;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    option.asyncDownloadAssets = true;
+    ASSERT_NO_FATAL_FAILURE(CloudBlockSync(info1_, option, OK, OK));
+    config = {
+        .assetPolicy = AssetConflictPolicy::CONFLICT_POLICY_TEMP_PATH
+    };
+    ASSERT_NO_FATAL_FAILURE(SetCloudSyncConfig(info1_, config));
+    ASSERT_NO_FATAL_FAILURE(CloudBlockSync(info1_, option, NOT_SUPPORT, OK));
+}
+
+/**
+ * @tc.name: AssetConflictPolicy012
+ * @tc.desc: Test trigger download with temp path asset conflict policy.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy012, TestSize.Level0)
+{
+    CloudSyncConfig config = {
+        .assetPolicy = AssetConflictPolicy::CONFLICT_POLICY_TEMP_PATH
+    };
+    ASSERT_NO_FATAL_FAILURE(SetCloudSyncConfig(info1_, config));
+    // set cloud data modifyTime to INT64_MAX and make sure record conflict result is cloud win
+    const int begin = 0;
+    const int count = 1;
+    ASSERT_EQ(InsertLocalDBData(begin, count, info1_), E_OK);
+    ASSERT_NO_FATAL_FAILURE(InsertCloudData(begin, count, CLOUD_SYNC_TABLE_A, INT64_MAX, INT64_MAX));
+    Query query = Query::Select().FromTable({CLOUD_SYNC_TABLE_A});
+    ASSERT_NO_FATAL_FAILURE(CloudBlockSync(info1_, query));
+    std::string sql = std::string("SELECT assetsCol FROM ").append(CLOUD_SYNC_TABLE_A);
+    EXPECT_NO_FATAL_FAILURE(CheckAssets(info1_, sql, false, [](const Asset &asset) {
+        EXPECT_EQ(AssetOperationUtils::GetHighBitMask(asset.status), static_cast<uint32_t>(AssetStatus::TEMP_PATH));
+    }));
+    auto loader = GetVirtualAssetLoader();
+    ASSERT_NE(loader, nullptr);
+    EXPECT_EQ(loader->GetBatchDownloadCount(), 1);
+    auto cloud = GetVirtualCloudDb();
+    EXPECT_EQ(cloud->GetUpdateCount(), 0);
+}
 } // namespace
 #endif // USE_DISTRIBUTEDDB_CLOUD

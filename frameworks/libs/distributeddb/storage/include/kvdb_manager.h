@@ -19,8 +19,11 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <shared_mutex>
 #include <set>
 #include <condition_variable>
+#include <memory>
+#include <atomic>
 
 #include "db_errno.h"
 #include "ikvdb.h"
@@ -61,9 +64,11 @@ public:
     IKvDB* FindKvDB(const std::string &identifier) const;
 
     // Get a KvDBManager instance, Singleton mode
-    static KvDBManager *GetInstance();
+    static std::shared_ptr<KvDBManager> GetInstance();
 
     static void DeleteInstance();
+    static bool IsInstanceDestroyed();
+    static void SetInstanceDestroyed(bool isDestroyed);
 
     // Dump all db message in cache
     void Dump(int fd);
@@ -134,9 +139,10 @@ private:
 
     static std::string GenerateKvDBDataDirIdentifier(const KvDBProperties &property);
 
-    static std::atomic<KvDBManager *> instance_;
+    static std::shared_ptr<KvDBManager> instance_;
     static std::mutex kvDBLock_;
-    static std::mutex instanceLock_;
+    static std::shared_mutex instanceMutex_;
+    static std::atomic<bool> instanceDestroyed_;
 
     static std::mutex fileHandleMutex_;
     static std::map<std::string, OS::FileHandle *> locks_;

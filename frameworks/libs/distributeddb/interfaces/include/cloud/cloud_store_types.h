@@ -212,7 +212,7 @@ enum class SubQueryType : uint32_t {
     GET_NEW = 1,
 };
 
-struct DBSubscribeCur {
+struct DBSubscribeCursor {
     SubQueryType queryType;
     uint64_t cursor = 0;
 };

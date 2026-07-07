@@ -1029,16 +1029,17 @@ void CheckTable(TableSyncType tableSyncType, RelationalStoreDelegate *delegate, 
     createSql += "create table t4_8(id int , name text, UNIQUE(id, name));";
     createSql += "create table t4_9(id int , name text,UNIQUE(id, name));";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
-    EXPECT_EQ(delegate->CreateDistributedTable(tableName4, tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_1", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_2", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_3", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_4", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_5", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_6", tableSyncType), OK);
+    DBStatus expectCode = OK;
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName4, tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_1", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_2", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_3", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_4", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_5", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_6", tableSyncType), expectCode);
     EXPECT_EQ(delegate->CreateDistributedTable("t4_7", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_8", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_9", tableSyncType), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_8", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_9", tableSyncType), expectCode);
 }
 
 void TableConstraintsCheck(TableSyncType tableSyncType, RelationalStoreDelegate *delegate, sqlite3 *db)

@@ -125,7 +125,7 @@ ohos_fuzztest("JsonDocFuzzTest") {
 
   ldflags += [ "--coverage" ]
 
-  cflags_cc = [ "--coverage" ]
+  cflags_cc = [ "--coverage", "-Werror=vla" ]
 
   sources = [ "jsondoc_fuzzer.cpp" ]
 }

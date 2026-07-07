@@ -21,7 +21,8 @@
 namespace DistributedDB {
 
 int DataDonationSqlGenerator::GenerateQuerySql(const DataDonationSchema::DdRelationsPath &path,
-    int64_t cursor, std::string &sql) const
+    const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+    const std::vector<std::pair<std::string, int64_t>> &maxRowids, std::string &sql) const
 {
     int errCode = ValidatePath(path);
     if (errCode != E_OK) {
@@ -29,14 +30,60 @@ int DataDonationSqlGenerator::GenerateQuerySql(const DataDonationSchema::DdRelat
         return errCode;
     }
 
+    std::string mainTable = BuildFromTableName(path);
     std::set<std::string> requiredTables = AnalyzeRequiredTables(path);
+    std::vector<std::string> tableNames = GetJoinedTableNames(path);
 
-    sql = BuildSelectClause(path);
+    sql = BuildSelectClause(path) + BuildRowidSelectClause(tableNames);
     sql += " " + BuildFromClause(path);
     sql += BuildJoinClauses(path, requiredTables);
-    sql += " " + BuildPaginationClause(cursor);
+    sql += " " + BuildRowidClause(cursorValues, maxRowids, mainTable);
 
     return E_OK;
+}
+
+std::string DataDonationSqlGenerator::BuildFromTableName(const DataDonationSchema::DdRelationsPath &path)
+{
+    if (path.relations.empty()) {
+        return path.table;
+    }
+    return path.relations[0].key.localField.table;
+}
+
+std::vector<std::string> DataDonationSqlGenerator::GetJoinedTableNames(
+    const DataDonationSchema::DdRelationsPath &path)
+{
+    std::vector<std::string> tableNames;
+    if (path.relations.empty()) {
+        return tableNames;
+    }
+
+    std::set<std::string> requiredTables;
+    for (const auto &relation : path.relations) {
+        if (!relation.localField.table.empty()) {
+            requiredTables.insert(relation.localField.table);
+        }
+        if (!relation.foreignField.table.empty()) {
+            requiredTables.insert(relation.foreignField.table);
+        }
+    }
+
+    tableNames.push_back(path.relations[0].key.localField.table);
+
+    int maxJoinIndex = -1;
+    for (int i = 0; i < static_cast<int>(path.relations.size()); ++i) {
+        const auto &relation = path.relations[i];
+        const std::string &joinedTable = relation.key.foreignField.table;
+        if (requiredTables.count(joinedTable) != 0) {
+            maxJoinIndex = i;
+        }
+    }
+
+    for (int i = 0; i <= maxJoinIndex; ++i) {
+        tableNames.push_back(path.relations[i].key.foreignField.table);
+    }
+
+    return tableNames;
 }
 
 int DataDonationSqlGenerator::ValidatePath(const DataDonationSchema::DdRelationsPath &path) const
@@ -124,6 +171,16 @@ std::string DataDonationSqlGenerator::BuildSelectClause(const DataDonationSchema
     return selectClause;
 }
 
+std::string DataDonationSqlGenerator::BuildRowidSelectClause(const std::vector<std::string> &tableNames) const
+{
+    std::string clause;
+    for (size_t i = 0; i < tableNames.size(); ++i) {
+        std::string rowidField = FormatFieldRef(tableNames[i], DBConstant::SQLITE_INNER_ROWID);
+        clause += ", " + rowidField + " AS [" + rowidField + "]";
+    }
+    return clause;
+}
+
 std::string DataDonationSqlGenerator::BuildFromClause(const DataDonationSchema::DdRelationsPath &path) const
 {
     if (path.relations.empty()) {
@@ -158,9 +215,100 @@ std::string DataDonationSqlGenerator::BuildJoinClauses(const DataDonationSchema:
     return joinClause;
 }
 
-std::string DataDonationSqlGenerator::BuildPaginationClause(int64_t cursor) const
+std::string DataDonationSqlGenerator::BuildLexicographicWhere(
+    const std::vector<std::pair<std::string, int64_t>> &cursorValues) const
 {
-    return "LIMIT " + std::to_string(CloudDbConstant::SUBSCRIBE_QUERY_LIMIT) + " OFFSET " + std::to_string(cursor);
+    std::vector<std::string> conditions;
+    for (size_t i = 0; i < cursorValues.size(); ++i) {
+        std::vector<std::string> parts;
+        for (size_t j = 0; j < i; ++j) {
+            std::string rowidField = FormatFieldRef(cursorValues[j].first, DBConstant::SQLITE_INNER_ROWID);
+            if (cursorValues[j].second == -1) {
+                parts.push_back(rowidField + " IS NULL");
+            } else {
+                parts.push_back(rowidField + " = " + std::to_string(cursorValues[j].second));
+            }
+        }
+        std::string rowidField = FormatFieldRef(cursorValues[i].first, DBConstant::SQLITE_INNER_ROWID);
+        if (cursorValues[i].second == -1) {
+            parts.push_back(rowidField + " IS NOT NULL");
+        } else {
+            parts.push_back(rowidField + " > " + std::to_string(cursorValues[i].second));
+        }
+        std::string cond;
+        for (size_t k = 0; k < parts.size(); ++k) {
+            if (k > 0) {
+                cond += " AND ";
+            }
+            cond += parts[k];
+        }
+        conditions.push_back("(" + cond + ")");
+    }
+
+    std::string result;
+    for (size_t i = 0; i < conditions.size(); ++i) {
+        if (i > 0) {
+            result += " OR ";
+        }
+        result += conditions[i];
+    }
+    return result;
+}
+
+std::string DataDonationSqlGenerator::BuildMaxRowidConstraints(
+    const std::vector<std::pair<std::string, int64_t>> &maxRowids, const std::string &mainTable) const
+{
+    std::vector<std::string> constraints;
+    for (const auto &[tableName, maxRowid] : maxRowids) {
+        std::string rowidField = FormatFieldRef(tableName, DBConstant::SQLITE_INNER_ROWID);
+        if (tableName == mainTable) {
+            constraints.push_back(rowidField + " <= " + std::to_string(maxRowid));
+        } else {
+            constraints.push_back("(" + rowidField + " IS NULL OR " + rowidField +
+                " <= " + std::to_string(maxRowid) + ")");
+        }
+    }
+
+    std::string result;
+    for (size_t i = 0; i < constraints.size(); ++i) {
+        if (i > 0) {
+            result += " AND ";
+        }
+        result += constraints[i];
+    }
+    return result;
+}
+
+std::string DataDonationSqlGenerator::BuildOrderByClause(const std::vector<std::string> &tableNames) const
+{
+    if (tableNames.empty()) {
+        return "";
+    }
+    // Only sort by the main table's rowid in ascending order;
+    // joined tables default to ascending order as well which benefits query performance
+    std::string clause = "ORDER BY " + FormatFieldRef(tableNames[0], DBConstant::SQLITE_INNER_ROWID) + " ASC";
+    return clause;
+}
+
+std::string DataDonationSqlGenerator::BuildRowidClause(
+    const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+    const std::vector<std::pair<std::string, int64_t>> &maxRowids, const std::string &mainTable) const
+{
+    std::vector<std::string> tableNames;
+    for (const auto &[name, _] : maxRowids) {
+        tableNames.push_back(name);
+    }
+
+    std::string clause = "WHERE ";
+    if (cursorValues.empty()) {
+        clause += BuildMaxRowidConstraints(maxRowids, mainTable);
+    } else {
+        clause += "(" + BuildLexicographicWhere(cursorValues) + ")";
+        clause += " AND " + BuildMaxRowidConstraints(maxRowids, mainTable);
+    }
+    clause += " " + BuildOrderByClause(tableNames);
+    clause += " LIMIT " + std::to_string(CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL);
+    return clause;
 }
 
 std::string DataDonationSqlGenerator::FormatFieldRef(const std::string &table, const std::string &field) const

@@ -33,8 +33,6 @@ public:
 
     static std::string GetDeleteTrigger(const std::string &tableName, bool isRowid, const std::string &primaryKey);
 
-    static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath);
-
     static void StringToUpper(std::string &str);
 
     static int ArchiveSyncedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
@@ -62,24 +60,6 @@ private:
 
     static int BindDataLogCondition(sqlite3_stmt *stmt, const std::optional<SelectCondition> &condition,
         bool isLog, int &index);
-
-    static int GetTableAndColumnName(const JsonObject &jsonValue, std::string &tableName, std::string &columnName);
-
-    static int InitNewTableEntry(MonitorTableCol &table, const std::string &tableName, const std::string &columnName);
-
-    static int TryAddColumnToTable(MonitorTableCol &table, const std::string &columnName);
-
-    static int AddColumnsToMonitor(const JsonObject &jsonValue, MonitorTablesConfig *monitorConfig);
-
-    static int ReadJsonConfigFromFile(const std::string &dbPath, std::string &jsonStr);
-
-    static int ParseSearchConfig(const std::string &jsonStr, JsonObject &searchConfig);
-
-    static int ProcessMappings(const JsonObject &part, MonitorTablesConfig *monitorConfig);
-
-    static int ProcessUTDMapping(const JsonObject &utdMapping, MonitorTablesConfig *monitorConfig);
-
-    static int GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath);
 
     static int ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName, uint64_t cursor, bool isTracker);
 

@@ -14,6 +14,9 @@
  */
 #ifdef RELATIONAL_STORE
 #include "data_donation_cache.h"
+#include "data_donation_sql_generator.h"
+#include "sqlite_relational_utils.h"
+#include "sqlite_utils.h"
 
 namespace DistributedDB {
 
@@ -23,19 +26,157 @@ int DataDonationCache::SetSchema(const std::string &schema)
     return ddSchema.Init(schema);
 }
 
-int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
-    DBSubscribeCur &cursorOut, std::vector<VBucket> &data)
+int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &data)
 {
     if (handle == nullptr) {
-        LOGE("[QueryBinlog] executor is null");
+        LOGE("[QueryStorage] executor is null");
         return -E_INVALID_ARGS;
     }
 
-    return handle->QuerySubscribeOutput(ddSchema.GetRelationPath(), cursorIn, cursorOut, data);
+    const DataDonationSchema::DdRelationsPath &path = ddSchema.GetRelationPath();
+    std::string mainTable = DataDonationSqlGenerator::BuildFromTableName(path);
+    std::vector<std::string> tableNames = DataDonationSqlGenerator::GetJoinedTableNames(path);
+    std::string dbPath;
+
+    sqlite3 *dbHandle = nullptr;
+    if (handle->GetDbHandle(dbHandle) != E_OK || !SQLiteRelationalUtils::GetDbFileName(dbHandle, dbPath)) {
+        LOGE("[QueryStorage] Get db path failed");
+        return -E_INVALID_DB;
+    }
+
+    int errCode = E_OK;
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids;
+    cursorOut.queryType = cursorIn.queryType;
+    bool needInit = (cursorIn.cursor == 0) && (!getAllCache_.isValid || getAllCache_.mainTable != mainTable);
+    if (needInit) {
+        // First query: initialize
+        errCode = InitGetAllQuery(dbPath, tableNames, handle, maxRowids, cursorOut.cursor);
+    } else {
+        // Subsequent query: load from cache or file
+        errCode = LoadCursorFromCacheOrFile(mainTable, dbPath, cursorValues, maxRowids);
+        // If the cursor fails to load, try restart the query
+        if (errCode != E_OK) {
+            LOGW("[QueryStorage] load cursor failed and try requery: %d", errCode);
+            errCode = InitGetAllQuery(dbPath, tableNames, handle, maxRowids, cursorOut.cursor);
+        }
+    }
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    SQLiteSingleVerRelationalStorageExecutor::GetAllQueryResult result;
+    errCode = handle->QuerySubscribeOutputWithCursor(path, cursorValues, maxRowids, result);
+    if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
+        return errCode;
+    }
+
+    if (!result.dataOut.empty()) {
+        GetAllCursorCache newCache;
+        newCache.mainTable = result.mainTable;
+        newCache.dbPath = result.dbPath;
+        newCache.cursorValues = result.cursorValues;
+        newCache.maxRowids = result.maxRowids;
+        newCache.sessionCursor = result.sessionCursor;
+        newCache.isValid = true;
+        UpdateGetAllCache(newCache);
+    }
+    data = result.dataOut;
+    cursorOut.cursor = result.sessionCursor;
+    return errCode;
 }
 
-int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCur &cursorIn,
-    DBSubscribeCur &cursorOut, std::vector<VBucket> &data)
+int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
+    const std::vector<std::string> &tableNames,
+    SQLiteSingleVerRelationalStorageExecutor *handle,
+    std::vector<std::pair<std::string, int64_t>> &maxRowids,
+    uint64_t &cursorOut)
+{
+    // Clear old cache
+    getAllCache_.isValid = false;
+
+    int errCode = DataDonationUtils::CheckBinlogDirExist(dbPath);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    // Get maxRowid for each table
+    for (const auto &tableName : tableNames) {
+        int64_t tableMaxRowid = 0;
+        errCode = handle->GetMaxRowid(tableName, tableMaxRowid);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        maxRowids.emplace_back(tableName, tableMaxRowid);
+    }
+
+    // If main table is empty, finish
+    if (!maxRowids.empty() && maxRowids[0].second == 0) {
+        cursorOut = 0;
+        return -E_SUBSCRIBE_QUERY_END;
+    }
+
+    sqlite3 *dbHandle = nullptr;
+    if (handle->GetDbHandle(dbHandle) != E_OK) {
+        LOGE("[InitGetAllQuery] Get db handle failed");
+        return -E_INVALID_DB;
+    }
+    errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_reset_search_hwm_binlog(dbHandle));
+
+    return errCode;
+}
+
+int DataDonationCache::LoadCursorFromCacheOrFile(const std::string &mainTable,
+    const std::string &dbPath,
+    std::vector<std::pair<std::string, int64_t>> &cursorValues,
+    std::vector<std::pair<std::string, int64_t>> &maxRowids)
+{
+    // Load from cache first
+    if (getAllCache_.isValid && getAllCache_.mainTable == mainTable) {
+        cursorValues = getAllCache_.cursorValues;
+        maxRowids = getAllCache_.maxRowids;
+        LOGI("[LoadCursorFromCacheOrFile] Loaded from cache for %s", mainTable.c_str());
+        return E_OK;
+    }
+
+    // Load from file
+    int64_t maxRowid = 0;
+    int errCode = DataDonationUtils::LoadRowidHwm(dbPath, mainTable, maxRowid, cursorValues, maxRowids);
+    if (errCode != E_OK) {
+        LOGE("[LoadCursorFromCacheOrFile] Load from file failed: %d", errCode);
+        return errCode;
+    }
+
+    LOGI("[LoadCursorFromCacheOrFile] Loaded from file for %s", mainTable.c_str());
+    return E_OK;
+}
+
+void DataDonationCache::UpdateGetAllCache(const GetAllCursorCache &newCache)
+{
+    getAllCache_ = newCache;
+}
+
+int DataDonationCache::FlushGetAllCursorCache()
+{
+    if (!getAllCache_.isValid) {
+        LOGI("[FlushGetAllCursorCache] No valid cache to flush");
+        return E_OK;
+    }
+
+    int errCode = DataDonationUtils::SaveRowidHwm(getAllCache_.dbPath, getAllCache_.mainTable,
+        getAllCache_.cursorValues, getAllCache_.maxRowids);
+    if (errCode != E_OK) {
+        LOGE("[FlushGetAllCursorCache] SaveRowidHwm failed: %d", errCode);
+        return errCode;
+    }
+
+    LOGI("[FlushGetAllCursorCache] Persisted cursor for table %s", getAllCache_.mainTable.c_str());
+    return E_OK;
+}
+
+int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
+    DBSubscribeCursor &cursorOut, std::vector<VBucket> &data)
 {
     if (handle == nullptr) {
         LOGE("[QueryBinlog] executor is null");
@@ -51,24 +192,27 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     size_t readNum = 0;
     size_t readToken = GET_NEW_BATCH_NUM;
 
-    std::vector<DdData> queryData;
+    bool hasCache = ReadCacheSize() > 0;
     int errCode = TryInitCursor(cursorIn.cursor % Capacity());
     if (errCode != E_OK) {
         return errCode;
     }
 
-    errCode = handle->QuerySubscribeOutput(ddSchema, queryData);
-    if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
-        LOGE("[QueryBinlog] Query err: %d", errCode);
-        return errCode;
-    }
-    if (queryData.size() >= GET_ALL_BATCH_NUM) {
-        LOGI("[QueryBinlog] queryData size is: %zu", queryData.size());
-    }
-    int ret = PushBatch(queryData, queryData.size());
-    if (ret != E_OK) {
-        LOGE("[QueryBinlog] PushBatch err: %d", ret);
-        return ret;
+    if (!hasCache) {
+        std::vector<DdData> queryData;
+        errCode = handle->QuerySubscribeOutput(ddSchema, queryData);
+        if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
+            LOGE("[QueryBinlog] Query err: %d", errCode);
+            return errCode;
+        }
+        if (queryData.size() >= GET_ALL_BATCH_NUM) {
+            LOGI("[QueryBinlog] queryData size is: %zu", queryData.size());
+        }
+        int ret = PushBatch(queryData, queryData.size());
+        if (ret != E_OK) {
+            LOGE("[QueryBinlog] PushBatch err: %d", ret);
+            return ret;
+        }
     }
 
     // Read from DataDonationCache
@@ -87,7 +231,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
 }
 
 int DataDonationCache::Query(SQLiteSingleVerRelationalStorageExecutor *handle,
-    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &data)
+    const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &data)
 {
     switch (cursorIn.queryType) {
         case SubQueryType::GET_ALL:

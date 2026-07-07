@@ -18,42 +18,91 @@
 #include "cloud/cloud_storage_utils.h"
 #include "data_donation_sql_generator.h"
 #include "data_donation_utils.h"
+#include "db_common.h"
+#include "sqlite_relational_utils.h"
 namespace DistributedDB {
-int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path,
-    const DBSubscribeCur &cursorIn, DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
+int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutputWithCursor(
+    const DataDonationSchema::DdRelationsPath &path,
+    const std::vector<std::pair<std::string, int64_t>> &inputCursorValues,
+    const std::vector<std::pair<std::string, int64_t>> &inputMaxRowids,
+    GetAllQueryResult &result)
 {
-    int errCode = E_OK;
-    if (cursorIn.cursor == 0) {
-        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_reset_search_hwm_binlog(dbHandle_));
-        if (errCode != E_OK) {
-            LOGE("[QuerySubscribeOutput] sqlite3_reset_search_hwm_binlog failed: %d", errCode);
-            return errCode;
-        }
+    std::string mainTable = DataDonationSqlGenerator::BuildFromTableName(path);
+    std::vector<std::string> tableNames = DataDonationSqlGenerator::GetJoinedTableNames(path);
+
+    if (!SQLiteRelationalUtils::GetDbFileName(dbHandle_, result.dbPath)) {
+        LOGE("[QuerySubscribeOutputWithCursor] Get db path failed");
+        return -E_INVALID_DB;
     }
+
+    result.mainTable = mainTable;
+    result.maxRowids = inputMaxRowids;
+
     std::string sql;
-    errCode = GetQuerySubscribeSql(path, cursorIn.cursor, sql);
+    int errCode = GetQuerySubscribeSql(path, inputCursorValues, inputMaxRowids, sql);
     if (errCode != E_OK) {
-        LOGE("[QuerySubscribeOutput] GetQuerySubscribeSql failed: %d", errCode);
+        LOGE("[QuerySubscribeOutputWithCursor] GetQuerySubscribeSql failed: %d", errCode);
         return errCode;
     }
-    
+
     SqlCondition condition;
     condition.sql = sql;
-    condition.readOnly = true;
-    
-    errCode = ExecuteSql(condition, dataOut);
+    errCode = ExecuteSql(condition, result.dataOut);
     if (errCode != E_OK) {
-        LOGE("[QuerySubscribeOutput] ExecuteSql failed: %d", errCode);
+        LOGE("[QuerySubscribeOutputWithCursor] ExecuteSql failed: %d", errCode);
         return errCode;
     }
-    for (auto& bucket : dataOut) {
-        bucket.insert_or_assign(CloudDbConstant::SUB_DATA_OP_TYPE, static_cast<int64_t>(SubDataOpType::OP_INSERT));
+
+    result.cursorValues.clear();
+    ExtractAndRemoveRowid(tableNames, result.dataOut, result.cursorValues);
+
+    for (auto &bucket : result.dataOut) {
+        bucket.insert_or_assign(CloudDbConstant::SUB_DATA_OP_TYPE,
+            static_cast<int64_t>(SubDataOpType::OP_INSERT));
     }
-    
-    cursorOut.queryType = cursorIn.queryType;
-    cursorOut.cursor = cursorIn.cursor + static_cast<uint64_t>(dataOut.size());
-    
-    return dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT ? -E_SUBSCRIBE_QUERY_END : E_OK;
+
+    if (!result.cursorValues.empty()) {
+        // Use the last actually-read rowid of the main table as the session cursor (query progress)
+        result.sessionCursor = static_cast<uint64_t>(result.cursorValues[0].second);
+    } else if (!result.maxRowids.empty()) {
+        // Fallback to main table maxRowid when no data is read, indicates the session has covered the upper bound
+        result.sessionCursor = static_cast<uint64_t>(result.maxRowids[0].second);
+    }
+
+    if (result.dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL) {
+        return -E_SUBSCRIBE_QUERY_END;
+    }
+    return E_OK;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::ExtractAndRemoveRowid(const std::vector<std::string> &tableNames,
+    std::vector<VBucket> &dataOut, std::vector<std::pair<std::string, int64_t>> &cursorValues) const
+{
+    if (dataOut.empty()) {
+        return;
+    }
+
+    const VBucket &lastRow = dataOut.back();
+    for (const auto &tableName : tableNames) {
+        std::string rowidKey = DataDonationUtils::GetFieldName(tableName, DBConstant::SQLITE_INNER_ROWID);
+        auto it = lastRow.find(rowidKey);
+        if (it != lastRow.end()) {
+            if (it->second.index() == TYPE_INDEX<int64_t>) {
+                cursorValues.emplace_back(tableName, std::get<int64_t>(it->second));
+            } else {
+                cursorValues.emplace_back(tableName, -1);
+            }
+        } else {
+            cursorValues.emplace_back(tableName, -1);
+        }
+    }
+
+    for (auto &bucket : dataOut) {
+        for (const auto &tableName : tableNames) {
+            std::string rowidKey = DataDonationUtils::GetFieldName(tableName, DBConstant::SQLITE_INNER_ROWID);
+            bucket.erase(rowidKey);
+        }
+    }
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(DataDonationSchema &schema,
@@ -85,11 +134,11 @@ int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(DataDonationS
         std::unordered_set<std::string> matchedPks;
         for (auto& bucket : queryResult) {
             int64_t pkValue = 0;
-            (void)CloudStorageUtils::GetValueFromVBucket(it->second.pkColumn, bucket, pkValue);
-            matchedPks.insert(std::to_string(pkValue));
+            if (CloudStorageUtils::GetValueFromVBucket(it->second.pkColumn, bucket, pkValue) == E_OK) {
+                matchedPks.insert(std::to_string(pkValue));
+            }
 
             DdData dataRow(bucket);
-            // match cursor and opType from binlog result
             ret = DataDonationUtils::GetCursorByPkColumn(bucket, it->second, dataRow);
             if (ret != E_OK) {
                 LOGE("[QuerySubscribeOutput] Get cursor from binlog err: %d", ret);
@@ -98,8 +147,9 @@ int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(DataDonationS
             DataDonationUtils::FilterNonOutputKeys(dataRow, keyOut);
             dataOut.emplace_back(dataRow);
         }
-        SupplementUnmatchedDeletedRecords(it->second, matchedPks, dataOut);
+        SupplementUnmatchedDeletedRecords(it->second, matchedPks, keyOut, dataOut);
     }
+    FilterEmptyData(dataOut);
     return errCode;
 }
 
@@ -118,34 +168,101 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteTableQuery(const std::strin
 
 void SQLiteSingleVerRelationalStorageExecutor::SupplementUnmatchedDeletedRecords(
     const BinlogChangedData &changedData, const std::unordered_set<std::string> &matchedPks,
-    std::vector<DdData> &dataOut) const
+    std::vector<DataDonationSchema::DdKeyOut> keyOut, std::vector<DdData> &dataOut) const
 {
     for (const auto &dataField : changedData.changedData) {
         if (dataField.field.empty()) {
             continue;
         }
-        auto pkValueStr = dataField.field.begin()->first;
-        int64_t opType = std::get<int64_t>(dataField.field.begin()->second);
-        if (matchedPks.find(pkValueStr) == matchedPks.end() &&
-            opType == static_cast<int64_t>(SubDataOpType::OP_DELETE)) {
-            VBucket deletedBucket;
-            deletedBucket.insert_or_assign(DataDonationUtils::GetFieldName(changedData.tableName, changedData.pkColumn),
-                pkValueStr);
-            deletedBucket.insert_or_assign(CloudDbConstant::SUB_DATA_OP_TYPE, opType);
-            DdData ddData(deletedBucket);
-            ddData.opType = opType;
-            ddData.fileIdx = dataField.binlogCursor.first;
-            ddData.cursor = dataField.binlogCursor.second;
-            dataOut.push_back(ddData);
+        if (dataField.field.size() != dataField.opType.size() || dataField.field.size() != dataField.colType.size()) {
+            LOGE("[SupplementUnmatchedDeletedRecords] Invalid field size");
+            continue;
+        }
+        for (size_t i = 0; i < dataField.field.size(); i++) {
+            std::string pkValueStr = dataField.field[i];
+            int64_t opType = static_cast<int64_t>(dataField.opType[i]);
+            int colType = dataField.colType[i];
+            if (matchedPks.find(pkValueStr) == matchedPks.end() &&
+                opType == static_cast<int64_t>(SubDataOpType::OP_DELETE) &&
+                DataDonationUtils::IsTableInKeyOut(changedData.tableName, keyOut)) {
+                VBucket deletedBucket;
+                Type pkValue = DataDonationUtils::ConvertStrToType(pkValueStr, colType);
+                deletedBucket.insert_or_assign(DataDonationUtils::GetFieldName(
+                    changedData.tableName, changedData.pkColumn), pkValue);
+                FillAllKeyOutPks(changedData, keyOut, deletedBucket);
+                deletedBucket.insert_or_assign(CloudDbConstant::SUB_DATA_OP_TYPE, opType);
+                DdData ddData(deletedBucket);
+                ddData.opType = opType;
+                ddData.fileIdx = dataField.binlogCursor.first;
+                ddData.cursor = dataField.binlogCursor.second;
+                dataOut.push_back(ddData);
+            }
         }
     }
 }
 
+void SQLiteSingleVerRelationalStorageExecutor::FillAllKeyOutPks(const BinlogChangedData &changedData,
+    std::vector<DataDonationSchema::DdKeyOut> keyOut, VBucket &deletedBucket) const
+{
+    for (const auto &key : keyOut) {
+        if (changedData.tableName == key.item.table && changedData.pkColumn == key.item.field) {
+            continue;
+        }
+        deletedBucket.insert_or_assign(DataDonationUtils::GetFieldName(
+            key.item.table, key.item.field), Nil{});
+    }
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetQuerySubscribeSql(const DataDonationSchema::DdRelationsPath &path,
-    int64_t cursor, std::string &sql) const
+    const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+    const std::vector<std::pair<std::string, int64_t>> &maxRowids, std::string &sql) const
 {
     DataDonationSqlGenerator generator;
-    return generator.GenerateQuerySql(path, cursor, sql);
+    return generator.GenerateQuerySql(path, cursorValues, maxRowids, sql);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetMaxRowid(const std::string &tableName, int64_t &maxRowid)
+{
+    std::string sql = "SELECT MAX(rowid) FROM " + tableName;
+    SqlCondition condition;
+    condition.sql = sql;
+    condition.readOnly = true;
+    std::vector<VBucket> result;
+    int errCode = ExecuteSql(condition, result);
+    if (errCode != E_OK) {
+        LOGE("[GetMaxRowid] ExecuteSql failed: %d", errCode);
+        return errCode;
+    }
+    if (result.empty()) {
+        maxRowid = 0;
+        return E_OK;
+    }
+    auto it = result[0].begin();
+    if (it == result[0].end()) {
+        maxRowid = 0;
+        return E_OK;
+    }
+    if (it->second.index() == TYPE_INDEX<Nil>) {
+        maxRowid = 0;
+        return E_OK;
+    }
+    if (it->second.index() == TYPE_INDEX<int64_t>) {
+        maxRowid = std::get<int64_t>(it->second);
+    } else {
+        maxRowid = 0;
+    }
+    return E_OK;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::FilterEmptyData(std::vector<DdData> &dataRows) const
+{
+    for (auto it = dataRows.begin(); it != dataRows.end();) {
+        if (DataDonationUtils::IsDonationDataEmpty(it->data)) {
+            it = dataRows.erase(it);
+        } else {
+            it++;
+        }
+    }
 }
 } // namespace DistributedDB
 #endif

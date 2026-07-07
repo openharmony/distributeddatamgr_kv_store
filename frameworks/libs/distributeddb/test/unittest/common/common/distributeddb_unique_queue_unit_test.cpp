@@ -65,7 +65,8 @@ void DistributedDBUniqueQueue::PushBatchTest(size_t num, int ret)
     size_t loop = num / batchNum;
     size_t last = num % batchNum;
     int errCode = E_OK;
-    int data[batchNum]{};
+    std::vector<int> data;
+    data.reserve(batchNum);
     for (size_t i = 0; i < loop; i++) {
         for (size_t j = 0; j < batchNum; j++) {
             data[j] = (j + batchNum * i);
@@ -82,8 +83,7 @@ void DistributedDBUniqueQueue::PushBatchTest(size_t num, int ret)
 void DistributedDBUniqueQueue::ReadBatchTest(size_t readStart, size_t maxNum, bool success)
 {
     static const int batchNum = BATCH_NUM;
-    std::vector<int> data;
-    data.reserve(batchNum);
+    int data[batchNum]{};
     (void)queue.TryInitCursor(readStart);
     size_t readNum = queue.ReadBatch(data, maxNum);
     if (success) {
@@ -154,7 +154,7 @@ HWTEST_F(DistributedDBUniqueQueue, DfxTest_PushFull_001, TestSize.Level0)
 
 HWTEST_F(DistributedDBUniqueQueue, DfxTest_PushBatchOutRange_002, TestSize.Level0)
 {
-    PushBatchTest(queue.MAX_CAP, E_MAX_LIMITS);
+    PushBatchTest(queue.MAX_CAP, -E_MAX_LIMITS);
     ASSERT_EQ(queue.IsFull(), false);
 }
 

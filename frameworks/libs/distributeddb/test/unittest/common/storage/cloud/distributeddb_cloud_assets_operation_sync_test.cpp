@@ -859,8 +859,8 @@ void DistributedDBCloudAssetsOperationSyncTest::InsertCloudAssetData(const std::
     std::vector<VBucket> extend;
     Timestamp now = DistributedDB::TimeHelper::GetSysCurrentTime();
     VBucket data;
-    data.insert_or_assign("id", "0");
-    data.insert_or_assign("name", "CloudTest0");
+    data.insert_or_assign("id", std::string("0"));
+    data.insert_or_assign("name", std::string("CloudTest0"));
     Asset asset = g_localAsset;
     data.insert_or_assign("asset", asset);
     Assets assets;
@@ -1866,7 +1866,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithLogFlag001, TestSize
 
 /**
  * @tc.name: MergeDownloadAssetTest001
- * @tc.desc: Test MergeDownloadAsset func.get
+ * @tc.desc: Test MergeDownloadAsset func.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: tiansimiao

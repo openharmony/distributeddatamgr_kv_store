@@ -16,6 +16,7 @@
 #ifndef DISTRIBUTEDDB_COMMON_H
 #define DISTRIBUTEDDB_COMMON_H
 
+#include <charconv>
 #include <list>
 #include <string>
 
@@ -61,6 +62,8 @@ public:
     static std::string TransferHashString(const std::string &devName);
 
     static int CalcValueHash(const std::vector<uint8_t> &Value, std::vector<uint8_t> &hashValue);
+
+    static int GetHashString(const std::string &str, std::string &dst);
 
     static int CreateStoreDirectory(const std::string &directory, const std::string &identifierName,
         const std::string &subDir, bool isCreate);
@@ -166,7 +169,12 @@ public:
 
     static std::string GetCursorKey(const std::string &tableName);
 
-    static bool ConvertToUInt64(const std::string &str, uint64_t &value);
+    template<typename T>
+    static bool ConvertToUInt64(const std::string &str, T &value)
+    {
+        auto [ptr, errCode] = std::from_chars(str.data(), str.data() + str.size(), value);
+        return errCode == std::errc{} && ptr == str.data() + str.size();
+    }
 
     static void RemoveDuplicateAssetsData(std::vector<Asset> &assets);
 

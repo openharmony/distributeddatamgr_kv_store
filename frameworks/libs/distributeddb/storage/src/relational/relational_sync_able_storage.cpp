@@ -566,7 +566,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     if (handle == nullptr) {
         return errCode;
     }
-    handle->SetDeviceSyncLogicDelete(IsCurrentDeviceSyncLogicDelete());
+    handle->SetDeviceSyncLogicDelete(deviceSyncLogicDelete_);
 
     // To prevent certain abnormal scenarios from deleting the table,
     // check if the table exists before each synchronization.
@@ -1245,7 +1245,6 @@ int RelationalSyncAbleStorage::GetSchemaFromDB(RelationalSchemaObject &schema)
         LOGE("Parse schema string from DB failed.");
         return errCode;
     }
-    storageEngine_->SetSchema(schema);
     return errCode;
 }
 

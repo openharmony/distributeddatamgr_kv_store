@@ -244,7 +244,6 @@ private:
     int SetMaxValueSize(uint32_t maxValueSize);
     int ForceCheckPoint() const;
     int PragmaRemoveLocalDataByKeyPattern(void *parameter);
-
     int PragmaSetHighPerformanceReadMode(void *parameter);
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;
     int CalcHashDevID(PragmaDeviceIdentifier &pragmaDev);

@@ -1888,7 +1888,7 @@ int CloudSyncer::PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, st
             param.info.downLoadInfo.failCount += param.downloadData.data.size();
             LOGE("[CloudSyncer] Cannot save the data to database with error code: %d.", ret);
         }
-        if (GetAssetConflictPolicy() != AssetConflictPolicy::CONFLICT_POLICY_DEFAULT) {
+        if (!IsCurrentPushOnlyTask() && GetAssetConflictPolicy() != AssetConflictPolicy::CONFLICT_POLICY_DEFAULT) {
             ret = UpdateAssetStatus(param.tableName, param.downloadData.data);
         }
     }

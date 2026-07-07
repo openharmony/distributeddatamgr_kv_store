@@ -515,7 +515,14 @@ int CloudSyncer::TagDownloadAssetsWithPolicy(const Key &hashKey, size_t idx, Syn
     const DataInfo &dataInfo, VBucket &localAssetInfo)
 {
     AssetConflictPolicy policy = GetAssetConflictPolicy();
-    AssetRecordInfo info = {IsCurrentSkipDownloadAssets(), idx, hashKey, dataInfo, GetCurrentAssetFields()};
+    bool isAssetLocked = param.downloadData.opType[idx] == OpType::LOCKED_NOT_HANDLE;
+    // Whether to process cloud record
+    if ((policy != AssetConflictPolicy::CONFLICT_POLICY_DEFAULT && IsCurrentPushOnlyTask()) || isAssetLocked) {
+        CloudSyncTagAssets::MergeAssetWithId(param.downloadData.data[idx], localAssetInfo);
+        return E_OK;
+    }
+    AssetRecordInfo info = {IsCurrentSkipDownloadAssets(), idx, hashKey, dataInfo,
+        GetCurrentAssetFields()};
     switch (policy) {
         case AssetConflictPolicy::CONFLICT_POLICY_TIME_FIRST:
             return CloudSyncTagAssets::TagDownloadAssetsTimeFirst(info, param, localAssetInfo);
@@ -533,8 +540,11 @@ std::vector<Field> CloudSyncer::GetCurrentAssetFields()
     return currentContext_.assetFields[currentContext_.tableName];
 }
 
-AssetConflictPolicy CloudSyncer::GetAssetConflictPolicy()
+AssetConflictPolicy CloudSyncer::GetAssetConflictPolicy(bool isCheckTask)
 {
+    if (isCheckTask && !IsCurrentMergeDataTask()) {
+        return AssetConflictPolicy::CONFLICT_POLICY_DEFAULT;
+    }
     return storageProxy_ == nullptr ? AssetConflictPolicy::CONFLICT_POLICY_DEFAULT :
         storageProxy_->GetAssetConflictPolicy();
 }
@@ -579,6 +589,26 @@ void CloudSyncer::SetTaskErrorInfo(CloudTaskInfo &taskInfo, int errCode, const s
     if (!errorMessage.empty() && taskInfo.errorMessage.empty()) {
         taskInfo.errorMessage = errorMessage;
     }
+}
+
+bool CloudSyncer::IsCurrentPushOnlyTask()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    auto iter = cloudTaskInfos_.find(currentContext_.currentTaskId);
+    if (iter == cloudTaskInfos_.end()) {
+        return false;
+    }
+    return iter->second.mode == SYNC_MODE_CLOUD_FORCE_PUSH;
+}
+
+bool CloudSyncer::IsCurrentMergeDataTask()
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    auto iter = cloudTaskInfos_.find(currentContext_.currentTaskId);
+    if (iter == cloudTaskInfos_.end()) {
+        return false;
+    }
+    return iter->second.mode == SYNC_MODE_CLOUD_MERGE;
 }
 
 int CloudSyncer::ResetCloudWaterMarkIfNeed(bool isFirstDownload)

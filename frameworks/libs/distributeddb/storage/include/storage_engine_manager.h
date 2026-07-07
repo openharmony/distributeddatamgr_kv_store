@@ -16,11 +16,14 @@
 #ifndef STORAGE_ENGINE_MANAGER_H
 #define STORAGE_ENGINE_MANAGER_H
 
-#include <string>
+#include <atomic>
+#include <condition_variable>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
-#include <condition_variable>
+#include <shared_mutex>
+#include <string>
 
 #include "storage_engine.h"
 
@@ -36,15 +39,16 @@ public:
     static int ExecuteMigration(StorageEngine *storageEngine);
 
     static void DeleteInstance();
+    static bool IsInstanceDestroyed();
+    static void SetInstanceDestroyed(bool isDestroyed);
 
     DISABLE_COPY_ASSIGN_MOVE(StorageEngineManager);
 
-private:
     StorageEngineManager();
     ~StorageEngineManager();
-
+private:
     // Get a StorageEngineManager instance, Singleton mode
-    static StorageEngineManager *GetInstance();
+    static std::shared_ptr<StorageEngineManager> GetInstance();
 
     int RegisterLockStatusListener();
 
@@ -68,8 +72,9 @@ private:
 
     void ExitGetEngineProcess(const std::string &identifier);
 
-    static std::mutex instanceLock_;
-    static std::atomic<StorageEngineManager *> instance_;
+    static std::shared_mutex instanceMutex_;
+    static std::shared_ptr<StorageEngineManager> instance_;
+    static std::atomic<bool> instanceDestroyed_;
     static volatile bool isRegLockStatusListener_;
 
     static std::mutex storageEnginesLock_;

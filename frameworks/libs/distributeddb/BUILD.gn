@@ -246,9 +246,7 @@ config("distributeddb_client_config") {
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]
   }
-  if (is_ohos) {
-    defines += [ "RDB_CLIENT" ]
-  }
+  defines += [ "RDB_CLIENT" ]
   if (kv_store_cloud) {
     defines += [ "USE_DISTRIBUTEDDB_CLOUD" ]
   }

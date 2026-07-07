@@ -64,14 +64,14 @@ int DataDonationSchema::ExtractJsonObj(const JsonObject &inJsonObject, const std
     auto fieldPath = FieldPath {field};
     int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     if (fieldType != FieldType::INTERNAL_FIELD_OBJECT) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     errCode = inJsonObject.GetObjectByFieldPath(fieldPath, out);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     return E_OK;
 }
@@ -83,14 +83,14 @@ int DataDonationSchema::ExtractJsonObjArray(const JsonObject &inJsonObject, cons
     auto fieldPath = FieldPath {field};
     int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     if (fieldType != FieldType::LEAF_FIELD_ARRAY) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     errCode = inJsonObject.GetObjectArrayByFieldPath(fieldPath, out);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     return E_OK;
 }
@@ -135,22 +135,22 @@ int DataDonationSchema::DecodePrimaryKeyMapping(const JsonObject &mapping, DdKey
     FieldValue primaryKey;
     int errCode = mapping.GetFieldValueByFieldPath(FieldPath {"primaryKey"}, primaryKey);
     if (errCode != E_OK || !primaryKey.boolValue) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     JsonObject value;
     errCode = ExtractJsonObj(mapping, "value", value);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     FieldValue tableName;
     errCode = value.GetFieldValueByFieldPath(FieldPath {"tableName"}, tableName);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     FieldValue columnName;
     errCode = value.GetFieldValueByFieldPath(FieldPath {"columnName"}, columnName);
     if (errCode != E_OK) {
-        return -E_SCHEMA_PARSE_FAIL;
+        return -E_INVALID_ARGS;
     }
     keyOut.item = DdField {tableName.stringValue, columnName.stringValue};
     DecodeWhereConditions(mapping, keyOut);
@@ -256,6 +256,24 @@ void DataDonationSchema::DecodeWheres4KeyOut(const std::vector<JsonObject> &wher
     }
 }
 
+int DataDonationSchema::DecodePrimaryKeyFromField(const std::string &tableName, const JsonObject &field)
+{
+    FieldValue primaryKey;
+    int errCode = field.GetFieldValueByFieldPath(FieldPath {"primaryKey"}, primaryKey);
+    if (errCode != E_OK || !primaryKey.boolValue) {
+        return -E_INVALID_ARGS;
+    }
+    FieldValue columnName;
+    errCode = field.GetFieldValueByFieldPath(FieldPath {"columnName"}, columnName);
+    if (errCode != E_OK) {
+        LOGE("[DecodePrimaryKeyFromField] table %s parse primaryKey failed errcode %d",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
+        return -E_INVALID_ARGS;
+    }
+    primaryKeys.insert({tableName, columnName.stringValue});
+    return E_OK;
+}
+
 int DataDonationSchema::DecodeForeignKeyFromField(const std::string &tableName, const JsonObject &field)
 {
     std::vector<JsonObject> foreignKeyArray;
@@ -316,6 +334,7 @@ int DataDonationSchema::DecodeForeignKeys(const JsonObject &src)
             }
             for (const auto &field : fields) {
                 DecodeForeignKeyFromField(localTableValue.stringValue, field);
+                DecodePrimaryKeyFromField(localTableValue.stringValue, field);
             }
         }
     }
@@ -405,16 +424,22 @@ int DataDonationSchema::DecodeFunction4Triggers(const JsonObject &mapping, const
 
 int DataDonationSchema::DecodeOthers4Triggers(const JsonObject &mapping)
 {
-    JsonObject value;
-    int errCode = ExtractJsonObj(mapping, "value", value);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     DdCondition condition;
     DecodeCondition4Triggers(mapping, condition);
-    MergeFields4Triggers(value, condition);
-
-    return E_OK;
+    JsonObject value;
+    int errCode = ExtractJsonObj(mapping, "value", value);
+    if (errCode == E_OK) {
+        MergeFields4Triggers(value, condition);
+        return E_OK;
+    }
+    std::vector<JsonObject> values;
+    errCode = ExtractJsonObjArray(mapping, "values", values);
+    if (errCode == E_OK) {
+        for (const auto &eachValue : values) {
+            MergeFields4Triggers(eachValue, condition);
+        }
+    }
+    return errCode;
 }
 
 int DataDonationSchema::DecodeTriggers(const JsonObject &src)
@@ -639,6 +664,16 @@ DataDonationSchema::DdRelationsPath& DataDonationSchema::GetRelationPath(const s
 
     static DdRelationsPath emptyPath;
     return emptyPath;
+}
+
+std::string DataDonationSchema::GetPrimaryKey(const std::string &table) const
+{
+    auto it = primaryKeys.find(table);
+    if (it != primaryKeys.end()) {
+        return it->second;
+    }
+
+    return "";
 }
 
 DataDonationSchema::DdRelationsPath& DataDonationSchema::GetRelationPath()

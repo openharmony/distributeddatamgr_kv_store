@@ -53,8 +53,9 @@ void DistributedDBKVCompressTest::PrepareEnv(bool isNeedCompressOnSync)
 
 void DistributedDBKVCompressTest::TriggerPutAndSync()
 {
+    static std::unique_ptr<ZlibCompression> zlibComp;
     if (DataCompression::GetInstance(CompressAlgorithm::ZLIB) == nullptr) {
-        new ZlibCompression();
+        zlibComp.reset(new ZlibCompression());
     }
     auto storeInfo1 = GetStoreInfo1();
     auto storeInfo2 = GetStoreInfo2();

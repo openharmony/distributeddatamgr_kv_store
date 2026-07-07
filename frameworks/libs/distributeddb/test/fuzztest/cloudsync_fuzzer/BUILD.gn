@@ -69,7 +69,7 @@ ohos_fuzztest("CloudsyncFuzzTest") {
 
   ldflags = [ "--coverage" ]
 
-  cflags_cc = [ "--coverage" ]
+  cflags_cc = [ "--coverage", "-Werror=vla" ]
 
   fuzz_config_file = "../cloudsync_fuzzer"
 

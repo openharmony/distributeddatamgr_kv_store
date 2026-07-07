@@ -90,59 +90,6 @@ const std::string KNOWLEDGE_TYPE = "knowledge";
 const std::string SYNC_TABLE_TYPE = "sync_table_type_";
 const std::string KNOWLEDGE_CURSOR = "knowledge_cursor_";
 const std::string COMPRESS_VFS = "compressvfs";
-class ValueHashCalc {
-public:
-    ValueHashCalc() {};
-    ~ValueHashCalc()
-    {
-        delete context_;
-        context_ = nullptr;
-    }
-
-    int Initialize()
-    {
-        context_ = new (std::nothrow) SHA256_CTX;
-        if (context_ == nullptr) {
-            return -E_ERROR;
-        }
-
-        int errCode = SHA256_Init(context_);
-        if (errCode == 0) {
-            return -E_ERROR;
-        }
-        return E_OK;
-    }
-
-    int Update(const std::vector<uint8_t> &value)
-    {
-        if (context_ == nullptr) {
-            return -E_ERROR;
-        }
-        int errCode = SHA256_Update(context_, value.data(), value.size());
-        if (errCode == 0) {
-            return -E_ERROR;
-        }
-        return E_OK;
-    }
-
-    int GetResult(std::vector<uint8_t> &value)
-    {
-        if (context_ == nullptr) {
-            return -E_ERROR;
-        }
-
-        value.resize(SHA256_DIGEST_LENGTH);
-        int errCode = SHA256_Final(value.data(), context_);
-        if (errCode == 0) {
-            return -E_ERROR;
-        }
-
-        return E_OK;
-    }
-
-private:
-    SHA256_CTX *context_ = nullptr;
-};
 
 using Timestamp = uint64_t;
 using TimeOffset = int64_t;
@@ -444,9 +391,6 @@ std::mutex g_registerSqliteHookMutex;
 
 std::mutex g_createTempTriggerMutex;
 
-std::mutex g_clientMatrixInfoMutex;
-std::map<std::string, MatrixFileInfo> g_clientMatrixInfoMap;
-
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -454,27 +398,6 @@ int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *u
     }
     return sqlite3_create_function_v2(db, funcName.c_str(), nArg, SQLITE_UTF8 | SQLITE_DETERMINISTIC, uData,
         func.xFunc, func.xStep, func.xFinal, func.xDestroy);
-}
-
-int CalcValueHash(const std::vector<uint8_t> &value, std::vector<uint8_t> &hashValue)
-{
-    ValueHashCalc hashCalc;
-    int errCode = hashCalc.Initialize();
-    if (errCode != E_OK) {
-        return -E_ERROR;
-    }
-
-    errCode = hashCalc.Update(value);
-    if (errCode != E_OK) {
-        return -E_ERROR;
-    }
-
-    errCode = hashCalc.GetResult(hashValue);
-    if (errCode != E_OK) {
-        return -E_ERROR;
-    }
-
-    return E_OK;
 }
 
 void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
@@ -497,7 +420,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
         RelationalStoreClientUtils::StringToUpper(colStr);
         std::vector<uint8_t> value;
         value.assign(colStr.begin(), colStr.end());
-        errCode = CalcValueHash(value, hashValue);
+        errCode = DBCommon::CalcValueHash(value, hashValue);
     } else if (collateType == DistributedDB::CollateType::COLLATE_RTRIM) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
         if (colChar == nullptr) {
@@ -508,7 +431,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
         DBCommon::RTrim(colStr);
         std::vector<uint8_t> value;
         value.assign(colStr.begin(), colStr.end());
-        errCode = CalcValueHash(value, hashValue);
+        errCode = DBCommon::CalcValueHash(value, hashValue);
     } else {
             auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
             if (keyBlob == nullptr) {
@@ -518,7 +441,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
             int blobLen = sqlite3_value_bytes(argv[0]);
             std::vector<uint8_t> value(keyBlob, keyBlob + blobLen);
-            errCode = CalcValueHash(value, hashValue);
+            errCode = DBCommon::CalcValueHash(value, hashValue);
     }
 
     if (errCode != E_OK) {
@@ -674,20 +597,6 @@ void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelperManager::GetInstance()->GetLastTime(identity));
 }
 
-int GetHashString(const std::string &str, std::string &dst)
-{
-    std::vector<uint8_t> strVec;
-    strVec.assign(str.begin(), str.end());
-    std::vector<uint8_t> hashVec;
-    int errCode = CalcValueHash(strVec, hashVec);
-    if (errCode != E_OK) {
-        LOGE("calc hash value fail, %d", errCode);
-        return errCode;
-    }
-    dst.assign(hashVec.begin(), hashVec.end());
-    return E_OK;
-}
-
 static bool GetDbFileName(sqlite3 *db, std::string &fileName)
 {
     if (db == nullptr) {
@@ -709,7 +618,7 @@ static bool GetDbHashString(sqlite3 *db, std::string &hashFileName)
         LOGE("Get db fileName failed.");
         return false;
     }
-    return GetHashString(fileName, hashFileName) == E_OK;
+    return DBCommon::GetHashString(fileName, hashFileName) == E_OK;
 }
 
 void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
@@ -963,13 +872,9 @@ void ClientObserverCallback(const std::string &hashFileName)
     }
 
     MatrixFileInfo fileInfo;
-    {
-        std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
-        auto it = g_clientMatrixInfoMap.find(hashFileName);
-        if (it == g_clientMatrixInfoMap.end()) {
-            return;
-        }
-        fileInfo = it->second;
+    int errCode = DataDonationUtils::FindMatrixFileInfo(hashFileName, fileInfo);
+    if (errCode != E_OK) {
+        return;
     }
 
     std::vector<std::string> changedTables;
@@ -980,7 +885,7 @@ void ClientObserverCallback(const std::string &hashFileName)
     }
 
     MatrixFileUpdateConfig config = {.isFullSync = false};
-    int errCode = DataDonationUtils::UpdateMatrixFile(fileInfo, changedTables, config);
+    errCode = DataDonationUtils::UpdateMatrixFile(fileInfo, changedTables, config);
     if (errCode != E_OK) {
         LOGE("[ClientObserverCallback] Update matrix file err: %d", errCode);
     }
@@ -989,21 +894,15 @@ void ClientObserverCallback(const std::string &hashFileName)
 void BinlogDataChangedObserver(const char *dbPath, char *tableName)
 {
     std::string hashFileName;
-    int errCode = GetHashString(dbPath, hashFileName);
+    int errCode = DBCommon::GetHashString(dbPath, hashFileName);
     if (errCode != DistributedDB::E_OK) {
+        LOGE("[BinlogDataChangedObserver] GetHashString err: %d", errCode);
         return;
     }
 
     MatrixFileInfo fileInfo;
-    {
-        std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
-        auto it = g_clientMatrixInfoMap.find(hashFileName);
-        if (it != g_clientMatrixInfoMap.end()) {
-            fileInfo = it->second;
-        }
-    }
-
-    if (fileInfo.matrixFilePath.empty()) {
+    errCode = DataDonationUtils::FindMatrixFileInfo(hashFileName, fileInfo);
+    if (errCode != E_OK) {
         ChangeProperties properties = {
             .isTrackedDataChange = true,
             .isP2pSyncDataChange = false,
@@ -1016,7 +915,8 @@ void BinlogDataChangedObserver(const char *dbPath, char *tableName)
             std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
             g_clientChangedDataMap[hashFileName] = data;
         }
-        return ClientObserverCallback(hashFileName);
+        ClientObserverCallback(hashFileName);
+        return;
     }
 
     std::vector<std::string> changedData = {std::string(tableName)};
@@ -1062,7 +962,7 @@ int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
         return 0;
     }
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != E_OK) {
         return 0;
     }
@@ -1079,7 +979,7 @@ void RollbackHookCallback(void* data)
         return;
     }
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != E_OK) {
         return;
     }
@@ -1132,7 +1032,9 @@ int RegisterBinlogDataChangeObserver(sqlite3 *db)
 
 int RegisterBinlogSchemaParseObserver(sqlite3 *db)
 {
-    return sqlite3_set_json_parse_callback_binlog(db, &RelationalStoreClientUtils::BinlogSchemaGet);
+    sqlite3_set_json_parse_callback_binlog(db, &DataDonationUtils::BinlogSchemaGet);
+    sqlite3_free_json_parse_callback_binlog(db, &DataDonationUtils::FreeMonitorConfig);
+    return SQLITE_OK;
 }
 
 int RegisterDataChangeObserver(sqlite3 *db)
@@ -1863,7 +1765,7 @@ DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientO
     }
 
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::E_OK) {
         return DistributedDB::DB_ERROR;
     }
@@ -1881,7 +1783,7 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
     }
 
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::E_OK) {
         return DistributedDB::DB_ERROR;
     }
@@ -1917,7 +1819,7 @@ DB_API DistributedDB::DBStatus RegisterStoreObserver(sqlite3 *db, const std::sha
     }
 
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::E_OK) {
         LOGE("[RegisterStoreObserver] Get db filename hash string failed.");
         return DistributedDB::DB_ERROR;
@@ -1955,7 +1857,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db, const std::s
     }
 
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::E_OK) {
         LOGE("[UnregisterStoreObserver] Get db filename hash string failed.");
         return DistributedDB::DB_ERROR;
@@ -1982,7 +1884,7 @@ DB_API DistributedDB::DBStatus UnregisterStoreObserver(sqlite3 *db)
     }
 
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::E_OK) {
         LOGE("[UnregisterAllStoreObserver] Get db filename hash string failed.");
         return DistributedDB::DB_ERROR;
@@ -2108,45 +2010,12 @@ DistributedDB::DBStatus UpdateDataLog(sqlite3 *db, const DistributedDB::UpdateOp
 
 DistributedDB::DBStatus SetTrackerMatrixInfo(sqlite3 *db, const DistributedDB::MatrixFileInfo &matrixFileInfo)
 {
-    if (matrixFileInfo.matrixFilePath.empty()) {
-        LOGE("[SetTrackerMatrixInfo] Matrix file path empty");
-        return DistributedDB::INVALID_ARGS;
-    }
-
-    std::string fileName;
-    if (!GetDbFileName(db, fileName)) {
-        LOGE("[SetTrackerMatrixInfo] Get db filename failed.");
-        return DistributedDB::INVALID_ARGS;
-    }
-    std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::E_OK) {
-        LOGE("[SetTrackerMatrixInfo] GetHashString err: %d", errCode);
-        return DistributedDB::DBStatus::INVALID_ARGS;
-    }
-
-    std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
-    g_clientMatrixInfoMap[hashFileName] = matrixFileInfo;
-    return DistributedDB::OK;
+    return TransferDBErrno(DataDonationUtils::SetTrackerMatrixInfo(db, matrixFileInfo));
 }
 
 DistributedDB::DBStatus UnsetTrackerMatrixInfo(sqlite3 *db)
 {
-    std::string fileName;
-    if (!GetDbFileName(db, fileName)) {
-        LOGE("[UnsetTrackerMatrixInfo] Get db filename failed.");
-        return DistributedDB::INVALID_ARGS;
-    }
-    std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
-    if (errCode != DistributedDB::E_OK) {
-        LOGE("[UnsetTrackerMatrixInfo] GetHashString err: %d", errCode);
-        return DistributedDB::DBStatus::INVALID_ARGS;
-    }
-
-    std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
-    g_clientMatrixInfoMap.erase(hashFileName);
-    return DistributedDB::OK;
+    return TransferDBErrno(DataDonationUtils::UnsetTrackerMatrixInfo(db));
 }
 
 DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<std::string> &changedData,
@@ -2158,20 +2027,16 @@ DistributedDB::DBStatus UpdateMatrixFile(sqlite3 *db, const std::vector<std::str
         return DistributedDB::INVALID_ARGS;
     }
     std::string hashFileName;
-    int errCode = GetHashString(fileName, hashFileName);
+    int errCode = DBCommon::GetHashString(fileName, hashFileName);
     if (errCode != DistributedDB::E_OK) {
         LOGE("[UpdateMatrixFile] GetHashString err: %d", errCode);
         return DistributedDB::DBStatus::INVALID_ARGS;
     }
     MatrixFileInfo fileInfo;
-    {
-        std::lock_guard<std::mutex> autoLock(g_clientMatrixInfoMutex);
-        auto it = g_clientMatrixInfoMap.find(hashFileName);
-        if (it == g_clientMatrixInfoMap.end()) {
-            LOGE("[UpdateMatrixFile] Matrix file not registered");
-            return DistributedDB::DBStatus::NOT_FOUND;
-        }
-        fileInfo = it->second;
+    errCode = DataDonationUtils::FindMatrixFileInfo(hashFileName, fileInfo);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("[UpdateMatrixFile] Find matrix file info err: %d", errCode);
+        return TransferDBErrno(errCode);
     }
 
     errCode = DataDonationUtils::UpdateMatrixFile(fileInfo, changedData, config);

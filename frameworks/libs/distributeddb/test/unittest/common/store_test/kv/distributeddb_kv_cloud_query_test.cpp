@@ -187,5 +187,29 @@ HWTEST_F(DistributedDBKvCloudQueryTest, PrefixKey004, TestSize.Level0)
     syncOption.queryMode = QueryMode::UPLOAD_ONLY;
     EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo1, DEVICE_A, syncOption, NOT_SUPPORT, OK));
 }
+
+/**
+ * @tc.name: InvalidQuery001
+ * @tc.desc: Test invalid query operation.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBKvCloudQueryTest, InvalidQuery001, TestSize.Level0)
+{
+    auto storeInfo1 = GetStoreInfo1();
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    CloudSyncOption syncOption;
+    syncOption.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    syncOption.users.push_back(DistributedDBUnitTest::USER_ID);
+    syncOption.devices.emplace_back("cloud");
+    syncOption.query = Query::Select().FromTable({"table"});
+    syncOption.queryMode = QueryMode::UPLOAD_ONLY;
+    EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo1, DEVICE_A, syncOption, INVALID_ARGS, OK));
+    syncOption.query = Query::Select().From("table");
+    EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo1, DEVICE_A, syncOption, INVALID_ARGS, OK));
+    syncOption.query = Query::Select().From("table").FromTable({"table"});
+    EXPECT_NO_FATAL_FAILURE(BlockCloudSync(storeInfo1, DEVICE_A, syncOption, INVALID_ARGS, OK));
+}
 }
 #endif

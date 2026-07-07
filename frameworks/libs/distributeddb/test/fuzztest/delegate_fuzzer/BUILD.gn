@@ -69,7 +69,7 @@ ohos_fuzztest("DelegateFuzzTest") {
 
   ldflags = [ "--coverage" ]
 
-  cflags_cc = [ "--coverage" ]
+  cflags_cc = [ "--coverage", "-Werror=vla" ]
 
   fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/delegate_fuzzer"
   sources = distributeddb_src

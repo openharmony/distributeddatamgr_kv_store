@@ -131,7 +131,7 @@ bool CloudSyncStrategy::IsSameRecord(const LogInfo &cloudInfo, const LogInfo &lo
 
 bool CloudSyncStrategy::IsNeedDownloadByMode(QueryMode queryMode)
 {
-    //check is UPLOAD_AND_DOWNLOAD to download with query
+    // check is UPLOAD_AND_DOWNLOAD to download with query
     return queryMode == QueryMode::UPLOAD_AND_DOWNLOAD;
 }
 }
