@@ -249,6 +249,10 @@ bool FieldInfo::IsNotNullMismatchAllowed(const FieldInfo &inField,
     // notNull mismatch is allowed by equal constraint, but notNull side must have default value
     bool notNullSideHasDefault = (isNotNull_ && hasDefaultValue_) ||
         (inField.IsNotNull() && inField.HasDefaultValue());
+    if (notNullSideHasDefault) {
+        LOGW("Allow sync for field [%s], but the NOT NULL constraints are not consistent",
+            DBCommon::StringMiddleMaskingWithLen(fieldName_).c_str());
+    }
     return notNullSideHasDefault;
 }
 
