@@ -119,7 +119,7 @@ void KvStoreServiceDeathNotifier::RegisterClientDeathObserver()
         ZLOGW("New KvStoreClientDeathObserver failed");
         return;
     }
-    kvDataServiceProxy_->RegisterClientDeathObserver(GetAppId(), clientDeathObserverPtr_);
+    kvDataServiceProxy_->RegisterClientDeathObserver(GetAppId(), clientDeathObserverPtr_, "kv_store");
 }
 
 void KvStoreServiceDeathNotifier::AddServiceDeathWatcher(std::shared_ptr<KvStoreDeathRecipient> watcher)
