@@ -30,25 +30,28 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
-
+string g_storePath;
+const string STORE_ID = STORE_ID_1;
+const string DB_SUFFIX = ".db";
 class DataDonationSqlGeneratorTest : public RDBGeneralUt {
 public:
     void SetUp() override;
     void TearDown() override;
     static UtDateBaseSchemaInfo GetTestSchema();
-    void PrepareTestData(const StoreInfo &info, int64_t count);
+    void PrepareTestData(sqlite3 *db, int64_t count);
     static UtDateBaseSchemaInfo GetJsonFileSchema();
-    void PrepareJsonFileData(const StoreInfo &info, int64_t count);
-    void PrepareMutiRelationData(const StoreInfo &info, int64_t count);
-    void InsertDataWithoutMainTable(const StoreInfo &info, int64_t count);
-    void UpdateJsonFileData(const StoreInfo &info, int64_t begin, int64_t count);
-    void DeleteJsonFileData(const StoreInfo &info, int64_t begin, int64_t count);
-    void DeleteFromNonKeyoutTable(const StoreInfo &info, int64_t begin, int64_t count);
+    void PrepareJsonFileData(sqlite3 *db, int64_t count);
+    void PrepareMutiRelationData(sqlite3 *db, int64_t count);
+    void InsertDataWithoutMainTable(sqlite3 *db, int64_t count);
+    void UpdateJsonFileData(sqlite3 *db, int64_t begin, int64_t count);
+    void DeleteJsonFileData(sqlite3 *db, int64_t begin, int64_t count);
+    void DeleteFromNonKeyoutTable(sqlite3 *db, int64_t begin, int64_t count);
     std::string InitMatrixFile();
 
 protected:
     DataDonationSqlGenerator generator_;
 
+    sqlite3 *db = nullptr;
     static constexpr size_t MAX_SLOT_NUM = 100;
     static constexpr size_t MATRIX_FILE_SLOT_SIZE = sizeof(uint64_t);
     static constexpr size_t MATRIX_FILE_SIZE = MAX_SLOT_NUM * MATRIX_FILE_SLOT_SIZE;
@@ -57,6 +60,10 @@ protected:
 void DataDonationSqlGeneratorTest::SetUp()
 {
     RDBGeneralUt::SetUp();
+    g_storePath = BasicUnitTest::GetTestDir() + "/" + STORE_ID + DB_SUFFIX;
+    LOGD("Test db is %s", g_storePath.c_str());
+    db = RelationalTestUtils::CreateDataBase(g_storePath);
+    ASSERT_NE(db, nullptr);
 }
 
 void DataDonationSqlGeneratorTest::TearDown()
@@ -183,84 +190,84 @@ UtDateBaseSchemaInfo DataDonationSqlGeneratorTest::GetJsonFileSchema()
     return info;
 }
 
-void DataDonationSqlGeneratorTest::PrepareTestData(const StoreInfo &info, int64_t count)
+void DataDonationSqlGeneratorTest::PrepareTestData(sqlite3 *db, int64_t count)
 {
     for (int64_t i = 0; i < count; ++i) {
         std::string sqlA = "INSERT INTO A VALUES(" + std::to_string(i) + ", 'name_A_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlA, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         
         std::string sqlB = "INSERT INTO B VALUES(" + std::to_string(i) + ", 'name_B_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
         
         std::string sqlC = "INSERT INTO C VALUES(" + std::to_string(i) + ", " + std::to_string(i + 18) + ")";
-        EXPECT_EQ(ExecuteSQL(sqlC, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlC), E_OK);
     }
 }
 
-void DataDonationSqlGeneratorTest::PrepareJsonFileData(const StoreInfo &info, int64_t count)
+void DataDonationSqlGeneratorTest::PrepareJsonFileData(sqlite3 *db, int64_t count)
 {
     for (int64_t i = 0; i < count; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
             ", " + "'title_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlA, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         
         std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
             std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
 }
 
-void DataDonationSqlGeneratorTest::PrepareMutiRelationData(const StoreInfo &info, int64_t count)
+void DataDonationSqlGeneratorTest::PrepareMutiRelationData(sqlite3 *db, int64_t count)
 {
     for (int64_t i = 0; i < count; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
             ", " + "'title_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlA, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         int relationNum = 500;
         for (int64_t j = 0; j < relationNum; ++j) {
             std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i * relationNum + j) + ", " +
             std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
-            EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+            EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
         }
     }
 }
 
-void DataDonationSqlGeneratorTest::InsertDataWithoutMainTable(const StoreInfo &info, int64_t count)
+void DataDonationSqlGeneratorTest::InsertDataWithoutMainTable(sqlite3 *db, int64_t count)
 {
     for (int64_t i = 0; i < count; ++i) {
         std::string sqlC = "INSERT INTO TableC VALUES(" + std::to_string(i) + ", " +
             std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlC, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlC), E_OK);
     }
 }
 
-void DataDonationSqlGeneratorTest::DeleteFromNonKeyoutTable(const StoreInfo &info, int64_t begin, int64_t count)
+void DataDonationSqlGeneratorTest::DeleteFromNonKeyoutTable(sqlite3 *db, int64_t begin, int64_t count)
 {
     for (int64_t i = begin; i < begin + count; ++i) {
         std::string sqlC = "DELETE FROM TableC where id = " + std::to_string(i);
-        EXPECT_EQ(ExecuteSQL(sqlC, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlC), E_OK);
     }
 }
 
-void DataDonationSqlGeneratorTest::UpdateJsonFileData(const StoreInfo &info, int64_t begin, int64_t count)
+void DataDonationSqlGeneratorTest::UpdateJsonFileData(sqlite3 *db, int64_t begin, int64_t count)
 {
     for (int64_t i = begin; i < begin + count; ++i) {
         std::string sqlA = "UPDATE TableA SET title = 'x' where id = " + std::to_string(i);
-        EXPECT_EQ(ExecuteSQL(sqlA, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         
         std::string sqlB = "UPDATE TableB SET category_id = 'x' where id = " + std::to_string(i);
-        EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
 }
 
-void DataDonationSqlGeneratorTest::DeleteJsonFileData(const StoreInfo &info, int64_t begin, int64_t count)
+void DataDonationSqlGeneratorTest::DeleteJsonFileData(sqlite3 *db, int64_t begin, int64_t count)
 {
     for (int64_t i = begin; i < begin + count; ++i) {
         std::string sqlA = "DELETE FROM TableA where id = " + std::to_string(i);
-        EXPECT_EQ(ExecuteSQL(sqlA, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         
         std::string sqlB = "DELETE FROM TableB where id = " + std::to_string(i);
-        EXPECT_EQ(ExecuteSQL(sqlB, info), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
 }
 
@@ -556,7 +563,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorBasicTest001, TestSize.
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     
     const int64_t dataCount = 10;
-    PrepareTestData(storeInfo, dataCount);
+    PrepareTestData(db, dataCount);
     
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
@@ -608,7 +615,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorDifferentCursorTest001,
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     
     const int64_t dataCount = 10;
-    PrepareTestData(storeInfo, dataCount);
+    PrepareTestData(db, dataCount);
     
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
@@ -632,7 +639,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     
     const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL + 1;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
     
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
@@ -678,13 +685,10 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 501;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
 
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -720,13 +724,10 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData003, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 501;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
 
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -761,16 +762,13 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData004, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     int64_t dataCount = 501;
     int64_t updCnt = 100;
-    PrepareJsonFileData(storeInfo, dataCount);
-    UpdateJsonFileData(storeInfo, 0, updCnt);
-    DeleteJsonFileData(storeInfo, 100, updCnt);
+    PrepareJsonFileData(db, dataCount);
+    UpdateJsonFileData(db, 0, updCnt);
+    DeleteJsonFileData(db, 100, updCnt);
 
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -806,15 +804,12 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     int64_t dataCount = 100;
     int64_t updCnt = 100;
-    PrepareJsonFileData(storeInfo, dataCount);
-    DeleteJsonFileData(storeInfo, 0, updCnt);
+    PrepareJsonFileData(db, dataCount);
+    DeleteJsonFileData(db, 0, updCnt);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -931,10 +926,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+    SetBinlogSchemaAndChangeCallback(db);
     ASSERT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
 
     /**
@@ -962,7 +954,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize
         .readOnly = false
     };
     std::vector<VBucket> dataOut;
-    ASSERT_EQ(delegate->ExecuteSql(condition, dataOut), OK);
+    ASSERT_EQ(delegate->SQLiteUtils::ExecuteRawSQL(db, condition, dataOut), OK);
 
     auto [errCode, filePtr] = DataDonationUtils::MmapMatrixFile(info.matrixFilePath);
     ASSERT_NE(filePtr, nullptr);
@@ -1020,19 +1012,15 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData007, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
 
     /**
      * @tc.steps:step2. Insert 10 data to table C only, main table is empty
      * @tc.expected: step2. OK.
      */
     const int64_t dataCount = 10;
-    InsertDataWithoutMainTable(storeInfo, dataCount);
+    InsertDataWithoutMainTable(db, dataCount);
 
     /**
      * @tc.steps:step3. Query using GET_NEW
@@ -1069,19 +1057,15 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData008, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
 
     /**
      * @tc.steps:step2. Insert 10 data to table A and B
      * @tc.expected: step2. OK.
      */
     const int64_t dataCount = 10;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
 
     /**
      * @tc.steps:step3. Query using GET_NEW
@@ -1114,21 +1098,17 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
     const int64_t dataCount = 10;
     for (int64_t i = 0; i < dataCount; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
             ", " + "'title_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlA, storeInfo), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         
         std::string sqlB = "DELETE FROM TableA WHERE id=" + std::to_string(i);
-        EXPECT_EQ(ExecuteSQL(sqlB, storeInfo), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -1169,7 +1149,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData010, TestSize.Lev
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     
     const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 2;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
     
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
@@ -1191,7 +1171,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData010, TestSize.Lev
         totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
         cursorIn = cursorOut;
         if (totalRecords == CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL) {
-            DeleteJsonFileData(storeInfo, 500, 500);
+            DeleteJsonFileData(db, 500, 500);
         }
     } while (status == OK);
     EXPECT_EQ(totalRecords, dataCount);
@@ -1218,12 +1198,8 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData011, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
 
     /**
      * @tc.steps:step2. Insert 10 data to 3 tables, then delete them.
@@ -1231,10 +1207,10 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData011, TestSize.Lev
      */
     const int64_t dataCount = 10;
     const int keyOutNum = 2;
-    PrepareJsonFileData(storeInfo, dataCount);
-    InsertDataWithoutMainTable(storeInfo, dataCount);
-    DeleteJsonFileData(storeInfo, 0, dataCount);
-    DeleteFromNonKeyoutTable(storeInfo, 0, dataCount);
+    PrepareJsonFileData(db, dataCount);
+    InsertDataWithoutMainTable(db, dataCount);
+    DeleteJsonFileData(db, 0, dataCount);
+    DeleteFromNonKeyoutTable(db, 0, dataCount);
 
     /**
      * @tc.steps:step3. Query using GET_NEW, only contain delete records for keyOut tables.
@@ -1269,19 +1245,15 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
 
     /**
      * @tc.steps:step2. Insert 5000 data to 2 tables.
      * @tc.expected: step2. OK.
      */
     const int64_t dataCount = 10;
-    PrepareMutiRelationData(storeInfo, dataCount);
+    PrepareMutiRelationData(db, dataCount);
 
     /**
      * @tc.steps:step3. Query using GET_NEW, has muti relation data.
@@ -1324,19 +1296,15 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryWithSameCursorTest001, TestSize.Leve
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
-
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
 
     /**
      * @tc.steps:step2. Insert 101 data
      * @tc.expected: step2. OK.
      */
     const int64_t dataCount = 101;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
 
     /**
      * @tc.steps:step3. Query using GET_NEW
@@ -1377,28 +1345,25 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData013, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-    auto db = GetSqliteHandle(storeInfo);
-    ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     const int64_t dataCount = 2001;
     for (int64_t i = 0; i < dataCount; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
             ", " + "'title_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlA, storeInfo), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
             std::to_string(i % 2) + ", " + "'cate_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlB, storeInfo), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
     for (int64_t i = 10000; i < 10000 + dataCount; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
             ", " + "'title_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlA, storeInfo), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
             std::to_string(22000 - i) + ", " + "'cate_" + std::to_string(i) + "')";
-        EXPECT_EQ(ExecuteSQL(sqlB, storeInfo), E_OK);
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
@@ -1432,7 +1397,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData014, TestSize.Lev
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 2;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
@@ -1478,7 +1443,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Lev
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 3;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
@@ -1512,5 +1477,4 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Lev
     } while (status == OK);
     EXPECT_EQ(cursorOut.cursor, dataCount - 1);
     EXPECT_EQ(totalRecords, dataCount + CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL);
-}
 }
