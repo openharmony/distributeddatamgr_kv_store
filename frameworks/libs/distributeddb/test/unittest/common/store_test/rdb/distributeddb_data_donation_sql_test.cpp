@@ -1478,3 +1478,51 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Lev
     EXPECT_EQ(cursorOut.cursor, dataCount - 1);
     EXPECT_EQ(totalRecords, dataCount + CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL);
 }
+
+/**
+ * @tc.name: QueryBinlogSubscribeData018
+ * @tc.desc: Test query old cursor.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData018, TestSize.Level2)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    auto db = GetSqliteHandle(storeInfo);
+    ASSERT_NE(db, nullptr);
+    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(storeInfo);
+    const int64_t dataCount = 4000;
+    PrepareJsonFileData(storeInfo, dataCount);
+
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    cursorIn.cursor = 0;
+    
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = DBStatus::OK;
+    int idx = 0;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        EXPECT_EQ(status, dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT ? SUBSCRIBE_QUERY_END : OK);
+        cursorIn = cursorOut;
+        idx++;
+        if (idx == 2 || idx == 9 || idx == 17) {
+            EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+        }
+        if (idx == 27) {
+            cursorIn.cursor -= 100;
+        }
+    } while (status == OK);
+}
+}

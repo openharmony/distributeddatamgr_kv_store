@@ -106,6 +106,21 @@ public:
         return E_OK;
     }
 
+    // Logical-version cursor init: the caller passes the logical base logicalFront (i.e. the cursor set by the
+    // most recent SetSubscribeCursor) and the current logical cursor logicalCursor. Internally it maps the physical
+    // read position via (front_ + offset) % capacity_, which does not rely on the cursor % capacity == front_
+    // invariant, so it stays correct after Expand changes the capacity.
+    int TryInitCursorByLogical(uint64_t logicalFront, uint64_t logicalCursor)
+    {
+        if (logicalCursor < logicalFront) {
+            // Cursor fell behind the water mark (e.g. cursorIn=0 reset): fall back to the original % Capacity logic
+            return TryInitCursor(static_cast<size_t>(logicalCursor % capacity_));
+        }
+        size_t offset = static_cast<size_t>(logicalCursor - logicalFront);
+        size_t newRead = (front_ + offset) % capacity_;
+        return TryInitCursor(newRead);
+    }
+
     bool IsFull() const
     {
         return (capacity_ == MAX_CAP && ((rear_ + 1) % capacity_) == front_);

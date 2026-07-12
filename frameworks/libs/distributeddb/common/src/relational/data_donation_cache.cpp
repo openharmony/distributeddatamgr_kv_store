@@ -192,8 +192,8 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     size_t readNum = 0;
     size_t readToken = GET_NEW_BATCH_NUM;
 
-    bool hasCache = ReadCacheSize() > 0;
-    int errCode = TryInitCursor(cursorIn.cursor % Capacity());
+    bool hasCache = RemainReadSize() > 0;
+    int errCode = TryInitCursorByLogical(cursor, cursorIn.cursor);
     if (errCode != E_OK) {
         return errCode;
     }
