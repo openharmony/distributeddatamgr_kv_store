@@ -1272,9 +1272,37 @@ bool RelationalSchemaObject::CheckFieldSyncPolicyChange(const std::vector<FieldS
     return false;
 }
 
+namespace {
+std::string BuildMaskedPolicyLog(const TableSyncPolicy &policy)
+{
+    std::string log = "table=" + DBCommon::StringMiddleMaskingWithLen(policy.tableName) +
+        ", fields=[";
+    for (const auto &field : policy.fieldSyncPolicies) {
+        log += "colName=" + DBCommon::StringMiddleMaskingWithLen(field.colName) +
+            ", constraints=[";
+        for (const auto &c : field.equalConstraints) {
+            log += "{notNull=" + std::string(c.notNull ? "true" : "false") +
+                ", hasDefault=" + std::string(c.hasDefault ? "true" : "false") + "},";
+        }
+        if (!field.equalConstraints.empty()) {
+            log.pop_back();
+        }
+        log += "],";
+    }
+    if (!policy.fieldSyncPolicies.empty()) {
+        log.pop_back();
+    }
+    log += "]";
+    return log;
+}
+}
+
 void RelationalSchemaObject::SetDistributedSchema(const DistributedSchema &schema)
 {
     dbSchema_ = schema;
+    for (const auto &policy : schema.tableSyncPolicies) {
+        LOGI("configured fieldSyncPolicies %s", BuildMaskedPolicyLog(policy).c_str());
+    }
     for (const auto &table : schema.tables) {
         if (tables_.find(table.tableName) == tables_.end()) {
             continue;
