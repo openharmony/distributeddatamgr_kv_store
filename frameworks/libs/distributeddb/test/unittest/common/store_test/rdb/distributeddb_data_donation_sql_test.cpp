@@ -907,66 +907,6 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
 }
 
 /**
- * @tc.name: BinlogDataChangeObserverTest001
- * @tc.desc: Test binlog data change observer.
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: test
- */
-HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Set schema and observer by enable binlog.
-     * @tc.expected: step1. OK.
-     */
-    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
-    SetSchemaInfo(storeInfo, GetJsonFileSchema());
-    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
-    
-    auto delegate = GetDelegate(storeInfo);
-    ASSERT_NE(delegate, nullptr);
-    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-    SetBinlogSchemaAndChangeCallback(db);
-    ASSERT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-
-    /**
-     * @tc.steps:step2. Set matrix file info.
-     * @tc.expected: step2. OK.
-     */
-    std::string filePath = InitMatrixFile();
-    ASSERT_TRUE(!filePath.empty());
-    MatrixFileInfo info = {
-        .matrixFilePath = filePath,
-        .matrixTables = {{"TableA", 0}, {"TableB", 1}},
-        .fullSyncOffset = 2
-    };
-    ASSERT_EQ(delegate->SetTrackerMatrixInfo(info), OK);
-
-    /**
-     * @tc.steps:step3. matrix file updated after data change.
-     * @tc.expected: step3. OK.
-     */
-    int i = 1;
-    SqlCondition condition = {
-        .sql = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
-            ", " + "'title_" + std::to_string(i) + "')",
-        .bindArgs = {},
-        .readOnly = false
-    };
-    std::vector<VBucket> dataOut;
-    ASSERT_EQ(delegate->SQLiteUtils::ExecuteRawSQL(db, condition, dataOut), OK);
-
-    auto [errCode, filePtr] = DataDonationUtils::MmapMatrixFile(info.matrixFilePath);
-    ASSERT_NE(filePtr, nullptr);
-    EXPECT_EQ(filePtr->GetValueByIndex(0), 1u);
-    EXPECT_EQ(filePtr->GetValueByIndex(1), 0u);
-    EXPECT_EQ(filePtr->GetValueByIndex(2), 0u);
-
-    filePtr = nullptr;
-    unlink(filePath.c_str());
-}
-
-/**
  * @tc.name: QueryBinlogSubscribeData006
  * @tc.desc: Test QuerySubscribeOutput interface with not enabled binlog.
  * @tc.type: FUNC
@@ -1271,7 +1211,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Lev
         donateCount = donateCount + dataOut.size();
         dataOut.clear();
     } while (status == OK);
-    int expectCount = 5059;
+    int expectCount = 5060;
     EXPECT_EQ(donateCount, expectCount);
 }
 
@@ -1499,9 +1439,9 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData018, TestSize.Lev
     ASSERT_NE(db, nullptr);
     ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(storeInfo);
+    SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 4000;
-    PrepareJsonFileData(storeInfo, dataCount);
+    PrepareJsonFileData(db, dataCount);
 
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;

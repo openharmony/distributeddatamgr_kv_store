@@ -198,7 +198,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
         return errCode;
     }
 
-    if (!hasCache || RemainReadSize() == 0) {
+    if (!hasCache) {
         std::vector<DdData> queryData;
         errCode = handle->QuerySubscribeOutput(ddSchema, queryData);
         if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
@@ -223,10 +223,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     }
     cursorOut.queryType = cursorIn.queryType;
     cursorOut.cursor = cursorIn.cursor + readNum;
-    if (hasCache && RemainReadSize() == 0) {
-        LOGI("[QueryBinlog] Query has cache but remain size is: %zu", RemainReadSize());
-        return -E_SUBSCRIBE_QUERY_END;
-    }
+
     if (errCode == -E_SUBSCRIBE_QUERY_END) {
         errCode = (readNum == 0 || RemainReadSize() == 0) ? -E_SUBSCRIBE_QUERY_END : E_OK;
     }
