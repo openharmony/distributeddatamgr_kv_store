@@ -32,6 +32,7 @@ config("distributeddatafwk_config") {
 }
 
 config("distributeddatafwk_public_config") {
+  branch_protector_ret = "pac_ret"
   visibility = [ ":*" ]
 
   include_dirs = [
