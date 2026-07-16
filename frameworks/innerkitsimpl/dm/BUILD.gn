@@ -23,6 +23,7 @@ group("build_module") {
 }
 
 ohos_shared_library("dm_adapter") {
+  branch_protector_ret = "pac_ret"
   sanitize = {
     boundary_sanitize = true
     ubsan = true
