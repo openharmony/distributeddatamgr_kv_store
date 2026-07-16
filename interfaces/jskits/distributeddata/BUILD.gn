@@ -87,6 +87,7 @@ ohos_shared_library("distributeddata") {
     "hilog:libhilog",
     "ipc:ipc_single",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   cflags_cc = [
