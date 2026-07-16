@@ -74,7 +74,7 @@ protected:
 
     int ExecuteSQL(const std::string &sql, const StoreInfo &info);
 
-    void SetBinlogSchemaAndChangeCallback(const StoreInfo &info);
+    void SetBinlogSchemaAndChangeCallback(sqlite3 *db);
 
     int CreateDistributedTable(const StoreInfo &info, const std::string &table,
         TableSyncType type = TableSyncType::DEVICE_COOPERATION);

@@ -1337,7 +1337,7 @@ int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
     int errCode = E_OK;
     if (enabled) {
         Sqlite3BinlogConfig binLogConfig = {
-            .mode = Sqlite3BinlogMode::ROW_FOR_SEARCH,
+            .mode = Sqlite3BinlogMode::READ_FOR_SEARCH,
             .fullCallbackThreshold = BINLOG_FILE_NUMS_LIMIT,
             .maxFileSize = BINLOG_FILE_SIZE_LIMIT,
             .xErrorCallback = []([[gnu::unused]] void *pCtx, int errNo, char *errMsg, const char *dbPath) {
@@ -1347,18 +1347,19 @@ int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
                 }
                 std::string dbPathStr(dbPath);
                 LOGW("[SQLiteUtils]binlog failed, mark invalid %s, errNo:%d, errMsg:%s",
-                    SQLiteUtils::Anonymous(dbPathStr).c_str(), errNo, errMsg);
-                SQLiteUtils::SetSlaveInvalid(dbPathStr);
+                    DBCommon::StringMiddleMaskingWithLen(dbPathStr).c_str(), errNo, errMsg);
             },
             .xLogFullCallback = nullptr,
             .callbackCtx = nullptr,
         };
+        LOGI("[SQLiteUtils][SetBinlogEnabled] Enable binlog");
         errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, &binLogConfig);
         if (errCode != SQLITE_OK) {
             LOGE("[SQLiteUtils][SetBinlogEnabled] Enable binlog failed:%d", errCode);
             return SQLiteUtils::MapSQLiteErrno(errCode);
         }
     } else {
+        LOGI("[SQLiteUtils][SetBinlogEnabled] Disable binlog");
         errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, nullptr);
         if (errCode != SQLITE_OK) {
             LOGE("[SQLiteUtils][SetBinlogEnabled] Disable binlog failed:%d", errCode);
