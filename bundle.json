@@ -81,6 +81,7 @@
         "json",
         "jsoncpp",
         "napi",
+        "node",
         "openssl",
         "runtime_core",
         "safwk",

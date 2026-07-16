@@ -88,6 +88,7 @@ ohos_shared_library("distributedkvstore") {
     "ipc:ipc_single",
     "json:nlohmann_json_static",
     "napi:ace_napi",
+    "node:node_header_notice",
   ]
 
   cflags_cc = [
