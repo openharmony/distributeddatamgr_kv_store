@@ -700,7 +700,7 @@ bool DataDonationUtils::IsFilePathValid(const std::string &path)
         LOGE("[IsFilePathValid] Path is empty");
         return false;
     }
-
+#ifndef IOS_PLATFORM
     std::filesystem::path p(path);
     std::filesystem::path normalized = p.lexically_normal();
     if (p.is_relative() || p != normalized) {
@@ -708,6 +708,9 @@ bool DataDonationUtils::IsFilePathValid(const std::string &path)
         return false;
     }
     return true;
+#else
+    return false;
+#endif
 }
 
 int DataDonationUtils::SetTrackerMatrixInfo(sqlite3 *db, const MatrixFileInfo &info)
