@@ -123,6 +123,10 @@ ohos_source_set("distributeddb") {
     "//third_party/zlib:libz",
   ]
 
+  if (is_ios) {
+    defines = [ "IOS_PLATFORM" ]
+  }
+
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }

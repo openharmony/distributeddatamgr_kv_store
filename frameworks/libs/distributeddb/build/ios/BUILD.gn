@@ -113,6 +113,10 @@ ohos_source_set("distributeddb_client_lite_impl") {
     "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_ios",
   ]
 
+  if (is_ios) {
+    defines = [ "IOS_PLATFORM" ]
+  }
+
   external_deps = [ "c_utils:utils" ]
 
   subsystem_name = "distributeddatamgr"
