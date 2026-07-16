@@ -61,7 +61,6 @@ config("distributeddatafwk_public_config") {
 }
 
 ohos_shared_library("distributeddata_inner_mock") {
-  branch_protector_ret = "pac_ret"
   include_dirs = [
     "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/win/include",
