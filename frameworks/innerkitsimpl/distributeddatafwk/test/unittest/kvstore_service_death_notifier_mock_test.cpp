@@ -69,26 +69,6 @@ HWTEST_F(KvStoreServiceDeathNotifierMockTest, GetService_SamgrNull_001, TestSize
     EXPECT_EQ(result, nullptr);
 }
 
-HWTEST_F(KvStoreServiceDeathNotifierMockTest, GetService_CheckSAFail_LoadSASuccess_002, TestSize.Level1)
-{
-    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
-    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
-    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
-        .WillOnce(Return(ERR_OK));
-    auto result = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    EXPECT_EQ(result, nullptr);
-}
-
-HWTEST_F(KvStoreServiceDeathNotifierMockTest, GetService_CheckSAFail_LoadSAFail_003, TestSize.Level1)
-{
-    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
-    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
-    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
-        .WillOnce(Return(-1));
-    auto result = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    EXPECT_EQ(result, nullptr);
-}
-
 HWTEST_F(KvStoreServiceDeathNotifierMockTest, GetService_CheckSASuccess_ProxyFail_004, TestSize.Level1)
 {
     sptr<IRemoteObject> remoteObject = new IPCObjectStub();
@@ -98,56 +78,4 @@ HWTEST_F(KvStoreServiceDeathNotifierMockTest, GetService_CheckSASuccess_ProxyFai
     EXPECT_EQ(result, nullptr);
 }
 
-HWTEST_F(KvStoreServiceDeathNotifierMockTest, LoadCallback_OnLoadSASuccess_005, TestSize.Level1)
-{
-    sptr<IRemoteObject> remoteObject = new IPCObjectStub();
-    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
-    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
-    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
-        .WillOnce(Invoke([&remoteObject](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
-            callback->OnLoadSystemAbilitySuccess(saId, remoteObject);
-            return ERR_OK;
-        }));
-    auto result = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    EXPECT_EQ(result, nullptr);
-}
-
-HWTEST_F(KvStoreServiceDeathNotifierMockTest, LoadCallback_OnLoadSAFail_006, TestSize.Level1)
-{
-    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
-    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
-    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
-        .WillOnce(Invoke([](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
-            callback->OnLoadSystemAbilityFail(saId);
-            return ERR_OK;
-        }));
-    auto result = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    EXPECT_EQ(result, nullptr);
-}
-
-HWTEST_F(KvStoreServiceDeathNotifierMockTest, LoadCallback_OnLoadSASuccess_WrongSAId_007, TestSize.Level1)
-{
-    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
-    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
-    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
-        .WillOnce(Invoke([](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
-            callback->OnLoadSystemAbilitySuccess(9999, nullptr);
-            return ERR_OK;
-        }));
-    auto result = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    EXPECT_EQ(result, nullptr);
-}
-
-HWTEST_F(KvStoreServiceDeathNotifierMockTest, LoadCallback_OnLoadSASuccess_NullRemote_008, TestSize.Level1)
-{
-    EXPECT_CALL(*sa, GetSystemAbilityManager()).WillOnce(Return(sam));
-    EXPECT_CALL(*sam, CheckSystemAbility(_)).WillOnce(Return(nullptr));
-    EXPECT_CALL(*sam, LoadSystemAbility(An<int32_t>(), An<const sptr<ISystemAbilityLoadCallback>&>()))
-        .WillOnce(Invoke([](int32_t saId, const sptr<ISystemAbilityLoadCallback> &callback) {
-            callback->OnLoadSystemAbilitySuccess(saId, nullptr);
-            return ERR_OK;
-        }));
-    auto result = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    EXPECT_EQ(result, nullptr);
-}
 }

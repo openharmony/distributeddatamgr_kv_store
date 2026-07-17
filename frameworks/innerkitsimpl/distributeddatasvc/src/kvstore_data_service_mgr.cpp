@@ -17,38 +17,8 @@
 #include "log_print.h"
 #include "system_ability_definition.h"
 #include "iservice_registry.h"
-#include "system_ability_load_callback_stub.h"
 
 namespace OHOS::DistributedKv {
-namespace {
-class ServiceProxyLoadCallback : public SystemAbilityLoadCallbackStub {
-public:
-    ServiceProxyLoadCallback() = default;
-    virtual ~ServiceProxyLoadCallback() = default;
-
-    void OnLoadSystemAbilitySuccess(int32_t systemAbilityId, const sptr<IRemoteObject> &remoteObject) override;
-    void OnLoadSystemAbilityFail(int32_t systemAbilityId) override;
-};
-
-void ServiceProxyLoadCallback::OnLoadSystemAbilitySuccess(
-    int32_t systemAbilityId, const sptr<IRemoteObject> &remoteObject)
-{
-    if (systemAbilityId != DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID) {
-        ZLOGE("Incorrect SA Id: %{public}d", systemAbilityId);
-        return;
-    }
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return;
-    }
-}
-
-void ServiceProxyLoadCallback::OnLoadSystemAbilityFail(int32_t systemAbilityId)
-{
-    ZLOGE("Load SA: %{public}d failed", systemAbilityId);
-}
-}
-
 int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
     int32_t tokenId)
 {
@@ -59,20 +29,6 @@ int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, in
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
-    if (remote == nullptr) {
-        ZLOGE("Get distributed data manager CheckSystemAbility failed.");
-        sptr<ServiceProxyLoadCallback> loadCallback = new (std::nothrow) ServiceProxyLoadCallback();
-        if (loadCallback == nullptr) {
-            ZLOGE("Create load callback failed.");
-            return ERROR;
-        }
-        int32_t errCode = samgr->LoadSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID, loadCallback);
-        if (errCode != ERR_OK) {
-            ZLOGE("Get distributed data manager LoadSystemAbility failed, err: %{public}d", errCode);
-        }
-        return ERROR;
-    }
-
     sptr<IKvStoreDataService> ability = iface_cast<IKvStoreDataService>(remote);
     if (ability == nullptr) {
         ZLOGE("KvStoreDataServiceMgr initialize proxy failed.");

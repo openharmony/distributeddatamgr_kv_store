@@ -29,7 +29,6 @@
 
 namespace OHOS {
 namespace DistributedKv {
-namespace {
 class ServiceProxyLoadCallback : public SystemAbilityLoadCallbackStub {
 public:
     ServiceProxyLoadCallback() = default;
@@ -55,7 +54,6 @@ void ServiceProxyLoadCallback::OnLoadSystemAbilitySuccess(
 void ServiceProxyLoadCallback::OnLoadSystemAbilityFail(int32_t systemAbilityId)
 {
     ZLOGE("Load SA: %{public}d failed", systemAbilityId);
-}
 }
 
 std::mutex KvStoreServiceDeathNotifier::instanceMutex_;
