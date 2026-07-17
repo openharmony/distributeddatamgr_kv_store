@@ -24,10 +24,37 @@
 #include "log_print.h"
 #include "refbase.h"
 #include "system_ability_definition.h"
+#include "system_ability_load_callback_stub.h"
 #include "task_executor.h"
 
 namespace OHOS {
 namespace DistributedKv {
+class ServiceProxyLoadCallback : public SystemAbilityLoadCallbackStub {
+public:
+    ServiceProxyLoadCallback() = default;
+    virtual ~ServiceProxyLoadCallback() = default;
+
+    void OnLoadSystemAbilitySuccess(int32_t systemAbilityId, const sptr<IRemoteObject> &remoteObject) override;
+    void OnLoadSystemAbilityFail(int32_t systemAbilityId) override;
+};
+
+void ServiceProxyLoadCallback::OnLoadSystemAbilitySuccess(
+    int32_t systemAbilityId, const sptr<IRemoteObject> &remoteObject)
+{
+    if (systemAbilityId != DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID) {
+        ZLOGE("Incorrect SA Id: %{public}d", systemAbilityId);
+        return;
+    }
+    if (remoteObject == nullptr) {
+        ZLOGE("remote object is nullptr");
+        return;
+    }
+}
+
+void ServiceProxyLoadCallback::OnLoadSystemAbilityFail(int32_t systemAbilityId)
+{
+    ZLOGE("Load SA: %{public}d failed", systemAbilityId);
+}
 
 std::mutex KvStoreServiceDeathNotifier::instanceMutex_;
 KvStoreServiceDeathNotifier& KvStoreServiceDeathNotifier::GetInstance()
@@ -67,6 +94,20 @@ sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataServi
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
+    if (remote == nullptr) {
+        ZLOGE("Get distributed data manager CheckSystemAbility failed.");
+        sptr<ServiceProxyLoadCallback> loadCallback = new (std::nothrow) ServiceProxyLoadCallback();
+        if (loadCallback == nullptr) {
+            ZLOGE("Create load callback failed.");
+            return nullptr;
+        }
+        int32_t errCode = samgr->LoadSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID, loadCallback);
+        if (errCode != ERR_OK) {
+            ZLOGE("Get distributed data manager LoadSystemAbility failed, err: %{public}d", errCode);
+        }
+        return nullptr;
+    }
+
     instance.kvDataServiceProxy_ = iface_cast<IKvStoreDataService>(remote);
     if (instance.kvDataServiceProxy_ == nullptr) {
         ZLOGE("Initialize proxy failed.");
