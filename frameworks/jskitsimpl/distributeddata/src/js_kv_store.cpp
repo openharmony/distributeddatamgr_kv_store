@@ -18,9 +18,7 @@
 #include "js_kv_store_resultset.h"
 #include "log_print.h"
 #include "napi_queue.h"
-#include "datashare_values_bucket.h"
 #include "single_kvstore.h"
-#include "kv_utils.h"
 
 using namespace OHOS::DistributedKv;
 

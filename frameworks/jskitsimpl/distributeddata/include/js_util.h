@@ -23,8 +23,10 @@
 #include "napi/native_api.h"
 #include "napi/native_common.h"
 #include "napi/native_node_api.h"
-#include "datashare_abs_predicates.h"
-#include "datashare_values_bucket.h"
+
+namespace OHOS::DataShare {
+class DataShareValueObject;
+}
 
 namespace OHOS::DistributedData {
 class JSUtil final {
@@ -48,7 +50,6 @@ public:
     using Status = OHOS::DistributedKv::Status;
     using DataQuery = OHOS::DistributedKv::DataQuery;
     using UserInfo = OHOS::DistributedKv::UserInfo;
-    using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
     static KvStoreVariant Blob2VariantValue(const Blob& blob);
@@ -149,8 +150,6 @@ public:
     static napi_status GetValue(napi_env env, napi_value in, JsSchema*& out);
 
     static napi_status GetValue(napi_env env, napi_value in, DataQuery &out);
-
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject::Type &valueObject);
 
     static napi_status GetValue(napi_env env, napi_value in, ContextParam &param);
 

@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 group("build_module") {
   deps = []
@@ -55,12 +56,17 @@ ohos_shared_library("distributeddata_mgr") {
     "-Wno-c99-designator",
   ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
+  deps = []
+  deps += deps_hilog
+  deps += deps_ipc_core
+  deps += deps_samgr
+
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
-    "ipc:ipc_core",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_core
+  external_deps += external_deps_samgr
   public_configs = [ ":data_mgr_public_config" ]
   innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"

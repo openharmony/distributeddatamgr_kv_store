@@ -14,6 +14,7 @@
 #####################hydra-fuzz###################
 import("//build/config/features.gni")
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("BlobFuzzTest") {
@@ -43,11 +44,12 @@ ohos_fuzztest("BlobFuzzTest") {
   ]
 
   deps = []
+  deps += deps_hilog
 
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 }
 
 ###############################################################################

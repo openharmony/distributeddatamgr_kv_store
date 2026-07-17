@@ -13,6 +13,7 @@
 
 import("//build/config/features.gni")
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 module_output_path = "kv_store/kv_store"
 
@@ -79,14 +80,19 @@ ohos_source_set("src_file") {
   configs = [ ":module_private_config" ]
 
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
+  deps = []
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
 
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
@@ -99,21 +105,23 @@ ohos_fuzztest("JsonInnerDbFuzzTest") {
   if (!defined(deps)) {
     deps = []
   }
-  if (!defined(external_deps)) {
-    external_deps = []
-  }
-  configs = [ ":module_private_config" ]
   deps += [ ":src_file" ]
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+
+  configs = [ ":module_private_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
+
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
 
   cflags = [
     "-g",

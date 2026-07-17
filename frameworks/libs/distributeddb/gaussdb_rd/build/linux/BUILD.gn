@@ -82,7 +82,7 @@ ohos_source_set("gaussdb_rd") {
   configs = [ ":gaussdb_rd_config" ]
   public_configs = [ ":gaussdb_rd_public_config" ]
 
-  ldflags = [ "-Wl,--exclude-libs,ALL" ]
+  ldflags = ["-Wl,--exclude-libs,ALL"]
   cflags_cc = [
     "-fvisibility=hidden",
     "-std=c++17",

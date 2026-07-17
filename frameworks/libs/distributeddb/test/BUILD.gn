@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 import("../distributeddb.gni")
 
 module_output_path = "kv_store/kv_store"
@@ -161,6 +162,11 @@ ohos_source_set("src_file") {
 
   configs = [ ":module_private_config" ]
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   configs += [ ":gaussdb_rd_config" ]
   public_configs = [ ":gaussdb_rd_public_config" ]
@@ -170,14 +176,14 @@ ohos_source_set("src_file") {
     "c_utils:utils",
     "googletest:gmock_main",
     "googletest:gtest_main",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:libz",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
   part_name = "kv_store"
   subsystem_name = "distributeddatamgr"
 }
@@ -194,6 +200,9 @@ template("distributeddb_unittest") {
     }
     configs = [ ":module_private_config" ]
     deps += [ ":src_file" ]
+    deps += deps_hilog
+    deps += deps_hisysevent
+    deps += deps_hitrace_meter
 
     ldflags = [ "-Wl,--exclude-libs,ALL" ]
 
@@ -201,14 +210,14 @@ template("distributeddb_unittest") {
       "c_utils:utils",
       "googletest:gmock_main",
       "googletest:gtest_main",
-      "hilog:libhilog",
-      "hisysevent:libhisysevent",
-      "hitrace:hitrace_meter",
       "jsoncpp:jsoncpp",
       "openssl:libcrypto_shared",
       "sqlite:sqlite",
       "zlib:libz",
     ]
+    external_deps += external_deps_hilog
+    external_deps += external_deps_hisysevent
+    external_deps += external_deps_hitrace_meter
   }
 }
 
@@ -1014,18 +1023,23 @@ ohos_unittest("tokenizer_test") {
   configs = [ ":tokenizer_config_unittest" ]
   cflags_cc = [ "-Werror=vla" ]
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+
   external_deps = [
     "c_utils:utils",
     "googletest:gmock_main",
     "googletest:gtest_main",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
     "zlib:libz",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
 }
 
 distributeddb_unittest("DistributedDBRDBKnowledgeTest") {

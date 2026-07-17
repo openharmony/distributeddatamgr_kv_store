@@ -17,12 +17,10 @@
 #include "js_util.h"
 #include "log_print.h"
 #include "napi_queue.h"
-#include "kv_utils.h"
 
-using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
+using namespace OHOS::DistributedKv;
 namespace OHOS::DistributedData {
-
 napi_value JsKVStoreResultSet::Constructor(napi_env env)
 {
     const napi_property_descriptor properties[] = {
@@ -286,7 +284,13 @@ std::shared_ptr<ResultSetBridge> JsKVStoreResultSet::Create()
         return nullptr;
     }
     SetInstance(nullptr);
-    return KvUtils::ToResultSetBridge(instance);
+    return CreateBridge(instance);
+}
+
+__attribute__((weak)) std::shared_ptr<ResultSetBridge> JsKVStoreResultSet::CreateBridge(
+    std::shared_ptr<KvStoreResultSet> instance)
+{
+    return nullptr;
 }
 
 void JsKVStoreResultSet::SetSchema(bool isSchema)

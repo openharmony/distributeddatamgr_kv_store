@@ -14,6 +14,8 @@
  */
 #include "schema_negotiate.h"
 
+#include <utility>
+
 #include "db_common.h"
 #include "log_print.h"
 #include "schema_utils.h"

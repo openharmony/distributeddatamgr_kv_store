@@ -14,6 +14,7 @@
 import("//build/ohos.gni")
 import("//build/ohos/ace/ace.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 base_output_path = get_label_info(":distributed_data_js", "target_out_dir")
 distributed_data_js_obj_path = base_output_path + "/distributed_data.o"
@@ -54,8 +55,6 @@ ohos_shared_library("distributeddata") {
   ]
 
   sources = [
-    "../../../frameworks/innerkitsimpl/datashare/kv_utils.cpp",
-    "../../../frameworks/innerkitsimpl/datashare/kvstore_datashare_bridge.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/entry_point.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_const_properties.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_device_kv_store.cpp",
@@ -72,23 +71,46 @@ ohos_shared_library("distributeddata") {
     "../../../frameworks/jskitsimpl/distributeddata/src/uv_queue.cpp",
   ]
 
+  if (data_share_enabled) {
+    sources += [
+      "../../../frameworks/innerkitsimpl/datashare/kv_utils.cpp",
+      "../../../frameworks/innerkitsimpl/datashare/kvstore_datashare_bridge.cpp",
+      "../../../frameworks/jskitsimpl/distributeddata/src/napi_data_share_adapter.cpp",
+    ]
+  }
+
   deps = [ "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner" ]
+  deps += deps_hilog
+  deps += deps_napi
+  deps += deps_common_event_service
+  deps += deps_ability_base_want
+  deps += deps_ability_runtime_ability_manager
+  deps += deps_ability_runtime_abilitykit_native
+  deps += deps_ability_runtime_napi_base_context
+  deps += deps_ability_runtime_napi_common
+  deps += deps_ipc_single
 
   external_deps = [
-    "ability_base:want",
-    "ability_runtime:ability_manager",
-    "ability_runtime:abilitykit_native",
-    "ability_runtime:napi_base_context",
-    "ability_runtime:napi_common",
     "c_utils:utils",
-    "common_event_service:cesfwk_innerkits",
-    "data_share:datashare_common",
-    "data_share:datashare_provider",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "napi:ace_napi",
-    "node:node_header_notice",
+    "json:nlohmann_json_static",
   ]
+
+  if (data_share_enabled) {
+    external_deps += [
+      "data_share:datashare_common",
+      "data_share:datashare_provider",
+    ]
+  }
+
+  external_deps += external_deps_common_event_service
+  external_deps += external_deps_ability_base_want
+  external_deps += external_deps_ability_runtime_ability_manager
+  external_deps += external_deps_ability_runtime_abilitykit_native
+  external_deps += external_deps_ability_runtime_napi_base_context
+  external_deps += external_deps_ability_runtime_napi_common
+  external_deps += external_deps_napi
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
 
   cflags_cc = [
     "-flto",

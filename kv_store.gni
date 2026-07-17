@@ -36,9 +36,23 @@ declare_args() {
     dm_service_enable = false
   }
 
+  if (!defined(global_parts_info) || defined(global_parts_info.distributeddatamgr_data_share)) {
+    data_share_enabled = true
+  } else {
+    data_share_enabled = false
+  }
+
+  if (!defined(global_parts_info) || defined(global_parts_info.distributeddatamgr_datamgr_service)) {
+    datamgr_service_enabled = true
+  } else {
+    datamgr_service_enabled = false
+  }
+
   if (device_company != "qemu") {
     qemu_disable = true
   } else {
     qemu_disable = false
   }
+
+  jsapi_test_enabled = (target_os == "ohos")
 }

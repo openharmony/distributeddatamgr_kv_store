@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 #ifdef RELATIONAL_STORE
+#include <utility>
+
 #include "log_print.h"
 #include "json_object.h"
 #include "db_common.h"

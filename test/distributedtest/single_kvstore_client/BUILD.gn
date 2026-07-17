@@ -13,6 +13,7 @@
 
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 module_output_path = "kv_store/distributed_test"
 
@@ -33,22 +34,30 @@ common_deps = [
   "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
   "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
 ]
+common_deps += deps_hilog
+common_deps += deps_hisysevent
+common_deps += deps_hitrace_meter
+common_deps += deps_hitrace_chain
+common_deps += deps_huks
+common_deps += deps_ipc_single
+common_deps += deps_samgr
+common_deps += deps_access_token_libaccesstoken_sdk
 
 common_external_deps = [
-  "access_token:libaccesstoken_sdk",
-  "access_token:libnativetoken_shared",
-  "access_token:libtoken_setproc",
   "c_utils:utils",
   "cJSON:cjson",
   "googletest:gtest",
-  "hilog:libhilog",
-  "hisysevent:libhisysevent",
-  "hitrace:hitrace_meter",
-  "hitrace:libhitracechain",
-  "huks:libhukssdk",
-  "ipc:ipc_single",
-  "samgr:samgr_proxy",
 ]
+common_external_deps += external_deps_hilog
+common_external_deps += external_deps_hisysevent
+common_external_deps += external_deps_hitrace_meter
+common_external_deps += external_deps_hitrace_chain
+common_external_deps += external_deps_huks
+common_external_deps += external_deps_ipc_single
+common_external_deps += external_deps_samgr
+common_external_deps += external_deps_access_token_libaccesstoken_sdk
+common_external_deps += external_deps_access_token_libnativetoken_shared
+common_external_deps += external_deps_access_token_libtoken_setproc
 if (dm_service_enable) {
   common_external_deps += [ "device_manager:devicemanagersdk" ]
 }

@@ -15,6 +15,7 @@
 #define LOG_TAG "KVDBCrypto"
 
 #include "kv_store_crypt.h"
+#include <memory>
 #include "hks_api.h"
 #include "hks_param.h"
 #include "log_print.h"

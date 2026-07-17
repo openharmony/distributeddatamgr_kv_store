@@ -20,7 +20,6 @@
 #include "log_print.h"
 #include "napi_queue.h"
 #include "uv_queue.h"
-#include "kv_utils.h"
 
 using namespace OHOS::DistributedKv;
 namespace OHOS::DistributedData {

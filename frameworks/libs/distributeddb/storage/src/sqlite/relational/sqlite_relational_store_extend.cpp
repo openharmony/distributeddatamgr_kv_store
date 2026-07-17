@@ -15,6 +15,8 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_relational_store.h"
 
+#include <utility>
+
 #include "data_donation_utils.h"
 
 namespace DistributedDB {

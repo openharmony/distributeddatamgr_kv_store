@@ -21,7 +21,7 @@
 #include "distributed_kv_data_manager.h"
 #include "kvstore_death_recipient.h"
 #include "distributed_kv_store_log.h"
-#include "ability_context_impl.h"
+#include "ability_context.h"
 #include "kvstore_result_set.h"
 
 namespace OHOS {

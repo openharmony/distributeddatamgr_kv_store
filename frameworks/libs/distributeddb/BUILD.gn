@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("distributeddb.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 config("distrdb_config") {
   visibility = [ ":*" ]
@@ -126,17 +127,20 @@ ohos_shared_library("distributeddb") {
   ]
   ldflags = [ "-Wl,--gc-sections" ]
   deps = [ "gaussdb_rd:gaussdb_rd" ]
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
 
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "jsoncpp:jsoncpp",
     "zlib:shared_libz",
     "openssl:libcrypto_shared",
-    "sqlite:sqlite"
+    "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
 
   subsystem_name = "distributeddatamgr"
   innerapi_tags = [ "platformsdk_indirect" ]
@@ -184,11 +188,14 @@ ohos_shared_library("customtokenizer") {
     "-Werror=vla",
   ]
 
+  deps = []
+  deps += deps_hilog
+
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
-    "sqlite:sqlite"
+    "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
 
   subsystem_name = "distributeddatamgr"
   innerapi_tags = [ "platformsdk_indirect" ]
@@ -242,6 +249,7 @@ config("distributeddb_client_config") {
     "USE_DFX_ABILITY",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "RDB_CLIENT",
   ]
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]
@@ -284,14 +292,17 @@ ohos_shared_library("distributeddb_client") {
   ]
   ldflags = [ "-Wl,--gc-sections,--exclude-libs,ALL" ]
 
+  deps = []
+  deps += deps_hilog
+
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
-    "hilog:libhilog",
     "jsoncpp:jsoncpp",
     "openssl:libcrypto_shared",
-    "sqlite:sqlite"
+    "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
 
   subsystem_name = "distributeddatamgr"
   innerapi_tags = [ "platformsdk_indirect" ]

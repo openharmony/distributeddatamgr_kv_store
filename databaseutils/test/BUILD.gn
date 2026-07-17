@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 module_output_path = "kv_store/kv_store/databaseutils"
 config("database_utils_config") {
@@ -30,12 +31,15 @@ ohos_unittest("DataBaseUtilsTest") {
   sources += [ "../src/acl.cpp" ]
 
   configs = [ ":database_utils_config" ]
-  cflags = [ "-Dprivate=public" ]
+  cflags = [ "-fno-access-control" ]
+  deps = []
+  deps += deps_hilog
+
   external_deps = [
     "bounds_checking_function:libsec_shared",
     "googletest:gtest",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 }
 
 group("unittest") {
