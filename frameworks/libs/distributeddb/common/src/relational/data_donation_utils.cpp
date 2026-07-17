@@ -17,7 +17,6 @@
 #include "data_donation_utils.h"
 
 #include <fstream>
-#include <filesystem>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -702,10 +701,42 @@ bool DataDonationUtils::IsFilePathValid(const std::string &path)
         return false;
     }
 
-    std::filesystem::path p(path);
-    std::filesystem::path normalized = p.lexically_normal();
-    if (p.is_relative() || p != normalized) {
+    if (path.front() != DBConstant::SEPARATOR) {
         LOGE("[IsFilePathValid] Relative path not allowed");
+        return false;
+    }
+
+    // continuous separator is not allowed
+    bool lastIsSeparator = false;
+    for (char ch : path) {
+        if (ch == DBConstant::SEPARATOR) {
+            if (lastIsSeparator) {
+                LOGE("[IsFilePathValid] Duplicate path separator");
+                return false;
+            }
+            lastIsSeparator = true;
+        } else {
+            lastIsSeparator = false;
+        }
+    }
+
+    // "." or ".." path segments are not allowed
+    size_t start = 1;
+    while (start < path.size()) {
+        size_t end = path.find(DBConstant::SEPARATOR, start);
+        std::string part = path.substr(start, end - start);
+        if (part == "." || part == "..") {
+            LOGE("[IsFilePathValid] Path contains '.' or '..'");
+            return false;
+        }
+        if (end == std::string::npos) {
+            break;
+        }
+        start = end + 1;
+    }
+
+    if (path.size() > 1 && path.back() == DBConstant::SEPARATOR) {
+        LOGE("[IsFilePathValid] Path ends with separator");
         return false;
     }
     return true;
