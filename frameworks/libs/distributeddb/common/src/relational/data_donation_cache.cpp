@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "data_donation_cache.h"
 #include "data_donation_sql_generator.h"
+#include "db_common.h"
 #include "sqlite_relational_utils.h"
 #include "sqlite_utils.h"
 
@@ -136,19 +137,20 @@ int DataDonationCache::LoadCursorFromCacheOrFile(const std::string &mainTable,
     if (getAllCache_.isValid && getAllCache_.mainTable == mainTable) {
         cursorValues = getAllCache_.cursorValues;
         maxRowids = getAllCache_.maxRowids;
-        LOGI("[LoadCursorFromCacheOrFile] Loaded from cache for %s", mainTable.c_str());
+        LOGI("[LoadCursorFromCacheOrFile] Loaded from cache for %s",
+            DBCommon::StringMiddleMasking(mainTable).c_str());
         return E_OK;
     }
 
     // Load from file
-    int64_t maxRowid = 0;
-    int errCode = DataDonationUtils::LoadRowidHwm(dbPath, mainTable, maxRowid, cursorValues, maxRowids);
+    int errCode = DataDonationUtils::LoadRowidHwm(dbPath, mainTable, cursorValues, maxRowids);
     if (errCode != E_OK) {
         LOGE("[LoadCursorFromCacheOrFile] Load from file failed: %d", errCode);
         return errCode;
     }
 
-    LOGI("[LoadCursorFromCacheOrFile] Loaded from file for %s", mainTable.c_str());
+    LOGI("[LoadCursorFromCacheOrFile] Loaded from file for %s",
+        DBCommon::StringMiddleMasking(mainTable).c_str());
     return E_OK;
 }
 
@@ -171,8 +173,54 @@ int DataDonationCache::FlushGetAllCursorCache()
         return errCode;
     }
 
-    LOGI("[FlushGetAllCursorCache] Persisted cursor for table %s", getAllCache_.mainTable.c_str());
+    LOGI("[FlushGetAllCursorCache] Persisted cursor for table %s",
+        DBCommon::StringMiddleMasking(getAllCache_.mainTable).c_str());
     return E_OK;
+}
+
+int DataDonationCache::PushDataToCache(SQLiteSingleVerRelationalStorageExecutor *handle)
+{
+    // First, try to push any pending data from previous partial push
+    if (!pendingData_.empty()) {
+        size_t pushed = PushPartial(pendingData_, pendingData_.size());
+        LOGI("[PushDataToCache] pushed data size: %zu", pushed);
+        if (pushed < pendingData_.size()) {
+            // Some data still couldn't fit, keep it for next time
+            std::vector<DdData> remaining(pendingData_.begin() + pushed, pendingData_.end());
+            pendingData_ = std::move(remaining);
+        } else {
+            pendingData_.clear();
+        }
+    }
+
+    std::vector<DdData> queryData;
+    int errCode = handle->QuerySubscribeOutput(ddSchema, queryData);
+    if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
+        LOGE("[PushDataToCache] Query err: %d", errCode);
+        return errCode;
+    }
+    if (queryData.size() >= GET_ALL_BATCH_NUM) {
+        LOGI("[PushDataToCache] queryData size is: %zu", queryData.size());
+    }
+
+    // Try PushBatch first, if fails due to capacity, use PushPartial
+    int ret = PushBatch(queryData, queryData.size());
+    if (ret == -E_MAX_LIMITS) {
+        // Capacity exhausted, push as much as possible and save rest for later
+        size_t pushed = PushPartial(queryData, queryData.size());
+        LOGI("[PushDataToCache] pushed data size: %zu", pushed);
+        if (pushed < queryData.size()) {
+            pendingData_.insert(pendingData_.end(), queryData.begin() + pushed, queryData.end());
+        }
+        if (pushed == 0 && !queryData.empty()) {
+            LOGE("[PushDataToCache] PushPartial failed, cache is full");
+            return -E_MAX_LIMITS;
+        }
+    } else if (ret != E_OK) {
+        LOGE("[PushDataToCache] PushBatch err: %d", ret);
+        return ret;
+    }
+    return errCode;
 }
 
 int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
@@ -199,19 +247,10 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     }
 
     if (!hasCache) {
-        std::vector<DdData> queryData;
-        errCode = handle->QuerySubscribeOutput(ddSchema, queryData);
+        errCode = PushDataToCache(handle);
         if (errCode != E_OK && errCode != -E_SUBSCRIBE_QUERY_END) {
-            LOGE("[QueryBinlog] Query err: %d", errCode);
+            LOGW("[QueryBinlog] PushDataToCache error %d.", errCode);
             return errCode;
-        }
-        if (queryData.size() >= GET_ALL_BATCH_NUM) {
-            LOGI("[QueryBinlog] queryData size is: %zu", queryData.size());
-        }
-        int ret = PushBatch(queryData, queryData.size());
-        if (ret != E_OK) {
-            LOGE("[QueryBinlog] PushBatch err: %d", ret);
-            return ret;
         }
     }
 

@@ -178,6 +178,137 @@ void DistributedDBInterfacesNBDelegateRdTest::TearDown(void)
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
 }
 
+/**
+  * @tc.name: GetPageSize001
+  * @tc.desc: Open a RD database and get pageSize through Pragma.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, GetPageSize001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate with GAUSSDB_RD engine.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("distributed_nb_delegate_get_page_size_001", g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    /**
+     * @tc.steps:step2. Get pageSize through Pragma.
+     * @tc.expected: step2. Returns OK and pageSize is a valid value.
+     */
+    int pageSize = 0;
+    PragmaData pragData = static_cast<PragmaData>(&pageSize);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(GET_PAGE_SIZE, pragData), OK);
+    EXPECT_GT(pageSize, 0);
+    EXPECT_TRUE(pageSize == 4 || pageSize == 8 || pageSize == 16 || pageSize == 32 || pageSize == 64);
+
+    /**
+     * @tc.steps:step3. Close and delete the kv store.
+     * @tc.expected: step3. Results OK and delete successfully.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_get_page_size_001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: GetPageSize002
+  * @tc.desc: Reopen a RD database and get pageSize, verify compatibility.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, GetPageSize002, TestSize.Level1)
+{
+    const std::string storeId = "distributed_nb_delegate_get_page_size_002";
+
+    /**
+     * @tc.steps:step1. Open a RD database and put some data.
+     * @tc.expected: step1. Open and put OK.
+     */
+    g_mgr.GetKvStore(storeId, g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    Key key = {'k', 'e', 'y'};
+    Value value = {'v', 'a', 'l', 'u', 'e'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
+
+    /**
+     * @tc.steps:step2. Get pageSize before close.
+     * @tc.expected: step2. Returns OK and pageSize is valid.
+     */
+    int pageSizeFirst = 0;
+    PragmaData pragData = static_cast<PragmaData>(&pageSizeFirst);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(GET_PAGE_SIZE, pragData), OK);
+    EXPECT_GT(pageSizeFirst, 0);
+    EXPECT_TRUE(pageSizeFirst == 4 || pageSizeFirst == 8 || pageSizeFirst == 16 || pageSizeFirst == 32 ||
+        pageSizeFirst == 64);
+
+    /**
+     * @tc.steps:step3. Close the store and reopen with the same storeId.
+     * @tc.expected: step3. Reopen OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+
+    g_mgr.GetKvStore(storeId, g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    /**
+     * @tc.steps:step4. Get pageSize after reopen.
+     * @tc.expected: step4. Returns OK and pageSize is consistent with the first time.
+     */
+    int pageSizeSecond = 0;
+    pragData = static_cast<PragmaData>(&pageSizeSecond);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(GET_PAGE_SIZE, pragData), OK);
+    EXPECT_GT(pageSizeSecond, 0);
+    EXPECT_EQ(pageSizeFirst, pageSizeSecond);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: GetPageSize003
+  * @tc.desc: SQLite engine does not support GET_PAGE_SIZE.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, GetPageSize003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate with default SQLite engine.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false}; // default SQLite engine
+    g_mgr.GetKvStore("distributed_nb_delegate_get_page_size_003", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    /**
+     * @tc.steps:step2. Get pageSize through Pragma.
+     * @tc.expected: step2. Returns NOT_SUPPORT.
+     */
+    int pageSize = 0;
+    PragmaData pragData = static_cast<PragmaData>(&pageSize);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(GET_PAGE_SIZE, pragData), NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step3. Close and delete the kv store.
+     * @tc.expected: step3. Results OK and delete successfully.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_get_page_size_003"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 /**
   * @tc.name:

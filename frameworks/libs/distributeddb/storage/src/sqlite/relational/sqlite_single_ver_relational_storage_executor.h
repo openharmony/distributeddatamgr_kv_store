@@ -350,7 +350,7 @@ private:
     int DoCleanLogAndData(const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
-    int CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode);
+    int CleanCloudDataOnLogTable(const std::string &logTableName, const TrackerTable &tracker, ClearMode mode);
 
     int ClearVersionOnLogTable(const std::string &logTableName);
 
@@ -377,7 +377,7 @@ private:
         const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);
 
     int GetAssetOnTable(const std::string &tableName, const std::string &fieldName,
-        const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);
+        const std::vector<int64_t> &dataKeys, std::vector<int64_t> &dataKeysOut, std::vector<Asset> &assets);
 
     int GetCloudAssetsOnTable(const std::string &tableName, const std::string &fieldName,
         const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);

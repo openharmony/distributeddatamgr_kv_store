@@ -27,7 +27,7 @@ int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::
     std::vector<Type> &cloudPkVals)
 {
     if (!cloudPkVals.empty()) {
-        LOGE("[CloudSyncer] Output parameter should be empty");
+        LOGE("[GetCloudPkVals] Output parameter should be empty");
         return -E_INVALID_ARGS;
     }
     for (const auto &pkColName : pkColNames) {
@@ -40,7 +40,7 @@ int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::
         Type type;
         bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive(pkColName, datum, type);
         if (!isExisted) {
-            LOGE("[CloudSyncer] Cloud data do not contain expected primary field value");
+            LOGE("[GetCloudPkVals] Cloud data do not contain expected primary field value");
             return -E_CLOUD_ERROR;
         }
         cloudPkVals.push_back(type);
@@ -387,6 +387,17 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
     }
 }
 
+void CloudSyncUtils::UpdateLocalCacheIfNeed(const VBucket &cloudData, bool isExist, OpType opType,
+    const ICloudSyncer::DataInfo &dataInfo, std::map<std::string, LogInfo> &localLogInfoCache)
+{
+    bool isCloudDelete = false;
+    (void)CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::DELETE_FIELD, cloudData, isCloudDelete);
+    if (isCloudDelete && !isExist) {
+        return; // skip cache to avoid hashKey collision from incomplete PK
+    }
+    UpdateLocalCache(opType, dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo, localLogInfoCache);
+}
+
 int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataIndex,
     const ICloudSyncer::DataInfo &dataInfo, std::vector<std::pair<Key, size_t>> &deletedList)
 {
@@ -445,6 +456,69 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
     param.withoutRowIdData.insertData.clear();
     param.withoutRowIdData.updateData.clear();
     param.withoutRowIdData.assetInsertData.clear();
+}
+
+int CloudSyncUtils::UpdateInsertChangedData(ICloudSyncer::SyncParam &param)
+{
+    for (size_t j : param.withoutRowIdData.insertData) {
+        VBucket &datum = param.downloadData.data[j];
+        auto rowidIter = datum.find(DBConstant::ROWID);
+        if (rowidIter == datum.end() || !std::holds_alternative<int64_t>(rowidIter->second)) {
+            LOGE("UpdateInsertChangedData rowid is nil for index=%zu", j);
+            return -E_INTERNAL_ERROR;
+        }
+        std::vector<Type> primaryValues;
+        int ret = GetCloudPkVals(datum, param.changedData.field,
+            std::get<int64_t>(rowidIter->second), primaryValues);
+        if (ret != E_OK) {
+            LOGE("UpdateInsertChangedData cannot get primaryValues");
+            return ret;
+        }
+        param.changedData.primaryData[ChangeType::OP_INSERT].push_back(primaryValues);
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::UpdateAssetInsertRowId(ICloudSyncer::SyncParam &param, DownloadList &assetsDownloadList)
+{
+    for (const auto &tuple : param.withoutRowIdData.assetInsertData) {
+        size_t downloadIndex = std::get<0>(tuple);
+        VBucket &datum = param.downloadData.data[downloadIndex];
+        auto rowidIter = datum.find(DBConstant::ROWID);
+        if (rowidIter == datum.end() || !std::holds_alternative<int64_t>(rowidIter->second)) {
+            LOGE("UpdateAssetInsertRowId rowid is nil for index=%zu", downloadIndex);
+            return -E_INTERNAL_ERROR;
+        }
+        size_t insertIdx = std::get<1>(tuple);
+        std::vector<Type> &pkVal = std::get<PRIMARY_KEY_INDEX>(assetsDownloadList[insertIdx]);
+        pkVal[0] = rowidIter->second;
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::UpdateUpdateChangedData(ICloudSyncer::SyncParam &param)
+{
+    for (const auto &tuple : param.withoutRowIdData.updateData) {
+        size_t downloadIndex = std::get<0>(tuple);
+        size_t updateIndex = std::get<1>(tuple);
+        VBucket &datum = param.downloadData.data[downloadIndex];
+        auto rowidIter = datum.find(DBConstant::ROWID);
+        if (rowidIter == datum.end() || !std::holds_alternative<int64_t>(rowidIter->second)) {
+            LOGE("UpdateUpdateChangedData rowid is nil for index=%zu", downloadIndex);
+            return -E_INTERNAL_ERROR;
+        }
+        auto &updateList = param.changedData.primaryData[ChangeType::OP_UPDATE];
+        if (updateIndex >= updateList.size()) {
+            LOGE("updateIndex is invalid. index=%zu, size=%zu", updateIndex, updateList.size());
+            return -E_INTERNAL_ERROR;
+        }
+        if (updateList[updateIndex].empty()) {
+            LOGE("primary key value list should not be empty.");
+            return -E_INTERNAL_ERROR;
+        }
+        updateList[updateIndex][0] = rowidIter->second;
+    }
+    return E_OK;
 }
 
 bool CloudSyncUtils::IsSkipErrAssetsRecord(const std::vector<VBucket> &extend)
@@ -867,6 +941,7 @@ int CloudSyncUtils::NotifyChangeData(const std::string &dev, const std::shared_p
         for (auto eachData : changedData.primaryData) {
             if (!eachData.empty()) {
                 isEmpty = false;
+                break;
             }
         }
         if (isEmpty) {
@@ -1262,14 +1337,14 @@ int CloudSyncUtils::GetDupCloudPkVals(const VBucket &datum, const std::vector<st
     std::vector<Type> &cloudPkVals)
 {
     if (!cloudPkVals.empty()) {
-        LOGE("[CloudSyncer] Output parameter should be empty");
+        LOGE("[GetDupCloudPkVals] Output parameter should be empty");
         return -E_INVALID_ARGS;
     }
     for (const auto &pkColName : pkColNames) {
         Type type;
         bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive(pkColName, datum, type);
         if (!isExisted) {
-            LOGE("[CloudSyncer] Cloud data do not contain expected primary field value");
+            LOGE("[GetDupCloudPkVals] Cloud data do not contain expected primary field value");
             return -E_CLOUD_ERROR;
         }
         cloudPkVals.push_back(type);

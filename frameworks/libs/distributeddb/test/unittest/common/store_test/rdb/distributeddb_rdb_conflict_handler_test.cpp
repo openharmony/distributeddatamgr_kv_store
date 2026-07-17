@@ -15,6 +15,7 @@
 
 #include "rdb_general_ut.h"
 #include "cloud/cloud_storage_utils.h"
+#include "relational_store_client.h"
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 using namespace testing::ext;
@@ -456,6 +457,8 @@ HWTEST_F(DistributedDBRDBConflictHandlerTest, SimpleSync009, TestSize.Level0)
     Store1InsertStore2Pull();
     EXPECT_EQ(CountTableData(info2_, CLOUD_SYNC_TABLE_A,
         "intCol=1 AND stringCol1='INTEGRATE' AND uuidCol='uuid1'"), 1);
+    auto db = GetSqliteHandle(info2_);
+    EXPECT_EQ(ArchiveSyncedData(db, CLOUD_SYNC_TABLE_A, UINT64_MAX), OK);
     /**
     * @tc.steps:step3. Store2 push and store1 pull
     * @tc.expected: step3. Sync OK.

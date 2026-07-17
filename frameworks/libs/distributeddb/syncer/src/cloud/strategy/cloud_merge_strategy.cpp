@@ -37,21 +37,12 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, bool isCloudWin,
         return TagLocallyNewer(localInfo, cloudInfo, isCloudDelete, isLocalDelete);
     }
     if (isCloudDelete) {
-        return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
+        return TagCloudDeleteLocal(localInfo, isLocalDelete);
     }
-    if (isLocalDelete) {
+    if (isLocalDelete || IsArchived(localInfo)) {
         return OpType::INSERT;
     }
-    // avoid local data insert to cloud success but return failed
-    // we just fill back gid here
-    bool isTimeSame = (localInfo.timestamp == cloudInfo.timestamp) && (localInfo.wTimestamp == cloudInfo.wTimestamp);
-    if (isTimeSame && (localInfo.cloudGid.empty() || cloudInfo.sharingResource != localInfo.sharingResource)) {
-        return OpType::ONLY_UPDATE_GID;
-    }
-    if (!localInfo.isNeedUpdateAsset && IsSameRecord(cloudInfo, localInfo)) {
-        return OpType::NOT_HANDLE;
-    }
-    return TagLoginUserAndUpdate(localInfo, cloudInfo);
+    return TagSameRecordOrUpdate(localInfo, cloudInfo);
 }
 
 bool CloudMergeStrategy::JudgeUpdateCursor() const
@@ -104,6 +95,31 @@ OpType CloudMergeStrategy::TagCloudUpdateLocal(const LogInfo &localInfo, const L
         return OpType::INSERT;
     }
     return TagUpdateLocal(cloudInfo, localInfo);
+}
+
+OpType CloudMergeStrategy::TagCloudDeleteLocal(const LogInfo &localInfo, bool isLocalDelete) const
+{
+    if (isLocalDelete) {
+        return OpType::UPDATE_TIMESTAMP;
+    }
+    if (IsArchived(localInfo)) {
+        return OpType::CLEAR_GID;
+    }
+    return OpType::DELETE;
+}
+
+OpType CloudMergeStrategy::TagSameRecordOrUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo) const
+{
+    // avoid local data insert to cloud success but return failed
+    // we just fill back gid here
+    bool isTimeSame = (localInfo.timestamp == cloudInfo.timestamp) && (localInfo.wTimestamp == cloudInfo.wTimestamp);
+    if (isTimeSame && (localInfo.cloudGid.empty() || cloudInfo.sharingResource != localInfo.sharingResource)) {
+        return OpType::ONLY_UPDATE_GID;
+    }
+    if (!localInfo.isNeedUpdateAsset && IsSameRecord(cloudInfo, localInfo)) {
+        return OpType::NOT_HANDLE;
+    }
+    return TagLoginUserAndUpdate(localInfo, cloudInfo);
 }
 
 OpType CloudMergeStrategy::TagLocalNotExist(bool isCloudDelete) const

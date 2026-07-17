@@ -75,6 +75,21 @@ public:
         return E_OK;
     }
 
+    // push as much as possible, return number of items actually pushed
+    size_t PushPartial(const std::vector<UqData> &dataIn, size_t num)
+    {
+        size_t pushed = 0;
+        for (size_t i = 0; i < num; i++) {
+            int ret = Push(dataIn[i]);
+            if (ret != E_OK) {
+                LOGI("PushPartial fail %d", ret);
+                break;
+            }
+            pushed++;
+        }
+        return pushed;
+    }
+
     size_t ReadBatch(UqData *dataOut, size_t maxNum)
     {
         size_t readNum = std::min(RemainReadSize(), maxNum);
@@ -88,19 +103,19 @@ public:
     int TryInitCursor(size_t readIn)
     {
         if (IndexHasRead(readIn)) {
-            LOGI("read cache repeat, [%d, %d), cur %d.", front_, read_, readIn);
+            LOGI("read cache repeat, [%zu, %zu), cur %zu.", front_, read_, readIn);
             read_ = readIn;
             return E_OK;
         }
 
         if (readIn == front_) {
         } else if (readIn == read_) {
-            LOGW("read without clear read cache %d.", read_);
+            LOGW("read without clear read cache %zu.", read_);
         } else if (QueueSize() == 0) {
             LOGI("Queue is empty, re-init");
             InitByFront(readIn);
         } else {
-            LOGE("invalid read start %d, read cache %d. %d", readIn, read_, -E_INVALID_ARGS);
+            LOGE("invalid read start %zu, read cache %zu. %d", readIn, read_, -E_INVALID_ARGS);
             return -E_INVALID_ARGS;
         }
         return E_OK;
@@ -162,7 +177,7 @@ public:
             front_ = newFront;
         } else {
             front_ = read_;
-            LOGW("new front %d out of range, read %d, rear %d, cap %d, force set front %d.",
+            LOGW("new front %zu out of range, read %zu, rear %zu, cap %zu, force set front %zu.",
                 newFront, read_, rear_, capacity_, front_);
         }
         return &data_[(front_ - 1 + capacity_) % capacity_];
@@ -221,6 +236,10 @@ private:
 
     int PushNew(const UqData &item)
     {
+        if (IsFull()) {
+            LOGI("PushNew IsFull");
+            return E_CONTAINER_FULL;
+        }
         auto i = rear_;
         FilterNode node = {loop_, i};
         data_[i] = item;
@@ -271,8 +290,7 @@ private:
     int Expand()
     {
         if (capacity_ >= MAX_CAP) {
-            LOGE("UniqueQueue capacity reach limit.");
-            return -E_MAX_LIMITS;
+            return -E_MAX_LIMITS; // at max capacity, signal ExpandIfNeed to stop retrying
         }
         // preserve existing queue elements and their count, as well as read cache count
         size_t dataNum = QueueSize();
@@ -301,12 +319,19 @@ private:
         int ret = E_OK;
         while (num + QueueSize() + 1 > capacity_) {  // one slot in capacity is unusable
             ret = Expand();
+            if (ret == -E_MAX_LIMITS) {
+                break; // at max capacity, stop retrying, check if data fits below
+            }
             if (ret != E_OK) {
                 LOGE("Expand capacity add %d failed. %d", num, ret);
                 return ret;
             }
         }
-        return ret;
+        if (num + QueueSize() + 1 > capacity_) {
+            LOGW("UniqueQueue capacity exhausted, data cannot fit at once.");
+            return -E_MAX_LIMITS;
+        }
+        return E_OK;
     }
     size_t capacity_ = INIT_CAP;  // current capacity
     size_t front_ = 0; // queue front (next position to dequeue)

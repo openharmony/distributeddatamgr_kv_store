@@ -1200,16 +1200,24 @@ std::string SqliteQueryHelper::GetGidRelationalCloudQuerySql(const std::vector<F
 void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql,
     CloudWaterType mode)
 {
+    std::string deleteBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_DELETE);
+    std::string localBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_LOCAL);
+    std::string forcePushIgnoreBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_FORCE_PUSH_IGNORE);
+    std::string logicDeleteBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_LOGIC_DELETE);
+    std::string inconsistencyBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY);
+    std::string uploadFinishedBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_UPLOAD_FINISHED);
+    std::string archivedBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED);
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
     // let data after remove device data at flag_only and logic delete mode and deleted by others to upload to cloud.
     if (mode == CloudWaterType::INSERT) {
-        sql += "(b.cloud_gid == '' and (b.flag & 0x20 != 0) and (b.flag & 0x02 = 0) and (b.flag & 0x08 != 0x08) and";
-        sql += " (b.flag & 0x01 = 0) and (b.status = 0)) OR ";
+        sql += "(b.cloud_gid == '' and (b.flag & " + inconsistencyBit + " != 0) and (b.flag & " + localBit +
+            " = 0) and (b.flag & " + logicDeleteBit + " != " + logicDeleteBit + ") and";
+        sql += " (b.flag & " + deleteBit + " = 0) and (b.status = 0)) OR ";
     }
     if (mode == CloudWaterType::DELETE && isCompensatedTask) {
         // deleted data does not have primary key, requires gid to compensate sync
-        sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01) AND b.cloud_gid != '') OR ";
+        sql += "(b.status = 1 AND (b.flag & " + deleteBit + " = " + deleteBit + ") AND b.cloud_gid != '') OR ";
     }
     if (mode == CloudWaterType::DELETE || mode == CloudWaterType::UPDATE) {
         if (queryObjNodes_.empty() && isCompensatedTask) {
@@ -1221,16 +1229,18 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, bool isCompensat
         }
     }
     if (isCloudForcePush) {
-        sql += " (b.flag & 0x04 != 0x04)";
+        sql += " (b.flag & " + forcePushIgnoreBit + " != " + forcePushIgnoreBit + ") AND (b.flag & " +
+            archivedBit + " != " + archivedBit + ")";
     } else {
-        sql += "(b.flag & 0x02 = 0x02)";
+        sql += "(b.flag & " + localBit + " = " + localBit + ")";
         if (!isCompensatedTask) {
             // local data and flag is not upload finished.
-            sql += " AND (b.flag & 0x400 != 0x400)";
+            sql += " AND (b.flag & " + uploadFinishedBit + " != " + uploadFinishedBit + ")";
         }
     }
-    sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
-    sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+    sql += " AND (b.flag & " + logicDeleteBit + " != " + logicDeleteBit +
+        ") AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
+    sql += " (b.cloud_gid == '' and (b.flag & " + deleteBit + " = 0))) ";
 }
 
 void SqliteQueryHelper::AppendCloudQueryToGetDiffData(std::string &sql, const CloudWaterType mode, bool isKv)
@@ -1255,18 +1265,22 @@ void SqliteQueryHelper::AppendCloudQueryToGetDiffData(std::string &sql, const Cl
 
 void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, bool isCompensatedTask, std::string &sql)
 {
+    std::string deleteBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_DELETE);
+    std::string forcePushIgnoreBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_FORCE_PUSH_IGNORE);
+    std::string archivedBit = DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED);
     sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += " WHERE ";
     if (isCompensatedTask) {
         // deleted data does not have primary key, requires gid to compensate sync
-        sql += "(b.status = 1 AND (b.flag & 0x01 = 0x01)) ";
+        sql += "(b.status = 1 AND (b.flag & " + deleteBit + " = " + deleteBit + ")) ";
         if (queryObjNodes_.empty()) {
             return;
         }
         sql += "OR ";
     }
     // actually, b.cloud_gid will not be null.
-    sql += isCloudForcePush ? " (b.flag & 0x04 != 0x04) AND (b.cloud_gid != '') " : " (b.cloud_gid != '') ";
+    sql += isCloudForcePush ? " (b.flag & " + forcePushIgnoreBit + " != " + forcePushIgnoreBit + ") AND (b.flag & " +
+        archivedBit + " != " + archivedBit + ") AND (b.cloud_gid != '') " : " (b.cloud_gid != '') ";
 }
 
 int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, std::string &sql,

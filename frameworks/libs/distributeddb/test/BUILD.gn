@@ -1060,6 +1060,7 @@ group("unittest") {
     ":DistributedDBAbnormalKVSyncTest",
     ":DistributedDBAutoLaunchUnitTest",
     ":DistributedDBBasicKVTest",
+    ":DistributedDBBasicRDBTest",
     ":DistributedDBCloudAssetCompareTest",
     ":DistributedDBCloudAssetsOperationSyncTest",
     ":DistributedDBCloudAsyncDownloadAssetsTest",
@@ -1205,7 +1206,6 @@ group("unittest") {
 
   if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
     deps += [
-      ":DistributedDBBasicRDBTest",
       ":DistributedDBDataDonationSqlTest",
       ":DistributedDBInterfacesDatabaseRdKernelTest",
       ":DistributedDBInterfacesImportAndExportRdTest",

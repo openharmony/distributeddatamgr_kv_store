@@ -455,5 +455,10 @@ void TrackerTable::Repair(std::function<void(const RepairInfo &, const std::stri
     }
     repairFunc(repairInfo_, tableName_, extendColNames_);
 }
+
+std::string TrackerTable::IsEmptyExtendSQL()
+{
+    return " (extend_field IS NULL OR extend_field='' OR extend_field='{}') ";
+}
 }
 #endif

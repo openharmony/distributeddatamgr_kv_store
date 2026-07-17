@@ -2007,7 +2007,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest004, T
     EXPECT_EQ(delegate->CreateDistributedTable(t4), NOT_SUPPORT);
     EXPECT_EQ(delegate->CreateDistributedTable(t5), NOT_SUPPORT);
     EXPECT_EQ(delegate->CreateDistributedTable(t1, DistributedDB::CLOUD_COOPERATION), NOT_SUPPORT);
-
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
 }

@@ -100,9 +100,12 @@ public:
     static int SaveRowidHwm(const std::string &dbPath, const std::string &tableName,
         const std::vector<std::pair<std::string, int64_t>> &cursorValues = {},
         const std::vector<std::pair<std::string, int64_t>> &maxRowids = {});
-    static int LoadRowidHwm(const std::string &dbPath, const std::string &tableName, int64_t &maxRowid,
+    static int LoadRowidHwm(const std::string &dbPath, const std::string &tableName,
         std::vector<std::pair<std::string, int64_t>> &cursorValues,
         std::vector<std::pair<std::string, int64_t>> &maxRowids);
+    static int ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field, JsonObject &out);
+    static int ExtractJsonObjArray(const JsonObject &inJsonObject,
+        const std::string &field, std::vector<JsonObject> &out);
 
 private:
     static std::string JoinPrimaryKey(const std::vector<DonateDataField> &changedData);
@@ -116,7 +119,7 @@ private:
 
     static std::vector<uint64_t> GetMatrixTableIndexs(const MatrixFileInfo &matrixFileInfo,
         const std::vector<std::string> &changedData, const MatrixFileUpdateConfig &config);
-    
+
     static bool IsFilePathValid(const std::string &path);
 
     static void DataChangedObserver(const char *dbPath, char *tableName);

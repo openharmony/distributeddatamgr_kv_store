@@ -816,3 +816,72 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, OpenWithValidPageSi
         conn->Close();
     }
 }
+
+/**
+  * @tc.name: OpenWithInvalidPageSize_CreateDb
+  * @tc.desc: Create new DB with invalid pageSize, Open should fail
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, OpenWithInvalidPageSize_CreateDb, TestSize.Level1)
+{
+    const std::vector<int> invalidPageSizes = {0, 1, 2, 3, 5, 7, 65, 128};
+
+    for (int badSize : invalidPageSizes) {
+        std::string storeId = "TestGeneralNBExecutor_Invalid_" + std::to_string(badSize);
+        std::string oriIdentifier = APP_ID + "-" + USER_ID + "-" + storeId;
+        std::string identifier = DBCommon::TransferHashString(oriIdentifier);
+        std::string hexIdentifier = DBCommon::TransferStringToHex(identifier);
+        std::string dbDir = g_testDir + "/" + hexIdentifier + "/" + DBConstant::SINGLE_SUB_DIR;
+
+        EXPECT_EQ(DistributedDBToolsUnitTest::RemoveTestDbFiles(dbDir), 0);
+
+        KvDBProperties initProp = g_property;
+        initProp.SetStringProp(KvDBProperties::STORE_ID, storeId);
+        initProp.SetStringProp(KvDBProperties::IDENTIFIER_DIR, hexIdentifier);
+
+        RdSingleVerNaturalStore *initStore = new (std::nothrow) RdSingleVerNaturalStore();
+        ASSERT_NE(initStore, nullptr);
+        EXPECT_EQ(initStore->Open(initProp), E_OK) << "init invalid pageSize=" << badSize;
+
+        initStore->Close();
+        RefObject::DecObjRef(initStore);
+
+        KvDBProperties prop = g_property;
+        prop.SetStringProp(KvDBProperties::STORE_ID, storeId);
+        prop.SetStringProp(KvDBProperties::IDENTIFIER_DIR, hexIdentifier);
+        prop.SetUIntProp(KvDBProperties::KVDB_PAGE_SIZE,
+            static_cast<uint32_t>(badSize));
+
+        RdSingleVerNaturalStore *store = new (std::nothrow) RdSingleVerNaturalStore();
+        ASSERT_NE(store, nullptr);
+        EXPECT_NE(store->Open(prop), E_OK) << "invalid pageSize=" << badSize;
+        RefObject::DecObjRef(store);
+
+        EXPECT_EQ(DistributedDBToolsUnitTest::RemoveTestDbFiles(dbDir), 0);
+    }
+}
+
+/**
+  * @tc.name: PragmaGetPageSize_InvalidType
+  * @tc.desc: Mock GRD_GetConfig returns non-INTEGER type, should return -E_INVALID_DATA and not write back parameter
+  * @tc.type: FUNC
+  */
+HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaGetPageSize_InvalidType, TestSize.Level1)
+{
+    DocumentDB::GRD_APIInfo *apiInfo = DocumentDB::GetApiInfo();
+    auto originalGetConfig = apiInfo->GetConfigApi;
+
+    apiInfo->GetConfigApi = [](GRD_DB *db, GRD_ConfigTypeE type) -> GRD_DbValueT {
+        GRD_DbValueT result = {GRD_DB_DATATYPE_NULL, {0}};
+        result.type = GRD_DB_DATATYPE_TEXT;
+        return result;
+    };
+
+    int pageSize = -1; // Sentinel value
+    int ret = g_connection->Pragma(PRAGMA_GET_PAGE_SIZE, &pageSize);
+
+    apiInfo->GetConfigApi = originalGetConfig;
+
+    EXPECT_EQ(ret, -E_INVALID_DATA);
+    EXPECT_EQ(pageSize, -1);
+}

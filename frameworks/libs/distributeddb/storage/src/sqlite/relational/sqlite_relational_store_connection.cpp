@@ -508,7 +508,7 @@ int SQLiteRelationalStoreConnection::SetCloudConflictHandler(const std::shared_p
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
         LOGE("[RelationalConnection] store is null when set cloud conflict handle");
-        return -E_INVALID_DB;
+        return -E_INVALID_CONNECTION;
     }
     return store->SetCloudConflictHandler(handler);
 }

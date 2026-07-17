@@ -25,7 +25,6 @@
 
 #ifdef RELATIONAL_STORE
 namespace DistributedDB {
-using namespace std;
 
 // Generic variable-length data structure
 struct DdData {

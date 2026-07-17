@@ -65,6 +65,8 @@ public:
 
     static bool IsDelete(const LogInfo &info);
 
+    static bool IsArchived(const LogInfo &info);
+
     static bool IsLogNeedUpdate(const LogInfo &cloudInfo, const LogInfo &localInfo);
 
     OpType TagUpdateLocal(const LogInfo &cloudInfo, const LogInfo &localInfo) const;

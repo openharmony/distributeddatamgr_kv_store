@@ -995,30 +995,31 @@ std::vector<std::string> TableInfo::GetCloudSyncDistributedPk() const
     return res;
 }
 
-std::vector<std::string> TableInfo::GetCloudSyncFields() const
+namespace {
+std::vector<std::string> FilterCloudSyncFields(const std::optional<TableSchema> &cloudTable,
+    const std::function<bool(const Field &)> &filter)
 {
     std::vector<std::string> res;
-    if (!cloudTable_.has_value()) {
+    if (!cloudTable.has_value()) {
         return res;
     }
-    for (const auto &field : cloudTable_.value().fields) {
-        res.push_back(field.colName);
-    }
-    return res;
-}
-
-std::vector<std::string> TableInfo::GetCloudSyncFieldsExcludeDup() const
-{
-    std::vector<std::string> res;
-    if (!cloudTable_.has_value()) {
-        return res;
-    }
-    for (const auto &field : cloudTable_.value().fields) {
-        if (!field.dupCheckCol) {
+    for (const auto &field : cloudTable.value().fields) {
+        if (filter(field)) {
             res.push_back(field.colName);
         }
     }
     return res;
+}
+}
+
+std::vector<std::string> TableInfo::GetCloudSyncFields() const
+{
+    return FilterCloudSyncFields(cloudTable_, [](const Field &) { return true; });
+}
+
+std::vector<std::string> TableInfo::GetCloudSyncFieldsExcludeDup() const
+{
+    return FilterCloudSyncFields(cloudTable_, [](const Field &field) { return !field.dupCheckCol; });
 }
 
 std::optional<TableSchema> TableInfo::GetCloudTable() const

@@ -418,17 +418,21 @@ int StorageProxy::GetPkAndAssetsFields(const TableName &tableName, std::vector<s
         return ret;
     }
     bool hasDupCheckCol = false;
+    std::vector<std::string> pk;
+    std::vector<std::string> dup;
     for (const auto &field : tableSchema.fields) {
-        if (field.primary || field.dupCheckCol) {
-            colNames.push_back(field.colName);
+        if (field.primary) {
+            pk.push_back(field.colName);
         }
         if (field.dupCheckCol) {
             hasDupCheckCol = true;
+            dup.push_back(field.colName);
         }
         if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
             assetFields.push_back(field);
         }
     }
+    colNames = hasDupCheckCol ? dup : pk;
     if (colNames.empty() || colNames.size() > 1) {
         (void)colNames.insert(colNames.begin(), DBConstant::ROWID);
     }

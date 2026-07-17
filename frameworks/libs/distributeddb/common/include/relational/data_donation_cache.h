@@ -47,6 +47,7 @@ public:
 private:
     uint64_t cursor = UINT64_MAX; // The water level value set externally，cursor % capacity = front
     DataDonationSchema ddSchema;
+    std::vector<DdData> pendingData_; // data that couldn't fit in cache, to be pushed on next QueryBinlog
 
     struct GetAllCursorCache {
         std::string mainTable;
@@ -58,6 +59,8 @@ private:
     };
 
     GetAllCursorCache getAllCache_;
+
+    int PushDataToCache(SQLiteSingleVerRelationalStorageExecutor *handle);
 
     int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
         DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);

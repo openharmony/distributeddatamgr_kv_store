@@ -213,7 +213,7 @@ enum class SubQueryType : uint32_t {
 };
 
 struct DBSubscribeCursor {
-    SubQueryType queryType;
+    SubQueryType queryType = SubQueryType::GET_ALL;
     uint64_t cursor = 0;
 };
 } // namespace DistributedDB
