@@ -1940,5 +1940,27 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithPrimaryKeyOnly001, T
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
+
+/**
+ * @tc.name: SyncWithAssetOperation016
+ * @tc.desc: Remove Local Datas When some asset are NULL
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation016, TestSize.Level1)
+{
+    const int actualCount = 5;
+    InsertUserTableRecord(tableName_, 0, actualCount);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+
+    UpdateCloudTableRecord(0, 2, true);
+    BlockSync(query, delegate_);
+    std::string sql = "UPDATE " + tableName_ + " SET asset = NULL where id < 4;";
+    ASSERT_EQ(RelationalTestUtils::ExecSql(db_, sql), SQLITE_OK);
+    std::string device = "";
+    ASSERT_EQ(delegate_->RemoveDeviceData(device, FLAG_ONLY), DBStatus::OK);
+}
 }
 #endif

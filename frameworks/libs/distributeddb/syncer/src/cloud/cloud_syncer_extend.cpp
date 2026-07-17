@@ -140,6 +140,13 @@ int CloudSyncer::GetCloudGid(
 QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (currentContext_.currentTaskId == INVALID_TASK_ID ||
+        cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
+        LOGW("[CloudSyncer] current task is invalid when get query sync objetc");
+        QuerySyncObject querySyncObject;
+        querySyncObject.SetTableName(tableName);
+        return querySyncObject;
+    }
     bool isCustomPush = cloudTaskInfos_[currentContext_.currentTaskId].mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH;
     for (const auto &item : cloudTaskInfos_[currentContext_.currentTaskId].queryList) {
         if (item.GetTableName() == tableName) {
@@ -320,6 +327,7 @@ std::map<std::string, Assets>& CloudSyncer::BackFillAssetsAfterDownload(int down
     std::map<std::string, Assets> &tmpAssetsToDelete)
 {
     std::map<std::string, Assets> &downloadAssets = tmpAssetsToDownload;
+    bool isTempPathPolicy = GetAssetConflictPolicy(false) == AssetConflictPolicy::CONFLICT_POLICY_TEMP_PATH;
     for (auto &[col, assets] : tmpAssetsToDownload) {
         int i = 0;
         for (auto &asset : assets) {
@@ -328,7 +336,8 @@ std::map<std::string, Assets>& CloudSyncer::BackFillAssetsAfterDownload(int down
                 continue;
             }
             if (downloadCode == E_OK) {
-                asset.status = NORMAL;
+                asset.status = isTempPathPolicy ? static_cast<uint32_t>(AssetStatus::TEMP_PATH) :
+                    static_cast<uint32_t>(AssetStatus::NORMAL);
             } else {
                 asset.status = (asset.status == NORMAL) ? NORMAL : ABNORMAL;
             }
@@ -1887,6 +1896,7 @@ int CloudSyncer::PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, st
         if (ret != E_OK) {
             param.info.downLoadInfo.failCount += param.downloadData.data.size();
             LOGE("[CloudSyncer] Cannot save the data to database with error code: %d.", ret);
+            return ret;
         }
         if (!IsCurrentPushOnlyTask() && GetAssetConflictPolicy() != AssetConflictPolicy::CONFLICT_POLICY_DEFAULT) {
             ret = UpdateAssetStatus(param.tableName, param.downloadData.data);

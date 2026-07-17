@@ -78,7 +78,7 @@ bool ResultEntriesWindow::MoveToPosition(int position)
         }
         return true;
     }
-    if (buffer_.size() > static_cast<size_t>(std::min(INT_MAX, INT_MAX - begin_ + 1))) {
+    if (buffer_.size() > static_cast<size_t>(std::numeric_limits<int>::max() - begin_)) {
         return false;
     }
     int last = static_cast<int>(buffer_.size()) - 1 + begin_;

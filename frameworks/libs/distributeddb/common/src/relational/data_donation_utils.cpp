@@ -34,7 +34,7 @@
 
 namespace DistributedDB {
 
-constexpr int MAX_MONITOR_TABLE_COUNT = 10;
+constexpr int MAX_MONITOR_TABLE_COUNT = 50;
 constexpr int MAX_MONITOR_COLUMN_COUNT = 100;
 
 constexpr uint16_t BINLOG_DATA_PAIR_SIZE = 2;
@@ -180,8 +180,8 @@ int DataDonationUtils::WriteHwmFile(const std::string &filePath, const JsonObjec
     std::string content = root.ToString();
     std::ofstream file(filePath);
     if (!file.is_open()) {
-        int err = file.rdstate();
-        LOGE("[DataDonationUtils] Open rowid hwm file failed, errno: %d", err);
+        LOGE("[DataDonationUtils] Open rowid hwm file failed, rdstate: %d, errno: %d",
+            static_cast<int>(file.rdstate()), errno);
         return -E_INVALID_FILE;
     }
     file << content << std::endl;
@@ -292,7 +292,7 @@ int DataDonationUtils::SaveRowidHwm(const std::string &dbPath, const std::string
     return WriteHwmFile(filePath, newRoot);
 }
 
-int DataDonationUtils::LoadRowidHwm(const std::string &dbPath, const std::string &tableName, int64_t &maxRowid,
+int DataDonationUtils::LoadRowidHwm(const std::string &dbPath, const std::string &tableName,
     std::vector<std::pair<std::string, int64_t>> &cursorValues,
     std::vector<std::pair<std::string, int64_t>> &maxRowids)
 {
@@ -335,15 +335,16 @@ int DataDonationUtils::LoadRowidHwm(const std::string &dbPath, const std::string
         ParseCursorFromHwm(table, cursorValues, maxRowids);
         for (const auto &maxRowidEntry : maxRowids) {
             if (maxRowidEntry.first == tableName) {
-                maxRowid = maxRowidEntry.second;
                 return E_OK;
             }
         }
-        LOGE("[DataDonationUtils] MaxRowid for table %s not found in cursor entries", tableName.c_str());
+        LOGE("[DataDonationUtils] MaxRowid for table %s not found in cursor entries",
+            DBCommon::StringMiddleMasking(tableName).c_str());
         return -E_INVALID_FILE;
     }
 
-    LOGE("[DataDonationUtils] TableName %s not found in hwm file", tableName.c_str());
+    LOGE("[DataDonationUtils] TableName %s not found in hwm file",
+        DBCommon::StringMiddleMasking(tableName).c_str());
     return -E_INVALID_ARGS;
 }
 
@@ -945,6 +946,43 @@ int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, std::st
     return E_OK;
 }
 
+int DataDonationUtils::ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field, JsonObject &out)
+{
+    FieldType fieldType;
+    auto fieldPath = FieldPath {field};
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
+    if (errCode != E_OK) {
+        return -E_INVALID_ARGS;
+    }
+    if (fieldType != FieldType::INTERNAL_FIELD_OBJECT) {
+        return -E_INVALID_ARGS;
+    }
+    errCode = inJsonObject.GetObjectByFieldPath(fieldPath, out);
+    if (errCode != E_OK) {
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
+
+int DataDonationUtils::ExtractJsonObjArray(const JsonObject &inJsonObject, const std::string &field,
+    std::vector<JsonObject> &out)
+{
+    FieldType fieldType;
+    auto fieldPath = FieldPath {field};
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(fieldPath, fieldType);
+    if (errCode != E_OK) {
+        return -E_INVALID_ARGS;
+    }
+    if (fieldType != FieldType::LEAF_FIELD_ARRAY) {
+        return -E_INVALID_ARGS;
+    }
+    errCode = inJsonObject.GetObjectArrayByFieldPath(fieldPath, out);
+    if (errCode != E_OK) {
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
+
 int DataDonationUtils::ParseSearchConfig(const std::string &jsonStr, JsonObject &searchConfig)
 {
     JsonObject object;
@@ -963,7 +1001,7 @@ int DataDonationUtils::ParseSearchConfig(const std::string &jsonStr, JsonObject 
 int DataDonationUtils::ExtractTableAndColumnName(const JsonObject &mapping, MonitorTablesConfig *monitorConfig)
 {
     JsonObject value;
-    int errCode = SchemaUtils::ExtractJsonObj(mapping, "value", value);
+    int errCode = ExtractJsonObj(mapping, "value", value);
     if (errCode == E_OK) {
         errCode = AddColumnsToMonitor(value, monitorConfig);
         if (errCode != E_OK) {
@@ -972,7 +1010,7 @@ int DataDonationUtils::ExtractTableAndColumnName(const JsonObject &mapping, Moni
         return errCode;
     }
     std::vector<JsonObject> values;
-    errCode = SchemaUtils::ExtractJsonObjArray(mapping, "values", values);
+    errCode = ExtractJsonObjArray(mapping, "values", values);
     if (errCode == E_OK) {
         for (const auto &valueInner : values) {
             errCode = AddColumnsToMonitor(valueInner, monitorConfig);
@@ -982,7 +1020,7 @@ int DataDonationUtils::ExtractTableAndColumnName(const JsonObject &mapping, Moni
         }
         return errCode;
     }
-    errCode = SchemaUtils::ExtractJsonObjArray(mapping, "value", values);
+    errCode = ExtractJsonObjArray(mapping, "value", values);
     if (errCode == E_OK) {
         for (const auto &valueInner : values) {
             errCode = AddColumnsToMonitor(valueInner, monitorConfig);
@@ -998,13 +1036,13 @@ int DataDonationUtils::ExtractTableAndColumnName(const JsonObject &mapping, Moni
 int DataDonationUtils::ExtractFunction(const JsonObject &mapping, MonitorTablesConfig *monitorConfig)
 {
     JsonObject function;
-    int errCode = SchemaUtils::ExtractJsonObj(mapping, "function", function);
+    int errCode = ExtractJsonObj(mapping, "function", function);
     if (errCode != E_OK) {
         LOGD("[ExtractFunction]function field not found: %d", errCode);
         return errCode;
     }
     std::vector<JsonObject> argLists;
-    errCode = SchemaUtils::ExtractJsonObjArray(function, "argList", argLists);
+    errCode = ExtractJsonObjArray(function, "argList", argLists);
     if (errCode != E_OK) {
         LOGD("[ExtractFunction] extract array from argList err: %d", errCode);
         return errCode;

@@ -1347,7 +1347,7 @@ int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
                 }
                 std::string dbPathStr(dbPath);
                 LOGW("[SQLiteUtils]binlog failed, mark invalid %s, errNo:%d, errMsg:%s",
-                    DBCommon::StringMiddleMaskingWithLen(dbPathStr).c_str(), errNo, errMsg);
+                    DBCommon::StringMiddleMaskingWithLen(dbPathStr).c_str(), errNo, errMsg == nullptr ? "" : errMsg);
             },
             .xLogFullCallback = nullptr,
             .callbackCtx = nullptr,
@@ -1357,6 +1357,8 @@ int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
         if (errCode != SQLITE_OK) {
             LOGE("[SQLiteUtils][SetBinlogEnabled] Enable binlog failed:%d", errCode);
             return SQLiteUtils::MapSQLiteErrno(errCode);
+        } else {
+            LOGI("[SQLiteUtils][SetBinlogEnabled] Enable binlog OK");
         }
     } else {
         LOGI("[SQLiteUtils][SetBinlogEnabled] Disable binlog");
@@ -1364,6 +1366,8 @@ int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
         if (errCode != SQLITE_OK) {
             LOGE("[SQLiteUtils][SetBinlogEnabled] Disable binlog failed:%d", errCode);
             return SQLiteUtils::MapSQLiteErrno(errCode);
+        } else {
+            LOGI("[SQLiteUtils][SetBinlogEnabled] Disable binlog OK");
         }
     }
     return E_OK;

@@ -515,43 +515,15 @@ int CloudSyncer::UpdateChangedData(SyncParam &param, DownloadList &assetsDownloa
     if (param.withoutRowIdData.insertData.empty() && param.withoutRowIdData.updateData.empty()) {
         return E_OK;
     }
-    int ret = E_OK;
-    for (size_t j : param.withoutRowIdData.insertData) {
-        VBucket &datum = param.downloadData.data[j];
-        std::vector<Type> primaryValues;
-        ret = CloudSyncUtils::GetCloudPkVals(datum, param.changedData.field,
-            std::get<int64_t>(datum[DBConstant::ROWID]), primaryValues);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] updateChangedData cannot get primaryValues");
-            return ret;
-        }
-        param.changedData.primaryData[ChangeType::OP_INSERT].push_back(primaryValues);
+    int ret = CloudSyncUtils::UpdateInsertChangedData(param);
+    if (ret != E_OK) {
+        return ret;
     }
-    for (const auto &tuple : param.withoutRowIdData.assetInsertData) {
-        size_t downloadIndex = std::get<0>(tuple);
-        VBucket &datum = param.downloadData.data[downloadIndex];
-        size_t insertIdx = std::get<1>(tuple);
-        std::vector<Type> &pkVal = std::get<5>(assetsDownloadList[insertIdx]); // 5 means primary key list
-        pkVal[0] = datum[DBConstant::ROWID];
+    ret = CloudSyncUtils::UpdateAssetInsertRowId(param, assetsDownloadList);
+    if (ret != E_OK) {
+        return ret;
     }
-    for (const auto &tuple : param.withoutRowIdData.updateData) {
-        size_t downloadIndex = std::get<0>(tuple);
-        size_t updateIndex = std::get<1>(tuple);
-        VBucket &datum = param.downloadData.data[downloadIndex];
-        size_t size = param.changedData.primaryData[ChangeType::OP_UPDATE].size();
-        if (updateIndex >= size) {
-            LOGE("[CloudSyncer] updateIndex is invalid. index=%zu, size=%zu", updateIndex, size);
-            return -E_INTERNAL_ERROR;
-        }
-        if (param.changedData.primaryData[ChangeType::OP_UPDATE][updateIndex].empty()) {
-            LOGE("[CloudSyncer] primary key value list should not be empty.");
-            return -E_INTERNAL_ERROR;
-        }
-        // no primary key or composite primary key, the first element is rowid
-        param.changedData.primaryData[ChangeType::OP_UPDATE][updateIndex][0] =
-            datum[DBConstant::ROWID];
-    }
-    return ret;
+    return CloudSyncUtils::UpdateUpdateChangedData(param);
 }
 
 bool CloudSyncer::IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data)
@@ -821,14 +793,13 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         LOGE("[CloudSyncer] Cannot get info by primary key or gid: %d.", ret);
         return ret;
     }
-    // Tag datum to get opType
     ret = TagStatus(isExist, param, idx, dataInfo, localAssetInfo);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot tag status: %d.", ret);
         return ret;
     }
-    CloudSyncUtils::UpdateLocalCache(param.downloadData.opType[idx], dataInfo.cloudLogInfo, dataInfo.localInfo.logInfo,
-        localLogInfoCache);
+    CloudSyncUtils::UpdateLocalCacheIfNeed(param.downloadData.data[idx], isExist,
+        param.downloadData.opType[idx], dataInfo, localLogInfoCache);
     if (param.isAssetsOnly && param.downloadData.opType[idx] != OpType::LOCKED_NOT_HANDLE) {
         // if data is lock, not need to save the local info.
         auto findGid = param.downloadData.data[idx].find(CloudDbConstant::GID_FIELD);
@@ -1824,6 +1795,9 @@ void CloudSyncer::MarkCurrentTaskPausedIfNeed(const CloudTaskInfo &taskInfo)
 void CloudSyncer::SetCurrentTaskFailedWithoutLock(int errCode, const std::string &errorMessage)
 {
     if (currentContext_.currentTaskId == INVALID_TASK_ID) {
+        return;
+    }
+    if (cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
         return;
     }
     SetTaskErrorInfo(cloudTaskInfos_[currentContext_.currentTaskId], errCode, errorMessage);

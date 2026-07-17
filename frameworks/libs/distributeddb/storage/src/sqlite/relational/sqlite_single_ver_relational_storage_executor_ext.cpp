@@ -119,7 +119,8 @@ int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(DataDonationS
     for (const auto &[tableName, sql] : sqls) {
         auto it = changedDatas.find(tableName);
         if (it == changedDatas.end()) {
-            LOGW("[QuerySubscribeOutput] No changed data for table");
+            LOGW("[QuerySubscribeOutput] No changed data for table: %s",
+                DBCommon::StringMiddleMaskingWithLen(tableName).c_str());
             continue;
         }
 
@@ -161,7 +162,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteTableQuery(const std::strin
     condition.readOnly = true;
     int errCode = ExecuteSql(condition, queryResult);
     if (errCode != E_OK) {
-        LOGE("[QuerySubscribeOutput] ExecuteSql failed: %d", errCode);
+        LOGE("[ExecuteTableQuery] ExecuteSql failed: %d", errCode);
     }
     return errCode;
 }

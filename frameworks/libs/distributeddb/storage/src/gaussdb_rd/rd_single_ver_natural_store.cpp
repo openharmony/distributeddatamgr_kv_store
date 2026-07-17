@@ -52,6 +52,7 @@ int RdSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &kvDBP
         if (storageEngine_ == nullptr) {
             return errCode;
         }
+        RefObject::IncObjRef(storageEngine_);
     }
 
     errCode = InitDatabaseContext(kvDBProp);
@@ -152,6 +153,7 @@ void RdSingleVerNaturalStore::ReleaseResources()
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
             (void)StorageEngineManager::ReleaseStorageEngine(storageEngine_);
+            RefObject::DecObjRef(storageEngine_);
             storageEngine_ = nullptr;
         }
     }

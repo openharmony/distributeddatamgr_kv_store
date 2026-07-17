@@ -41,6 +41,9 @@ public:
         const std::vector<std::vector<Type>> &keys);
 
     static int CheckTable(sqlite3 *db, const std::string &tableName, bool isCheckTableMode, bool isTracker = false);
+
+    static int CheckTable(sqlite3 *db, const std::string &tableName, const RelationalSchemaObject &rdbSchema,
+        bool isCheckTableMode, bool isTracker);
 private:
     static int CheckUpdateOption(sqlite3 *db, const UpdateOption &option);
 
@@ -61,7 +64,8 @@ private:
     static int BindDataLogCondition(sqlite3_stmt *stmt, const std::optional<SelectCondition> &condition,
         bool isLog, int &index);
 
-    static int ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName, uint64_t cursor, bool isTracker);
+    static int ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName, const TrackerTable &table,
+        uint64_t cursor, bool isTracker);
 
     static int DeleteSyncedDataInner(sqlite3 *db, const std::string &tableName,
         const std::vector<std::vector<Type>> &keys);

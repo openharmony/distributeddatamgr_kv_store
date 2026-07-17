@@ -1420,6 +1420,153 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Lev
 }
 
 /**
+ * @tc.name: QueryBinlogSubscribeData016
+ * @tc.desc: Test get ALL query where joined tables require continued querying
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData016, TestSize.Level2)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(db);
+    const int64_t count = 2;
+    for (int64_t i = 0; i < count; ++i) {
+        std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')";
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
+        int relationNum = 12000;
+        for (int64_t j = 0;  j < relationNum; ++j) {
+            std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i * relationNum + j) + ", " +
+            std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
+            EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
+        }
+    }
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    cursorIn.cursor = 0;
+
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    DBStatus status = DBStatus::OK;
+    size_t totalRecords = 0;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        cursorIn = cursorOut;
+        totalRecords = totalRecords + dataOut.size();
+        EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+    } while (status == OK);
+    size_t expectRecords = 24240;
+    EXPECT_EQ(totalRecords, expectRecords);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled002
+ * @tc.desc: Test disable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogEnabled002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate and disable binlog.
+     * @tc.expected: step1. Return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "device1"), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled003
+ * @tc.desc: Test enable then disable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogEnabled003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate, enable then disable binlog.
+     * @tc.expected: step1. Both return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "device1"), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled004
+ * @tc.desc: Test repeatedly enable binlog.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogEnabled004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Init delegate, enable binlog twice.
+     * @tc.expected: step1. Both return OK.
+     */
+    StoreInfo info1 = {USER_ID, APP_ID, STORE_ID_1};
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "device1"), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(RDBGeneralUt::CloseDelegate(info1), E_OK);
+}
+
+/**
+ * @tc.name: SetBinlogEnabled005
+ * @tc.desc: Test enable binlog then insert data works normally.
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogEnabled005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. cloud insert data.
+     * @tc.expected: step1. Ok
+     */
+    RelationalStoreDelegate::Option option;
+    option.tableMode = DistributedTableMode::COLLABORATION;
+    SetOption(option);
+    auto info1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(info1, "device1"), E_OK);
+    auto *delegate = GetDelegate(info1);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    ASSERT_EQ(SetDistributedTables(info1, {g_defaultTable1}, TableSyncType::CLOUD_COOPERATION), E_OK);
+    RDBGeneralUt::SetCloudDbConfig(info1);
+    std::shared_ptr<VirtualCloudDb> virtualCloudDb = RDBGeneralUt::GetVirtualCloudDb();
+    ASSERT_NE(virtualCloudDb, nullptr);
+    EXPECT_EQ(RDBDataGenerator::InsertCloudDBData(0, 20, 0, RDBGeneralUt::GetSchema(info1), virtualCloudDb), OK);
+    EXPECT_EQ(RDBGeneralUt::GetCloudDataCount(g_defaultTable1), 20);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 0);
+
+    /**
+     * @tc.steps: step2. cloud sync data to dev1.
+     * @tc.expected: step2. Ok
+     */
+    Query query = Query::Select().FromTable({g_defaultTable1});
+    RDBGeneralUt::CloudBlockSync(info1, query);
+    EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 20);
+}
+
+/**
  * @tc.name: QueryBinlogSubscribeData018
  * @tc.desc: Test query old cursor.
  * @tc.type: FUNC

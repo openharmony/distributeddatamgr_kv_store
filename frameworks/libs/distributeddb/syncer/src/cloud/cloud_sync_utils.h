@@ -79,6 +79,9 @@ public:
     static void UpdateLocalCache(OpType opType, const LogInfo &cloudInfo,
         const LogInfo &localInfo, std::map<std::string, LogInfo> &localLogInfoCache);
 
+    static void UpdateLocalCacheIfNeed(const VBucket &cloudData, bool isExist, OpType opType,
+        const ICloudSyncer::DataInfo &dataInfo, std::map<std::string, LogInfo> &localLogInfoCache);
+
     static int SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataIndex, const ICloudSyncer::DataInfo &dataInfo,
         std::vector<std::pair<Key, size_t>> &deletedList);
 
@@ -177,6 +180,12 @@ public:
 
     static int GetDupCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames,
         std::vector<Type> &cloudPkVals);
+
+    static int UpdateInsertChangedData(ICloudSyncer::SyncParam &param);
+
+    static int UpdateAssetInsertRowId(ICloudSyncer::SyncParam &param, DownloadList &assetsDownloadList);
+
+    static int UpdateUpdateChangedData(ICloudSyncer::SyncParam &param);
 
     static void GetDownloadListIfNeed(DownloadList &changeList, const DownloadList &downloadList,
         bool isNeedDownloadAssets);

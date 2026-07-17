@@ -618,6 +618,7 @@ namespace {
 
     void DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest::TearDown(void)
     {
+        CloseDb();
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
@@ -656,8 +657,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
 
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, ClearMode(BUTT + 1)), DBStatus::INVALID_ARGS);
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, ClearMode(-1)), DBStatus::INVALID_ARGS);
-
-    CloseDb();
 }
 
 /*
@@ -686,7 +685,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCloudRecordNum(db, g_tables, {20, 20});    // 20 means cloud data num
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataAndLogNum(db, g_tables, 0, {localCount, 0});
-    CloseDb();
 }
 
 /*
@@ -746,7 +744,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     CheckCleanLogNum(db, g_tables, 20);
     LOGD("================================== test clean cloud data 003 end ===================================");
-    CloseDb();
 }
 
 static void InitGetCloudSyncTaskCountTest001(sqlite3 *&db)
@@ -839,7 +836,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, GetCloudSyn
             return finish2;
         });
     }
-    CloseDb();
 }
 
 /*
@@ -862,7 +858,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
     std::string device = "";
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
-    CloseDb();
 }
 
 /*
@@ -899,7 +894,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     std::string device = "";
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataAndLogNum(db, g_tables, 0, {0, 0});
-    CloseDb();
 }
 
 /*
@@ -935,7 +929,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     LOGW("check 10-10");
     CheckCloudTotalCount(g_tables, {10, 10}); // 10 is cloud data num in table2
-    CloseDb();
 }
 
 /*
@@ -986,7 +979,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCloudSharedRecordNum(db, g_shareTables, {0, 0, 0, 0});
     CloudDBSyncUtilsTest::callSync(g_shareTables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     CheckCloudTotalCount(g_shareTables, {0, 0});
-    CloseDb();
 }
 
 /*
@@ -1041,7 +1033,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_NE(g_delegate, nullptr);
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::CLEAR_SHARED_TABLE), DBStatus::OK);
     CheckCloudSharedRecordNum(db, g_shareTables, {0, 0, 0, 0});
-    CloseDb();
 }
 
 /*
@@ -1073,7 +1064,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     g_delegate->RemoveDeviceData();
     CheckLocalLogCount(db, { g_tableName1 }, { localCount });
-    CloseDb();
 }
 
 /*
@@ -1108,7 +1098,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     std::string device;
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
     CheckLocalLogCount(db, { g_tableName1 }, { 0 });
-    CloseDb();
 }
 
 /*
@@ -1148,7 +1137,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
                     reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
     }
-    CloseDb();
 }
 
 /*
@@ -1194,7 +1182,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {0, 0});
     CheckLocalLogCount(db, g_tables, {0, 0});
-    CloseDb();
 }
 
 /*
@@ -1248,7 +1235,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCleanDataNum(db, g_tables, {40, 35});
     CheckLocalLogCount(db, g_tables, {40, 40});
     CheckLogoutLogCount(db, g_tables, {15, 10});
-    CloseDb();
 }
 
 /*
@@ -1286,7 +1272,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
     CheckCleanDataNum(db, g_tables, {35, 35});
     CheckLogoutLogCount(db, g_tables, {40, 40});
-    CloseDb();
 }
 
 /*
@@ -1324,7 +1309,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCleanDataNum(db, g_tables, {10, 10});
     CheckLocalLogCount(db, g_tables, {10, 10});
     CheckLogoutLogCount(db, g_tables, {10, 10});
-    CloseDb();
 }
 /*
  * @tc.name: CleanCloudDataTest016
@@ -1370,7 +1354,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     std::string device;
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
     CheckCompensatedNum(db, g_tables, {0, 0});
-    CloseDb();
 }
 
 /*
@@ -1411,7 +1394,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     std::string device;
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
     CheckLogoutLogCount(db, g_tables, {10, 15});
-    CloseDb();
 }
 
 /*
@@ -1454,7 +1436,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where cursor='40';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1486,7 +1467,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where cursor='20';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1534,7 +1514,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     EXPECT_EQ(DropLogicDeletedData(db, g_tables[0], 0u), OK);
     EXPECT_EQ(DropLogicDeletedData(db, g_tables[1], 0u), OK);
     CheckLogoutLogCount(db, g_tables, {0, 0});
-    CloseDb();
 }
 
 /*
@@ -1588,7 +1567,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where flag & 0x20 = 0;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(18), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1628,7 +1606,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where flag & 0x800 != 0;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1704,7 +1681,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where cursor = '30';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1757,7 +1733,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where flag & 0x08 == 0x08;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1808,8 +1783,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where cursor='13';";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(1), nullptr), SQLITE_OK);
-
-    CloseDb();
 }
 
 /*
@@ -1850,7 +1823,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
         " where flag & 0x02 == 0x02;";
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
-    CloseDb();
 }
 
 /*
@@ -1885,7 +1857,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(cloudCount), nullptr), SQLITE_OK);
     EXPECT_EQ(g_observer->GetLastOrigin(), Origin::ORIGIN_CLOUD);
-    CloseDb();
 }
 
 /*
@@ -1944,7 +1915,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(2), nullptr), SQLITE_OK);
     CheckCloudTotalCount(g_tables, {18, 20});
-    CloseDb();
 }
 
 /*
@@ -2002,7 +1972,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(20), nullptr), SQLITE_OK);
     CheckCloudTotalCount(g_tables, {20, 20});
-    CloseDb();
 }
 
 /*
@@ -2044,7 +2013,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     EXPECT_EQ(sqlite3_exec(db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(50), nullptr), SQLITE_OK);
     DropLogicDeletedData(db, g_tables[0], 0);
-    CloseDb();
 }
 
 void InsertCloudTableRecordAndSync(sqlite3 *&db, int64_t paddingSize, int cloudCount)
@@ -2101,7 +2069,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CheckCleanLogNum(db, g_tables, {cloudCount, cloudCount});
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
     CheckCleanLogNum(db, g_tables, {0, cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2130,7 +2097,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2168,7 +2134,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option2), DBStatus::OK);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {cloudCount});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
-    CloseDb();
 }
 
 /*
@@ -2197,7 +2162,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
-    CloseDb();
 }
 
 /*
@@ -2224,7 +2188,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::INVALID_ARGS);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2252,7 +2215,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
-    CloseDb();
 }
 
 /*
@@ -2279,7 +2241,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::NOT_FOUND);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, cloudCount, {cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2318,7 +2279,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     };
     ASSERT_EQ(g_delegate->RemoveDeviceData(option3), DBStatus::INVALID_ARGS);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, cloudCount, {cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2347,7 +2307,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     };
     ASSERT_EQ(g_delegate->RemoveDeviceData(option1), DBStatus::NOT_SUPPORT);
     CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2383,7 +2342,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
     CheckCleanDataAndLogNum(db, {g_tables[0]}, 0, {0});
     CheckCleanDataAndLogNum(db, {g_tables[1]}, 0, {0});
-    CloseDb();
 }
 
 /*
@@ -2412,7 +2370,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     };
     ASSERT_EQ(g_delegate->RemoveDeviceData(option1), DBStatus::NOT_SUPPORT);
     CheckCloudTotalCount(g_shareTables, {cloudCount, cloudCount});
-    CloseDb();
 }
 
 /*
@@ -2447,7 +2404,56 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CloudInsuff
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     g_virtualCloudDb->ForkUpload(nullptr);
     CheckCompensatedNum(db, g_tables, {10, 0});
-    CloseDb();
+}
+
+void SetTrackerForTable2()
+{
+    TrackerSchema schema = {
+        .tableName = g_tableName2,
+        .extendColNames = {"name"},
+        .trackerColNames = {"name"}
+    };
+    ASSERT_EQ(g_delegate->SetTrackerTable(schema), DBStatus::OK);
+}
+
+void InsertTable2Data(sqlite3 *&db, int count)
+{
+    for (int i = 1; i <= count; i++) {
+        std::string sql = "INSERT OR REPLACE INTO " + g_tableName2 +
+            " (id, name, height, photo, asserts, age) VALUES (" + std::to_string(i) +
+            ", 'Local" + std::to_string(i) + "', 175.8, 'x', 'y', 18);";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    }
+}
+
+void CheckLogWithExtendCount(sqlite3 *&db, const std::string &tableName, int expectCount)
+{
+    std::string sql = "SELECT count(*) FROM " + DBCommon::GetLogTableName(tableName) +
+        " WHERE extend_field IS NOT NULL AND extend_field != '' AND extend_field != '{}';";
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
+}
+
+/*
+ * @tc.name: CleanCloudDataTrackerTest001
+ * @tc.desc: Test FLAG_AND_DATA RemoveDeviceData should not delete logs with tracker extend_field
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTrackerTest001, TestSize.Level1)
+{
+    // step1. set tracker table, then insert data (log auto-generated with extend_field)
+    SetTrackerForTable2();
+    int count = 5;
+    InsertTable2Data(db, count);
+    CheckLogWithExtendCount(db, g_tableName2, count);
+    // step2. call RemoveDeviceData with FLAG_AND_DATA
+    std::string device;
+    ClearDeviceDataOption option = { DistributedDB::FLAG_AND_DATA, device, {g_tableName2} };
+    ASSERT_EQ(g_delegate->RemoveDeviceData(option), DBStatus::OK);
+    // step3. verify logs with extend_field are not deleted
+    CheckLogWithExtendCount(db, g_tableName2, count);
 }
 }
 #endif // RELATIONAL_STORE

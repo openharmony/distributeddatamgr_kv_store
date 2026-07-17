@@ -351,8 +351,15 @@ int RelationalStoreClientUtils::ArchiveSyncedData(sqlite3 *db, const std::string
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = CheckTable(db, tableName, false, true);
+    auto [ret, rdbSchema] = GetRDBSchema(db, true);
+    if (ret != E_OK) {
+        return ret;
+    }
+    errCode = CheckTable(db, tableName, rdbSchema, false, true);
     bool isTracker = false;
+    TrackerTable table = rdbSchema.GetTrackerTable(tableName);
+    table.SetTableName(tableName);
+    table.SetTriggerObserver(false);
     if (errCode == -E_DISTRIBUTED_SCHEMA_NOT_FOUND) {
         errCode = E_OK;
     } else if (errCode == E_OK) {
@@ -362,8 +369,9 @@ int RelationalStoreClientUtils::ArchiveSyncedData(sqlite3 *db, const std::string
             DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), errCode);
         return errCode;
     }
-    return SQLiteUtils::TransactionProcess(db, TransactType::IMMEDIATE, [&db, &tableName, &cursor, isTracker]() {
-        return ArchiveSyncedDataInner(db, tableName, cursor, isTracker);
+    return SQLiteUtils::TransactionProcess(db, TransactType::IMMEDIATE,
+        [&db, &tableName, &cursor, &table, isTracker]() {
+        return ArchiveSyncedDataInner(db, tableName, table, cursor, isTracker);
     });
 }
 
@@ -403,8 +411,14 @@ int RelationalStoreClientUtils::CheckTable(sqlite3 *db, const std::string &table
     if (ret != E_OK) {
         return ret;
     }
-    isCreate = false;
-    errCode = SQLiteUtils::CheckTableExists(db, tableName, isCreate);
+    return CheckTable(db, tableName, rdbSchema, isCheckTableMode, isTracker);
+}
+
+int RelationalStoreClientUtils::CheckTable(sqlite3 *db, const std::string &tableName,
+    const RelationalSchemaObject &rdbSchema, bool isCheckTableMode, bool isTracker)
+{
+    bool isCreate = false;
+    int errCode = SQLiteUtils::CheckTableExists(db, tableName, isCreate);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -427,27 +441,32 @@ int RelationalStoreClientUtils::CheckTable(sqlite3 *db, const std::string &table
     return E_OK;
 }
 
-int RelationalStoreClientUtils::ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName, uint64_t cursor,
-    bool isTracker)
+int RelationalStoreClientUtils::ArchiveSyncedDataInner(sqlite3 *db, const std::string &tableName,
+    const TrackerTable &table, uint64_t cursor, bool isTracker)
 {
     std::vector<std::pair<std::string, std::function<void()>>> executeSQL;
     executeSQL.push_back({SQLiteRelationalUtils::GetLogTriggerStatusSQL(false), nullptr});
     std::string logTable = DBCommon::GetLogTableName(tableName);
     std::string sql = "UPDATE " + logTable + " SET flag=flag|" +
         DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED) +
-        " WHERE flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + "=0 ";
-    // mark cloud data is archived
-    auto updateSQL = sql + "AND flag&0x2=0 AND cursor<=" + std::to_string(cursor);
+        " WHERE " + DBCommon::IsNotSameFlagSQL(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + " ";
+    // mark cloud data is archived, skip logic deleted data which is reserved for DropLogicDeletedData
+    auto updateSQL = sql + "AND flag&0x2=0 AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_LOGIC_DELETE) +
+        "=0 AND cursor<=" + std::to_string(cursor);
     executeSQL.push_back({updateSQL, nullptr});
-    // mark local data is archived
-    updateSQL = sql + "AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_LOCAL) + "!=0";
+    // mark local data is archived, skip logic deleted data which is reserved for DropLogicDeletedData
+    updateSQL = sql + "AND " + DBCommon::IsSameFlagSQL(LogInfoFlag::FLAG_LOCAL) + " AND " +
+        DBCommon::IsNotSameFlagSQL(LogInfoFlag::FLAG_LOGIC_DELETE) + " AND " +
+        DBCommon::IsSameFlagSQL(LogInfoFlag::FLAG_UPLOAD_FINISHED);
     executeSQL.push_back({updateSQL, nullptr});
     auto deleteSQL = "DELETE FROM " + logTable + " WHERE flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DELETE) + "!=0"
-        " AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + "=0";
+        " AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + "=0"
+        " AND flag&" + DBCommon::FlagToStr(LogInfoFlag::FLAG_LOGIC_DELETE) + "=0";
     if (isTracker) {
         deleteSQL += " AND (extend_field='{}' OR extend_field IS NULL)";
     }
     executeSQL.push_back({deleteSQL, nullptr});
+    executeSQL.push_back({table.GetTempDeleteTriggerSql(false), nullptr});
     // delete archived data
     deleteSQL = "DELETE FROM " + tableName + " WHERE _rowid_ IN ("
         "SELECT " + tableName + "._rowid_ FROM " + tableName + ", " + logTable + " WHERE " + tableName + "._rowid_=" +
@@ -456,6 +475,9 @@ int RelationalStoreClientUtils::ArchiveSyncedDataInner(sqlite3 *db, const std::s
         LOGI("[RDBClientUtils] Table[%s] archived[%d]",
             DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), sqlite3_changes(db));
     }});
+    if (isTracker) {
+        executeSQL.push_back({table.GetDropTempTriggerSql(TriggerMode::TriggerModeEnum::DELETE), nullptr});
+    }
     // mark archived data log's data key to -1
     updateSQL = "UPDATE " + logTable + " SET data_key=-1 WHERE data_key > -1 AND flag&" +
         DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED) + "!=0";
@@ -469,7 +491,9 @@ int RelationalStoreClientUtils::DeleteSyncedDataInner(sqlite3 *db, const std::st
 {
     std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag=" +
         DBCommon::FlagToStr(LogInfoFlag::FLAG_DELETE) + "|" + DBCommon::FlagToStr(LogInfoFlag::FLAG_LOCAL) +
-        "|"+ DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) + " WHERE hash_key=?";
+        "|"+ DBCommon::FlagToStr(LogInfoFlag::FLAG_DEVICE_CLOUD_INCONSISTENCY) +
+        ", timestamp=get_raw_sys_time() WHERE hash_key=? AND flag&" +
+        DBCommon::FlagToStr(LogInfoFlag::FLAG_ARCHIVED) + "!=0";
     sqlite3_stmt *stmt = nullptr;
     auto errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {

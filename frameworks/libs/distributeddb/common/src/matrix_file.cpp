@@ -132,7 +132,7 @@ int MatrixFile::GetAndCheckRealPath(const std::string &src, std::string &out) co
 {
     int errCode = OS::GetRealPath(src, out);
     if (errCode != E_OK) {
-        LOGE("[GetAndCheckRealPath] Get real path err: %d", errCode);
+        LOGE("[GetAndCheckRealPath] File path is wrong, errCode: %d", errCode);
         return -E_INVALID_FILE;
     }
 

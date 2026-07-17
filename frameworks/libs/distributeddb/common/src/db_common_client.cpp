@@ -228,4 +228,14 @@ std::string DBCommon::FlagToStr(LogInfoFlag flag)
 {
     return std::to_string(static_cast<int64_t>(flag));
 }
+
+std::string DBCommon::IsSameFlagSQL(LogInfoFlag flag)
+{
+    return std::string("flag&") + FlagToStr(flag) + "!=0";
+}
+
+std::string DBCommon::IsNotSameFlagSQL(LogInfoFlag flag)
+{
+    return std::string("flag&") + FlagToStr(flag) + "=0";
+}
 } // namespace DistributedDB

@@ -284,7 +284,7 @@ std::string DataDonationSqlGenerator::BuildOrderByClause(const std::vector<std::
     if (tableNames.empty()) {
         return "";
     }
-    // Only sort by the main table's rowid in ascending order;
+    // Only sort by the main table's rowid in ascending order,
     // joined tables default to ascending order as well which benefits query performance
     std::string clause = "ORDER BY " + FormatFieldRef(tableNames[0], DBConstant::SQLITE_INNER_ROWID) + " ASC";
     return clause;

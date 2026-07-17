@@ -1596,7 +1596,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, CalculateLensTest001, TestSize.Level
   */
 HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerializeDataTest001, TestSize.Level0)
 {
-    const uint32_t bufferSize = sizeof(uint32_t) - 1; // Make the buffer unable to accomodate a uint32_t.
+    const uint32_t bufferSize = sizeof(uint32_t) - 1; // Make the buffer unable to accommodate a uint32_t.
     uint8_t buffer[bufferSize] = {0};
     Parcel parcel(buffer, bufferSize);
     GenericSingleVerKvEntry entry;

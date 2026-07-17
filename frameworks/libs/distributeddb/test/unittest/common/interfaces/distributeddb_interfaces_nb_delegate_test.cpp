@@ -3002,4 +3002,5 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SetAndGetHandleTest002, TestSize
         delegates[i] = nullptr;
     }
 }
+
 }

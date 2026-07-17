@@ -1038,7 +1038,7 @@ std::string CloudStorageUtils::GetUpdateRecordFlagSqlUpload(const std::string &t
         sql += " data_key = '" + std::to_string(logInfo.dataKey) + "'";
     }
     if (gidEmpty && isDeleted) {
-        sql += " hash_key = ?";
+        sql += " hash_key = ? AND data_key = '-1'";
     }
     sql += ";";
     return sql;
