@@ -23,7 +23,8 @@
 │    ├── inner_api        # 内部接口声明
 │    ├── innerkits        # 部件间接口声明
 │    └── jskits           # JS API的声明
-└── test                  # 测试用例资源
+├── test                  # 测试用例资源
+└── sample                # 主要接口示例Demo
 ```
 ## 约束
 
