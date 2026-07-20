@@ -28,7 +28,6 @@ config("distributeddatafwk_config") {
     "${kv_store_base_path}/frameworks/common",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/include",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src",
-    "${kv_store_base_path}/kvstoremock/external_inner_kit/samgr/include",
   ]
 }
 
