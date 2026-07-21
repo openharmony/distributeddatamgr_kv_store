@@ -29,6 +29,23 @@ constexpr uint32_t NODE_COUNT = 3;
 struct TestNode {
     explicit TestNode(const std::string &) {}
 };
+
+void ReleaseNodes(const std::shared_ptr<Pool<TestNode>> &pool, const std::vector<std::shared_ptr<TestNode>> &nodes,
+                  const std::shared_ptr<std::atomic<uint32_t>> &releaseCount)
+{
+    std::vector<std::thread> workers;
+    for (const auto &node : nodes) {
+        workers.emplace_back([pool, node, releaseCount]() {
+            pool->Idle(node);
+            if (pool->Release(node, true)) {
+                releaseCount->fetch_add(1);
+            }
+        });
+    }
+    for (auto &worker : workers) {
+        worker.join();
+    }
+}
 } // namespace
 
 /**
@@ -52,18 +69,7 @@ HWTEST(PoolConcurrencyTest, Clean_001, TestSize.Level1)
     auto close = [pool, nodes, closeCount, releaseCount](std::shared_ptr<TestNode>) {
         auto invocation = closeCount->fetch_add(1);
         if (invocation == 0) {
-            std::vector<std::thread> workers;
-            for (const auto &node : nodes) {
-                workers.emplace_back([pool, node, releaseCount]() {
-                    pool->Idle(node);
-                    if (pool->Release(node, true)) {
-                        releaseCount->fetch_add(1);
-                    }
-                });
-            }
-            for (auto &worker : workers) {
-                worker.join();
-            }
+            ReleaseNodes(pool, nodes, releaseCount);
         }
     };
 
