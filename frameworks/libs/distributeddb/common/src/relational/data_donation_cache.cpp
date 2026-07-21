@@ -262,7 +262,6 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     }
     cursorOut.queryType = cursorIn.queryType;
     cursorOut.cursor = cursorIn.cursor + readNum;
-
     if (errCode == -E_SUBSCRIBE_QUERY_END) {
         errCode = (readNum == 0 || RemainReadSize() == 0) ? -E_SUBSCRIBE_QUERY_END : E_OK;
     }
