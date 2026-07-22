@@ -16,6 +16,7 @@ import("//build/ohos/ace/ace.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 ohos_shared_library("cj_distributed_kv_store_ffi") {
+  branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
     cfi_cross_dso = true
