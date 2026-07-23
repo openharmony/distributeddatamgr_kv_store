@@ -53,17 +53,81 @@ struct DdData {
     }
 };
 
+constexpr int HASH_LEFT_SHIFT = 6;
+constexpr int HASH_RIGHT_SHIFT = 2;
+constexpr size_t HASH_MAGIC = 0x9e3779b9;
+struct VariantHash {
+    size_t operator()(const Nil &) const
+    {
+        return 0;
+    }
+
+    size_t operator()(const int64_t &v) const
+    {
+        return std::hash<int64_t>{}(v);
+    }
+
+    size_t operator()(const double &v) const
+    {
+        return std::hash<double>{}(v);
+    }
+
+    size_t operator()(const std::string &v) const
+    {
+        return std::hash<std::string>{}(v);
+    }
+
+    size_t operator()(const bool &v) const
+    {
+        return std::hash<bool>{}(v);
+    }
+
+    size_t operator()(const Bytes &v) const
+    {
+        size_t h = 0;
+        for (auto b : v) {
+            h ^= std::hash<uint8_t>{}(b)
+                + HASH_MAGIC + (h << HASH_LEFT_SHIFT) + (h >> HASH_RIGHT_SHIFT);
+        }
+        return h;
+    }
+
+    size_t operator()(const Asset &) const
+    {
+        return 0;
+    }
+
+    size_t operator()(const Assets &) const
+    {
+        return 0;
+    }
+
+    size_t operator()(const Entries &) const
+    {
+        return 0;
+    }
+};
+
+struct TypeHash {
+    size_t operator()(const Type &value) const
+    {
+        return std::visit(VariantHash{}, value);
+    }
+};
+
 struct DdDataHash {
     size_t operator ()(const DdData &data) const
     {
-        if (data.data.empty()) {
-            return 0;
-        }
-        std::string bufStr;
+        size_t hash = 0;
         for (const auto &pair : data.data) {
-            bufStr += pair.first;
+            // hash key
+            hash ^= std::hash<std::string>{}(pair.first)
+                + HASH_MAGIC + (hash << HASH_LEFT_SHIFT) + (hash >> HASH_RIGHT_SHIFT);
+            // hash value
+            hash ^= TypeHash{}(pair.second)
+                + HASH_MAGIC + (hash << HASH_LEFT_SHIFT) + (hash >> HASH_RIGHT_SHIFT);
         }
-        return std::hash<std::string>{}(bufStr);
+        return hash;
     }
 };
 
