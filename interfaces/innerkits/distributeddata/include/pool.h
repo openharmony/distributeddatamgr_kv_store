@@ -112,10 +112,13 @@ public:
     {
         std::vector<std::shared_ptr<T>> nodeDatas;
         uint32_t temp;
+        uint32_t tempCapability;
         {
             std::unique_lock<decltype(mutex_)> lock(mutex_);
             temp = min_;
+            tempCapability = capability_;
             min_ = 0;
+            capability_ = 0;
             for (auto cur = busy_; cur != nullptr; cur = cur->next) {
                 nodeDatas.push_back(cur->data);
             }
@@ -129,6 +132,7 @@ public:
         {
             std::unique_lock<decltype(mutex_)> lock(mutex_);
             min_ = temp;
+            capability_ = tempCapability;
         }
         return true;
     }

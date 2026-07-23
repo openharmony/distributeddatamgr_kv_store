@@ -67,6 +67,7 @@ HWTEST(PoolConcurrencyTest, Clean_001, TestSize.Level1)
     auto closeCount = std::make_shared<std::atomic<uint32_t>>(0);
     auto releaseCount = std::make_shared<std::atomic<uint32_t>>(0);
     auto close = [pool, nodes, closeCount, releaseCount](std::shared_ptr<TestNode>) {
+        EXPECT_EQ(pool->Get(), nullptr);
         auto invocation = closeCount->fetch_add(1);
         if (invocation == 0) {
             ReleaseNodes(pool, nodes, releaseCount);
