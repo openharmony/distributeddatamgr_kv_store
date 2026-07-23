@@ -15,6 +15,7 @@
 #ifndef DISTRIBUTED_KVSTORE_MOCK_IF_SYSTEM_ABILITY_MANAGER_H
 #define DISTRIBUTED_KVSTORE_MOCK_IF_SYSTEM_ABILITY_MANAGER_H
 #include "iremote_broker.h"
+#include "isystem_ability_load_callback.h"
 
 namespace OHOS {
 
@@ -24,6 +25,11 @@ public:
     sptr<IRemoteObject> CheckSystemAbility(int32_t systemAbilityId)
     {
         return nullptr;
+    }
+
+    int32_t LoadSystemAbility(int32_t systemAbilityId, const sptr<ISystemAbilityLoadCallback> &callback)
+    {
+        return 0;
     }
 };
 }  // namespace OHOS
