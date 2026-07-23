@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 namespace OHOS {
 template<typename T>
 class Pool {
@@ -109,15 +110,30 @@ public:
 
     int32_t Clean(std::function<void(std::shared_ptr<T>)> close) noexcept
     {
-        auto temp = min_;
-        min_ = 0;
-        while (busy_ != nullptr) {
-            close(busy_->data);
+        std::vector<std::shared_ptr<T>> nodeDatas;
+        uint32_t temp;
+        uint32_t tempCapability;
+        {
+            std::unique_lock<decltype(mutex_)> lock(mutex_);
+            temp = min_;
+            tempCapability = capability_;
+            min_ = 0;
+            capability_ = 0;
+            for (auto cur = busy_; cur != nullptr; cur = cur->next) {
+                nodeDatas.push_back(cur->data);
+            }
+            for (auto cur = idle_; cur != nullptr; cur = cur->next) {
+                nodeDatas.push_back(cur->data);
+            }
         }
-        while (idle_ != nullptr) {
-            close(idle_->data);
+        for (const auto &data : nodeDatas) {
+            close(data);
         }
-        min_ = temp;
+        {
+            std::unique_lock<decltype(mutex_)> lock(mutex_);
+            min_ = temp;
+            capability_ = tempCapability;
+        }
         return true;
     }
 
