@@ -265,6 +265,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     if (errCode == -E_SUBSCRIBE_QUERY_END) {
         errCode = (readNum == 0 || RemainReadSize() == 0) ? -E_SUBSCRIBE_QUERY_END : E_OK;
     }
+    
     return errCode;
 }
 
