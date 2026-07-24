@@ -1620,6 +1620,38 @@ namespace {
         EXPECT_EQ(CloudStorageUtils::GetBlobFromVBucket(bucket, field, false, val), -E_CLOUD_ERROR);
     }
 
+    /**
+     * @tc.name: GetBlobFromVBucketTest002
+     * @tc.desc: Test GetBlobFromVBucket returns error when GetValueFromVBucket fails (type mismatch)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xfz
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetBlobFromVBucketTest002, TestSize.Level1)
+    {
+        /**
+         * @tc.steps:step1. call GetBlobFromVBucket with Asset field but value is int (type mismatch)
+         * @tc.expected: step1. return -E_CLOUD_ERROR because GetValueFromVBucket fails
+         */
+        VBucket bucket;
+        bucket["assetCol"] = static_cast<int64_t>(1); // wrong type, not Asset
+        Field field;
+        field.colName = "assetCol";
+        field.type = TYPE_INDEX<Asset>;
+        field.nullable = false;
+        Bytes val;
+        EXPECT_EQ(CloudStorageUtils::GetBlobFromVBucket(bucket, field, false, val), -E_CLOUD_ERROR);
+
+        /**
+         * @tc.steps:step2. call GetBlobFromVBucket with Assets field but value is int (type mismatch)
+         * @tc.expected: step2. return -E_CLOUD_ERROR because GetValueFromVBucket fails
+         */
+        bucket["assetsCol"] = static_cast<int64_t>(2); // wrong type, not Assets
+        field.colName = "assetsCol";
+        field.type = TYPE_INDEX<Assets>;
+        EXPECT_EQ(CloudStorageUtils::GetBlobFromVBucket(bucket, field, false, val), -E_CLOUD_ERROR);
+    }
+
     void GetLocalHashKeyByGid(const std::string &gid, Key &hashPrimaryKey)
     {
         std::string logTableName = DBCommon::GetLogTableName(g_tableName);

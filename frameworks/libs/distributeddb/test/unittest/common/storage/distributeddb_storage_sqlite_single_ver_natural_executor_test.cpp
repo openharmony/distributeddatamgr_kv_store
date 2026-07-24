@@ -1232,6 +1232,59 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 }
 
 /**
+  * @tc.name: ExecutorCache008
+  * @tc.desc: Test InitMigrateTimestampOffset returns -E_INTERNAL_ERROR when minTimeInCache <= maxTimeInMain
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xiefengzhu
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Insert sync_data into mainDB so both mainDB and cacheDB have same timestamp
+     * @tc.expected: step1. Expect E_OK
+     */
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(g_handle->GetDbHandle(db), E_OK);
+    std::string dbPath = g_testDir + g_databaseName;
+    OpenDbProperties property = {dbPath, false, false};
+    EXPECT_EQ(SQLiteUtils::OpenDatabase(property, db), E_OK);
+    ASSERT_NE(db, nullptr);
+    auto executor = std::make_unique<SQLiteSingleVerStorageExecutor>(
+        db, false, false, ExecutorState::CACHE_ATTACH_MAIN);
+    ASSERT_NE(executor, nullptr);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, DROP_MODIFY) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, DROP_CREATE) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, ADD_SYNC) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, INSERT_SQL) == E_OK);
+
+    /**
+     * @tc.steps: step2. Copy mainDB to cacheDB, attach cache
+     * @tc.expected: step2. Expect E_OK
+     */
+    string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
+    EXPECT_EQ(g_handle->ForceCheckPoint(), E_OK);
+    EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
+    CipherPassword password;
+    EXPECT_EQ(g_handle->AttachMainDbAndCacheDb(
+        CipherType::DEFAULT, password, cacheDir, EngineState::MAINDB), E_OK);
+
+    /**
+     * @tc.steps: step3. Call MigrateSyncDataByVersion, minTimeInCache == maxTimeInMain triggers error
+     * @tc.expected: step3. return -E_INTERNAL_ERROR
+     */
+    NotifyMigrateSyncData syncData;
+    DataItem dataItem;
+    dataItem.key = KEY_1;
+    dataItem.value = VALUE_1;
+    dataItem.timestamp = 1000;
+    std::vector<DataItem> dataItems;
+    dataItems.push_back(dataItem);
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, dataItems), -E_INTERNAL_ERROR);
+}
+
+/**
   * @tc.name: AbnormalSqlExecutorTest001
   * @tc.desc: Check SQLiteStorageExecutor interfaces abnormal scene.
   * @tc.type: FUNC
