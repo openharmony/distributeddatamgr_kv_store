@@ -31,6 +31,7 @@ public:
     static int BindDouble(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindText(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindBlob(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
+    static int GetBlobFromVBucket(const VBucket &vBucket, const Field &field, bool isNilType, Bytes &val);
     static int BindAsset(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindNil(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
 

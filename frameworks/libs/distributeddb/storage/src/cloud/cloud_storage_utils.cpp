@@ -122,33 +122,55 @@ int CloudStorageUtils::BindText(int index, const VBucket &vBucket, const Field &
     return errCode;
 }
 
+int CloudStorageUtils::GetBlobFromVBucket(const VBucket &vBucket, const Field &field,
+    bool isNilType, Bytes &val)
+{
+    if (field.type == TYPE_INDEX<Bytes>) {
+        int errCode = GetValueFromVBucket<Bytes>(field.colName, vBucket, val);
+        if (errCode == E_OK || isNilType) {
+            return E_OK;
+        }
+        LOGE("get blob from vbucket failed, %d", errCode);
+        return -E_CLOUD_ERROR;
+    }
+    if (field.type == TYPE_INDEX<Asset>) {
+        Asset asset;
+        int errCode = GetValueFromVBucket(field.colName, vBucket, asset);
+        if (errCode != E_OK && !isNilType) {
+            LOGE("get asset from vbucket failed, %d", errCode);
+            return -E_CLOUD_ERROR;
+        }
+        errCode = RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+        if (errCode != E_OK) {
+            LOGE("asset to blob failed, %d", errCode);
+            return -E_CLOUD_ERROR;
+        }
+        return E_OK;
+    }
+    Assets assets;
+    int errCode = GetValueFromVBucket(field.colName, vBucket, assets);
+    if (errCode != E_OK && !isNilType) {
+        LOGE("get assets from vbucket failed, %d", errCode);
+        return -E_CLOUD_ERROR;
+    }
+    errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+    if (errCode != E_OK) {
+        LOGE("assets to blob failed, %d", errCode);
+        return -E_CLOUD_ERROR;
+    }
+    return E_OK;
+}
+
 int CloudStorageUtils::BindBlob(int index, const VBucket &vBucket, const Field &field,
     sqlite3_stmt *upsertStmt)
 {
     int errCode = E_OK;
     Bytes val;
     bool isNilType = CheckIsNilType(vBucket, field, errCode);
-    if (field.type == TYPE_INDEX<Bytes>) {
-        errCode = GetValueFromVBucket<Bytes>(field.colName, vBucket, val);
-        if (!(errCode == E_OK || isNilType)) {
-            goto ERROR;
-        }
-    } else if (field.type == TYPE_INDEX<Asset>) {
-        Asset asset;
-        errCode = GetValueFromVBucket(field.colName, vBucket, asset);
-        if (!(errCode == E_OK || isNilType)) {
-            goto ERROR;
-        }
-        RuntimeContext::GetInstance()->AssetToBlob(asset, val);
-    } else {
-        Assets assets;
-        errCode = GetValueFromVBucket(field.colName, vBucket, assets);
-        if (!(errCode == E_OK || isNilType)) {
-            goto ERROR;
-        }
-        RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+    errCode = GetBlobFromVBucket(vBucket, field, isNilType, val);
+    if (errCode != E_OK) {
+        return errCode;
     }
-
     if (isNilType) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
@@ -158,9 +180,6 @@ int CloudStorageUtils::BindBlob(int index, const VBucket &vBucket, const Field &
         LOGE("Bind blob to insert statement failed, %d", errCode);
     }
     return errCode;
-ERROR:
-    LOGE("get blob from vbucket failed, %d", errCode);
-    return -E_CLOUD_ERROR;
 }
 
 int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt)

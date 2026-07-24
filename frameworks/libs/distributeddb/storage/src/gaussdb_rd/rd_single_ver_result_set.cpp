@@ -70,6 +70,7 @@ int RdSingleVerResultSet::Open(bool isMemDb)
             break;
         }
         default:
+            kvDB_->ReleaseHandle(handle_);
             return -E_INVALID_ARGS;
     }
     if (errCode != E_OK) {

@@ -2115,17 +2115,26 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isF
     }
 
     if (param.downloadData.data.empty()) {
-        if (ret == E_OK || isFirstDownload) {
-            LOGD("[CloudSyncer] try to query cloud data use increment water mark");
-            UpdateCloudWaterMark(taskId, param);
-            // Cloud water may change on the cloud, it needs to be saved here
-            SaveCloudWaterMark(param.tableName, taskId);
-        }
-        if (isFirstDownload) {
-            NotifyInEmptyDownload(taskId, param.info);
-        }
+        HandleEmptyDownloadData(taskId, param, isFirstDownload, ret);
     }
     return E_OK;
+}
+
+void CloudSyncer::HandleEmptyDownloadData(TaskId taskId, SyncParam &param,
+    bool isFirstDownload, int ret)
+{
+    if (ret == E_OK || isFirstDownload) {
+        LOGD("[CloudSyncer] try to query cloud data use increment water mark");
+        UpdateCloudWaterMark(taskId, param);
+        // Cloud water may change on the cloud, it needs to be saved here
+        int saveRet = SaveCloudWaterMark(param.tableName, taskId);
+        if (saveRet != E_OK) {
+            LOGE("[CloudSyncer] Save cloud water mark failed, %d", saveRet);
+        }
+    }
+    if (isFirstDownload) {
+        NotifyInEmptyDownload(taskId, param.info);
+    }
 }
 
 void CloudSyncer::ModifyDownLoadInfoCount(const int errorCode, InnerProcessInfo &info)

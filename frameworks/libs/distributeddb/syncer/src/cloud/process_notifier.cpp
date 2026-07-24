@@ -149,6 +149,7 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
     });
     if (errCode != E_OK) {
         LOGW("[ProcessNotifier] schedule notify process failed %d", errCode);
+        RefObject::DecObjRef(syncer);
     }
 }
 

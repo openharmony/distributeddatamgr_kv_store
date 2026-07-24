@@ -1548,7 +1548,7 @@ namespace {
      * @tc.require:
      * @tc.author: tiansimiao
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, BoolToVectorTest001, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, BoolToVectorTest001, TestSize.Level1)
     {
         VBucket bucket;
         Field field;
@@ -1567,7 +1567,7 @@ namespace {
      * @tc.require:
      * @tc.author: tiansimiao
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, BlobToVectorTest001, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, BlobToVectorTest001, TestSize.Level1)
     {
         VBucket bucket;
         Field field;
@@ -1578,6 +1578,46 @@ namespace {
         EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_NOT_FOUND);
         field.type = TYPE_INDEX<Asset>;
         EXPECT_EQ(CloudStorageUtils::BlobToVector(bucket, field, collateType, value), -E_CLOUD_ERROR);
+    }
+
+    /**
+     * @tc.name: GetBlobFromVBucketTest001
+     * @tc.desc: Test GetBlobFromVBucket returns error when AssetToBlob/AssetsToBlob fails
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: xfz
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetBlobFromVBucketTest001, TestSize.Level1)
+    {
+        /**
+         * @tc.steps:step1. set cloud translate to nullptr so AssetToBlob returns -E_NOT_INIT
+         * @tc.expected: step1. return OK
+         */
+        RuntimeConfig::SetCloudTranslate(nullptr);
+
+        /**
+         * @tc.steps:step2. call GetBlobFromVBucket with an Asset field
+         * @tc.expected: step2. return -E_CLOUD_ERROR because AssetToBlob fails
+         */
+        VBucket bucket;
+        Asset asset;
+        asset.name = "test";
+        bucket["assetCol"] = asset;
+        Field field;
+        field.colName = "assetCol";
+        field.type = TYPE_INDEX<Asset>;
+        Bytes val;
+        EXPECT_EQ(CloudStorageUtils::GetBlobFromVBucket(bucket, field, false, val), -E_CLOUD_ERROR);
+
+        /**
+         * @tc.steps:step3. call GetBlobFromVBucket with an Assets field
+         * @tc.expected: step3. return -E_CLOUD_ERROR because AssetsToBlob fails
+         */
+        Assets assets = { asset };
+        bucket["assetsCol"] = assets;
+        field.colName = "assetsCol";
+        field.type = TYPE_INDEX<Assets>;
+        EXPECT_EQ(CloudStorageUtils::GetBlobFromVBucket(bucket, field, false, val), -E_CLOUD_ERROR);
     }
 
     void GetLocalHashKeyByGid(const std::string &gid, Key &hashPrimaryKey)

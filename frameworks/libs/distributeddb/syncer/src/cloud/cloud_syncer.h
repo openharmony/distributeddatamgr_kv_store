@@ -356,6 +356,8 @@ protected:
 
     int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isFirstDownload);
 
+    void HandleEmptyDownloadData(TaskId taskId, SyncParam &param, bool isFirstDownload, int ret);
+
     size_t GetDownloadAssetIndex(TaskId taskId);
 
     uint32_t GetCurrentTableUploadBatchIndex();

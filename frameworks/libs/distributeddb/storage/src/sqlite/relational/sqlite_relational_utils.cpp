@@ -1785,7 +1785,11 @@ int SQLiteRelationalUtils::SqliteStepReturningValues(const std::vector<std::stri
         int index = 0;
         for (const auto &pkName : localPkNames) {
             Type pkVal;
-            SQLiteRelationalUtils::GetTypeValByStatement(stmt, index++, pkVal);
+            int ret = SQLiteRelationalUtils::GetTypeValByStatement(stmt, index++, pkVal);
+            if (ret != E_OK) {
+                LOGE("GetTypeValByStatement failed, %d", ret);
+                return ret;
+            }
             vBucket.insert({pkName, pkVal});
         }
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
