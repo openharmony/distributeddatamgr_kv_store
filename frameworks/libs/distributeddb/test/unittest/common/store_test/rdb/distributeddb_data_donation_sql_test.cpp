@@ -578,6 +578,39 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubscribeCursorBasicTest001, TestSize.
 }
 
 /**
+ * @tc.name: SetBinlogConcurrencyTest001
+ * @tc.desc: Test SetBinlogEnabled concurrency
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogConcurrencyTest001, TestSize.Level1)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetTestSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    StoreInfo storeInfo0 = {"userId0", APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo0, GetTestSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo0, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    auto delegate0 = GetDelegate(storeInfo0);
+    ASSERT_NE(delegate0, nullptr);
+
+    size_t loopTimes = 100;
+    std::thread t1([delegate, loopTimes]() {
+        for (size_t i = 0; i < loopTimes; i++) {
+            EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+        }
+    });
+    for (size_t i = 0; i < loopTimes; i++) {
+        EXPECT_EQ(delegate0->SetBinlogEnabled(true), OK);
+    }
+    t1.join();
+}
+
+/**
  * @tc.name: SetSubscribeCursorNotSupportTest001
  * @tc.desc: Test SetSubscribeCursor interface returns OK when queryType is GET_ALL.
  * @tc.type: FUNC

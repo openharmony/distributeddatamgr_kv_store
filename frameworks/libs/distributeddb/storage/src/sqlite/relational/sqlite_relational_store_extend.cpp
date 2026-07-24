@@ -256,11 +256,9 @@ int SQLiteRelationalStore::GetTargetDevices(const std::string &localDeviceId,
 
 int SQLiteRelationalStore::SetBinlogEnabled(bool enabled)
 {
-    {
-        std::lock_guard<std::mutex> lock(initalMutex_);
-        if (isBinlogEnabled_ == enabled) {
-            return E_OK;
-        }
+    std::lock_guard<std::mutex> lock(initalMutex_);
+    if (isBinlogEnabled_ == enabled) {
+        return E_OK;
     }
     int errCode = E_OK;
     std::vector<bool> isExternal = { false, true };
@@ -271,7 +269,6 @@ int SQLiteRelationalStore::SetBinlogEnabled(bool enabled)
         }
     }
     if (errCode == E_OK) {
-        std::lock_guard<std::mutex> lock(initalMutex_);
         isBinlogEnabled_ = enabled;
         return E_OK;
     }
@@ -287,7 +284,6 @@ int SQLiteRelationalStore::SetBinlogEnabled(bool enabled)
         }
     }
     if (errCodeRollback == E_OK) {
-        std::lock_guard<std::mutex> lock(initalMutex_);
         isBinlogEnabled_ = false;
     }
     return (errCode == E_OK) ? errCodeRollback : errCode;
