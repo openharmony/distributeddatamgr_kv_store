@@ -836,7 +836,12 @@ int SQLiteSingleVerStorageExecutor::InitMigrateTimestampOffset()
     // Get timestamp offset between mainDB and cacheDB.
     // The purpose of -1 is to ensure that the first data record in the original cacheDB is 1 greater than
     // the last data record in the original mainDB after the migration.
-    migrateTimeOffset_ = minTimeInCache - maxTimeInMain - 1;
+    if (minTimeInCache <= maxTimeInMain) {
+        LOGE("Min timestamp in cacheDB %" PRIu64 " is not greater than max timestamp in mainDB %" PRIu64,
+            minTimeInCache, maxTimeInMain);
+        return -E_INTERNAL_ERROR;
+    }
+    migrateTimeOffset_ = static_cast<TimeOffset>(minTimeInCache - maxTimeInMain) - 1;
     LOGI("Min timestamp in cacheDB is %" PRIu64 ", max timestamp in mainDB is %" PRIu64 ". Time offset during migrating"
         " is %" PRId64 ".", minTimeInCache, maxTimeInMain, migrateTimeOffset_);
     return E_OK;

@@ -1462,6 +1462,10 @@ std::pair<int, int64_t> SqliteQueryHelper::BindCountKvCloudDataStatement(sqlite3
         count = 0;
         return res;
     }
+    if (errCode != E_OK) {
+        LOGE("StepNext failed %d when get upload count", errCode);
+        return res;
+    }
     count = sqlite3_column_int64(stmt, CLOUD_QUERY_COUNT_INDEX);
     LOGD("[SqliteCloudKvExecutorUtils] Get total upload count %" PRId64, count);
     return res;

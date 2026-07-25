@@ -863,10 +863,14 @@ void ClientObserverCallback(const std::string &hashFileName)
         if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
             clientChangedData = g_clientChangedDataMap[hashFileName];
             TaskId taskId = DBConstant::INVALID_TASK_ID;
-            (void)DistributedDB::ThreadPoolStub::GetInstance().ScheduleTask([clientObserver, clientChangedData] {
-                ClientChangedData taskClientChangedData = clientChangedData;
-                clientObserver(taskClientChangedData);
+            int scheduleRet = DistributedDB::ThreadPoolStub::GetInstance().ScheduleTask(
+                [clientObserver, clientChangedData] {
+                    ClientChangedData taskClientChangedData = clientChangedData;
+                    clientObserver(taskClientChangedData);
                 }, taskId);
+            if (scheduleRet != E_OK) {
+                LOGE("ScheduleTask failed err: %d, client observer will be skipped", scheduleRet);
+            }
             g_clientChangedDataMap[hashFileName].tableData.clear();
         }
     }

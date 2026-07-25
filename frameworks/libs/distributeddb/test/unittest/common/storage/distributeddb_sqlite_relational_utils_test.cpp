@@ -229,4 +229,47 @@ HWTEST_F(DistributedDBSqliteRelationalUtilsTest, SqliteRelationalUtilsTest003, T
     SQLiteUtils::ResetStatement(statement, true, errCode);
     ASSERT_EQ(statement, nullptr);
 }
+
+/**
+ * @tc.name: SqliteRelationalUtilsTest004
+ * @tc.desc: Test SqliteStepReturningValues returns error when GetTypeValByStatement fails
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBSqliteRelationalUtilsTest, SqliteRelationalUtilsTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. set CloudDataTranslate and insert data
+     * @tc.expected: step1. return OK
+     */
+    virtualCloudDataTranslate_ = std::make_shared<VirtualCloudDataTranslate>();
+    RuntimeConfig::SetCloudTranslate(virtualCloudDataTranslate_);
+    std::string sql = "INSERT OR REPLACE INTO worker1(id, name, height, married, photo, asset, assets)" \
+        "VALUES (?,?,?,?,?,?,?);";
+    sqlite3_stmt *statement = nullptr;
+    PrepareStatement(sql, statement, true);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(statement), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    ASSERT_EQ(statement, nullptr);
+
+    /**
+     * @tc.steps:step2. prepare a SELECT that returns only one column (id)
+     * @tc.expected: step2. return OK
+     */
+    sql = "SELECT id from worker1;";
+    ASSERT_EQ(SQLiteUtils::GetStatement(g_db, sql, statement), E_OK);
+
+    /**
+     * @tc.steps:step3. call SqliteStepReturningValues with more pkNames than result columns
+     * @tc.expected: step3. return -E_INVALID_ARGS because GetTypeValByStatement fails on out-of-range index
+     */
+    std::vector<std::string> localPkNames = {"id", "name"};
+    VBucket vBucket;
+    EXPECT_EQ(SQLiteRelationalUtils::SqliteStepReturningValues(localPkNames, statement, vBucket),
+        -E_INVALID_ARGS);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    ASSERT_EQ(statement, nullptr);
+}
 }
