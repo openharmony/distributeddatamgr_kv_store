@@ -113,7 +113,8 @@ OpType CloudMergeStrategy::TagSameRecordOrUpdate(const LogInfo &localInfo, const
     // avoid local data insert to cloud success but return failed
     // we just fill back gid here
     bool isTimeSame = (localInfo.timestamp == cloudInfo.timestamp) && (localInfo.wTimestamp == cloudInfo.wTimestamp);
-    if (isTimeSame && (localInfo.cloudGid.empty() || cloudInfo.sharingResource != localInfo.sharingResource)) {
+    if (isTimeSame && (localInfo.cloudGid.empty() || cloudInfo.sharingResource != localInfo.sharingResource) &&
+        !localInfo.isNeedUpdateAsset) {
         return OpType::ONLY_UPDATE_GID;
     }
     if (!localInfo.isNeedUpdateAsset && IsSameRecord(cloudInfo, localInfo)) {
