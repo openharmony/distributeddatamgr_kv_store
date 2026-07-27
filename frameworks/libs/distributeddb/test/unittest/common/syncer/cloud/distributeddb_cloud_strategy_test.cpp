@@ -170,6 +170,9 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
     cloudInfo.flag = 0; // it means no delete
     localInfo.flag = 0; // it means no delete
     EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
+    localInfo.isNeedUpdateAsset = true;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::UPDATE);
+    localInfo.isNeedUpdateAsset = false;
 
     /**
      * @tc.steps: step12. local record is newer and local not exist gid, while record is sync-ed
