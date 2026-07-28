@@ -101,10 +101,9 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     DBDfxAdapter::StartTracing();
     bool isHighPerformaceReadMode = IsHighPerformaceReadMode();
     // need to check if the transaction started
-    {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
-        bool inTransaction = transactionExeFlag_.load();
-        if (!isHighPerformaceReadMode || inTransaction) {
+    if (!isHighPerformaceReadMode || transactionExeFlag_.load()) {
+        {
+            std::lock_guard<std::mutex> lock(transactionMutex_);
             if (writeHandle_ != nullptr) {
                 LOGD("Transaction started already.");
                 Timestamp recordTimestamp;
