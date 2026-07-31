@@ -236,21 +236,33 @@ std::string CloudSyncLogTableManager::GetInsertLogSQL(const TableInfo &table, co
     std::string sql;
     auto &tableName = table.GetTableName();
     auto logTblName = DBCommon::GetLogTableName(tableName);
+    auto hashKeyExpr = CalcPrimaryKeyHash("NEW.", table, identity);
+    // For rowid table (no primary key), conflict key is (hash_key, cloud_gid). We must reuse the
+    // existing cloud_gid so that ON CONFLICT can match the prior delete/archive log
+    std::string cloudGidValue = "''";
+    auto primaryKey = table.GetPrimaryKey();
+    if (primaryKey[0] == DBConstant::ROWID) {
+        cloudGidValue = "COALESCE((SELECT cloud_gid FROM " + logTblName +
+            " WHERE hash_key = " + hashKeyExpr + " LIMIT 1), '')";
+    }
     sql += "\t INSERT ";
     sql += "INTO " + logTblName;
     sql += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
     sql += " extend_field, cursor, version, sharing_resource, status)";
     sql += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     sql += " get_raw_sys_time(), get_raw_sys_time(), 0x02|0x20, ";
-    sql += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
+    sql += hashKeyExpr + ", " + cloudGidValue + ", ";
     sql += table.GetTrackerTable().GetAssignValSql();
     sql += ", " + CloudStorageUtils::GetSelectIncCursorSql(tableName) + ", ";
     sql += "(SELECT CASE WHEN version IS NULL THEN '' ELSE version END FROM " + logTblName;
-    sql += " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
+    sql += " WHERE hash_key = " + hashKeyExpr;
     sql += "), '', 0) ON CONFLICT(" + GetUpdateConflictKey(table);
     sql += ") DO UPDATE SET data_key=EXCLUDED.data_key, device=EXCLUDED.device,"
            " timestamp=EXCLUDED.timestamp, flag=EXCLUDED.flag, extend_field=EXCLUDED.extend_field,"
-           " cursor=EXCLUDED.cursor, status=EXCLUDED.status";
+           " cursor=EXCLUDED.cursor, status=EXCLUDED.status, sharing_resource=EXCLUDED.sharing_resource,"
+           " version=EXCLUDED.version,";
+    sql += " wtimestamp = CASE WHEN " + DBCommon::IsSameFlagSQL(LogInfoFlag::FLAG_ARCHIVED) +
+           " THEN wtimestamp ELSE EXCLUDED.wtimestamp END";
     return sql;
 }
 

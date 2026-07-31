@@ -178,7 +178,6 @@ ohos_source_set("src_file") {
     "zlib:libz",
   ]
   part_name = "kv_store"
-  subsystem_name = "distributeddatamgr"
 }
 
 template("distributeddb_unittest") {
@@ -1095,6 +1094,7 @@ group("unittest") {
     ":DistributedDBCommunicatorSendReceiveTest",
     ":DistributedDBCommunicatorTest",
     ":DistributedDBDataCompressionTest",
+    ":DistributedDBDataDonationSqlTest",
     ":DistributedDBDataTransformerTest",
     ":DistributedDBDeviceIdentifierTest",
     ":DistributedDBEventLoopTimerTest",
@@ -1205,7 +1205,6 @@ group("unittest") {
 
   if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
     deps += [
-      ":DistributedDBDataDonationSqlTest",
       ":DistributedDBInterfacesDatabaseRdKernelTest",
       ":DistributedDBInterfacesImportAndExportRdTest",
       ":DistributedDBInterfacesNBDelegateRdTest",

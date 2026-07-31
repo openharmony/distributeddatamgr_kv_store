@@ -103,6 +103,19 @@ int DBCommon::CalcValueHash(const std::vector<uint8_t> &value, std::vector<uint8
     return E_OK;
 }
 
+int DBCommon::GetHashString(const std::string &str, std::string &dst)
+{
+    std::vector<uint8_t> strVec;
+    strVec.assign(str.begin(), str.end());
+    std::vector<uint8_t> hashVec;
+    int errCode = CalcValueHash(strVec, hashVec);
+    if (errCode != E_OK) {
+        LOGE("calc hash value fail, %d", errCode);
+        return errCode;
+    }
+    dst.assign(hashVec.begin(), hashVec.end());
+    return E_OK;
+}
 
 namespace {
 bool CharIn(char c, const std::string &pattern)
@@ -214,5 +227,15 @@ int DBCommon::CreateDirectory(const std::string &directory)
 std::string DBCommon::FlagToStr(LogInfoFlag flag)
 {
     return std::to_string(static_cast<int64_t>(flag));
+}
+
+std::string DBCommon::IsSameFlagSQL(LogInfoFlag flag)
+{
+    return std::string("flag&") + FlagToStr(flag) + "!=0";
+}
+
+std::string DBCommon::IsNotSameFlagSQL(LogInfoFlag flag)
+{
+    return std::string("flag&") + FlagToStr(flag) + "=0";
 }
 } // namespace DistributedDB

@@ -35,7 +35,7 @@ OpType CloudCustomPullStrategy::TagSyncDataStatus(const DataStatusInfo &statusIn
         cloudData.insert_or_assign(item.first, item.second);
     }
     if (ret != ConflictRet::NOT_HANDLE) {
-        return ConvertToOpType(statusInfo.isExistInLocal && !IsDelete(localInfo), ret);
+        return ConvertToOpType(statusInfo.isExistInLocal && !IsDelete(localInfo) && !IsArchived(localInfo), ret);
     }
     if (IsDelete(cloudInfo)) {
         return OpType::CLEAR_GID;
@@ -80,7 +80,7 @@ OpType CloudCustomPullStrategy::ConvertToOpType(bool isLocalExist, ConflictRet c
         case ConflictRet::INTEGRATE:
             return isLocalExist ? OpType::INTEGRATE : OpType::INSERT;
         case ConflictRet::DELETE:
-            return OpType::DELETE;
+            return isLocalExist ? OpType::DELETE : OpType::CLEAR_GID;
         default:
             LOGW("[CloudCustomPullStrategy] Unknown conflict ret %d", static_cast<int>(conflictRet));
             return OpType::NOT_HANDLE;

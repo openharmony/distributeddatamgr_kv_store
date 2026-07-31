@@ -46,4 +46,4 @@ DistributedDB::DBStatus DeleteSyncedData(sqlite3 *db, const std::string &tableNa
 #else
     return DistributedDB::OK;
 #endif
-} // namespace DistributedDB
+}

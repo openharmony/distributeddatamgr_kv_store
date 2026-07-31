@@ -74,6 +74,7 @@ public:
     void CheckExistDirtyLog(sqlite3 *db);
     bool IsNeedRepair();
     void Repair(std::function<void(const RepairInfo &, const std::string &, const std::set<std::string> &)> repairFunc);
+    static std::string IsEmptyExtendSQL();
 private:
     std::string tableName_;
     std::string extendColName_;

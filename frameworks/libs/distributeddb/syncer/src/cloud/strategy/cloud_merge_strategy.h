@@ -36,6 +36,10 @@ private:
     OpType TagCloudUpdateLocal(const LogInfo &localInfo, const LogInfo &cloudInfo, bool isCloudDelete,
         bool isLocalDelete) const;
 
+    OpType TagCloudDeleteLocal(const LogInfo &localInfo, bool isLocalDelete) const;
+
+    OpType TagSameRecordOrUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo) const;
+
     OpType TagLoginUserAndUpdate(const LogInfo &localInfo, const LogInfo &cloudInfo) const;
 
     OpType TagLocalNotExist(bool isCloudDelete) const;

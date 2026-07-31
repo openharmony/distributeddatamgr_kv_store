@@ -1143,12 +1143,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanAssetId(const std::string &ta
     for (const auto &fieldInfo : fieldInfos) {
         if (fieldInfo.IsAssetType()) {
             Assets assets;
-            errCode = GetAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            std::vector<int64_t> dataKeysOut;
+            errCode = GetAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, dataKeysOut, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud asset on table, %d.", errCode);
                 return errCode;
             }
-            errCode = UpdateAssetIdOnUserTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            errCode = UpdateAssetIdOnUserTable(tableName, fieldInfo.GetFieldName(), dataKeysOut, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to save clean asset id on table, %d.", errCode);
                 return errCode;

@@ -130,6 +130,70 @@ void GenerateTableSchemaRowId(TableSchema &tableSchema)
     };
 }
 
+void GenerateTableSchemaCompoundPrimaryKey(TableSchema &tableSchema)
+{
+    tableSchema = {
+        "TestTable3",
+        "",
+        {{"name", TYPE_INDEX<std::string>, true},
+         {"age", TYPE_INDEX<int64_t>, true}}
+    };
+}
+
+std::vector<VBucket> GetRetCloudDataWithoutRowid(uint64_t cnt)
+{
+    std::vector<uint8_t> photo(g_photoCount, 'v');
+    std::vector<VBucket> cloudData;
+    for (uint64_t i = 0; i < cnt; ++i) {
+        VBucket data;
+        data.insert_or_assign("name", "Cloud" + std::to_string(i));
+        data.insert_or_assign("height", g_dataHeight);
+        data.insert_or_assign("married", (bool)0);
+        data.insert_or_assign("photo", photo);
+        data.insert_or_assign("age", 13L);
+        data.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i));
+        data.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)i);
+        data.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)i);
+        data.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+        data.insert_or_assign(CloudDbConstant::CURSOR_FIELD, std::to_string(i));
+        cloudData.push_back(data);
+    }
+    return cloudData;
+}
+
+std::vector<VBucket> GetRetCloudDataDeleteOnlyGid(uint64_t cnt)
+{
+    std::vector<VBucket> cloudData;
+    for (uint64_t i = 0; i < cnt; ++i) {
+        VBucket data;
+        data.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i));
+        data.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)i);
+        data.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)i);
+        data.insert_or_assign(CloudDbConstant::DELETE_FIELD, true);
+        data.insert_or_assign(CloudDbConstant::CURSOR_FIELD, std::to_string(i));
+        cloudData.push_back(data);
+    }
+    return cloudData;
+}
+
+static void ExpectCompoundPkCommonCalls()
+{
+    EXPECT_CALL(*g_iCloud, StartTransaction(_, false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Commit(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
+    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _))
+        .WillRepeatedly([](const TableName &, TableSchema &tableSchema) {
+            GenerateTableSchemaCompoundPrimaryKey(tableSchema);
+            return E_OK;
+        });
+    EXPECT_CALL(*g_idb, HasCloudUpdate(_, _)).WillRepeatedly(Return(true));
+}
+
 std::vector<VBucket> GetInvalidTypeCloudData(uint64_t cnt, InvalidCloudDataOpt fieldOpt)
 {
     std::vector<uint8_t> photo(g_photoCount, 'v');
@@ -802,6 +866,107 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest009, TestSize.Lev
             data = GetRetCloudData(1);
             return QUERY_END;
         });
+    int errCode = g_cloudSyncer->CallDoDownload(taskId);
+    EXPECT_EQ(errCode, E_OK);
+}
+
+/**
+ * @tc.name: DownloadMockTest010
+ * @tc.desc: PutCloudSyncData fails for compound primary key table, error should propagate without crash
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest010, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare task with compound primary key schema
+     * @tc.expected: step1. PutCloudSyncData returns error, sync should return error without crash
+     */
+    TaskId taskId = 1u;
+    ExpectCompoundPkCommonCalls();
+    int dataCnt = 3;
+    EXPECT_CALL(*g_idb, Query(_, _, _))
+        .WillOnce([dataCnt](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudDataWithoutRowid(dataCnt); // Gen 3 data without rowid
+            return QUERY_END;
+        });
+    EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
+        .WillRepeatedly([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
+            info = GetLogInfo(0, false);
+            return -E_NOT_FOUND; // data not exist locally, will be tagged as INSERT
+        });
+    // Simulate PutCloudSyncData failure
+    EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(-E_CLOUD_ERROR));
+
+    g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
+    int errCode = g_cloudSyncer->CallDoDownload(taskId);
+    // Error should propagate, not crash
+    EXPECT_EQ(errCode, -E_CLOUD_ERROR);
+}
+
+/**
+ * @tc.name: DownloadMockTest011
+ * @tc.desc: When rowid is Nil in downloadData for compound primary key table, return error gracefully
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest011, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare task with compound primary key schema, cloud data has no rowid
+     * @tc.expected: step1. PutCloudSyncData returns OK but does not fill rowid,
+     *               UpdateChangedData should return -E_INTERNAL_ERROR without crash
+     */
+    TaskId taskId = 1u;
+    ExpectCompoundPkCommonCalls();
+    int dataCnt = 3;
+    EXPECT_CALL(*g_idb, Query(_, _, _))
+        .WillOnce([dataCnt](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudDataWithoutRowid(dataCnt); // Gen 3 data without rowid
+            return QUERY_END;
+        });
+    EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
+        .WillRepeatedly([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
+            info = GetLogInfo(0, false);
+            return -E_NOT_FOUND; // data not exist locally, will be tagged as INSERT
+        });
+    // PutCloudSyncData returns OK but does not fill rowid (mock does not modify downloadData)
+    EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
+
+    g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
+    int errCode = g_cloudSyncer->CallDoDownload(taskId);
+    // Should return error gracefully instead of crashing with std::bad_variant_access
+    EXPECT_EQ(errCode, -E_INTERNAL_ERROR);
+}
+
+/**
+ * @tc.name: DownloadMockTest012
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xiefengzhu
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest012, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare 3 DELETE records with only gid, all return -E_NOT_FOUND
+     * @tc.expected: step1. download completes with E_OK, no cache collision crash
+     */
+    TaskId taskId = 1u;
+    ExpectCompoundPkCommonCalls();
+    int dataCnt = 3;
+    EXPECT_CALL(*g_idb, Query(_, _, _))
+        .WillOnce([dataCnt](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudDataDeleteOnlyGid(dataCnt);
+            return QUERY_END;
+        });
+    EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
+        .WillRepeatedly([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
+            info = GetLogInfo(0, false);
+            return -E_NOT_FOUND; // data not exist locally, will be tagged as INSERT
+        });
+    g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
 }
