@@ -190,7 +190,6 @@ std::vector<DetailInfo> DevManager::GetRemoteDevices()
             continue;
         }
         dtInfo.uuid = std::move(uuid);
-        dtInfos.push_back(dtInfo);
     }
     return dtInfos;
 }
