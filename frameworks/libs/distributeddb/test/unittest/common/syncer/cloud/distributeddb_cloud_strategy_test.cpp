@@ -614,5 +614,72 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest012, TestSize.Level0)
     cloudInfo.version = "v";
     EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData),
         OpType::ONLY_UPDATE_GID);
+    handler->SetCallback([](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::UPSERT;
+    });
+    localInfo.flag = localInfo.flag | static_cast<uint32_t>(LogInfoFlag::FLAG_ARCHIVED);
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData),
+        OpType::INSERT);
+    handler->SetCallback([](const std::string &, const VBucket &, const VBucket &, VBucket &) {
+        return ConflictRet::DELETE;
+    });
+    EXPECT_EQ(strategy->TagSyncDataStatus(statusInfo, localInfo, localData, cloudInfo, cloudData),
+        OpType::CLEAR_GID);
+}
+
+/**
+ * @tc.name: TagOpTyeTest013
+ * @tc.desc: Verify archived data strategy when cloud delete or insert.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xfz
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest013, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. build cloud merge strategy, init archived local info
+     * @tc.expected: step1. create ok
+     */
+    auto mergeStrategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_MERGE);
+    ASSERT_NE(mergeStrategy, nullptr);
+    LogInfo localInfo;
+    // archived data: data row deleted but log exists, flag has FLAG_ARCHIVED but not FLAG_DELETE
+    localInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_ARCHIVED);
+    localInfo.cloudGid = "gid";
+    LogInfo cloudInfo;
+
+    /**
+     * @tc.steps: step2. set flag
+     * @tc.expected: step2. Get OpType
+     */
+    cloudInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    EXPECT_EQ(mergeStrategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::CLEAR_GID);
+
+    cloudInfo.flag = 0;
+    EXPECT_EQ(mergeStrategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::INSERT);
+
+    cloudInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    cloudInfo.timestamp = 2u; // mark 2 means cloud is newer
+    EXPECT_EQ(mergeStrategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::CLEAR_GID);
+
+    cloudInfo.flag = 0;
+    EXPECT_EQ(mergeStrategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::INSERT);
+
+    /**
+     * @tc.steps: step3. build cloud pull strategy, init archived local info
+     * @tc.expected: step3. create ok
+     */
+    auto pullStrategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_FORCE_PULL);
+    ASSERT_NE(pullStrategy, nullptr);
+
+    /**
+     * @tc.steps: step4. set flag
+     * @tc.expected: step4. Get OpType
+     */
+    cloudInfo.flag = static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+    EXPECT_EQ(pullStrategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::CLEAR_GID);
+
+    cloudInfo.flag = 0;
+    EXPECT_EQ(pullStrategy->TagSyncDataStatus(true, false, localInfo, cloudInfo), OpType::INSERT);
 }
 }

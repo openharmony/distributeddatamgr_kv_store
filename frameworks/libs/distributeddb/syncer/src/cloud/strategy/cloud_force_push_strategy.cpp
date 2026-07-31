@@ -23,11 +23,11 @@ OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unuse
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
         return OpType::LOCKED_NOT_HANDLE;
     }
-    bool isCloudDelete = IsDelete(cloudInfo);
-    if (!existInLocal) {
+    bool isLocalArchived = IsArchived(localInfo);
+    if (!existInLocal || isLocalArchived) {
         return OpType::NOT_HANDLE;
     }
-
+    bool isCloudDelete = IsDelete(cloudInfo);
     if (localInfo.cloudGid.empty()) {
         // when cloud or local data is deleted, we think it is different data
         bool isLocalDelete = IsDelete(localInfo);

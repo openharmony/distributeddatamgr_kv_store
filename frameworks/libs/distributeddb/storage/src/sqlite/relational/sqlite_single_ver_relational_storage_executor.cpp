@@ -1642,7 +1642,8 @@ void SQLiteSingleVerRelationalStorageExecutor::SetLocalSchema(const RelationalSc
     localSchema_ = localSchema;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName, ClearMode mode)
+int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName,
+    const TrackerTable &tracker, ClearMode mode)
 {
     std::string setFlag;
     if (mode == FLAG_ONLY && isLogicDelete_) {
@@ -1651,7 +1652,10 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std
         setFlag = SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC;
     }
     std::string cleanLogSql = "DELETE FROM " + logTableName +
-        " WHERE " + FLAG_IS_CLOUD_CONSISTENCY + " AND " + DATA_IS_DELETE + ";";
+        " WHERE " + FLAG_IS_CLOUD_CONSISTENCY + " AND " + DATA_IS_DELETE;
+    if (!tracker.IsTableNameEmpty()) {
+        cleanLogSql += " AND " + TrackerTable::IsEmptyExtendSQL();
+    }
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
         LOGE("delete cloud log failed, %d", errCode);
@@ -1693,17 +1697,39 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanUploadFinishedFlag(const std:
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(const std::string &tableName,
     const std::string &logTableName, const RelationalSchemaObject &localSchema)
 {
+    auto tableInfo = localSchema.GetTable(tableName);
+    auto tracker = tableInfo.GetTrackerTable();
+    int errCode = E_OK;
+    if (!tracker.IsTableNameEmpty()) {
+        auto triggerSQL = tracker.GetTempDeleteTriggerSql(true);
+        errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, triggerSQL);
+        if (errCode != E_OK) {
+            LOGE("Failed to create temp trigger %d.", errCode);
+            return errCode;
+        }
+    }
     std::string sql = "DELETE FROM '" + tableName + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         " IN (SELECT " + DATAKEY + " FROM '" + logTableName + "' WHERE (" + FLAG_IS_LOGIC_DELETE +
         ") OR CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND (" + FLAG_IS_CLOUD + " OR " + FLAG_IS_CLOUD_CONSISTENCY +
         "));";
-    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on usertable, %d.", errCode);
         return errCode;
     }
-    std::string cleanLogSql = "DELETE FROM '" + logTableName + "' WHERE " + FLAG_IS_CLOUD + " OR " +
-        FLAG_IS_CLOUD_CONSISTENCY + ";";
+    if (!tracker.IsTableNameEmpty()) {
+        auto dropSQL = tracker.GetDropTempTriggerSql(TriggerMode::TriggerModeEnum::DELETE);
+        errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, dropSQL);
+        if (errCode != E_OK) {
+            LOGE("Failed to drop temp trigger %d.", errCode);
+            return errCode;
+        }
+    }
+    std::string cleanLogSql = "DELETE FROM '" + logTableName + "' WHERE (" + FLAG_IS_CLOUD + " OR " +
+        FLAG_IS_CLOUD_CONSISTENCY + ")";
+    if (!tracker.IsTableNameEmpty()) {
+        cleanLogSql += " AND " + tracker.IsEmptyExtendSQL();
+    }
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on log table, %d.", errCode);
@@ -1714,7 +1740,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
         LOGE("[Storage Executor] failed to clean asset id when clean cloud data, %d", errCode);
         return errCode;
     }
-    errCode = CleanCloudDataOnLogTable(logTableName, FLAG_AND_DATA);
+    errCode = CleanCloudDataOnLogTable(logTableName, tracker, FLAG_AND_DATA);
     if (errCode != E_OK) {
         LOGE("Failed to clean gid on log table, %d.", errCode);
     }
@@ -2041,7 +2067,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudNoneExistRecordAssets(cons
         Assets assets;
         int errCode = E_OK;
         if (fieldInfo.IsAssetType()) {
-            errCode = GetAssetOnTable(tableInfo.GetTableName(), fieldInfo.GetFieldName(), {dataRowid}, assets);
+            std::vector<int64_t> dataKeysOut;
+            errCode = GetAssetOnTable(
+                tableInfo.GetTableName(), fieldInfo.GetFieldName(), {dataRowid}, dataKeysOut, assets);
             if (errCode != E_OK) {
                 LOGE("[GetCloudNoneExistRecordAssets] failed to get cloud asset on table, %d.", errCode);
                 return errCode;

@@ -19,6 +19,9 @@ namespace DistributedDB {
 OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unused]] bool isCloudWin,
     const LogInfo &localInfo, const LogInfo &cloudInfo) const
 {
+    bool isCloudDelete = IsDelete(cloudInfo);
+    bool isLocalDelete = IsDelete(localInfo);
+    bool isLocalArchived = IsArchived(localInfo);
     if (CloudStorageUtils::IsDataLocked(localInfo.status)) {
         return OpType::LOCKED_NOT_HANDLE;
     }
@@ -26,12 +29,15 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, [[gnu::unuse
         if (IsIgnoreUpdate(localInfo)) {
             return OpType::NOT_HANDLE;
         }
-        if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {
+        if (!isLocalDelete && isCloudDelete) {
+            if (isLocalArchived) {
+                return OpType::CLEAR_GID;
+            }
             return OpType::DELETE;
-        } else if (IsDelete(cloudInfo)) {
+        } else if (isCloudDelete) {
             return OpType::UPDATE_TIMESTAMP;
         }
-        if (IsDelete(localInfo)) {
+        if (isLocalDelete || isLocalArchived) {
             return OpType::INSERT;
         }
         return TagUpdateLocal(cloudInfo, localInfo);

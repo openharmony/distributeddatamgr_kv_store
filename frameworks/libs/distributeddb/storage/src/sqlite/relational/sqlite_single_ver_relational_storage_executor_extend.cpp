@@ -256,7 +256,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
     }
 
     if (cloudGid.empty()) {
-        LOGE("query log table failed because of both primary key and gid are empty.");
+        LOGE("query log table failed because of gid is empty.");
         return -E_CLOUD_ERROR;
     }
     std::string sql = "SELECT data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid,"
@@ -397,7 +397,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
         (void)GetFlagIsLocalCount(logTableName, count);
         LOGI("[DoCleanLogs]flag is local in table:%s, len:%zu, count:%d, before remove device data.",
             DBCommon::StringMiddleMasking(tableName).c_str(), tableName.size(), count);
-        errCode = CleanCloudDataOnLogTable(logTableName, FLAG_ONLY);
+        errCode = CleanCloudDataOnLogTable(logTableName, localSchema.GetTrackerTable(tableName), FLAG_ONLY);
         if (errCode != E_OK) {
             LOGE("[Storage Executor] failed to clean cloud data on log table, %d", errCode);
             return errCode;
@@ -521,7 +521,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string &tableName,
-    const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
+    const std::string &fieldName, const std::vector<int64_t> &dataKeys,
+    std::vector<int64_t> &dataKeysOut, std::vector<Asset> &assets)
 {
     int errCode = E_OK;
     int ret = E_OK;
@@ -540,7 +541,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
             errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
             if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Get column blob value failed, %d", errCode);
-                goto END;
+                break;
             }
             if (blobValue.empty()) {
                 SQLiteUtils::ResetStatement(selectStmt, true, ret);
@@ -550,18 +551,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
             errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
             if (errCode != E_OK) { // LCOV_EXCL_BR_LINE
                 LOGE("Transfer blob to asset failed, %d", errCode);
-                goto END;
+                break;
             }
+            dataKeysOut.push_back(rowId);
             assets.push_back(asset);
         } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
-            Asset asset;
-            assets.push_back(asset);
+        } else {
+            LOGE("Get asset failed, %d", errCode);
+            break;
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
-    return errCode != E_OK ? errCode : ret;
-END:
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
     return errCode != E_OK ? errCode : ret;
 }
@@ -650,7 +651,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &
     int errCode = E_OK;
     for (const auto &fieldInfo: fieldInfos) {
         if (fieldInfo.IsAssetType()) {
-            errCode = GetAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            std::vector<int64_t> dataKeysOut;
+            errCode = GetAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, dataKeysOut, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud asset on table, %d.", errCode);
                 return errCode;
