@@ -15,6 +15,8 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_single_relational_storage_engine.h"
 
+#include <utility>
+
 #include "db_common.h"
 #include "db_errno.h"
 #include "data_donation_utils.h"

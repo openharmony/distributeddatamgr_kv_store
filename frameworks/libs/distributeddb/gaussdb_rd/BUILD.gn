@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 config("gaussdb_rd_config") {
   visibility = [ ":*" ]
@@ -106,14 +107,19 @@ ohos_static_library("gaussdb_rd") {
     "-Os",
   ]
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "cJSON:cjson",
-    "sqlite:sqlite"
+    "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
 
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"

@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 config("database_utils_config") {
   visibility = [ ":*" ]
@@ -70,10 +71,12 @@ if (is_ios || is_android) {
     ]
     public_configs = [ ":database_utils_public_config" ]
     deps = [ "${kv_store_base_path}/kvstoremock/interfaces/mock:build_module" ]
+    deps += deps_hilog
+
     external_deps = [
       "bounds_checking_function:libsec_shared",
-      "hilog:libhilog"
     ]
+    external_deps += external_deps_hilog
     subsystem_name = "distributeddatamgr"
     part_name = "kv_store"
   }

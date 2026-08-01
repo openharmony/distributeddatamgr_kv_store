@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 module_output_path = "kv_store/gaussdb_rd"
 
@@ -77,16 +78,21 @@ ohos_source_set("src_file") {
 
   configs = [ ":module_private_config" ]
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
     "googletest:gtest_main",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
     "sqlite:sqlite",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
 
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
@@ -120,12 +126,12 @@ template("gaussdb_rd_unittest") {
       "c_utils:utils",
       "googletest:gmock_main",
       "googletest:gtest_main",
-      "hilog:libhilog",
-      "hisysevent:libhisysevent",
-      "hitrace:hitrace_meter",
       "openssl:libcrypto_shared",
       "sqlite:sqlite",
     ]
+    external_deps += external_deps_hilog
+    external_deps += external_deps_hisysevent
+    external_deps += external_deps_hitrace_meter
   }
 }
 

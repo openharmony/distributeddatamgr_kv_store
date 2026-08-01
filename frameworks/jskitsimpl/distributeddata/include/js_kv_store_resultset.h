@@ -17,8 +17,10 @@
 #include "js_proxy.h"
 #include "kvstore_result_set.h"
 #include "napi_queue.h"
-#include "result_set_bridge.h"
 
+namespace OHOS::DataShare {
+class ResultSetBridge;
+}
 namespace OHOS::DistributedData {
 class JsKVStoreResultSet : public JSProxy::JSEntity<DistributedKv::KvStoreResultSet, DataShare::ResultSetBridge> {
 public:
@@ -46,7 +48,7 @@ private:
     static napi_value IsBeforeFirst(napi_env env, napi_callback_info info);
     static napi_value IsAfterLast(napi_env env, napi_callback_info info);
     static napi_value GetEntry(napi_env env, napi_callback_info info);
-
+    static std::shared_ptr<DataShare::ResultSetBridge> CreateBridge(std::shared_ptr<DistributedKv::KvStoreResultSet> instance);
     bool isSchema_ = false;
 };
 } // namespace OHOS::DistributedData

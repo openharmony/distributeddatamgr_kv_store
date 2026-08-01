@@ -16,7 +16,6 @@
 #include "js_kv_store_resultset.h"
 
 #include "js_util.h"
-#include "kv_utils.h"
 #include "log_print.h"
 #include "napi_queue.h"
 #include "uv_queue.h"
@@ -296,7 +295,13 @@ std::shared_ptr<ResultSetBridge> JsKVStoreResultSet::Create()
         return nullptr;
     }
     SetInstance(nullptr);
-    return KvUtils::ToResultSetBridge(instance);
+    return CreateBridge(instance);
+}
+
+__attribute__((weak)) std::shared_ptr<ResultSetBridge> JsKVStoreResultSet::CreateBridge(
+    std::shared_ptr<KvStoreResultSet> instance)
+{
+    return nullptr;
 }
 
 void JsKVStoreResultSet::SetSchema(bool isSchema)

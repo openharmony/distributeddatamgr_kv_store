@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 group("build_module") {
   deps = [ ":distributeddata_inner_executor" ]
@@ -31,7 +32,9 @@ config("distributeddatafwk_config") {
     "-Werror=vla",
   ]
 
-  cflags_cc = [ "-fvisibility=hidden" ]
+  cflags_cc = [
+    "-fvisibility=hidden",
+  ]
 
   include_dirs = [
     "include",
@@ -74,6 +77,13 @@ old_source_config = [
   "include/types.h",
 ]
 
+if (data_share_enabled) {
+  old_source_config += [
+      "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kv_utils.cpp",
+      "${kv_store_base_path}/frameworks/innerkitsimpl/datashare/kvstore_datashare_bridge.cpp",
+  ]
+}
+
 kvdb_source_config = [
   "../../../frameworks/innerkitsimpl/kvdb/src/backup_manager.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
@@ -99,17 +109,6 @@ deps_config = [
   "../../../databaseutils:database_utils",
 ]
 
-external_deps_config = [
-  "c_utils:utils",
-  "hisysevent:libhisysevent",
-  "hitrace:hitrace_meter",
-  "hitrace:libhitracechain",
-  "hilog:libhilog",
-  "ipc:ipc_single",
-  "samgr:samgr_proxy",
-  "file_api:securitylabel",
-]
-
 ohos_shared_library("distributeddata_inner") {
   branch_protector_ret = "pac_ret"
   sanitize = {
@@ -131,7 +130,35 @@ ohos_shared_library("distributeddata_inner") {
   ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps = deps_config
-  external_deps = external_deps_config
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+  deps += deps_huks
+  deps += deps_access_token_libaccesstoken_sdk
+  deps += deps_access_token_libtokenid_sdk
+  deps += deps_samgr
+  deps += deps_file_api
+  deps += deps_ipc_single
+
+  external_deps = [
+    "c_utils:utils",
+  ]
+
+  if (data_share_enabled) {
+    external_deps += [ "data_share:datashare_common_lite" ]
+  }
+
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
+  external_deps += external_deps_hitrace_chain
+  external_deps += external_deps_huks
+  external_deps += external_deps_access_token_libaccesstoken_sdk
+  external_deps += external_deps_access_token_libtokenid_sdk
+  external_deps += external_deps_samgr
+  external_deps += external_deps_file_api
+  external_deps += external_deps_ipc_single
+
   if (dms_service_enable && qemu_disable) {
     sources += [ "../../../frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
   } else {
@@ -174,19 +201,20 @@ ohos_shared_library("distributeddata_client_sync") {
     "-Werror=vla",
     "-Wno-c99-designator",
   ]
-  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   configs = [ ":distributeddatafwk_config" ]
 
   deps = [
     "${kv_store_base_path}/databaseutils:database_utils",
-    "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb"
+    "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
   ]
+  deps += deps_hilog
+  deps += deps_file_api
 
   external_deps = [
     "c_utils:utils",
-    "file_api:securitylabel",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_file_api
   innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
@@ -219,11 +247,15 @@ ohos_static_library("kvdb_inner_lite") {
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",
   ]
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_ipc_single
+
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
-    "ipc:ipc_single",
   ]
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
 
   public_configs = [ ":kvdb_inner_lite_config" ]
   cflags = [

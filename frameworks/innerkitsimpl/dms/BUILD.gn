@@ -12,7 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
-
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 group("build_module") {
   deps = []
   if (dms_service_enable && qemu_disable) {
@@ -44,14 +44,18 @@ ohos_shared_library("dms_adapter") {
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   cflags_cc = [ "-fvisibility=hidden", "-Werror=vla", ]
 
+  deps = []
+  deps += deps_dmsfwk
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
   external_deps = [
     "c_utils:utils",
-    "dmsfwk:distributed_sdk",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "samgr:samgr_proxy",
   ]
-
+  external_deps += external_deps_dmsfwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
   part_name = "kv_store"
   subsystem_name = "distributeddatamgr"
 }

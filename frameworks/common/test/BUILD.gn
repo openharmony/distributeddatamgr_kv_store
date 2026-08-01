@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 module_output_path = "kv_store/kv_store/common"
 
@@ -52,12 +53,17 @@ ohos_unittest("ConcurrentMapTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_safwk
+  deps += deps_samgr
 }
 
 ohos_unittest("ExecutorPoolTest") {
@@ -70,9 +76,11 @@ ohos_unittest("ExecutorPoolTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 
+  deps = []
+  deps += deps_hilog
 }
 
 ohos_unittest("LruBucketTest") {
@@ -85,9 +93,11 @@ ohos_unittest("LruBucketTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 
+  deps = []
+  deps += deps_hilog
 }
 
 ohos_unittest("TaskSchedulerTest") {
@@ -100,9 +110,11 @@ ohos_unittest("TaskSchedulerTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 
+  deps = []
+  deps += deps_hilog
 }
 
 ohos_unittest("TraitsTest") {
@@ -115,9 +127,11 @@ ohos_unittest("TraitsTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 
+  deps = []
+  deps += deps_hilog
 }
 
 ohos_unittest("PoolTest") {
@@ -133,12 +147,17 @@ ohos_unittest("PoolTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_safwk
+  deps += deps_samgr
 }
 
 ohos_unittest("PriorityQueueTest") {
@@ -150,21 +169,25 @@ ohos_unittest("PriorityQueueTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
     "googletest:gtest",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
+  deps = []
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_safwk
+  deps += deps_samgr
 }
 
 ###############################################################################
 group("unittest") {
   testonly = true
 
-  deps = []
-  deps += [
+  deps = [
     ":ConcurrentStripedMapTest",
     ":ConcurrentMapTest",
     ":ExecutorPoolTest",

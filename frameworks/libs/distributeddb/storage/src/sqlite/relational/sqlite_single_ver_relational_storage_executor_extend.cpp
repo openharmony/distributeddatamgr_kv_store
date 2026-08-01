@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <utility>
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"

@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 module_output_path = "kv_store/kv_store/distributeddatafwk"
 
@@ -19,7 +20,10 @@ module_output_path = "kv_store/kv_store/distributeddatafwk"
 config("module_private_config") {
   visibility = [ ":*" ]
 
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-Wno-c99-designator",
+    "-Wno-unused-private-field",
+  ]
 
   include_dirs = [
     "${kv_store_base_path}/frameworks/innerkitsimpl/dm",
@@ -45,6 +49,12 @@ config("module_private_config") {
 ohos_source_set("kvdb_src_file") {
   testonly = true
 
+  sanitize = {
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+  }
+  
   old_sources = [
     "../../distributeddatafwk/src/blob.cpp",
     "../../distributeddatafwk/src/change_notification.cpp",
@@ -52,16 +62,21 @@ ohos_source_set("kvdb_src_file") {
     "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
     "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
     "../../distributeddatafwk/src/ikvstore_observer.cpp",
-    "../../datashare/kv_utils.cpp",
     "../../distributeddatafwk/src/kvdb_notifier_client.cpp",
     "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
     "../../distributeddatafwk/src/kvstore_client_death_observer.cpp",
-    "../../datashare/kvstore_datashare_bridge.cpp",
     "../../distributeddatafwk/src/kvstore_observer_client.cpp",
     "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
     "../../distributeddatafwk/src/switch_observer_bridge.cpp",
     "../../distributeddatafwk/src/sync_observer.cpp",
   ]
+
+  if (data_share_enabled) {
+    old_sources += [
+      "../../datashare/kv_utils.cpp",
+      "../../datashare/kvstore_datashare_bridge.cpp",
+    ]
+  }
 
   kvdb_sources = [
     "../src/backup_manager.cpp",
@@ -69,6 +84,8 @@ ohos_source_set("kvdb_src_file") {
     "../src/kv_types_util.cpp",
     "../src/kvdb_service_client.cpp",
     "../src/observer_bridge.cpp",
+    "../src/process_communication_impl.cpp",
+    "../src/process_system_api_adapter_impl.cpp",
     "../src/security_manager.cpp",
     "../src/single_store_impl.cpp",
     "../src/store_factory.cpp",
@@ -88,23 +105,40 @@ ohos_source_set("kvdb_src_file") {
     "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
   ]
+  deps += deps_file_api
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_hitrace_meter
+  deps += deps_hitrace_chain
+  deps += deps_huks
+  deps += deps_ipc_single
+  deps += deps_samgr
+  deps += deps_access_token_libaccesstoken_sdk
+  deps += deps_access_token_libtokenid_sdk
   external_deps = [
-    "access_token:libaccesstoken_sdk",
-    "access_token:libtokenid_sdk",
     "c_utils:utils",
-    "data_share:datashare_common",
-    "data_share:datashare_provider",
-    "file_api:securitylabel",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
-    "hitrace:libhitracechain",
-    "huks:libhukssdk",
-    "ipc:ipc_single",
-    "samgr:samgr_proxy",
   ]
+
+  if (data_share_enabled) {
+    external_deps += [
+      "data_share:datashare_common",
+      "data_share:datashare_provider",
+    ]
+  }
+
+  external_deps += external_deps_access_token_libaccesstoken_sdk
+  external_deps += external_deps_access_token_libtokenid_sdk
+  external_deps += external_deps_file_api
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_hitrace_meter
+  external_deps += external_deps_hitrace_chain
+  external_deps += external_deps_huks
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
   if (dms_service_enable && qemu_disable) {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp" ]
+    external_deps += external_deps_dmsfwk
   } else {
     sources += [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp" ]
   }
@@ -125,6 +159,14 @@ ohos_source_set("kvdb_src_file") {
 }
 
 ohos_unittest("SingleStoreImplTest") {
+  sanitize = {
+    boundary_sanitize = true
+    ubsan = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   module_out_path = module_output_path
 
   sources = [
@@ -134,36 +176,36 @@ ohos_unittest("SingleStoreImplTest") {
 
   configs = [ ":module_private_config" ]
 
-  include_dirs = [
-    "${kv_store_base_path}/frameworks/libs/distributeddb/include",
-    "${kv_store_base_path}/frameworks/libs/distributeddb/interfaces/include",
-    "${kv_store_base_path}/frameworks/libs/distributeddb/interfaces/include/cloud",
-  ]
-
   external_deps = [
-    "access_token:libaccesstoken_sdk",
-    "access_token:libtoken_setproc",
-    "access_token:libnativetoken",
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_access_token_libaccesstoken_sdk
+  external_deps += external_deps_access_token_libtoken_setproc
+  external_deps += external_deps_access_token_libnativetoken
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
   if (dm_service_enable) {
     external_deps += [ "device_manager:devicemanagersdk" ]
   }
 
   cflags = [
-    "-Dprivate=public",
-    "-Dprotected=public",
+    "-fno-access-control",
   ]
 
   deps = [
     ":kvdb_src_file",
-    "${kv_store_base_path}/frameworks/libs/distributeddb/test:src_file",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_access_token_libaccesstoken_sdk
+  deps += deps_access_token_libtoken_setproc
+  deps += deps_access_token_libnativetoken
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("StoreUtilTest") {
@@ -179,20 +221,24 @@ ohos_unittest("StoreUtilTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
   cflags = [
-    "-Dprivate=public",
+    "-fno-access-control",
   ]
 
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("BackupManagerTest") {
@@ -208,16 +254,20 @@ ohos_unittest("BackupManagerTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("DevManagerTest") {
@@ -233,19 +283,31 @@ ohos_unittest("DevManagerTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("DevManagerMockTest") {
+  sanitize = {
+    boundary_sanitize = true
+    ubsan = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
   module_out_path = module_output_path
   include_dirs = [ "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/test" ]
   sources = [
@@ -259,11 +321,11 @@ ohos_unittest("DevManagerMockTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
   if (dm_service_enable) {
     external_deps += [ "device_manager:devicemanagersdk" ]
   }
@@ -272,6 +334,10 @@ ohos_unittest("DevManagerMockTest") {
     ":kvdb_src_file",
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("SingleStoreImplGetTopTest") {
@@ -287,16 +353,20 @@ ohos_unittest("SingleStoreImplGetTopTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
   deps = [
     ":kvdb_src_file",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("StoreFactoryTest") {
@@ -312,12 +382,12 @@ ohos_unittest("StoreFactoryTest") {
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "huks:libhukssdk",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_huks
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
   deps = [
     ":kvdb_src_file",
@@ -325,32 +395,44 @@ ohos_unittest("StoreFactoryTest") {
   ]
 
   cflags = [
-    "-Dprivate=public",
-    "-Dprotected=public",
+    "-fno-access-control",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_huks
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("SecurityManagerTest") {
   module_out_path = module_output_path
  
-  sources = [ "security_manager_test.cpp" ]
+  sources = [
+    "security_manager_test.cpp",
+    "../../kvdb/src/kv_hiview_reporter_mock.cpp",
+  ]
  
   configs = [ ":module_private_config" ]
  
   external_deps = [
     "c_utils:utils",
     "googletest:gtest",
-    "hilog:libhilog",
-    "huks:libhukssdk",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
- 
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_huks
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
+
   deps = [
     ":kvdb_src_file",
     "../../../libs/distributeddb/:distributeddb",
   ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_huks
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ohos_unittest("StoreFactoryMockTest") {
@@ -397,21 +479,38 @@ ohos_unittest("StoreFactoryMockTest") {
   ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
     "c_utils:utils",
-    "file_api:securitylabel",
     "googletest:gmock_main",
     "googletest:gtest_main",
-    "hilog:libhilog",
-    "hitrace:hitrace_meter",
-    "hitrace:libhitracechain",
-    "huks:libhukssdk",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_access_token_libaccesstoken_sdk
+  external_deps += external_deps_file_api
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hitrace_meter
+  external_deps += external_deps_hitrace_chain
+  external_deps += external_deps_huks
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
+  if (dm_service_enable) {
+    external_deps += [ "device_manager:devicemanagersdk" ]
+  }
 
-  cflags = [ "-Dprivate=public" ]
+  if (dms_service_enable && qemu_disable) {
+    external_deps += external_deps_dmsfwk
+  }
+
+  deps += deps_safwk
+  deps += deps_access_token_libaccesstoken_sdk
+  deps += deps_file_api
+  deps += deps_hilog
+  deps += deps_hitrace_meter
+  deps += deps_hitrace_chain
+  deps += deps_huks
+  deps += deps_ipc_single
+  deps += deps_samgr
+
+  cflags = [ "-fno-access-control" ]
 
   use_exceptions = true
 }
@@ -425,10 +524,8 @@ ohos_unittest("SingleStoreImplMockTest") {
     "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
     "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
     "../../distributeddatafwk/src/ikvstore_observer.cpp",
-    "../../datashare/kv_utils.cpp",
     "../../distributeddatafwk/src/kvdb_notifier_stub.cpp",
     "../../distributeddatafwk/src/kvstore_client_death_observer.cpp",
-    "../../datashare/kvstore_datashare_bridge.cpp",
     "../../distributeddatafwk/src/kvstore_observer_client.cpp",
     "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
     "../../distributeddatafwk/src/switch_observer_bridge.cpp",
@@ -455,6 +552,13 @@ ohos_unittest("SingleStoreImplMockTest") {
     "single_store_impl_mock_test.cpp",
   ]
 
+  if (data_share_enabled) {
+    sources += [
+      "../../datashare/kv_utils.cpp",
+      "../../datashare/kvstore_datashare_bridge.cpp",
+    ]
+  }
+
   if (qemu_disable) {
     sources += [ "../src/auto_sync_timer.cpp" ]
   } else {
@@ -462,6 +566,7 @@ ohos_unittest("SingleStoreImplMockTest") {
   }
 
   configs = [ ":module_private_config" ]
+
   deps = [
     "${kv_store_base_path}/frameworks/libs/distributeddb/:distributeddb",
     "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_client_sync",
@@ -471,26 +576,49 @@ ohos_unittest("SingleStoreImplMockTest") {
   ]
 
   external_deps = [
-    "access_token:libaccesstoken_sdk",
-    "access_token:libtokenid_sdk",
     "c_utils:utils",
-    "data_share:datashare_common",
-    "data_share:datashare_provider",
-    "file_api:securitylabel",
     "googletest:gmock_main",
     "googletest:gtest_main",
-    "hilog:libhilog",
-    "hitrace:hitrace_meter",
-    "hitrace:libhitracechain",
-    "huks:libhukssdk",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
 
-  defines = [
-    "private=public",
-    "protected=public",
+  if (data_share_enabled) {
+    external_deps += [
+      "data_share:datashare_common",
+      "data_share:datashare_provider",
+    ]
+  }
+
+  external_deps += external_deps_safwk
+  external_deps += external_deps_access_token_libaccesstoken_sdk
+  external_deps += external_deps_access_token_libtokenid_sdk
+  external_deps += external_deps_file_api
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hitrace_meter
+  external_deps += external_deps_hitrace_chain
+  external_deps += external_deps_huks
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
+  if (dm_service_enable) {
+    external_deps += [ "device_manager:devicemanagersdk" ]
+  }
+
+  if (dms_service_enable && qemu_disable) {
+    external_deps += external_deps_dmsfwk
+  }
+
+  deps += deps_safwk
+  deps += deps_access_token_libaccesstoken_sdk
+  deps += deps_access_token_libtokenid_sdk
+  deps += deps_file_api
+  deps += deps_hilog
+  deps += deps_hitrace_meter
+  deps += deps_hitrace_chain
+  deps += deps_huks
+  deps += deps_ipc_single
+  deps += deps_samgr
+
+  cflags = [
+    "-fno-access-control",
   ]
 
   use_exceptions = true
@@ -511,27 +639,28 @@ ohos_unittest("KvHiviewReporterTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
     "googletest:gmock_main",
     "googletest:gtest_main",
-    "ipc:ipc_single",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
   ]
+  external_deps += external_deps_safwk
+  external_deps += external_deps_hilog
+  external_deps += external_deps_hisysevent
+  external_deps += external_deps_ipc_single
+  external_deps += external_deps_samgr
 
-  defines = [
-    "private=public",
-    "protected=public",
-  ]
+  cflags = [ "-fno-access-control" ]
+  deps += deps_safwk
+  deps += deps_hilog
+  deps += deps_hisysevent
+  deps += deps_ipc_single
+  deps += deps_samgr
 }
 
 ###############################################################################
 group("unittest") {
   testonly = true
 
-  deps = []
-  deps += [
+  deps = [
     ":BackupManagerTest",
     ":SingleStoreImplGetTopTest",
     ":StoreFactoryTest",

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include "acl.h"
-
+#undef private
 #include "securec.h"
 #include "gtest/gtest.h"
 #include <dlfcn.h>
@@ -60,21 +60,21 @@ void AclTest::PreOperation() const
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
     int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed." << std::strerror(errno);
+    EXPECT_EQ(res, 0) << "directory creation failed. errno=" << errno;
 
     Acl acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
     acl.SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
     acl.SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
 
     res = mkdir(PATH_ABC_XIAOMING, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed." << std::strerror(errno);
+    EXPECT_EQ(res, 0) << "directory creation failed. errno=" << errno;
 
     int fd = open(PATH_ABC_XIAOMING_TEST, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    EXPECT_NE(fd, -1) << "open file failed." << std::strerror(errno);
+    EXPECT_NE(fd, -1) << "open file failed. errno=" << errno;
     res = write(fd, DATA, strlen(DATA));
-    EXPECT_NE(res, -1) << "write failed." << std::strerror(errno);
+    EXPECT_NE(res, -1) << "write failed. errno=" << errno;
     res = fsync(fd);
-    EXPECT_NE(res, -1) << "fsync failed." << std::strerror(errno);
+    EXPECT_NE(res, -1) << "fsync failed. errno=" << errno;
     close(fd);
 }
 
@@ -165,16 +165,16 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
     pid_t pid;
     char buf[100];
     int res = pipe(fd);
-    ASSERT_TRUE(res >= 0) << "create pipe failed." << std::strerror(errno);
+    ASSERT_TRUE(res >= 0) << "create pipe failed. errno=" << errno;
     pid = fork();
-    ASSERT_TRUE(pid >= 0) << "fork failed." << std::strerror(errno);
+    ASSERT_TRUE(pid >= 0) << "fork failed. errno=" << errno;
     if (pid == 0) { // subprocess
         // close the read end of the pipeline.
         close(fd[0]);
         // redirect standard output to the write end of the pipeline
         dup2(fd[1], STDOUT_FILENO);
         auto exitFun = [&fd](const std::string &str, bool isErr) {
-            std::cout << str << (isErr ? std::strerror(errno) : "") << std::endl;
+            std::cout << str << (isErr ? std::to_string(errno) : "") << std::endl;
             close(fd[1]);
             _exit(0);
         };
@@ -199,11 +199,11 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
         close(fd[1]);
         int status;
         res = waitpid(pid, &status, 0);
-        EXPECT_NE(res, -1) << "waitpid falied." << std::strerror(errno);
+        EXPECT_NE(res, -1) << "waitpid falied. errno=" << errno;
         res = memset_s(buf, sizeof(buf), 0, sizeof(buf));
-        EXPECT_EQ(res, EOK) << "memset_s falied." << std::strerror(errno);
+        EXPECT_EQ(res, EOK) << "memset_s falied. errno=" << errno;
         res = read(fd[0], buf, sizeof(buf));
-        EXPECT_NE(res, -1) << "read falied." << std::strerror(errno);
+        EXPECT_NE(res, -1) << "read falied. errno=" << errno;
         EXPECT_EQ(std::string(buf, buf + strlen(buf) - 1), std::string(DATA)) << "buffer:[" << buf << "]";
         close(fd[0]);
     }

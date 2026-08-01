@@ -15,6 +15,7 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_DEV_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_DEV_MANAGER_H
 #include <string>
+#include <memory>
 #include "concurrent_map.h"
 #include "device_adapter.h"
 #include "types.h"

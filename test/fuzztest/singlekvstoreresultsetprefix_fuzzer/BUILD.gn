@@ -15,6 +15,7 @@
 import("//build/config/features.gni")
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("SingleKvStoreResultSetPrefixFuzzTest") {
@@ -45,11 +46,12 @@ ohos_fuzztest("SingleKvStoreResultSetPrefixFuzzTest") {
   ]
 
   deps = [ "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner" ]
+  deps += deps_hilog
 
   external_deps = [
     "c_utils:utils",
-    "hilog:libhilog",
   ]
+  external_deps += external_deps_hilog
 }
 
 ###############################################################################

@@ -14,7 +14,7 @@
  */
 
 #include "switch_observer_bridge.h"
-
+#undef private
 #include <gtest/gtest.h>
 
 namespace OHOS::Test {

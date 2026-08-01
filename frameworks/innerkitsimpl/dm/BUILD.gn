@@ -12,7 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
-
+import("//foundation/distributeddatamgr/kv_store/kv_store_deps.gni")
 group("build_module") {
   deps = []
   if (dm_service_enable) {
@@ -44,11 +44,18 @@ ohos_shared_library("dm_adapter") {
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   cflags_cc = [ "-fvisibility=hidden", "-Werror=vla", ]
 
+  deps = []
+  deps += deps_hilog
   external_deps = [
     "c_utils:utils",
-    "device_manager:devicemanagersdk",
-    "hilog:libhilog",
   ]
+  if (dm_service_enable) {
+    external_deps += [
+      "device_manager:devicemanagersdk",  
+    ]
+  }
+
+  external_deps += external_deps_hilog
 
   part_name = "kv_store"
   subsystem_name = "distributeddatamgr"

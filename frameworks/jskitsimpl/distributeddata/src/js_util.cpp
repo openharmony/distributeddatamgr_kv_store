@@ -19,7 +19,6 @@
 #include "ability.h"
 #include "hap_module_info.h"
 #include "js_schema.h"
-#include "kv_utils.h"
 #include "log_print.h"
 #include "napi_base_context.h"
 #include "napi_queue.h"
@@ -35,9 +34,6 @@ static constexpr int32_t END_SIZE = 3;
 static constexpr int32_t MIN_SIZE = 9;
 static constexpr const char *REPLACE_CHAIN = "***";
 static constexpr const char *DEFAULT_ANONYMOUS = "******";
-struct PredicatesProxy {
-    std::shared_ptr<DataShareAbsPredicates> predicates_;
-};
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
 {
@@ -790,29 +786,6 @@ napi_status JSUtil::SetValue(napi_env env, const std::list<DistributedKv::Entry>
     return status;
 }
 
-napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject::Type &valueObject)
-{
-    napi_valuetype type = napi_undefined;
-    napi_typeof(env, jsValue, &type);
-    if (type == napi_string) {
-        std::string value;
-        JSUtil::GetValue(env, jsValue, value);
-        valueObject = value;
-    } else if (type == napi_number) {
-        double value = 0.0;
-        napi_get_value_double(env, jsValue, &value);
-        valueObject = value;
-    } else if (type == napi_boolean) {
-        bool value = false;
-        napi_get_value_bool(env, jsValue, &value);
-        valueObject = value;
-    } else if (type == napi_object) {
-        std::vector<uint8_t> value;
-        JSUtil::GetValue(env, jsValue, value);
-        valueObject = std::move(value);
-    }
-    return napi_ok;
-}
 napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<DistributedKv::Entry> &out, bool hasSchema)
 {
     out.clear();
@@ -1086,20 +1059,9 @@ bool JSUtil::IsNull(napi_env env, napi_value value)
     return false;
 }
 
-napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
+__attribute__((weak)) napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
 {
-    ZLOGD("napi_value -> std::GetValue DataQuery");
-    napi_valuetype type = napi_undefined;
-    napi_status nstatus = napi_typeof(env, in, &type);
-    CHECK_RETURN((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    PredicatesProxy *predicates = nullptr;
-    napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
-    CHECK_RETURN((predicates != nullptr), "invalid type", napi_invalid_arg);
-    Status status = KvUtils::ToQuery(*(predicates->predicates_), query);
-    if (status != Status::SUCCESS) {
-        ZLOGD("napi_value -> GetValue DataQuery failed ");
-    }
-    return nstatus;
+    return napi_invalid_arg;
 }
 
 napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)

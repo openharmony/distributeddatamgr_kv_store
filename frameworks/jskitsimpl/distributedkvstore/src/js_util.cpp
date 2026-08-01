@@ -19,10 +19,10 @@
 #include "napi_base_context.h"
 #include "js_schema.h"
 #include "js_proxy.h"
-#include "kv_utils.h"
 #include "log_print.h"
 #include "napi_queue.h"
 #include "types.h"
+#include "securec.h"
 
 namespace OHOS::DistributedKVStore {
 constexpr int32_t STR_MAX_LENGTH = 4096;
@@ -810,50 +810,16 @@ JSUtil::StatusMsg JSUtil::SetValue(
     return status;
 }
 
-JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject::Type &valueObject)
+__attribute__((weak)) JSUtil::StatusMsg JSUtil::GetValue(
+    napi_env env, napi_value jsValue, OHOS::DataShare::DataShareValuesBucket &valuesBucket)
 {
-    napi_valuetype type = napi_undefined;
-    napi_typeof(env, jsValue, &type);
-    if (type == napi_string) {
-        std::string value;
-        JSUtil::GetValue(env, jsValue, value);
-        valueObject = value;
-    } else if (type == napi_number) {
-        double value = 0.0;
-        napi_get_value_double(env, jsValue, &value);
-        valueObject = value;
-    } else if (type == napi_boolean) {
-        bool value = false;
-        napi_get_value_bool(env, jsValue, &value);
-        valueObject = value;
-    } else if (type == napi_object) {
-        std::vector<uint8_t> value;
-        JSUtil::GetValue(env, jsValue, value);
-        valueObject = std::move(value);
-    }
-    return napi_ok;
+    return napi_invalid_arg;
 }
 
-JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket)
+__attribute__((weak)) JSUtil::StatusMsg GetEntry(
+    napi_env env, napi_value item, OHOS::DistributedKv::Entry &entry, bool hasSchema)
 {
-    napi_value keys = 0;
-    napi_get_property_names(env, jsValue, &keys);
-    uint32_t arrLen = 0;
-    JSUtil::StatusMsg statusMsg = napi_get_array_length(env, keys, &arrLen);
-    if (statusMsg.status != napi_ok) {
-        return statusMsg;
-    }
-    for (size_t i = 0; i < arrLen; ++i) {
-        napi_value jsKey = 0;
-        statusMsg.status = napi_get_element(env, keys, i, &jsKey);
-        ASSERT((statusMsg.status == napi_ok), "no element", statusMsg);
-        std::string key;
-        JSUtil::GetValue(env, jsKey, key);
-        napi_value valueJs = 0;
-        napi_get_property(env, jsValue, jsKey, &valueJs);
-        GetValue(env, valueJs, valuesBucket.valuesMap[key]);
-    }
-    return napi_ok;
+    return napi_invalid_arg;
 }
 
 /* napi_value <-> std::vector<DistributedKv::Entry> */
@@ -886,14 +852,8 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
             }
             isValuesBucket = true;
         }
-        OHOS::DataShare::DataShareValuesBucket values;
-        statusMsg = GetValue(env, item, values);
-        ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
-        entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
-        entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
-        if (hasSchema) {
-            entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
-        }
+        statusMsg = GetEntry(env, item, entry, hasSchema);
+        ASSERT(statusMsg.status == napi_ok, "get valuesbucket failed", statusMsg);
         out.push_back(entry);
     }
 
@@ -1223,42 +1183,14 @@ bool JSUtil::Equals(napi_env env, napi_value value, napi_ref copy)
     return isEquals;
 }
 
-JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out)
+__attribute__((weak)) JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out)
 {
-    ZLOGD("napi_value -> std::GetValue Blob");
-    out.clear();
-    napi_valuetype type = napi_undefined;
-    JSUtil::StatusMsg statusMsg = napi_typeof(env, in, &type);
-    ASSERT((statusMsg.status == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    JSProxy::JSProxy<DataShare::DataShareAbsPredicates> *jsProxy = nullptr;
-    napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
-    ASSERT((jsProxy != nullptr && jsProxy->GetInstance() != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<OHOS::DistributedKv::Key> keys;
-    statusMsg.status = napi_invalid_arg;
-    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(jsProxy->GetInstance()), keys);
-    if (status == Status::SUCCESS) {
-        ZLOGD("napi_value —> GetValue Blob ok");
-        out = keys;
-        statusMsg.status = napi_ok;
-        statusMsg.jsApiType = DATASHARE;
-    }
-    return statusMsg;
+    return napi_invalid_arg;
 }
 
-JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
+__attribute__((weak)) JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
 {
-    ZLOGD("napi_value -> std::GetValue DataQuery");
-    napi_valuetype type = napi_undefined;
-    napi_status nstatus = napi_typeof(env, in, &type);
-    ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    JSProxy::JSProxy<DataShare::DataShareAbsPredicates> *jsProxy = nullptr;
-    napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
-    ASSERT((jsProxy != nullptr && jsProxy->GetInstance() != nullptr), "invalid type", napi_invalid_arg);
-    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(jsProxy->GetInstance()), query);
-    if (status != Status::SUCCESS) {
-        ZLOGD("napi_value -> GetValue DataQuery failed ");
-    }
-    return nstatus;
+    return napi_invalid_arg;
 }
 
 JSUtil::StatusMsg JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
