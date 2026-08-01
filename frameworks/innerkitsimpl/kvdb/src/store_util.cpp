@@ -214,8 +214,12 @@ std::vector<StoreUtil::FileInfo> StoreUtil::GetFiles(const std::string &path)
         if (dp->d_type == DT_REG) {
             struct stat fileStat;
             auto fullName = path + "/" + dp->d_name;
-            if (stat(fullName.c_str(), &fileStat) != 0) {
-                ZLOGE("stat failed:%{public}d, path:%{public}s", errno, Anonymous(fullName).c_str());
+            if (lstat(fullName.c_str(), &fileStat) != 0) {
+                ZLOGE("lstat failed:%{public}d, path:%{public}s", errno, Anonymous(fullName).c_str());
+                continue;
+            }
+            if (!S_ISREG(fileStat.st_mode)) {
+                ZLOGW("not a regular file, path:%{public}s", Anonymous(fullName).c_str());
                 continue;
             }
             FileInfo fileInfo = { "", 0, 0 };

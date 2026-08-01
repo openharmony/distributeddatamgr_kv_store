@@ -1165,7 +1165,6 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
     struct GetResultSetContext : public ContextBase {
         VariantArgs va;
         JsKVStoreResultSet* resultSet = nullptr;
-        napi_ref ref = nullptr;
     };
     auto ctxt = std::make_shared<GetResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
@@ -1178,7 +1177,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ASSERT_PERMISSION_ERR(ctxt,
             !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
             reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(), Status::PERMISSION_DENIED, "");
-        ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
+        ctxt->outputRef = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
             "Parameter error:resultSet nullptr");
@@ -1202,8 +1201,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->resultSet->SetSchema(isSchema);
     };
     auto output = [env, ctxt](napi_value& result) {
-        ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
-        napi_delete_reference(env, ctxt->ref);
+        ctxt->status = napi_get_reference_value(env, ctxt->outputRef, &result);
         ASSERT_STATUS(ctxt, "output kvResultSet failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
@@ -1260,7 +1258,6 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
 {
     struct ResultSizeContext : public ContextBase {
         JsQuery* query = nullptr;
-        napi_ref ref = nullptr;
         int resultSize = 0;
     };
     auto ctxt = std::make_shared<ResultSizeContext>();
@@ -1275,7 +1272,7 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->query != nullptr, Status::INVALID_ARGUMENT,
             "Parameter error:query nullptr");
-        ctxt->status = napi_create_reference(env, argv[0], 1, &ctxt->ref);
+        ctxt->status = napi_create_reference(env, argv[0], 1, &ctxt->outputRef);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
             "Parameter error:create ref failed");
     };
@@ -1294,7 +1291,6 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
             napi_ok : napi_generic_failure;
     };
     auto output = [env, ctxt](napi_value& result) {
-        napi_delete_reference(env, ctxt->ref);
         ctxt->status = JSUtil::SetValue(env, static_cast<int32_t>(ctxt->resultSize), result);
         ASSERT_STATUS(ctxt, "output resultSize failed!");
     };
