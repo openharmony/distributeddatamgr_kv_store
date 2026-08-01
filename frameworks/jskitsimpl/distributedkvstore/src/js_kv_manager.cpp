@@ -92,7 +92,6 @@ struct GetKVStoreContext : public ContextBase {
     std::string storeId;
     Options options;
     JsSingleKVStore* kvStore = nullptr;
-    napi_ref ref = nullptr;
 
     void GetCbInfo(napi_env env, napi_callback_info info)
     {
@@ -112,11 +111,11 @@ struct GetKVStoreContext : public ContextBase {
                 "Parameter error:only support DEVICE_COLLABORATION or SINGLE_VERSION");
             ZLOGD("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
             if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
-                ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
-                                         JsDeviceKVStore::Constructor(env));
+                outputRef = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
+                                               JsDeviceKVStore::Constructor(env));
             } else if (options.kvStoreType == KvStoreType::SINGLE_VERSION) {
-                ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
-                                         JsSingleKVStore::Constructor(env));
+                outputRef = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
+                                               JsSingleKVStore::Constructor(env));
             }
         };
         ContextBase::GetCbInfo(env, info, input);
@@ -163,8 +162,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->kvStore->SetUvQueue(kvm->uvQueue_);
     };
     auto output = [env, ctxt](napi_value& result) {
-        ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
-        napi_delete_reference(env, ctxt->ref);
+        ctxt->status = napi_get_reference_value(env, ctxt->outputRef, &result);
         ASSERT_STATUS(ctxt, "output KVManager failed");
         ZLOGI("output delete reference success");
     };

@@ -237,7 +237,6 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
     struct GetResultSetContext : public ContextBase {
         VariantArgs va;
         JsKVStoreResultSet* resultSet = nullptr;
-        napi_ref ref = nullptr;
     };
     auto ctxt = std::make_shared<GetResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
@@ -249,7 +248,7 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ASSERT_PERMISSION_ERR(ctxt,
             !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
                 reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(), Status::PERMISSION_DENIED, "");
-        ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
+        ctxt->outputRef = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
             "Parameter error:resultSet is null");
@@ -272,8 +271,7 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->resultSet->SetSchema(isSchema);
     };
     auto output = [env, ctxt](napi_value& result) {
-        ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
-        napi_delete_reference(env, ctxt->ref);
+        ctxt->status = napi_get_reference_value(env, ctxt->outputRef, &result);
         ASSERT_STATUS(ctxt, "output KvResultSet failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);

@@ -30,6 +30,10 @@ ContextBase::~ContextBase()
             auto status = napi_delete_reference(env, selfRef);
             ZLOGD("status:%{public}d", status);
         }
+        if (outputRef != nullptr) {
+            auto status = napi_delete_reference(env, outputRef);
+            ZLOGD("status:%{public}d", status);
+        }
         env = nullptr;
     }
 }

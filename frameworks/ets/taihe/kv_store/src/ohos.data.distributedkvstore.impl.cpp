@@ -1987,6 +1987,11 @@ public:
     void OnDistributedDataServiceDie(::taihe::callback_view<void(distributedkvstore::OneUndef const& para)>
         callbackFunction)
     {
+        if (kvDataManager_ == nullptr) {
+            ZLOGE("KVManager is null, failed!");
+            ThrowAniError(Status::INVALID_ARGUMENT, "KVManager is null, failed!");
+            return;
+        }
         std::lock_guard<std::recursive_mutex> lock(cbDeathListMutex_);
         AniObserverUtils::JsServiceDeathType taiheCallback = callbackFunction;
         bool isDuplicate = std::any_of(jsDeathCbList_.begin(), jsDeathCbList_.end(),
@@ -2006,6 +2011,10 @@ public:
     void OffDistributedDataServiceDie(::taihe::optional_view<
         ::taihe::callback<void(::ohos::data::distributedkvstore::OneUndef const& para)>> optCallback)
     {
+        if (kvDataManager_ == nullptr) {
+            ZLOGE("KVManager is null, failed!");
+            return;
+        }
         std::lock_guard<std::recursive_mutex> lock(cbDeathListMutex_);
         std::optional<AniObserverUtils::JsServiceDeathType> stdOptCallback;
         if (optCallback.has_value()) {

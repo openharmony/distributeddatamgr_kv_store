@@ -50,6 +50,8 @@ struct ContextBase {
     napi_value self = nullptr;
     void* native = nullptr;
 
+    napi_ref outputRef = nullptr;
+
 private:
     napi_ref callbackRef = nullptr;
     napi_ref selfRef = nullptr;
