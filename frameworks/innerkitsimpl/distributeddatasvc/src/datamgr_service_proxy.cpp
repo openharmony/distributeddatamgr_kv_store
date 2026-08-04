@@ -24,6 +24,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
+constexpr int32_t MAX_RETRY = 100;
 DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
@@ -95,6 +96,7 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
         ZLOGW("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
+    clientDeathObserver_ = observer;
     return static_cast<Status>(reply.ReadInt32());
 }
 
@@ -142,7 +144,19 @@ int32_t DataMgrServiceProxy::Exit(const std::string &featureName)
         ZLOGE("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
-    return static_cast<Status>(reply.ReadInt32());
+    Status status = static_cast<Status>(reply.ReadInt32());
+    if (status == Status::SUCCESS) {
+        int32_t retry = 0;
+        while (clientDeathObserver_ != nullptr && clientDeathObserver_->GetSptrRefCount() > 1 && retry < MAX_RETRY) {
+            retry++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        if (clientDeathObserver_ != nullptr && clientDeathObserver_->GetSptrRefCount() > 1) {
+            ZLOGW("observer still in use! count %d", clientDeathObserver_->GetSptrRefCount());
+            return Status::ERROR;
+        }
+    }
+    return status;
 }
 
 std::pair<int32_t, std::string> DataMgrServiceProxy::GetSelfBundleName()
