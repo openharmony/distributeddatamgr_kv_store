@@ -16,6 +16,7 @@
 #define LOG_TAG "DataMgrServiceProxy"
 
 #include "datamgr_service_proxy.h"
+#include <thread>
 #include <ipc_skeleton.h>
 #include "itypes_util.h"
 #include "message_parcel.h"
