@@ -315,7 +315,6 @@ bool StoreUtil::RemoveRWXForOthers(const std::string &path)
 
     if (chmod(path.c_str(), (buf.st_mode & ~S_IRWXO)) < 0) {
         ZLOGE("The chmod error:%{public}d, path:%{public}s", errno, Anonymous(path).c_str());
-        return false;
     }
     return true;
 }
