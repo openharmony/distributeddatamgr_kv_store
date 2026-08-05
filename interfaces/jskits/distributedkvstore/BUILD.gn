@@ -39,6 +39,7 @@ ohos_copy("distributeddatamgr_declaration") {
 
 ohos_shared_library("distributedkvstore") {
   branch_protector_ret = "pac_ret"
+  branch_protector_frt = "bti"
   sanitize = {
     ubsan = true
     boundary_sanitize = true

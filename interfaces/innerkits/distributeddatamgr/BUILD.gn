@@ -36,6 +36,7 @@ config("data_mgr_public_config") {
 
 ohos_shared_library("distributeddata_mgr") {
   branch_protector_ret = "pac_ret"
+  branch_protector_frt = "bti"
   sanitize = {
     ubsan = true
     boundary_sanitize = true
