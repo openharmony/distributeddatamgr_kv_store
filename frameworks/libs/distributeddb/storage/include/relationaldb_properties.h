@@ -50,6 +50,10 @@ public:
     DistributedTableMode GetDistributedTableMode() const;
 
     static const std::string DISTRIBUTED_TABLE_MODE;
+
+    bool IsMetadataTableNeeded() const;
+    static const std::string SKIP_METADATA_TABLE;
+
 private:
     void CopyRDBProperties(const RelationalDBProperties &other);
     RelationalSchemaObject schema_;

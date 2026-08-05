@@ -23,6 +23,7 @@
 #include "sqlite_import.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
 #include "table_info.h"
+#include "relationaldb_properties.h"
 
 namespace DistributedDB {
 using BindParamFunc = std::function<int(sqlite3_stmt *, int)>;
@@ -148,6 +149,10 @@ public:
     static std::pair<int, TableInfo> AnalyzeTable(sqlite3 *db, const std::string &tableName);
 
     static void FilterTableSchema(const TableInfo &tableInfo, TableSchema &table);
+
+    static void InitDataBaseOption(const RelationalDBProperties &properties, OpenDbProperties &option);
+
+    static int ChkTable(const TableInfo &table);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     static void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,

@@ -46,6 +46,7 @@ public:
         DistributedTableMode tableMode = DistributedTableMode::SPLIT_BY_DEVICE;
         bool isNeedCompressOnSync = false;
         uint8_t compressionRate = 100; // Valid in [1, 100]
+        bool skipMetadataTable = false; // Whether to skip creating metadata table
     };
 
     struct StoreConfig {

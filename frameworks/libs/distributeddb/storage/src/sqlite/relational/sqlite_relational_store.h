@@ -171,6 +171,7 @@ protected:
     int CheckProperties(RelationalDBProperties properties);
 
     int SaveLogTableVersionToMeta() const;
+    int SaveLogTableVersionIfNeeded(const RelationalDBProperties &properties) const;
 
     int CleanDistributedDeviceTable();
 

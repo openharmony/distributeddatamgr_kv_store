@@ -125,7 +125,7 @@ public:
     int CheckTableExists(const std::string &tableName, bool &isCreated);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
-    int Upgrade(sqlite3 *db) override;
+    int Upgrade(sqlite3 *db, bool needMetaTable) override;
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
 private:
     // For executor.

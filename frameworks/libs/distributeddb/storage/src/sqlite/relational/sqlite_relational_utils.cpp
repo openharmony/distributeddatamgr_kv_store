@@ -1231,6 +1231,29 @@ void SQLiteRelationalUtils::FilterTableSchema(const TableInfo &tableInfo, TableS
     }
 }
 
+void SQLiteRelationalUtils::InitDataBaseOption(const RelationalDBProperties &properties, OpenDbProperties &option)
+{
+    option.uri = properties.GetStringProp(DBProperties::DATA_DIR, "");
+    option.createIfNecessary = properties.GetBoolProp(DBProperties::CREATE_IF_NECESSARY, false);
+    if (properties.IsEncrypted()) {
+        option.cipherType = properties.GetCipherType();
+        option.passwd = properties.GetPasswd();
+        option.iterTimes = properties.GetIterTimes();
+    }
+}
+
+int SQLiteRelationalUtils::ChkTable(const TableInfo &table)
+{
+    if (table.IsNoPkTable() || table.GetSharedTableMark()) {
+        LOGE("[RelationalStore][ChkTable] not support table without pk or with tablemark");
+        return -E_NOT_SUPPORT;
+    }
+    if (table.GetTableName().empty() || (table.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION)) {
+        return -E_NOT_FOUND;
+    }
+    return E_OK;
+}
+
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 void SQLiteRelationalUtils::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
     ICloudSyncer::CloudTaskInfo &info)

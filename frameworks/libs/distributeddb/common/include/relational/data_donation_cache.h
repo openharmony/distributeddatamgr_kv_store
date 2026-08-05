@@ -62,11 +62,11 @@ private:
 
     int PushDataToCache(SQLiteSingleVerRelationalStorageExecutor *handle);
 
-    int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
-        DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
+    int QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &dbPath,
+        const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
 
-    int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
-        DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
+    int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &dbPath,
+        const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
 
     int InitGetAllQuery(const std::string &dbPath,
         const std::vector<std::string> &tableNames,
