@@ -111,6 +111,7 @@ deps_config = [
 
 ohos_shared_library("distributeddata_inner") {
   branch_protector_ret = "pac_ret"
+  branch_protector_frt = "bti"
   sanitize = {
     ubsan = true
     boundary_sanitize = true
@@ -182,6 +183,7 @@ ohos_shared_library("distributeddata_inner") {
 
 ohos_shared_library("distributeddata_client_sync") {
   branch_protector_ret = "pac_ret"
+  branch_protector_frt = "bti"
   sanitize = {
     ubsan = true
     boundary_sanitize = true
