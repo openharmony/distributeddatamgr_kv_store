@@ -411,6 +411,7 @@ struct Asset {
     std::string createTime;
     std::string size;
     std::string hash;
+    std::string extension;
     uint32_t flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
     uint32_t status = static_cast<uint32_t>(AssetStatus::NORMAL);
     int64_t timestamp = 0;
@@ -422,7 +423,8 @@ struct Asset {
         // force check all field
         return (version == asset.version) && (name == asset.name) && (assetId == asset.assetId) &&
             (subpath == asset.subpath) && (uri == asset.uri) && (modifyTime == asset.modifyTime) &&
-            (createTime == asset.createTime) && (size == asset.size) && (hash == asset.hash) && (flag == asset.flag) &&
+            (createTime == asset.createTime) && (size == asset.size) && (hash == asset.hash) &&
+            (extension == asset.extension) && (flag == asset.flag) &&
             (status == asset.status) && (timestamp == asset.timestamp);
     }
 };
