@@ -992,30 +992,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-        Sqlite3BinlogConfig binLogConfig = {
-        .mode = Sqlite3BinlogMode::ROW_FOR_SEARCH,
-        .fullCallbackThreshold = 2,
-        .maxFileSize = 1024 * 1024 * 4,
-        .xErrorCallback = []([[gnu::unused]] void *pCtx, int errNo, char *errMsg, const char *dbPath) {
-            if (dbPath == nullptr) {
-                LOGW("SQLiteUtilspath is null");
-                return;
-            }
-            std::string dbPathStr(dbPath);
-            LOGW("binlog failed, mark invalid %s, errNo:%d, errMsg:%s",
-                dbPathStr.c_str(), errNo, errMsg == nullptr ? "" : errMsg);
-        },
-        .xLogFullCallback = nullptr,
-        .callbackCtx = nullptr,
-    };
-    int errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, &binLogConfig);
-    if (errCode != SQLITE_OK) {
-        LOGE(" Enable binlog failed:%d", errCode);
-    } else {
-        LOGI("Enable binlog OK");
-    }
-    sqlite3_set_json_parse_callback_binlog(db, &DataDonationUtils::BinlogSchemaGet);
-    sqlite3_free_json_parse_callback_binlog(db, &DataDonationUtils::FreeMonitorConfig);
+    SetBinlogSchemaAndChangeCallback(db);
     ASSERT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     /**
      * @tc.steps:step2. Set matrix file info.

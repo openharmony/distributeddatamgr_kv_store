@@ -298,7 +298,8 @@ HWTEST_F(DistributedDBDataDonationSchemaUnitTest, DecodeSchemaErrorTest_001, Tes
                 "parts": [{
                     "tables": ["table1"],
                     "mappings": [
-                        {"name": "map_pk", "primaryKey": true, "value": {"tableName": "table1", "columnName": "column1"}},
+                        {"name": "map_pk", "primaryKey": true,
+                         "value": {"tableName": "table1", "columnName": "column1"}},
                         {"name": "map_val", "value": {"tableName": "table1", "columnName": "column1"}}
                     ]
                 }]
