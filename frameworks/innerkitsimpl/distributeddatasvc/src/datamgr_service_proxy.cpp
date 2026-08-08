@@ -16,6 +16,7 @@
 #define LOG_TAG "DataMgrServiceProxy"
 
 #include "datamgr_service_proxy.h"
+#include <thread>
 #include <ipc_skeleton.h>
 #include "itypes_util.h"
 #include "message_parcel.h"
@@ -24,6 +25,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
+constexpr int32_t MAX_RETRY = 100;
 DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
@@ -95,7 +97,11 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
         ZLOGW("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
-    return static_cast<Status>(reply.ReadInt32());
+    int32_t status = reply.ReadInt32();
+    if (status == Status::SUCCESS) {
+        clientDeathObserver_ = observer;
+    }
+    return static_cast<Status>(status);
 }
 
 int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
@@ -142,7 +148,20 @@ int32_t DataMgrServiceProxy::Exit(const std::string &featureName)
         ZLOGE("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
-    return static_cast<Status>(reply.ReadInt32());
+    int32_t status = Status::ERROR;
+    ITypesUtil::Unmarshal(reply, status);
+    if (status == Status::SUCCESS) {
+        int32_t retry = 0;
+        while (clientDeathObserver_ != nullptr && clientDeathObserver_->GetSptrRefCount() > 2 && retry < MAX_RETRY) {
+            retry++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        if (clientDeathObserver_ != nullptr && clientDeathObserver_->GetSptrRefCount() > 2) {
+            ZLOGW("observer still in use! count %d", clientDeathObserver_->GetSptrRefCount());
+            return Status::ERROR;
+        }
+    }
+    return status;
 }
 
 std::pair<int32_t, std::string> DataMgrServiceProxy::GetSelfBundleName()

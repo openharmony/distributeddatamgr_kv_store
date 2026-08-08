@@ -32,6 +32,7 @@ public:
     std::pair<int32_t, std::string> GetSelfBundleName() override;
 private:
     static inline BrokerDelegator<DataMgrServiceProxy> delegator_;
+    sptr<IRemoteObject> clientDeathObserver_;
 };
 }
 #endif //KVSTORE_DATA_SERVICE_PROXY_H
