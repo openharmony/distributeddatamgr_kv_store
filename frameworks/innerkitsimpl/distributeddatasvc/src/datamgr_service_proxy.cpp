@@ -97,8 +97,12 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
         ZLOGW("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
-    clientDeathObserver_ = observer;
-    return static_cast<Status>(reply.ReadInt32());
+    Status status = Status::ERROR;
+    ITypesUtil::Unmarshal(reply, status);
+    if (status == Status::SUCCESS) {
+        clientDeathObserver_ = observer;
+    }
+    return static_cast<Status>(status);
 }
 
 int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
@@ -145,7 +149,8 @@ int32_t DataMgrServiceProxy::Exit(const std::string &featureName)
         ZLOGE("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
-    Status status = static_cast<Status>(reply.ReadInt32());
+    int32_t status = Status::ERROR;
+    ITypesUtil::Unmarshal(reply, status);
     if (status == Status::SUCCESS) {
         int32_t retry = 0;
         while (clientDeathObserver_ != nullptr && clientDeathObserver_->GetSptrRefCount() > 1 && retry < MAX_RETRY) {
