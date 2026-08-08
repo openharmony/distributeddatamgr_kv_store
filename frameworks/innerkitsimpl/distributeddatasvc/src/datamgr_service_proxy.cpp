@@ -97,7 +97,7 @@ Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr
         ZLOGW("Failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
-    Status status = Status::ERROR;
+    int32_t status = Status::ERROR;
     ITypesUtil::Unmarshal(reply, status);
     if (status == Status::SUCCESS) {
         clientDeathObserver_ = observer;
