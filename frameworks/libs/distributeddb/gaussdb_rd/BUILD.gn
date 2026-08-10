@@ -114,6 +114,7 @@ ohos_static_library("gaussdb_rd") {
 
   external_deps = [
     "c_utils:utils",
+    "bounds_checking_function:libsec_shared",
     "cJSON:cjson",
     "sqlite:sqlite",
   ]
