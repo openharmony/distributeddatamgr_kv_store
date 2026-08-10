@@ -87,6 +87,7 @@ ohos_source_set("src_file") {
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
+    "bounds_checking_function:libsec_shared",
     "googletest:gtest_main",
     "sqlite:sqlite",
   ]
@@ -124,6 +125,7 @@ template("gaussdb_rd_unittest") {
     external_deps = [
       "cJSON:cjson",
       "c_utils:utils",
+      "bounds_checking_function:libsec_shared",
       "googletest:gmock_main",
       "googletest:gtest_main",
       "openssl:libcrypto_shared",
