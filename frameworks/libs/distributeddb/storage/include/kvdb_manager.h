@@ -139,6 +139,8 @@ private:
 
     static std::string GenerateKvDBDataDirIdentifier(const KvDBProperties &property);
 
+    static bool CheckConnPoolConfig(const KvDBProperties &input, const KvDBProperties &existed);
+
     static std::shared_ptr<KvDBManager> instance_;
     static std::mutex kvDBLock_;
     static std::shared_mutex instanceMutex_;

@@ -657,5 +657,38 @@ HWTEST_F(DistributedDBBasicKVTest, GetKvStore006, TestSize.Level0)
         autoLaunchOption, notifer), ALREADY_SET);
     EXPECT_EQ(manager1.DisableKvStoreAutoLaunch(storeInfo1.userId, storeInfo1.appId, storeInfo1.storeId), OK);
 }
+
+/**
+ * @tc.name: GetKvStore007
+ * @tc.desc: Test get kv store with delay release
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, GetKvStore007, TestSize.Level0)
+{
+    CloseAllDelegate();
+    KvStoreNbDelegate::Option option;
+    option.connPoolConfig = {true, DBConstant::MIN_TIMEOUT};
+    SetOption(option);
+    auto storeInfo1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, "dev1"), E_OK);
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    auto storeInfo2 = GetStoreInfo2();
+    option.connPoolConfig.delayTime = DBConstant::MAX_SYNC_TIMEOUT;
+    SetOption(option);
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo2, "dev1"), E_OK);
+    auto storeInfo3 = GetStoreInfo2();
+    option.connPoolConfig.delayTime = DBConstant::MAX_SYNC_TIMEOUT + 1;
+    SetOption(option);
+    ASSERT_NE(BasicUnitTest::InitDelegate(storeInfo3, "dev1"), E_OK);
+    option.connPoolConfig.delayTime = DBConstant::MIN_TIMEOUT - 1;
+    SetOption(option);
+    ASSERT_NE(BasicUnitTest::InitDelegate(storeInfo3, "dev1"), E_OK);
+    ASSERT_NE(KVGeneralUt::InitDelegate(storeInfo2), E_OK);
+    option.connPoolConfig.isDelayRelease = false;
+    SetOption(option);
+    ASSERT_NE(KVGeneralUt::InitDelegate(storeInfo2), E_OK);
+}
 #endif
 } // namespace DistributedDB

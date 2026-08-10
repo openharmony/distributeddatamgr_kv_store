@@ -255,6 +255,8 @@ StorageEngine *StorageEngineManager::CreateStorageEngine(const KvDBProperties &p
         return nullptr;
     }
     errCode = E_OK;
+    storageEngine->SetReadExecutorDelayRelease(property.GetBoolProp(DBProperties::DELAY_RELEASE, false),
+        property.GetUIntProp(DBProperties::DELAY_TIME, 0));
     return storageEngine;
 }
 

@@ -448,5 +448,10 @@ struct MatrixFileInfo {
 struct MatrixFileUpdateConfig {
     bool isFullSync = false;
 };
+
+struct ConnPoolConfig {
+    bool isDelayRelease = false;
+    uint32_t delayTime = 5000u; // valid value between [5000ms(5s), 300000ms(300s)]
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

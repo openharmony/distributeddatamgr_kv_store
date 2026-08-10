@@ -59,6 +59,7 @@ public:
         bool localOnly = false; // active sync module
         std::string storageEngineType = SQLITE; // use gaussdb_rd as storage engine
         Rdconfig rdconfig;
+        ConnPoolConfig connPoolConfig;
     };
 
     struct DatabaseStatus {

@@ -20,6 +20,7 @@
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
+#include "runtime_context.h"
 
 namespace DistributedDB {
 const int StorageEngine::MAX_WAIT_TIME = 30;
@@ -39,8 +40,122 @@ StorageEngine::StorageEngine()
       isExistConnection_(false),
       readPendingCount_(0),
       externalReadPendingCount_(0),
-      engineState_(EngineState::INVALID)
+      engineState_(EngineState::INVALID),
+      isDelayRelease_(false),
+      delayTime_(0)
 {}
+
+void StorageEngine::SetReadExecutorDelayRelease(bool isDelayRelease, uint32_t delayTimeMs)
+{
+    {
+        std::unique_lock<std::mutex> lock(readMutex_);
+        isDelayRelease_ = isDelayRelease;
+        delayTime_ = delayTimeMs;
+    }
+    if (!isDelayRelease) {
+        StopDelayedReleaseTimer();
+    }
+    LOGD("[StorageEngine] delay[%d] delayTime[%" PRIu32 "ms]", isDelayRelease, delayTimeMs);
+}
+
+void StorageEngine::StopDelayedReleaseTimer()
+{
+    std::lock_guard<std::mutex> lock(delayedTimerMutex_);
+    if (delayedReleaseTimerId_ == 0) {
+        return;
+    }
+    RuntimeContext *runtimeCtx = RuntimeContext::GetInstance();
+    if (runtimeCtx != nullptr) {
+        TimerId timerId = delayedReleaseTimerId_;
+        delayedReleaseTimerId_ = 0;
+        runtimeCtx->RemoveTimer(timerId, false);
+    }
+}
+
+std::chrono::steady_clock::time_point StorageEngine::GetEarliestDelayedExpireTime()
+{
+    std::chrono::steady_clock::time_point earliestExpire = std::chrono::steady_clock::time_point::max();
+    std::lock_guard<std::mutex> lock(readMutex_);
+    for (const auto &item : readDelayedReleaseList_) {
+        if (item.second < earliestExpire) {
+            earliestExpire = item.second;
+        }
+    }
+    for (const auto &item : externalReadDelayedReleaseList_) {
+        if (item.second < earliestExpire) {
+            earliestExpire = item.second;
+        }
+    }
+    return earliestExpire;
+}
+
+int StorageEngine::StartDelayedReleaseTimer()
+{
+    // Compute the earliest expire time among all pending delayed executors.
+    std::chrono::steady_clock::time_point earliestExpire = GetEarliestDelayedExpireTime();
+    std::lock_guard<std::mutex> lock(delayedTimerMutex_);
+    if (delayedReleaseTimerId_ != 0) {
+        // A timer is already scheduled; it was armed for the earliest expiry which is always
+        // earlier than or equal to the current earliest, so keeping it is sufficient.
+        return E_OK;
+    }
+    if (earliestExpire == std::chrono::steady_clock::time_point::max()) {
+        // No pending executor, no need to start a timer.
+        return E_OK;
+    }
+    RuntimeContext *runtimeCtx = RuntimeContext::GetInstance();
+    if (runtimeCtx == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    auto now = std::chrono::steady_clock::now();
+    int delayMs = 1;
+    if (earliestExpire > now) {
+        delayMs = std::max(1, static_cast<int>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(earliestExpire - now).count()));
+    }
+    // Keep the engine alive while the timer is running.
+    RefObject::IncObjRef(this);
+    TimerFinalizer finalizer = [this]() {
+        int ret = RuntimeContext::GetInstance()->ScheduleTask([this]() {
+            RefObject::DecObjRef(this);
+        });
+        if (ret != E_OK) {
+            RefObject::DecObjRef(this);
+        }
+    };
+    TimerId timerId = 0;
+    int errCode = runtimeCtx->SetTimer(delayMs,
+        [this](TimerId id) -> int { return DelayedReleaseTimerCallback(id); }, finalizer, timerId);
+    if (errCode != E_OK) {
+        LOGW("[StorageEngine] Set delayed release timer failed, errCode[%d]", errCode);
+        RefObject::DecObjRef(this);
+        return errCode;
+    }
+    delayedReleaseTimerId_ = timerId;
+    return E_OK;
+}
+
+int StorageEngine::DelayedReleaseTimerCallback(TimerId timerId)
+{
+    ReleaseExpiredDelayedReadExecutors();
+    {
+        std::lock_guard<std::mutex> lock(delayedTimerMutex_);
+        if (delayedReleaseTimerId_ == timerId) {
+            delayedReleaseTimerId_ = 0;
+        }
+    }
+    // Asynchronously re-arm a new one-shot timer based on the next pending executor,
+    // or exit if none remains. Keep the engine alive until the re-arm task runs.
+    RefObject::IncObjRef(this);
+    int ret = RuntimeContext::GetInstance()->ScheduleTask([this]() {
+        StartDelayedReleaseTimer();
+        RefObject::DecObjRef(this);
+    });
+    if (ret != E_OK) {
+        RefObject::DecObjRef(this);
+    }
+    return -E_END_TIMER; // stop the current one-shot timer
+}
 
 StorageEngine::~StorageEngine()
 {
@@ -259,7 +374,12 @@ StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isEx
 {
     StorageExecutor *handle = nullptr;
     if (isNeedCreate) {
-        errCode = CreateNewExecutor(false, handle);
+        handle = FetchFromDelayedRelease(isExternal);
+        if (handle == nullptr) {
+            errCode = CreateNewExecutor(false, handle);
+        } else {
+            errCode = E_OK;
+        }
     }
     std::unique_lock<std::mutex> lock(readMutex_);
     auto &pendingCount = isExternal ? externalReadPendingCount_ : readPendingCount_;
@@ -317,27 +437,95 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
             idleCondition_.notify_all();
         }
     } else {
-        StorageExecutor *releaseHandle = nullptr;
-        {
-            std::unique_lock<std::mutex> lock(readMutex_);
-            std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
-            std::list<StorageExecutor *> &readIdleList = isExternal ?  externalReadIdleList_ : readIdleList_;
-            auto iter = std::find(readUsingList.begin(), readUsingList.end(), handle);
-            if (iter != readUsingList.end()) {
-                readUsingList.remove(handle);
-                if (!readIdleList.empty()) {
-                    releaseHandle = handle;
-                    handle = nullptr;
-                } else {
-                    handle->Reset();
-                    readIdleList.push_back(handle);
-                    readCondition_.notify_one();
-                }
-            }
+        bool needStartTimer = false;
+        StorageExecutor *releaseHandle = RecycleExcessReadExecutor(handle, isExternal, needStartTimer);
+        if (needStartTimer && StartDelayedReleaseTimer() != E_OK) {
+            // Start the timer outside the readMutex_ lock to avoid recursive locking.
+            LOGW("[StorageEngine] Start delayed release timer failed in Recycle");
         }
         delete releaseHandle;
     }
     handle = nullptr;
+}
+
+StorageExecutor *StorageEngine::RecycleExcessReadExecutor(StorageExecutor *handle, bool isExternal,
+    bool &needStartTimer)
+{
+    std::unique_lock<std::mutex> lock(readMutex_);
+    std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
+    std::list<StorageExecutor *> &readIdleList = isExternal ? externalReadIdleList_ : readIdleList_;
+    const auto iter = std::find(readUsingList.begin(), readUsingList.end(), handle);
+    if (iter == readUsingList.end()) {
+        return nullptr;
+    }
+    readUsingList.remove(handle);
+    if (readIdleList.empty()) {
+        handle->Reset();
+        readIdleList.push_back(handle);
+        readCondition_.notify_one();
+        return nullptr;
+    }
+    if (isDelayRelease_) {
+        AddToDelayedRelease(handle, isExternal);
+        needStartTimer = true;
+        return nullptr;
+    }
+    return handle;
+}
+
+void StorageEngine::AddToDelayedRelease(StorageExecutor *handle, bool isExternal)
+{
+    // Caller holds readMutex_.
+    auto &delayedList = isExternal ? externalReadDelayedReleaseList_ : readDelayedReleaseList_;
+    auto now = std::chrono::steady_clock::now();
+    delayedList.emplace_back(handle, now + std::chrono::milliseconds(delayTime_));
+}
+
+StorageExecutor *StorageEngine::FetchFromDelayedRelease(bool isExternal)
+{
+    std::unique_lock<std::mutex> lock(readMutex_);
+    if (!isDelayRelease_) {
+        return nullptr;
+    }
+    auto &delayedList = isExternal ? externalReadDelayedReleaseList_ : readDelayedReleaseList_;
+    auto now = std::chrono::steady_clock::now();
+    const auto iter = std::find_if(delayedList.begin(), delayedList.end(), [&now](const auto &item) {
+        return item.second > now;
+    });
+    if (iter == delayedList.end()) {
+        return nullptr;
+    }
+    StorageExecutor *handle = iter->first;
+    delayedList.erase(iter);
+    return handle;
+}
+
+void StorageEngine::ReleaseExpiredDelayedReadExecutors()
+{
+    std::list<StorageExecutor *> expiredHandles;
+    {
+        std::unique_lock<std::mutex> lock(readMutex_);
+        auto now = std::chrono::steady_clock::now();
+        CollectExpiredDelayedExecutors(readDelayedReleaseList_, now, expiredHandles);
+        CollectExpiredDelayedExecutors(externalReadDelayedReleaseList_, now, expiredHandles);
+    }
+    for (const auto *handle : expiredHandles) {
+        delete handle;
+    }
+}
+
+void StorageEngine::CollectExpiredDelayedExecutors(
+    std::list<std::pair<StorageExecutor *, std::chrono::steady_clock::time_point>> &delayedList,
+    const std::chrono::steady_clock::time_point &now, std::list<StorageExecutor *> &expiredHandles)
+{
+    for (auto iter = delayedList.begin(); iter != delayedList.end();) {
+        if (iter->second <= now) {
+            expiredHandles.push_back(iter->first);
+            iter = delayedList.erase(iter);
+        } else {
+            ++iter;
+        }
+    }
 }
 
 void StorageEngine::ClearCorruptedFlag()
@@ -509,8 +697,21 @@ void ClearHandleList(std::list<StorageExecutor *> &handleList)
     handleList.clear();
 }
 
+void StorageEngine::ClearDelayedReleaseList(
+    std::list<std::pair<StorageExecutor *, std::chrono::steady_clock::time_point>> &delayedList)
+{
+    for (auto &item : delayedList) {
+        if (item.first != nullptr) {
+            delete item.first;
+            item.first = nullptr;
+        }
+    }
+    delayedList.clear();
+}
+
 void StorageEngine::CloseExecutor()
 {
+    StopDelayedReleaseTimer();
     {
         std::lock_guard<std::mutex> lock(writeMutex_);
         ClearHandleList(writeIdleList_);
@@ -521,6 +722,8 @@ void StorageEngine::CloseExecutor()
         std::lock_guard<std::mutex> lock(readMutex_);
         ClearHandleList(readIdleList_);
         ClearHandleList(externalReadIdleList_);
+        ClearDelayedReleaseList(readDelayedReleaseList_);
+        ClearDelayedReleaseList(externalReadDelayedReleaseList_);
     }
     PrintDbFileMsg(false);
 }

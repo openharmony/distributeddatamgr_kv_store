@@ -78,6 +78,9 @@ public:
 
     static constexpr const char *COMPRESS_ON_SYNC = "needCompressOnSync";
     static constexpr const char *COMPRESSION_RATE = "compressionRate";
+
+    static constexpr const char *DELAY_RELEASE = "delayRelease";
+    static constexpr const char *DELAY_TIME = "delayTime"; // unit is ms
 protected:
     void CopyProperties(const DBProperties &other);
     mutable std::mutex dataMutex_;
