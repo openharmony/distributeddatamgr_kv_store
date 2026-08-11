@@ -42,12 +42,17 @@ StorageExecutor *SQLiteSingleRelationalStorageEngine::NewSQLiteStorageExecutor(s
     return new (std::nothrow) SQLiteSingleVerRelationalStorageExecutor(dbHandle, isWrite, mode);
 }
 
-int SQLiteSingleRelationalStorageEngine::Upgrade(sqlite3 *db)
+int SQLiteSingleRelationalStorageEngine::Upgrade(sqlite3 *db, bool needMetaTable)
 {
-    int errCode = SQLiteRelationalUtils::CreateRelationalMetaTable(db);
-    if (errCode != E_OK) {
-        LOGE("Create relational store meta table failed. err=%d", errCode);
-        return errCode;
+    if (needMetaTable) {
+        int errCode = SQLiteRelationalUtils::CreateRelationalMetaTable(db);
+        if (errCode != E_OK) {
+            LOGE("Create relational store meta table failed. err=%d", errCode);
+            return errCode;
+        }
+    } else {
+        LOGD("[RelationalEngine][Upgrade] skip upgrade when needMetaTable is false.");
+        return E_OK;
     }
     LOGD("[RelationalEngine][Upgrade] upgrade relational store.");
     auto upgrader = std::make_unique<SqliteRelationalDatabaseUpgrader>(db);
@@ -111,7 +116,8 @@ int SQLiteSingleRelationalStorageEngine::CreateNewExecutor(bool isWrite, Storage
         return errCode;
     }
     do {
-        errCode = Upgrade(db); // create meta_data table.
+        bool needMetaTable = GetRelationalProperties().IsMetadataTableNeeded();
+        errCode = Upgrade(db, needMetaTable); // create meta_data table.
         if (errCode != E_OK) {
             break;
         }
@@ -772,7 +778,11 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeCursor(const DBSubscribeCur
     ddCursor.type = static_cast<DonationType>(cursorIn.queryType);
     ddCursor.cursor = cursorIn.cursor;
     DdData ddData = {};
-    int errCode = dataDonationCache_.UpdateCursor(ddCursor, ddData);
+    int errCode = E_OK;
+    {
+        std::lock_guard<std::mutex> autoLock(donationCacheMutex_);
+        errCode = dataDonationCache_.UpdateCursor(ddCursor, ddData);
+    }
     if (errCode == -E_SUBSCRIBE_QUERY_END) {
         return E_OK;
     }

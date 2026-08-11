@@ -31,7 +31,7 @@ using namespace DistributedDBUnitTest;
 
 namespace {
 string g_storePath;
-const string STORE_ID = STORE_ID_1;
+const string STORE_ID_1 = "media_library";
 const string DB_SUFFIX = ".db";
 class DataDonationSqlGeneratorTest : public RDBGeneralUt {
 public:
@@ -60,9 +60,9 @@ protected:
 void DataDonationSqlGeneratorTest::SetUp()
 {
     RDBGeneralUt::SetUp();
-    g_storePath = BasicUnitTest::GetTestDir() + "/" + STORE_ID + DB_SUFFIX;
+    g_storePath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + DB_SUFFIX;
     LOGD("Test db is %s", g_storePath.c_str());
-    db = RelationalTestUtils::CreateDataBase(g_storePath);
+    sqlite3_open(g_storePath.c_str(), &db);
     ASSERT_NE(db, nullptr);
 }
 
@@ -224,7 +224,7 @@ void DataDonationSqlGeneratorTest::PrepareMutiRelationData(sqlite3 *db, int64_t 
             ", " + "'title_" + std::to_string(i) + "')";
         EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlA), E_OK);
         int relationNum = 500;
-        for (int64_t j = 0; j < relationNum; ++j) {
+        for (int64_t j = 0;  j < relationNum; ++j) {
             std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i * relationNum + j) + ", " +
             std::to_string(i) + ", " + "'cate_" + std::to_string(i) + "')";
             EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
@@ -294,6 +294,40 @@ HWTEST_F(DataDonationSqlGeneratorTest, SingleTableTest001, TestSize.Level0)
     EXPECT_EQ(errCode, E_OK);
     EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], A._rowid_ AS [A._rowid_] FROM A WHERE A._rowid_ <= 50000"
         " ORDER BY A._rowid_ ASC LIMIT 1000");
+}
+
+/**
+ * @tc.name: SelfReferenceNoJoinTest001
+ * @tc.desc: Test generating SQL for a single-table (root table, no outgoing FK) schema. The relation path built
+ *           by MergeRelationsMaps for a root table is a self-referencing zero-hop relation whose local and
+ *           foreign fields both point at the same table. BuildJoinClauses must skip such a self-referencing
+ *           relation so the generated SQL does not contain a redundant "LEFT JOIN A ON A.id = A.id", and the
+ *           FROM clause must target the root table.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SelfReferenceNoJoinTest001, TestSize.Level0)
+{
+    // Self-referencing zero-hop relation: key points A.id -> A.id (root table with no outgoing FK).
+    DataDonationSchema::DdField selfLocal = {"A", "id"};
+    DataDonationSchema::DdField selfForeign = {"A", "id"};
+    DataDonationSchema::DdForeignKey selfKey = {selfLocal, selfForeign};
+    DataDonationSchema::DdField outputA = {"A", "KeyId"};
+    DataDonationSchema::DdRelation selfRel = {selfKey, outputA, {}};
+    DataDonationSchema::DdRelationsPath path = {"A", {selfRel}};
+
+    std::string sql;
+    std::vector<std::pair<std::string, int64_t>> cursorValues;
+    std::vector<std::pair<std::string, int64_t>> maxRowids = {{"A", 50000}};
+    int errCode = generator_.GenerateQuerySql(path, cursorValues, maxRowids, sql);
+    EXPECT_EQ(errCode, E_OK);
+    // No redundant self-referencing join must be emitted.
+    EXPECT_EQ(sql.find("LEFT JOIN A ON A.id = A.id"), std::string::npos);
+    // The FROM clause must target the root table.
+    EXPECT_NE(sql.find("FROM A"), std::string::npos);
+    EXPECT_EQ(sql, "SELECT A.KeyId AS [A.KeyId], A._rowid_ AS [A._rowid_], A._rowid_ AS [A._rowid_]"
+        " FROM A WHERE A._rowid_ <= 50000 ORDER BY A._rowid_ ASC LIMIT 1000");
 }
 
 /**
@@ -713,13 +747,12 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Lev
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
-    
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
+
     const int64_t dataCount = 501;
     PrepareJsonFileData(db, dataCount);
 
@@ -843,7 +876,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
     int64_t updCnt = 100;
     PrepareJsonFileData(db, dataCount);
     DeleteJsonFileData(db, 0, updCnt);
-    
+
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;
@@ -940,6 +973,64 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
 }
 
 /**
+ * @tc.name: BinlogDataChangeObserverTest001
+ * @tc.desc: Test binlog data change observer.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set schema and observer by enable binlog.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    SetBinlogSchemaAndChangeCallback(db);
+    ASSERT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    /**
+     * @tc.steps:step2. Set matrix file info.
+     * @tc.expected: step2. OK.
+     */
+    std::string filePath = InitMatrixFile();
+    ASSERT_TRUE(!filePath.empty());
+    MatrixFileInfo info = {
+        .matrixFilePath = filePath,
+        .matrixTables = {{"TableA", 0}, {"TableB", 1}},
+        .fullSyncOffset = 2
+    };
+    ASSERT_EQ(delegate->SetTrackerMatrixInfo(info), OK);
+
+    /**
+     * @tc.steps:step3. matrix file updated after data change.
+     * @tc.expected: step3. OK.
+     */
+    int i = 1;
+    SqlCondition condition = {
+        .sql = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
+            ", " + "'title_" + std::to_string(i) + "')",
+        .bindArgs = {},
+        .readOnly = false
+    };
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, condition.sql), OK);
+
+    auto [errCode1, filePtr] = DataDonationUtils::MmapMatrixFile(info.matrixFilePath);
+    ASSERT_NE(filePtr, nullptr);
+    EXPECT_EQ(filePtr->GetValueByIndex(0), 1u);
+    EXPECT_EQ(filePtr->GetValueByIndex(1), 0u);
+    EXPECT_EQ(filePtr->GetValueByIndex(2), 0u);
+
+    filePtr = nullptr;
+    unlink(filePath.c_str());
+}
+
+/**
  * @tc.name: QueryBinlogSubscribeData006
  * @tc.desc: Test QuerySubscribeOutput interface with not enabled binlog.
  * @tc.type: FUNC
@@ -1032,7 +1123,6 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData008, TestSize.Lev
 
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
-
     /**
      * @tc.steps:step2. Insert 10 data to table A and B
      * @tc.expected: step2. OK.
@@ -1071,6 +1161,8 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
+    SetBinlogSchemaAndChangeCallback(db);
+
     const int64_t dataCount = 10;
     for (int64_t i = 0; i < dataCount; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
@@ -1081,7 +1173,6 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Lev
         EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(db);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -1213,7 +1304,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Lev
     StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
     SetSchemaInfo(storeInfo, GetJsonFileSchema());
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
-    
+
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
@@ -1318,6 +1409,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData013, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 2001;
     for (int64_t i = 0; i < dataCount; ++i) {
         std::string sqlA = "INSERT INTO TableA VALUES(" + std::to_string(i) + ", " + std::to_string(i) +
@@ -1336,7 +1428,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData013, TestSize.Lev
         EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    SetBinlogSchemaAndChangeCallback(db);
+    
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
@@ -1498,6 +1590,30 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData016, TestSize.Lev
     } while (status == OK);
     size_t expectRecords = 24240;
     EXPECT_EQ(totalRecords, expectRecords);
+}
+
+/**
+ * @tc.name: SetSubcribeSchema
+ * @tc.desc: Test setSubScribeSchema invalid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetSubScribeSchemaEmpty, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    const int64_t dataCount = CloudDbConstant::SUBSCRIBE_QUERY_LIMIT_GET_ALL * 3;
+    PrepareJsonFileData(db, dataCount);
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    string schemaContentArray = "['a':'b']";
+    vector<string> schemaContentVec = {schemaContentArray, "", "  ", "abc123", "1234"};
+    for (const auto &schemaContent : schemaContentVec) {
+        EXPECT_EQ(delegate->SetSubscribeSchema(schemaContent), INVALID_ARGS);
+    }
 }
 
 /**

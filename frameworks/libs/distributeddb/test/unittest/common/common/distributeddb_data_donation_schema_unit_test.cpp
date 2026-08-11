@@ -265,13 +265,19 @@ HWTEST_F(DistributedDBDataDonationSchemaUnitTest, FunctionTest_NeedWakeupForRoot
 
 /**
  * @tc.name: DecodeSchemaErrorTest_001
- * @tc.desc: Test schema decoding when missing search config.
+ * @tc.desc: Test schema decoding for a single-table (no foreignKey) schema. A single-table root table with a
+ *           primaryKey mapping (fills keysOut) and a value mapping (fills triggers) must decode successfully:
+ *           SetSubscribeSchema should no longer be blocked by the empty foreignKeys / ddRelations guards.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
  */
 HWTEST_F(DistributedDBDataDonationSchemaUnitTest, DecodeSchemaErrorTest_001, TestSize.Level0)
 {
+    // Single table "table1" with no foreignKey. The searchConfig provides a minimal but legal configuration:
+    // - map_pk has primaryKey:true with a value pointing at table1.column1 -> fills keysOut
+    // - map_val has a value pointing at table1.column1 -> fills triggers (DecodeOthers4Triggers)
+    // so that the keysOut.empty() and triggers.empty() guards in DecodeKeysOut/DecodeTriggers are satisfied.
     std::string schemaStr = R"({
         "dbSchema": [{
             "tables": [
@@ -285,9 +291,35 @@ HWTEST_F(DistributedDBDataDonationSchemaUnitTest, DecodeSchemaErrorTest_001, Tes
                 }
             ]
         }],
-        "searchConfig": {}
+        "searchConfig": {
+            "UTDMapping": [{
+                "dbName": ["test_library"],
+                "tables": ["table1"],
+                "parts": [{
+                    "tables": ["table1"],
+                    "mappings": [
+                        {"name": "map_pk", "primaryKey": true,
+                         "value": {"tableName": "table1", "columnName": "column1"}},
+                        {"name": "map_val", "value": {"tableName": "table1", "columnName": "column1"}}
+                    ]
+                }]
+            }]
+        }
     })";
 
     DataDonationSchema schema;
-    EXPECT_EQ(schema.Init(schemaStr), -E_INVALID_ARGS);
+    EXPECT_EQ(schema.Init(schemaStr), E_OK);
+
+    // The root table should obtain a self-referencing zero-hop relation path so full donation can query it.
+    DataDonationSchema::DdRelationsPath &path = schema.GetRelationPath("table1");
+    EXPECT_EQ(path.table, "table1");
+    EXPECT_FALSE(path.relations.empty());
+    EXPECT_EQ(path.relations[0].key.localField.table, "table1");
+    EXPECT_EQ(path.relations[0].key.foreignField.table, "table1");
+    EXPECT_FALSE(path.relations[0].localField.field.empty());
+
+    // The no-arg GetRelationPath (full-donation entry point) must resolve to the same root-table path.
+    DataDonationSchema::DdRelationsPath &defaultPath = schema.GetRelationPath();
+    EXPECT_EQ(defaultPath.table, "table1");
+    EXPECT_FALSE(defaultPath.relations.empty());
 }

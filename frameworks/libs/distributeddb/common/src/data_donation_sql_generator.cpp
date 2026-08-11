@@ -207,6 +207,12 @@ std::string DataDonationSqlGenerator::BuildJoinClauses(const DataDonationSchema:
         const auto &relation = path.relations[i];
         const auto &foreignKey = relation.key;
 
+        // Skip the self-referencing join produced by a root-table (single-table, no-FK) path: the local and
+        // foreign tables are the same, so "LEFT JOIN A ON A.pk = A.pk" would be a redundant no-op.
+        if (foreignKey.localField.table == foreignKey.foreignField.table) {
+            continue;
+        }
+
         joinClause += " LEFT JOIN " + foreignKey.foreignField.table;
         joinClause += " ON " + FormatFieldRef(foreignKey.localField.table, foreignKey.localField.field);
         joinClause += " = " + FormatFieldRef(foreignKey.foreignField.table, foreignKey.foreignField.field);

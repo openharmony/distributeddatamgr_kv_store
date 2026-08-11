@@ -202,6 +202,15 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
             return -E_INVALID_ARGS;
         }
     }
+
+    bool skipMetaTableUser = prop.GetBoolProp(RelationalDBProperties::SKIP_METADATA_TABLE, false);
+    bool skipMetaTableGet = existedProp.GetBoolProp(RelationalDBProperties::SKIP_METADATA_TABLE, false);
+    if (skipMetaTableUser != skipMetaTableGet) {
+        LOGE("Failed to check skip metadata table option, the input %d not match with cached %d.",
+            skipMetaTableUser, skipMetaTableGet);
+        return -E_INVALID_ARGS;
+    }
+
     return E_OK;
 }
 }

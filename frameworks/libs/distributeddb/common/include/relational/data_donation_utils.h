@@ -106,7 +106,7 @@ public:
     static int ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field, JsonObject &out);
     static int ExtractJsonObjArray(const JsonObject &inJsonObject,
         const std::string &field, std::vector<JsonObject> &out);
-
+    static int ValidateJsonConfigFile(const std::string &dbPath);
 private:
     static std::string JoinPrimaryKey(const std::vector<DonateDataField> &changedData);
 

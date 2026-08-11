@@ -18,6 +18,8 @@
 namespace DistributedDB {
 const std::string RelationalDBProperties::DISTRIBUTED_TABLE_MODE = "distributed_table_mode";
 
+const std::string RelationalDBProperties::SKIP_METADATA_TABLE = "skip_metadata_table";
+
 RelationalDBProperties::RelationalDBProperties()
     : schema_(),
       isEncrypted_(false),
@@ -102,6 +104,11 @@ void RelationalDBProperties::CopyRDBProperties(const RelationalDBProperties &oth
     cipherType_ = other.cipherType_;
     passwd_ = other.passwd_;
     iterTimes_ = other.iterTimes_;
+}
+
+bool RelationalDBProperties::IsMetadataTableNeeded() const
+{
+    return !GetBoolProp(SKIP_METADATA_TABLE, false);
 }
 }
 #endif

@@ -14,7 +14,6 @@
  */
 #ifdef RELATIONAL_STORE
 #include <utility>
-
 #include "log_print.h"
 #include "json_object.h"
 #include "db_common.h"
@@ -302,9 +301,11 @@ int DataDonationSchema::DecodeForeignKeys(const JsonObject &src)
             }
         }
     }
+    // A single-table schema has no foreign keys; its primary keys are still captured by DecodePrimaryKeyFromField
+    // above. Treat an empty foreignKeys map as a valid root-table-only configuration rather than an error so that
+    // SetSubscribeSchema can succeed for single-table (no-FK) schemas.
     if (foreignKeys.empty()) {
-        LOGE("dbSchema foreignKeys not found. %d", -E_INVALID_ARGS);
-        return -E_INVALID_ARGS;
+        LOGI("dbSchema foreignKeys not found.");
     }
     return E_OK;
 }
@@ -518,11 +519,27 @@ int DataDonationSchema::DecodeRelationsMaps()
 
 void DataDonationSchema::MergeRelationsMaps(DdTrigger &trigger)
 {
-    auto foreignKey = foreignKeys.find(trigger.table);
-    if (foreignKey == foreignKeys.end()) {
+    // If a path already exists for this trigger table and is complete, keep it as-is.
+    auto path = ddRelations.find(trigger.table);
+    if (path != ddRelations.end() && InsertKeyOutAndCheckCompleted(path->second)) {
         return;
     }
-    auto path = ddRelations.find(trigger.table);
+
+    auto foreignKey = foreignKeys.find(trigger.table);
+    if (foreignKey == foreignKeys.end()) {
+        // Root table (no outgoing FK): build a self-referencing zero-hop relation so the table can still
+        // donate its own keyOut. Requires a primary key; otherwise no path can be established.
+        auto primaryKey = primaryKeys.find(trigger.table);
+        if (primaryKey == primaryKeys.end()) {
+            return;
+        }
+        DdForeignKey selfKey = {{trigger.table, primaryKey->second}, {trigger.table, primaryKey->second}};
+        DdRelation rel = {selfKey, DdField{"", ""}, DdField{"", ""}};
+        auto [newIt, success] = ddRelations.insert({trigger.table, {trigger.table, {rel}}});
+        InsertKeyOutAndCheckCompleted(newIt->second);
+        return;
+    }
+
     if (path == ddRelations.end()) {
         vector<DdRelation> relations;
         DdRelation rel = {foreignKey->second, DdField{"", ""}, DdField{"", ""}};
@@ -530,8 +547,6 @@ void DataDonationSchema::MergeRelationsMaps(DdTrigger &trigger)
         auto [newIt, success] = ddRelations.insert({trigger.table, {trigger.table, relations}});
         InsertKeyOutAndCheckCompleted(newIt->second);
         path = ddRelations.find(trigger.table); // update path after insert for later merge
-    } else if (InsertKeyOutAndCheckCompleted(path->second)) {
-        return;
     }
     // path cannot be empty
     size_t tryTimes = 10;

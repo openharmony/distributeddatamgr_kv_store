@@ -56,7 +56,7 @@ StorageExecutor *SQLiteStorageEngine::NewSQLiteStorageExecutor(sqlite3 *dbHandle
     return new (std::nothrow) SQLiteStorageExecutor(dbHandle, isWrite, isMemDb);
 }
 
-int SQLiteStorageEngine::Upgrade(sqlite3 *db)
+int SQLiteStorageEngine::Upgrade(sqlite3 *db, bool needMetaTable)
 {
     // SQLiteSingleVerStorageEngine override this function to do table structure and even content upgrade
     // SQLiteLocalStorageEngine is used by SQLiteLocalKvDB, and SQLiteLocalKvDB is used as LocalStore, CommitStorage,
@@ -66,6 +66,7 @@ int SQLiteStorageEngine::Upgrade(sqlite3 *db)
     //      who use the SQLiteLocalKvDB.
     // MultiVerStorageEngine do not inherit SQLiteStorageEngine.
     (void)db;
+    (void)needMetaTable;
     return E_OK;
 }
 

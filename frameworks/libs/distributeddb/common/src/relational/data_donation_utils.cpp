@@ -18,6 +18,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <sys/stat.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -421,15 +422,28 @@ std::string DataDonationUtils::GenerateSqlByTableName(const std::string &tableNa
             selectClause += (GetSelectFieldName(relation.foreignField.table, relation.foreignField.field) + ",");
         }
 
+        // A root table (no outgoing FK) produces a self-referencing zero-hop relation whose local and foreign
+        // tables are the same. Emitting "LEFT JOIN A ON A.pk = A.pk" re-references table A twice without an alias,
+        // which yields an "ambiguous column name" error in SQLite. Skip such joins: the table is already the
+        // single FROM source, and its keyOut column was added to the SELECT clause above.
+        bool isSelfReference = (relation.key.localField.table == relation.key.foreignField.table);
+        if (isSelfReference && !isFirst) {
+            // A non-leading self-reference adds nothing: no extra table and its foreign field equals the local
+            // field already covered. Skip the JOIN entirely.
+            continue;
+        }
+
         // join local table and foreign table
         std::string joinStatement;
         if (isFirst) {
-            joinStatement = relation.key.localField.table;
+            joinStatement = relation.key.localField.table + " ";
             isFirst = false;
         }
-        joinStatement += (" LEFT JOIN " + relation.key.foreignField.table + " ON " +
-            GetFieldName(relation.key.localField.table, relation.key.localField.field) + " = " +
-            GetFieldName(relation.key.foreignField.table, relation.key.foreignField.field) + " ");
+        if (!isSelfReference) {
+            joinStatement += (" LEFT JOIN " + relation.key.foreignField.table + " ON " +
+                GetFieldName(relation.key.localField.table, relation.key.localField.field) + " = " +
+                GetFieldName(relation.key.foreignField.table, relation.key.foreignField.field) + " ");
+        }
 
         fromClause += joinStatement;
     }
@@ -973,6 +987,24 @@ int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, std::st
     if (jsonStr.empty()) {
         LOGE("Config file is empty");
         return -E_INVALID_FILE;
+    }
+    return E_OK;
+}
+
+int DataDonationUtils::ValidateJsonConfigFile(const std::string &dbPath)
+{
+    std::string configPath;
+    if (!GetSchemaPathByDbPath(dbPath, configPath)) {
+        return -E_INVALID_ARGS;
+    }
+    struct stat st {};
+    if (stat(configPath.c_str(), &st) != 0) {
+        LOGE("config file no exist");
+        return -E_INVALID_DB;
+    }
+    if (st.st_size == 0) {
+        LOGE("stat config file is empty");
+        return -E_INVALID_DB;
     }
     return E_OK;
 }

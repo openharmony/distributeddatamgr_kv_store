@@ -39,7 +39,7 @@ public:
     int CheckEngineOption(const KvDBProperties &kvDBProp) const override;
 protected:
 
-    virtual int Upgrade(sqlite3 *db);
+    virtual int Upgrade(sqlite3 *db, bool needMetaTable = true);
 
     virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) = 0;
 

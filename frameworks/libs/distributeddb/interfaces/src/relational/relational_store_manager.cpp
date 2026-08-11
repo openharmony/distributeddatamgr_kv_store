@@ -53,6 +53,7 @@ DBStatus InitProperties(const RelationalStoreDelegate::Option &option, Relationa
         properties.SetIntProp(
             DBProperties::COMPRESSION_RATE, ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
     }
+    properties.SetBoolProp(RelationalDBProperties::SKIP_METADATA_TABLE, option.skipMetadataTable);
     return OK;
 }
 }

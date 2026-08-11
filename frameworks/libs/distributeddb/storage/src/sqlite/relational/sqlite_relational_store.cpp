@@ -67,21 +67,10 @@ RelationalStoreConnection *SQLiteRelationalStore::GetDBConnection(int &errCode)
     return connection;
 }
 
-static void InitDataBaseOption(const RelationalDBProperties &properties, OpenDbProperties &option)
-{
-    option.uri = properties.GetStringProp(DBProperties::DATA_DIR, "");
-    option.createIfNecessary = properties.GetBoolProp(DBProperties::CREATE_IF_NECESSARY, false);
-    if (properties.IsEncrypted()) {
-        option.cipherType = properties.GetCipherType();
-        option.passwd = properties.GetPasswd();
-        option.iterTimes = properties.GetIterTimes();
-    }
-}
-
 int SQLiteRelationalStore::InitStorageEngine(const RelationalDBProperties &properties)
 {
     OpenDbProperties option;
-    InitDataBaseOption(properties, option);
+    SQLiteRelationalUtils::InitDataBaseOption(properties, option);
     std::string identifier = properties.GetStringProp(DBProperties::IDENTIFIER_DATA, "");
 
     StorageEngineAttr poolSize = { 1, 1, 0, 16 }; // at most 1 write 16 read.
@@ -177,6 +166,11 @@ int SQLiteRelationalStore::CheckTableModeFromMeta(DistributedTableMode mode, boo
 
 int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
 {
+    // If metadata table is not needed, skip all meta table operations
+    if (!properties.IsMetadataTableNeeded()) {
+        LOGD("[SQLiteRelationalStore] Metadata table not needed, skip CheckProperties");
+        return E_OK;
+    }
     RelationalSchemaObject schema;
     int errCode = GetSchemaFromMeta(schema);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
@@ -249,6 +243,14 @@ int SQLiteRelationalStore::SaveLogTableVersionToMeta() const
     return errCode;
 }
 
+int SQLiteRelationalStore::SaveLogTableVersionIfNeeded(const RelationalDBProperties &properties) const
+{
+    if (properties.IsMetadataTableNeeded()) {
+        return SaveLogTableVersionToMeta();
+    }
+    return E_OK;
+}
+
 int SQLiteRelationalStore::CleanDistributedDeviceTable()
 {
     std::vector<std::string> missingTables;
@@ -312,7 +314,7 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
             break;
         }
 
-        errCode = SaveLogTableVersionToMeta();
+        errCode = SaveLogTableVersionIfNeeded(properties);
         if (errCode != E_OK) {
             break;
         }
@@ -1739,18 +1741,6 @@ int SQLiteRelationalStore::CheckParamForUpsertData(RecordStatus status, const st
     return CheckSchemaForUpsertData(tableName, records);
 }
 
-static int ChkTable(const TableInfo &table)
-{
-    if (table.IsNoPkTable() || table.GetSharedTableMark()) {
-        LOGE("[RelationalStore][ChkTable] not support table without pk or with tablemark");
-        return -E_NOT_SUPPORT;
-    }
-    if (table.GetTableName().empty() || (table.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION)) {
-        return -E_NOT_FOUND;
-    }
-    return E_OK;
-}
-
 int SQLiteRelationalStore::CheckSchemaForUpsertData(const std::string &tableName, const std::vector<VBucket> &records)
 {
     if (tableName.empty()) {
@@ -1758,7 +1748,7 @@ int SQLiteRelationalStore::CheckSchemaForUpsertData(const std::string &tableName
     }
     auto schema = storageEngine_->GetSchemaInfo();
     auto table = schema.GetTable(tableName);
-    int errCode = ChkTable(table);
+    int errCode = SQLiteRelationalUtils::ChkTable(table);
     if (errCode != E_OK) {
         return errCode;
     }
