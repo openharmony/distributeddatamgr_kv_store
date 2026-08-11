@@ -215,6 +215,8 @@ public:
 
     static int GetCountBySql(sqlite3 *db, const std::string &sql, int &count);
 
+    static int GetCountBySql(sqlite3 *db, const std::string &sql, int64_t &count);
+
     static bool IsStmtReadOnly(sqlite3_stmt *statement);
 
     static int UpdateLocalDataModifyTime(

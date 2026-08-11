@@ -1462,9 +1462,6 @@ std::map<std::string, int> SQLiteSingleRelationalStorageEngine::GetTableWeightWi
 
 int SQLiteSingleRelationalStorageEngine::UpdateExtendField(const DistributedDB::TrackerSchema &schema)
 {
-    if (schema.extendColNames.empty()) {
-        return E_OK;
-    }
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
         OperatePerm::NORMAL_PERM, errCode));

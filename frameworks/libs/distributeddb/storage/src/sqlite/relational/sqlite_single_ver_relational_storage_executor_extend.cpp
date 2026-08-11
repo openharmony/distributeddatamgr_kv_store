@@ -1848,7 +1848,9 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateExtendField(const std::strin
     for (const auto &extendColName : extendColNames) {
         sql += "'" + extendColName + "',data." + extendColName + ",";
     }
-    sql.pop_back();
+    if (!extendColNames.empty()) {
+        sql.pop_back();
+    }
     sql += ") from " + tableName + " as data where log.data_key = data." + std::string(DBConstant::SQLITE_INNER_ROWID);
     sql += condition;
     sqlite3_stmt *stmt = nullptr;

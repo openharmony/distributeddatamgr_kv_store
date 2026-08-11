@@ -178,9 +178,9 @@ std::string CloudStorageUtils::GetSelectIncCursorSql(const std::string &tableNam
         DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "')";
 }
 
-std::string CloudStorageUtils::GetCursorIncSql(const std::string &tableName)
+std::string CloudStorageUtils::GetCursorIncSql(const std::string &tableName, int64_t count)
 {
-    return "UPDATE " + DBCommon::GetMetaTableName() + " SET value=value+1 WHERE key=x'" +
+    return "UPDATE " + DBCommon::GetMetaTableName() + " SET value=value+" + std::to_string(count) + " WHERE key=x'" +
         DBCommon::TransferStringToHex(DBCommon::GetCursorKey(tableName)) + "';";
 }
 

@@ -619,6 +619,14 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
 
 int SQLiteUtils::GetCountBySql(sqlite3 *db, const std::string &sql, int &count)
 {
+    int64_t bigCount = 0;
+    auto errCode = GetCountBySql(db, sql, bigCount);
+    count = static_cast<int>(bigCount);
+    return errCode;
+}
+
+int SQLiteUtils::GetCountBySql(sqlite3 *db, const std::string &sql, int64_t &count)
+{
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -627,7 +635,7 @@ int SQLiteUtils::GetCountBySql(sqlite3 *db, const std::string &sql, int &count)
     }
     errCode = SQLiteUtils::StepWithRetry(stmt, false);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        count = static_cast<int>(sqlite3_column_int(stmt, 0));
+        count = sqlite3_column_int(stmt, 0);
         errCode = E_OK;
     } else {
         LOGE("[SQLiteUtils][GetCountBySql] Query local data count failed: %d", errCode);

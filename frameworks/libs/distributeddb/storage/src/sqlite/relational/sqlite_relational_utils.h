@@ -95,6 +95,11 @@ public:
     static int GeneLogInfoForExistedData(const std::string &identity, const TableInfo &tableInfo,
         std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param);
 
+    static int GeneMismatchLogInfo(const std::string &identity, const TableInfo &tableInfo,
+        std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param);
+
+    static int UpdateExistCursor(const TableInfo &tableInfo, const GenLogParam &param);
+
     static int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isMem, int64_t &timeOffset);
 
     static std::string GetExtendValue(const TrackerTable &trackerTable);

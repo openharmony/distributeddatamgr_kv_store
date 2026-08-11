@@ -1088,5 +1088,31 @@ HWTEST_F(DistributedDBRDBComplexCloudTest, UniqueTable001, TestSize.Level0)
     ASSERT_NO_FATAL_FAILURE(RDBGeneralUt::SetCloudDbConfig(info1_));
     ASSERT_EQ(SetDistributedTables(info1_, {tableName}, TableSyncType::CLOUD_COOPERATION), E_OK);
 }
+
+/**
+ * @tc.name: TrackerUpdate001
+ * @tc.desc: Test update tracker table.
+ * @tc.expected: Local cursor no change.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBComplexCloudTest, TrackerUpdate001, TestSize.Level1)
+{
+    std::string table = "TEST";
+    InitTables(table);
+    InsertLocalData(1, 1, info1_, table);
+    EXPECT_EQ(GetLocalDataCount(info1_, table), 1);
+    auto store = GetDelegate(info1_);
+    ASSERT_NE(store, nullptr);
+    TrackerSchema schema;
+    schema.tableName = table;
+    schema.extendColNames = {"intCol"};
+    schema.trackerColNames = {"intCol"};
+    EXPECT_EQ(store->SetTrackerTable(schema), WITH_INVENTORY_DATA);
+    EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(table), "cursor=1"), 1);
+    schema.trackerColNames = {"intCol", "stringCol1"};
+    EXPECT_EQ(store->SetTrackerTable(schema), OK);
+    EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(table), "cursor=2"), 1); // 2 is cursor update
+}
 }
 #endif
