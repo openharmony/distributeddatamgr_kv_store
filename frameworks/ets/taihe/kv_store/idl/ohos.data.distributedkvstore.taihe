@@ -125,7 +125,7 @@ struct BackupConfig {
 }
 
 union OneUndef {
-    UNDEFINED: @undefined unit
+    UNDEFINED: @undefined unit;
 }
 
 @class
