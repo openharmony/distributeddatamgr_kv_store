@@ -1082,7 +1082,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Lev
     }
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
-
+    
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;

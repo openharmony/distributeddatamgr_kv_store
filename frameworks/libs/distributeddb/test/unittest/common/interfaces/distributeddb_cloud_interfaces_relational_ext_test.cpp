@@ -2117,6 +2117,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InvalidRegisterDbHookTes
     RegisterDbHook(db);
     UnregisterDbHook(db);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    db = nullptr;
     RegisterDbHook(db);
     UnregisterDbHook(db);
 }

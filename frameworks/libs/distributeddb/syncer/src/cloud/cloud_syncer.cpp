@@ -2118,7 +2118,7 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool isF
             LOGD("[CloudSyncer] try to query cloud data use increment water mark");
             UpdateCloudWaterMark(taskId, param);
             // Cloud water may change on the cloud, it needs to be saved here
-                SaveCloudWaterMark(param.tableName, taskId);
+            SaveCloudWaterMark(param.tableName, taskId);
         }
         if (isFirstDownload) {
             NotifyInEmptyDownload(taskId, param.info);
