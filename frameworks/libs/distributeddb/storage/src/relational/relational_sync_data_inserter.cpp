@@ -492,7 +492,7 @@ int RelationalSyncDataInserter::SaveSyncLog(sqlite3 *db, const DataItem &dataIte
     logInfoBind.timestamp = dataItem.timestamp;
     logInfoBind.flag = dataItem.flag;
     if (((logInfoBind.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
-            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) &&
+         static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) &&
         isDeviceSyncLogicDelete_) {
         logInfoBind.flag = logInfoBind.flag | static_cast<uint32_t>(LogInfoFlag::FLAG_LOGIC_DELETE);
     }

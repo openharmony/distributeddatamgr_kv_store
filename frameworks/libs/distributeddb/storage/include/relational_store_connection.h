@@ -61,8 +61,8 @@ public:
 
     virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
     virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
-    virtual int QuerySubscribeOutput(const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut) = 0;
+    virtual int QuerySubscribeOutput(const DBSubscribeCursor &cursorIn,
+        DBSubscribeCursor &cursorOut, std::vector<VBucket> &dataOut) = 0;
     virtual int CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
 
     virtual int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) = 0;
@@ -122,7 +122,7 @@ public:
 
     virtual int SetBinlogEnabled(bool enabled) = 0;
 
-    virtual int SetSubscribeCursor(const DBSubscribeCur &cursorIn) = 0;
+    virtual int SetSubscribeCursor(const DBSubscribeCursor &cursorIn) = 0;
 
     virtual int StopTask(TaskType type) = 0;
 

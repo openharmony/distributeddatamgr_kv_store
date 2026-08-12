@@ -243,13 +243,13 @@ public:
         return OK;
     }
 
-    DB_API virtual DBStatus QuerySubscribeOutput(const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut)
+    DB_API virtual DBStatus QuerySubscribeOutput(const DBSubscribeCursor &cursorIn,
+        DBSubscribeCursor &cursorOut, std::vector<VBucket> &dataOut)
     {
         return OK;
     }
 
-    DB_API virtual DBStatus SetSubscribeCursor(const DBSubscribeCur &cursorIn)
+    DB_API virtual DBStatus SetSubscribeCursor(const DBSubscribeCursor &cursorIn)
     {
         return OK;
     }

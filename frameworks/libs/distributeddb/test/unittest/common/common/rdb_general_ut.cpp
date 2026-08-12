@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "rdb_general_ut.h"
-#include "relational_store_client_utils.h"
 #include "rdb_data_generator.h"
 #include "runtime_config.h"
 #include "sqlite_relational_utils.h"
@@ -305,14 +304,32 @@ int RDBGeneralUt::ExecuteSQL(const std::string &sql, const StoreInfo &info)
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
-void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(const StoreInfo &info)
+void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(sqlite3 *db)
 {
-    auto db = GetSqliteHandle(info);
-    if (db == nullptr) {
-        LOGE("[RDBGeneralUt] Get null sqlite when insert data");
-        return;
+    Sqlite3BinlogConfig binLogConfig = {
+        .mode = Sqlite3BinlogMode::ROW_FOR_SEARCH,
+        .fullCallbackThreshold = 2,
+        .maxFileSize = 1024 * 1024 * 4,
+        .xErrorCallback = []([[gnu::unused]] void *pCtx, int errNo, char *errMsg, const char *dbPath) {
+            if (dbPath == nullptr) {
+                LOGW("SQLiteUtilspath is null");
+                return;
+            }
+            std::string dbPathStr(dbPath);
+            LOGW("binlog failed, mark invalid %s, errNo:%d, errMsg:%s",
+                dbPathStr.c_str(), errNo, errMsg == nullptr ? "" : errMsg);
+        },
+        .xLogFullCallback = nullptr,
+        .callbackCtx = nullptr,
+    };
+    int errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, &binLogConfig);
+    if (errCode != SQLITE_OK) {
+        LOGE(" Enable binlog failed:%d", errCode);
+    } else {
+        LOGI("Enable binlog OK");
     }
-    sqlite3_set_json_parse_callback_binlog(db, &RelationalStoreClientUtils::BinlogSchemaGet);
+    sqlite3_set_json_parse_callback_binlog(db, &DataDonationUtils::BinlogSchemaGet);
+    sqlite3_free_json_parse_callback_binlog(db, &DataDonationUtils::FreeMonitorConfig);
     sqlite3_set_xChange_callback_binlog(db,  [] (const char *dbPath, char *tableName) ->void {
                                                 printf("xChangeCallback dbPath:%s tableName:%s\n", dbPath, tableName);
                                                 });
@@ -542,7 +559,7 @@ void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const Query &query, Syn
 void RDBGeneralUt::CloudBlockSync(const StoreInfo &from, const CloudSyncOption &option,
     DBStatus expectStatus, DBStatus callbackExpect)
 {
-    LOGI("[RDBGeneralUt] Begin cloud sync with option, app %s store %s user %s", from.appId.c_str(),
+    LOGI("[RDBGeneralUt] Begin cloud sync, app %s store %s user %s", from.appId.c_str(),
         from.storeId.c_str(), from.userId.c_str());
     auto delegate = GetDelegate(from);
     ASSERT_NE(delegate, nullptr);

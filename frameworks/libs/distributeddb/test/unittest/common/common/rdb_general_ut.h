@@ -73,7 +73,8 @@ protected:
     int InsertLocalDBData(int64_t begin, int64_t count, const StoreInfo &info);
 
     int ExecuteSQL(const std::string &sql, const StoreInfo &info);
-    void SetBinlogSchemaAndChangeCallback(const StoreInfo &info);
+
+    void SetBinlogSchemaAndChangeCallback(sqlite3 *db);
 
     int CreateDistributedTable(const StoreInfo &info, const std::string &table,
         TableSyncType type = TableSyncType::DEVICE_COOPERATION);

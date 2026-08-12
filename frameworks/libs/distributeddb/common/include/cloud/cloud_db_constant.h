@@ -105,6 +105,7 @@ public:
     static constexpr const int32_t MAX_CONDITIONS_SIZE = 100;
 
     static constexpr const int32_t SUBSCRIBE_QUERY_LIMIT = 100;
+    static constexpr const int32_t SUBSCRIBE_QUERY_LIMIT_GET_ALL = 1000;
 
     static constexpr const uint32_t ON_CHANGE_TRACKER = 0x1;
     static constexpr const uint32_t ON_CHANGE_P2P = 0x2;
