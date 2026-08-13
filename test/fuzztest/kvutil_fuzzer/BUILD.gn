@@ -49,6 +49,7 @@ if (data_share_enabled) {
     deps += deps_ipc_single
 
     external_deps = [
+      "bounds_checking_function:libsec_shared",
       "c_utils:utils",
       "data_share:datashare_common",
       "data_share:datashare_provider",

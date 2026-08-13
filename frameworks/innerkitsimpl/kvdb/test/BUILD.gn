@@ -116,6 +116,7 @@ ohos_source_set("kvdb_src_file") {
   deps += deps_access_token_libaccesstoken_sdk
   deps += deps_access_token_libtokenid_sdk
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
   ]
 
@@ -177,6 +178,7 @@ ohos_unittest("SingleStoreImplTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -219,6 +221,7 @@ ohos_unittest("StoreUtilTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -252,6 +255,7 @@ ohos_unittest("BackupManagerTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -281,6 +285,7 @@ ohos_unittest("DevManagerTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -319,6 +324,7 @@ ohos_unittest("DevManagerMockTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -351,6 +357,7 @@ ohos_unittest("SingleStoreImplGetTopTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -380,6 +387,7 @@ ohos_unittest("StoreFactoryTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -415,6 +423,7 @@ ohos_unittest("SecurityManagerTest") {
   configs = [ ":module_private_config" ]
  
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -479,6 +488,7 @@ ohos_unittest("StoreFactoryMockTest") {
   ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gmock_main",
     "googletest:gtest_main",
@@ -576,6 +586,7 @@ ohos_unittest("SingleStoreImplMockTest") {
   ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gmock_main",
     "googletest:gtest_main",
@@ -638,6 +649,7 @@ ohos_unittest("KvHiviewReporterTest") {
   ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gmock_main",
     "googletest:gtest_main",
