@@ -54,6 +54,15 @@ public:
         uint64_t cursor;
     };
 
+    struct GetAllQueryResult {
+        std::vector<VBucket> dataOut;
+        std::string mainTable;
+        std::string dbPath;
+        std::vector<std::pair<std::string, int64_t>> cursorValues;
+        std::vector<std::pair<std::string, int64_t>> maxRowids;
+        uint64_t sessionCursor = 0;
+    };
+
     SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable, DistributedTableMode mode);
     ~SQLiteSingleVerRelationalStorageExecutor() override;
 
@@ -165,10 +174,12 @@ public:
     int CreateTrackerTable(const TrackerTable &trackerTable, const TableInfo &table, bool checkData);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
-    int QuerySubscribeOutput(const DataDonationSchema::DdRelationsPath &path, const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut);
+    int QuerySubscribeOutputWithCursor(const DataDonationSchema::DdRelationsPath &path,
+        const std::vector<std::pair<std::string, int64_t>> &inputCursorValues,
+        const std::vector<std::pair<std::string, int64_t>> &inputMaxRowids,
+        GetAllQueryResult &result);
     int QuerySubscribeOutput(DataDonationSchema &schema, std::vector<DdData> &dataOut);
-    int SetTrackerMatrixInfo(const MatrixFileInfo &info) const;
+
     int GetClearWaterMarkTables(const std::vector<TableReferenceProperty> &tableReferenceProperty,
         const RelationalSchemaObject &schema, std::set<std::string> &clearWaterMarkTables);
     int CreateTempSyncTrigger(const TrackerTable &trackerTable, bool flag);
@@ -317,10 +328,20 @@ public:
     int DeleteDistributedExceptDeviceTableLog(const std::string &removedTable,
         const std::vector<std::string> &keepDevices, const TrackerTable &trackerTable) const;
 
-    int CheckTableExists(const std::string &tableName, bool &isCreated);
+    int CheckTableExists(const std::string &tableName, bool &isCreated) const;
+
+    int SetTrackerMatrixInfo(const MatrixFileInfo &info) const;
+
+    int GetMaxRowid(const std::string &tableName, int64_t &maxRowid);
 private:
+    void FillAllKeyOutPks(const BinlogChangedData &changedData,
+        std::vector<DataDonationSchema::DdKeyOut> keyOut, VBucket &deletedBucket) const;
     int GetQuerySubscribeSql(const DataDonationSchema::DdRelationsPath &path,
-        int64_t cursor, std::string &sql) const;
+        const std::vector<std::pair<std::string, int64_t>> &cursorValues,
+        const std::vector<std::pair<std::string, int64_t>> &maxRowids, std::string &sql) const;
+    void ExtractAndRemoveRowid(const std::vector<std::string> &tableNames, std::vector<VBucket> &dataOut,
+        std::vector<std::pair<std::string, int64_t>> &cursorValues) const;
+
     int UpdateHashKeyWithOutPk(DistributedTableMode mode, const TableInfo &tableInfo, TableSyncType syncType,
         const std::string &localIdentity);
 
@@ -591,7 +612,9 @@ private:
 
     int ExecuteTableQuery(const std::string &sql, std::vector<VBucket> &queryResult);
     void SupplementUnmatchedDeletedRecords(const BinlogChangedData &changedData,
-        const std::unordered_set<std::string> &matchedPks, std::vector<DdData> &dataOut) const;
+        const std::unordered_set<std::string> &matchedPks, std::vector<DataDonationSchema::DdKeyOut> keyOut,
+        std::vector<DdData> &dataOut) const;
+    void FilterEmptyData(std::vector<DdData> &dataRows) const;
 
     static constexpr const char *CONSISTENT_FLAG = "0x20";
     static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";

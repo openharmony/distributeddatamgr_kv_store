@@ -140,6 +140,13 @@ int CloudSyncer::GetCloudGid(
 QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
+    if (currentContext_.currentTaskId == INVALID_TASK_ID ||
+        cloudTaskInfos_.find(currentContext_.currentTaskId) == cloudTaskInfos_.end()) {
+        LOGW("[CloudSyncer] current task is invalid when get query sync objetc");
+        QuerySyncObject querySyncObject;
+        querySyncObject.SetTableName(tableName);
+        return querySyncObject;
+    }
     bool isCustomPush = cloudTaskInfos_[currentContext_.currentTaskId].mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH;
     for (const auto &item : cloudTaskInfos_[currentContext_.currentTaskId].queryList) {
         if (item.GetTableName() == tableName) {
@@ -1887,6 +1894,7 @@ int CloudSyncer::PutCloudSyncDataOrUpdateStatusForAssetOnly(SyncParam &param, st
         if (ret != E_OK) {
             param.info.downLoadInfo.failCount += param.downloadData.data.size();
             LOGE("[CloudSyncer] Cannot save the data to database with error code: %d.", ret);
+            return ret;
         }
         if (GetAssetConflictPolicy() != AssetConflictPolicy::CONFLICT_POLICY_DEFAULT) {
             ret = UpdateAssetStatus(param.tableName, param.downloadData.data);

@@ -3119,7 +3119,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest001, TestSiz
     log.insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("2"));
     extend.push_back(log);
     ASSERT_EQ(virtualCloudDb_->BatchInsert(tableName_, std::move(record), extend), DBStatus::OK);
- 
+
     /**
      * @tc.steps:step3. sync from cloud and check record.
      * @tc.expected: step3. The record with age of 14 has been updated locally.
@@ -3136,7 +3136,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest001, TestSiz
     int64_t expectCount = 3;
     CheckCloudTableCount(tableName_, expectCount);
 }
- 
+
 /**
  * @tc.name: RDBQueryUploadModeSyncTest002
  * @tc.desc: Test muti sync when queryMode is UPLOAD_ONLY.
@@ -3212,7 +3212,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest002, TestSiz
     expectCount = 10;
     CheckCloudTableCount(tableName_, expectCount);
 }
- 
+
 /**
  * @tc.name: RDBQueryUploadModeSyncTest003
  * @tc.desc: Test muti table muti condition sync when queryMode is UPLOAD_ONLY.
@@ -3261,7 +3261,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest003, TestSiz
     expectCount = 10;
     CheckCloudTableCount(tableWithoutPrimaryName_, expectCount);
 }
- 
+
 /**
  * @tc.name: RDBQueryUploadModeSyncTest004
  * @tc.desc: Test sync after modify data with queryMode UPLOAD_ONLY.
@@ -3298,7 +3298,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest004, TestSiz
     expectCount = 5;
     CheckCloudTableCount(tableName_, expectCount);
 }
- 
+
 /**
  * @tc.name: RDBQueryUploadModeSyncTest005
  * @tc.desc: Test sync with unsupport query.
@@ -3341,7 +3341,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest005, TestSiz
     option.query = Query::Select().From(tableName_).IsNotNull("age");
     BlockQuerySyncWithOption(delegate_, g_actualDBStatus, option, NOT_SUPPORT);
 }
- 
+
 /**
  * @tc.name: RDBQueryUploadModeSyncTest006
  * @tc.desc: Test sync without query.
@@ -3366,7 +3366,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest006, TestSiz
     int64_t expectCount = 10;
     CheckCloudTableCount(tableName_, expectCount);
 }
- 
+
 /**
  * @tc.name: RDBQueryUploadModeSyncTest007
  * @tc.desc: Test sync with query and priorityTask is false.
@@ -3419,7 +3419,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, RDBQueryUploadModeSyncTest008, TestSiz
     EXPECT_EQ(RelationalTestUtils::ExecSql(db_, sql), E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     InsertCloudTableRecord(tableName_, 0, cloudCount, 0, false);
- 
+
     /**
      * @tc.steps:step2. check count
      * @tc.expected: step2. ok.

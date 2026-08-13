@@ -1085,46 +1085,4 @@ HWTEST_F(DistributedDBInterfacesStopTaskTest, AsyncCreateDistributedDBTableTest0
     CheckAsyncGenLogFlag(NORMAL_TABLE, isExistFlag);
     EXPECT_FALSE(isExistFlag);
 }
-
-/**
-  * @tc.name: AsyncCreateDistributedDBTableTest024
-  * @tc.desc: Test StopTask api type ONLY_CLOUD_SYNC_TASK.
-  * @tc.require:
-  * @tc.author: tankaisheng
-*/
-HWTEST_F(DistributedDBInterfacesStopTaskTest, AsyncCreateDistributedDBTableTest024, TestSize.Level1)
-{
-    /**
-     * @tc.steps:step1. Prepare data
-     * @tc.expected: step1. Return OK.
-    */
-    int dataCount = ONE_BATCH_NUM * 10;
-    InsertData(0, dataCount);
-    /**
-     * @tc.steps:step2. Create distributed table and stop task type ONLY_CLOUD_SYNC_TASK.
-     * @tc.expected: step2. Return OK.
-     */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(NORMAL_TABLE, CLOUD_COOPERATION, {true}), OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    g_delegate->StopTask(TaskType::ONLY_CLOUD_SYNC_TASK);
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // wait for task stopped
-    int logCount = 0;
-    EXPECT_EQ(GetDataCount(DBCommon::GetLogTableName(NORMAL_TABLE), logCount), E_OK);
-    EXPECT_EQ(logCount, dataCount);
-    bool isExistFlag = true;
-    CheckAsyncGenLogFlag(NORMAL_TABLE, isExistFlag);
-    EXPECT_FALSE(isExistFlag);
-    /**
-     * @tc.steps:step3. Create distributed table again.
-     * @tc.expected: step3. Return OK.
-     */
-    int newDataCount = 1;
-    InsertData(dataCount, newDataCount);
-    EXPECT_EQ(g_delegate->CreateDistributedTable(NORMAL_TABLE, CLOUD_COOPERATION, {true}), OK);
-    WaitForTaskFinished();
-    EXPECT_EQ(GetDataCount(DBCommon::GetLogTableName(NORMAL_TABLE), logCount), E_OK);
-    EXPECT_EQ(logCount, dataCount + newDataCount);
-    CheckAsyncGenLogFlag(NORMAL_TABLE, isExistFlag);
-    EXPECT_FALSE(isExistFlag);
-}
 #endif

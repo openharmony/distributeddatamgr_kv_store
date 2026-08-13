@@ -79,13 +79,13 @@ public:
     int SaveTrackerSchema(const std::string &tableName, bool isFirstCreate);
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
-    int QuerySubscribeOutput(const DBSubscribeCur &cursorIn,
-        DBSubscribeCur &cursorOut, std::vector<VBucket> &dataOut);
+    int QuerySubscribeOutput(const DBSubscribeCursor &cursorIn,
+        DBSubscribeCursor &cursorOut, std::vector<VBucket> &dataOut);
     RelationalSchemaObject GetTrackerSchema() const;
     void SetTrackerSchema(const RelationalSchemaObject &trackerSchema);
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
-    int SetSubscribeCursor(const DBSubscribeCur &cursorIn);
+    int SetSubscribeCursor(const DBSubscribeCursor &cursorIn);
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty,
         SQLiteSingleVerRelationalStorageExecutor *handle, std::set<std::string> &clearWaterMarkTables,

@@ -60,6 +60,7 @@ int KVGeneralUt::InitDelegate(const StoreInfo &info)
         manager.SetProcessCommunicator(processCommunicator_);
     }
 #endif
+
     KvStoreConfig cfg;
     StoreInfoEx infoEx = { info, GetKvStoreConfig(), option.isMemoryDb };
     stores_[infoEx] = store;

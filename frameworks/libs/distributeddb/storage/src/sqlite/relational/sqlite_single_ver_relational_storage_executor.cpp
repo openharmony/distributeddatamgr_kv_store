@@ -2130,7 +2130,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedExceptDeviceTable
     return SQLiteRelationalUtils::UpdateTrackerTableSyncDelete(dbHandle_, removedTable, keepDevices);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CheckTableExists(const std::string &tableName, bool &isCreated)
+int SQLiteSingleVerRelationalStorageExecutor::CheckTableExists(const std::string &tableName, bool &isCreated) const
 {
     return SQLiteUtils::CheckTableExists(dbHandle_, tableName, isCreated);
 }
