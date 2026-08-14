@@ -28,54 +28,49 @@ static constexpr uint32_t UID = 2024;      // 2024 is test uid
 static constexpr uint32_t TEST_UID = 2025; // 2025 is test uid
 class AclTest : public testing::Test {
 public:
-    static constexpr const char *PATH_ABC = "/data/test/abc";
-    static constexpr const char *PATH_ABC_XIAOMING = "/data/test/abc/xiaoming";
-    static constexpr const char *PATH_ABC_XIAOMING_TEST = "/data/test/abc/xiaoming/test.txt";
-    static constexpr const char *DATA = "SetDefaultUserTest";
+  static constexpr const char *PATH_ABC = "/data/test/abc";
+  static constexpr const char *PATH_ABC_XIAOMING = "/data/test/abc/xiaoming";
+  static constexpr const char *PATH_ABC_XIAOMING_TEST =
+      "/data/test/abc/xiaoming/test.txt";
+  static constexpr const char *DATA = "SetDefaultUserTest";
 
-    static void SetUpTestCase(void);
-    static void TearDownTestCase(void);
-    void SetUp();
-    void TearDown();
-    void PreOperation() const;
+  static void SetUpTestCase(void);
+  static void TearDownTestCase(void);
+  void SetUp();
+  void TearDown();
+  void PreOperation() const;
 };
 
-void AclTest::SetUpTestCase(void) { }
+void AclTest::SetUpTestCase(void) {}
 
-void AclTest::TearDownTestCase(void) { }
+void AclTest::TearDownTestCase(void) {}
 
 // input testcase setup step, setup invoked before each testcases
-void AclTest::SetUp(void)
-{
-    (void)remove(PATH_ABC);
-}
+void AclTest::SetUp(void) { (void)remove(PATH_ABC); }
 
 // input testcase teardown step, teardown invoked after each testcases
-void AclTest::TearDown(void)
-{
-    (void)remove(PATH_ABC);
-}
+void AclTest::TearDown(void) { (void)remove(PATH_ABC); }
 
-void AclTest::PreOperation() const
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed. errno=" << errno;
+void AclTest::PreOperation() const {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed. errno=" << errno;
 
-    Acl acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    acl.SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    acl.SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  Acl acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+  acl.SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  acl.SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
 
-    res = mkdir(PATH_ABC_XIAOMING, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed. errno=" << errno;
+  res = mkdir(PATH_ABC_XIAOMING, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed. errno=" << errno;
 
-    int fd = open(PATH_ABC_XIAOMING_TEST, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    EXPECT_NE(fd, -1) << "open file failed. errno=" << errno;
-    res = write(fd, DATA, strlen(DATA));
-    EXPECT_NE(res, -1) << "write failed. errno=" << errno;
-    res = fsync(fd);
-    EXPECT_NE(res, -1) << "fsync failed. errno=" << errno;
-    close(fd);
+  int fd = open(PATH_ABC_XIAOMING_TEST, O_RDWR | O_CREAT,
+                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  EXPECT_NE(fd, -1) << "open file failed. errno=" << errno;
+  res = write(fd, DATA, strlen(DATA));
+  EXPECT_NE(res, -1) << "write failed. errno=" << errno;
+  res = fsync(fd);
+  EXPECT_NE(res, -1) << "fsync failed. errno=" << errno;
+  close(fd);
 }
 
 /**
@@ -85,16 +80,16 @@ void AclTest::PreOperation() const
  * @tc.require:
  * @tc.author: Jiaxing Chang
  */
-HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
-    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_EQ(rc, 0);
+HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+  auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT)
+                .SetDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    ASSERT_TRUE(aclNew.HasDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+  Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+  ASSERT_TRUE(aclNew.HasDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
@@ -102,16 +97,15 @@ HWTEST_F(AclTest, SetDefaultGroup001, TestSize.Level0)
  * @tc.desc: Set access extended properties for groups.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, SetDefaultGroup002, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
-    auto rc = Acl(PATH_ABC).SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_EQ(rc, 0);
+HWTEST_F(AclTest, SetDefaultGroup002, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+  auto rc = Acl(PATH_ABC).SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    ASSERT_TRUE(aclNew.HasDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+  Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+  ASSERT_TRUE(aclNew.HasDefaultGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
@@ -119,16 +113,16 @@ HWTEST_F(AclTest, SetDefaultGroup002, TestSize.Level0)
  * @tc.desc: Set access extended properties for user.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
-    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_EQ(rc, 0);
+HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+  auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT)
+                .SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    ASSERT_TRUE(aclNew.HasAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+  Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+  ASSERT_TRUE(aclNew.HasAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
@@ -138,75 +132,77 @@ HWTEST_F(AclTest, SetAccessUser001, TestSize.Level0)
  * @tc.require:
  * @tc.author: Jiaxing Chang
  */
-HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
-    auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT).SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_EQ(rc, 0);
+HWTEST_F(AclTest, SetDefaultUser001, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+  auto rc = Acl(PATH_ABC, Acl::ACL_XATTR_DEFAULT)
+                .SetDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  EXPECT_EQ(rc, 0);
 
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    ASSERT_TRUE(aclNew.HasDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
+  Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+  ASSERT_TRUE(aclNew.HasDefaultUser(UID, Acl::R_RIGHT | Acl::W_RIGHT));
 }
 
 /**
  * @tc.name: SetDefaultUser002
- * @tc.desc: After the main process extends the uid attribute, set this uid to the uid and gid of the child process,
- * and the child process can access the files created by the main process normally.
+ * @tc.desc: After the main process extends the uid attribute, set this uid to
+ * the uid and gid of the child process, and the child process can access the
+ * files created by the main process normally.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: Jiaxing Chang
  */
-HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
-{
-    PreOperation();
-    int fd[2];
-    pid_t pid;
-    char buf[100];
-    int res = pipe(fd);
-    ASSERT_TRUE(res >= 0) << "create pipe failed. errno=" << errno;
-    pid = fork();
-    ASSERT_TRUE(pid >= 0) << "fork failed. errno=" << errno;
-    if (pid == 0) { // subprocess
-        // close the read end of the pipeline.
-        close(fd[0]);
-        // redirect standard output to the write end of the pipeline
-        dup2(fd[1], STDOUT_FILENO);
-        auto exitFun = [&fd](const std::string &str, bool isErr) {
-            std::cout << str << (isErr ? std::to_string(errno) : "") << std::endl;
-            close(fd[1]);
-            _exit(0);
-        };
-        if (setuid(UID) != 0) {
-            exitFun("setuid failed.", true);
-        }
-        if (setgid(UID) != 0) {
-            exitFun("setgid failed.", true);
-        }
-        int file = open(PATH_ABC_XIAOMING_TEST, O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-        if (file == -1) {
-            exitFun("open file failed.", true);
-        }
-        if (read(file, buf, sizeof(buf)) == -1) {
-            close(file);
-            exitFun("read failed.", true);
-        }
-        close(file);
-        exitFun(buf, false);
-    } else { // main process
-        // close the write end of the pipeline.
-        close(fd[1]);
-        int status;
-        res = waitpid(pid, &status, 0);
-        EXPECT_NE(res, -1) << "waitpid falied. errno=" << errno;
-        res = memset_s(buf, sizeof(buf), 0, sizeof(buf));
-        EXPECT_EQ(res, EOK) << "memset_s falied. errno=" << errno;
-        res = read(fd[0], buf, sizeof(buf));
-        EXPECT_NE(res, -1) << "read falied. errno=" << errno;
-        EXPECT_EQ(std::string(buf, buf + strlen(buf) - 1), std::string(DATA)) << "buffer:[" << buf << "]";
-        close(fd[0]);
+HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0) {
+  PreOperation();
+  int fd[2];
+  pid_t pid;
+  char buf[100];
+  int res = pipe(fd);
+  ASSERT_TRUE(res >= 0) << "create pipe failed. errno=" << errno;
+  pid = fork();
+  ASSERT_TRUE(pid >= 0) << "fork failed. errno=" << errno;
+  if (pid == 0) { // subprocess
+    // close the read end of the pipeline.
+    close(fd[0]);
+    // redirect standard output to the write end of the pipeline
+    dup2(fd[1], STDOUT_FILENO);
+    auto exitFun = [&fd](const std::string &str, bool isErr) {
+      std::cout << str << (isErr ? std::to_string(errno) : "") << std::endl;
+      close(fd[1]);
+      _exit(0);
+    };
+    if (setuid(UID) != 0) {
+      exitFun("setuid failed.", true);
     }
+    if (setgid(UID) != 0) {
+      exitFun("setgid failed.", true);
+    }
+    int file = open(PATH_ABC_XIAOMING_TEST, O_RDWR,
+                    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if (file == -1) {
+      exitFun("open file failed.", true);
+    }
+    if (read(file, buf, sizeof(buf)) == -1) {
+      close(file);
+      exitFun("read failed.", true);
+    }
+    close(file);
+    exitFun(buf, false);
+  } else { // main process
+    // close the write end of the pipeline.
+    close(fd[1]);
+    int status;
+    res = waitpid(pid, &status, 0);
+    EXPECT_NE(res, -1) << "waitpid falied. errno=" << errno;
+    res = memset_s(buf, sizeof(buf), 0, sizeof(buf));
+    EXPECT_EQ(res, EOK) << "memset_s falied. errno=" << errno;
+    res = read(fd[0], buf, sizeof(buf));
+    EXPECT_NE(res, -1) << "read falied. errno=" << errno;
+    EXPECT_EQ(std::string(buf, buf + strlen(buf) - 1), std::string(DATA))
+        << "buffer:[" << buf << "]";
+    close(fd[0]);
+  }
 }
 
 /**
@@ -216,14 +212,13 @@ HWTEST_F(AclTest, SetDefaultUser002, TestSize.Level0)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level1)
-{
-    AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    AclXattrEntry entryB(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_TRUE(entryA == entryB);
+HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level1) {
+  AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  AclXattrEntry entryB(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  EXPECT_TRUE(entryA == entryB);
 
-    AclXattrEntry entryC(ACL_TAG::USER, TEST_UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    EXPECT_FALSE(entryA == entryC);
+  AclXattrEntry entryC(ACL_TAG::USER, TEST_UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  EXPECT_FALSE(entryA == entryC);
 }
 
 /**
@@ -233,19 +228,18 @@ HWTEST_F(AclTest, AclXattrEntry001, TestSize.Level1)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level1)
-{
-    AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    auto result = entryA.IsValid();
-    EXPECT_TRUE(result);
+HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level1) {
+  AclXattrEntry entryA(ACL_TAG::USER, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  auto result = entryA.IsValid();
+  EXPECT_TRUE(result);
 
-    AclXattrEntry entryB(ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    result = entryB.IsValid();
-    EXPECT_TRUE(result);
+  AclXattrEntry entryB(ACL_TAG::GROUP, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  result = entryB.IsValid();
+  EXPECT_TRUE(result);
 
-    AclXattrEntry entryC(ACL_TAG::UNDEFINED, UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    result = entryC.IsValid();
-    EXPECT_FALSE(result);
+  AclXattrEntry entryC(ACL_TAG::UNDEFINED, UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  result = entryC.IsValid();
+  EXPECT_FALSE(result);
 }
 
 /**
@@ -255,18 +249,17 @@ HWTEST_F(AclTest, AclXattrEntry002, TestSize.Level1)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, ACL_PERM001, TestSize.Level1)
-{
-    ACL_PERM perm1;
-    perm1.SetR();
-    perm1.SetW();
-    ACL_PERM perm2;
-    perm2.SetE();
+HWTEST_F(AclTest, ACL_PERM001, TestSize.Level1) {
+  ACL_PERM perm1;
+  perm1.SetR();
+  perm1.SetW();
+  ACL_PERM perm2;
+  perm2.SetE();
 
-    perm1.Merge(perm2);
-    EXPECT_TRUE(perm1.IsReadable());
-    EXPECT_TRUE(perm1.IsWritable());
-    EXPECT_TRUE(perm1.IsExecutable());
+  perm1.Merge(perm2);
+  EXPECT_TRUE(perm1.IsReadable());
+  EXPECT_TRUE(perm1.IsWritable());
+  EXPECT_TRUE(perm1.IsExecutable());
 }
 
 /**
@@ -276,15 +269,14 @@ HWTEST_F(AclTest, ACL_PERM001, TestSize.Level1)
  * @tc.require:
  * @tc.author: SQL
  */
-HWTEST_F(AclTest, Anonymous001, TestSize.Level1)
-{
-    Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
-    std::string name = "";
-    EXPECT_EQ(aclNew.Anonymous(name), "******");
-    name = "12345678";
-    EXPECT_EQ(aclNew.Anonymous(name), "123***");
-    name = "123456789";
-    EXPECT_EQ(aclNew.Anonymous(name), "123***789");
+HWTEST_F(AclTest, Anonymous001, TestSize.Level1) {
+  Acl aclNew(PATH_ABC, Acl::ACL_XATTR_DEFAULT);
+  std::string name = "";
+  EXPECT_EQ(aclNew.Anonymous(name), "******");
+  name = "12345678";
+  EXPECT_EQ(aclNew.Anonymous(name), "123***");
+  name = "123456789";
+  EXPECT_EQ(aclNew.Anonymous(name), "123***789");
 }
 
 /**
@@ -292,14 +284,95 @@ HWTEST_F(AclTest, Anonymous001, TestSize.Level1)
  * @tc.desc: Test ACL_PERM.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
-{
-    std::string path = "/data/test/abc";
-    std::string aclAttrName = "aclAttrName";
-    Acl acl(path, aclAttrName);
-    acl.hasError_ = false;
-    ASSERT_EQ(acl.path_, path);
-    ASSERT_FALSE(acl.hasError_);
-    ASSERT_EQ(acl.aclAttrName_, aclAttrName);
+HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1) {
+  std::string path = "/data/test/abc";
+  std::string aclAttrName = "aclAttrName";
+  Acl acl(path, aclAttrName);
+  acl.hasError_ = false;
+  ASSERT_EQ(acl.path_, path);
+  ASSERT_FALSE(acl.hasError_);
+  ASSERT_EQ(acl.aclAttrName_, aclAttrName);
+}
+
+/**
+ * @tc.name: Dump001
+ * @tc.desc: Dump returns getfacl-style text for a file with access ACL entries.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, Dump001, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+
+  Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+  acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+  acl.SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+
+  std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+  EXPECT_FALSE(text.empty());
+  EXPECT_TRUE(text.find("user::") != std::string::npos);
+  EXPECT_TRUE(text.find("group::") != std::string::npos);
+  EXPECT_TRUE(text.find("other::") != std::string::npos);
+  EXPECT_TRUE(text.find("mask::") != std::string::npos);
+  std::string userEntry = "user:" + std::to_string(UID) + ":";
+  EXPECT_TRUE(text.find(userEntry) != std::string::npos);
+  std::string groupEntry = "group:" + std::to_string(UID) + ":";
+  EXPECT_TRUE(text.find(groupEntry) != std::string::npos);
+}
+
+/**
+ * @tc.name: Dump002
+ * @tc.desc: Dump falls back to st_mode when no ACL xattr exists.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, Dump002, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+  (void)removexattr(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+
+  std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+  EXPECT_FALSE(text.empty());
+  EXPECT_TRUE(text.find("user::") != std::string::npos);
+  EXPECT_TRUE(text.find("group::") != std::string::npos);
+  EXPECT_TRUE(text.find("other::") != std::string::npos);
+}
+
+/**
+ * @tc.name: Dump003
+ * @tc.desc: Dump returns empty string for non-existent path.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, Dump003, TestSize.Level0) {
+  std::string text = Acl::Dump("/data/test/nonexistent_path_12345");
+  EXPECT_TRUE(text.empty());
+}
+
+/**
+ * @tc.name: Dump004
+ * @tc.desc: Dump is read-only and does not modify the file's ACL xattr.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, Dump004, TestSize.Level0) {
+  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+  int res = mkdir(PATH_ABC, mode);
+  EXPECT_EQ(res, 0) << "directory creation failed.";
+
+  Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+  acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+
+  char bufBefore[400] = {0};
+  ssize_t lenBefore =
+      getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufBefore, sizeof(bufBefore));
+  EXPECT_GT(lenBefore, 0);
+
+  std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+  EXPECT_FALSE(text.empty());
+
+  char bufAfter[400] = {0};
+  ssize_t lenAfter =
+      getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufAfter, sizeof(bufAfter));
+  EXPECT_EQ(lenBefore, lenAfter);
+  EXPECT_EQ(memcmp(bufBefore, bufAfter, lenBefore), 0);
 }
 } // namespace OHOS::Test
