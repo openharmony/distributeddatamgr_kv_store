@@ -278,5 +278,52 @@ std::string Acl::Anonymous(const std::string &name)
 
     return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
 }
+
+std::string Acl::Dump(const std::string &path, const std::string &aclAttrName)
+{
+    Acl acl(path, aclAttrName);
+    acl.hasError_ = true;
+
+    auto permText = [](const ACL_PERM &perm) {
+        std::string s;
+        s += (perm.IsReadable() ? 'r' : '-');
+        s += (perm.IsWritable() ? 'w' : '-');
+        s += (perm.IsExecutable() ? 'x' : '-');
+        return s;
+    };
+
+    std::string text;
+    for (const auto &e : acl.entries_) {
+        std::string line;
+        switch (e.tag_) {
+            case ACL_TAG::USER_OBJ:
+                line = "user::";
+                break;
+            case ACL_TAG::USER:
+                line = "user:" + std::to_string(e.id_) + ":";
+                break;
+            case ACL_TAG::GROUP_OBJ:
+                line = "group::";
+                break;
+            case ACL_TAG::GROUP:
+                line = "group:" + std::to_string(e.id_) + ":";
+                break;
+            case ACL_TAG::MASK:
+                line = "mask::";
+                break;
+            case ACL_TAG::OTHER:
+                line = "other::";
+                break;
+            default:
+                continue;
+        }
+        line += permText(e.perm_);
+        if (!text.empty()) {
+            text += "\n";
+        }
+        text += line;
+    }
+    return text;
+}
 } // namespace DATABASE_UTILS
 } // namespace OHOS
