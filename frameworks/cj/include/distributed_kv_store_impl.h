@@ -117,12 +117,8 @@ struct CChangeNotification {
 };
 
 class CKvStoreResultSet : public OHOS::FFI::FFIData {
+    DECL_TYPE(CKvStoreResultSet, OHOS::FFI::FFIData)
 public:
-    OHOS::FFI::RuntimeType* GetRuntimeType() override
-    {
-        return GetClassType();
-    }
-
     explicit CKvStoreResultSet(std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet);
 
     std::shared_ptr<DistributedKv::KvStoreResultSet> GetKvStoreResultSet();
@@ -155,23 +151,11 @@ public:
 
 private:
     std::shared_ptr<DistributedKv::KvStoreResultSet> kvResultSet;
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType =
-            OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("CKvStoreResultSet");
-        return &runtimeType;
-    }
 };
 
 class CJKVManager : public OHOS::FFI::FFIData {
+    DECL_TYPE(CJKVManager, OHOS::FFI::FFIData)
 public:
-    OHOS::FFI::RuntimeType* GetRuntimeType() override
-    {
-        return GetClassType();
-    }
-
     CJKVManager();
     CJKVManager(const char* boudleName, OHOS::AbilityRuntime::Context* context);
 
@@ -197,21 +181,10 @@ private:
     std::list<std::shared_ptr<DeathRecipient>> deathRecipient_;
     std::string bundleName_ {};
     std::shared_ptr<ContextParam> param_;
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType = OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("CJKVManager");
-        return &runtimeType;
-    }
 };
 class CQuery : public OHOS::FFI::FFIData {
+    DECL_TYPE(CQuery, OHOS::FFI::FFIData)
 public:
-    OHOS::FFI::RuntimeType* GetRuntimeType() override
-    {
-        return GetClassType();
-    }
-
     CQuery() {};
 
     const DistributedKv::DataQuery& GetDataQuery() const;
@@ -270,22 +243,11 @@ public:
 
 private:
     DistributedKv::DataQuery query_;
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType = OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("CQuery");
-        return &runtimeType;
-    }
 };
 
 class CJSingleKVStore : public OHOS::FFI::FFIData {
+    DECL_TYPE(CJSingleKVStore, OHOS::FFI::FFIData)
 public:
-    OHOS::FFI::RuntimeType* GetRuntimeType() override
-    {
-        return GetClassType();
-    }
-
     explicit CJSingleKVStore(const std::string& storeId);
 
     std::shared_ptr<DistributedKv::SingleKvStore> GetKvStorePtr();
@@ -343,14 +305,6 @@ private:
     std::shared_ptr<DistributedKv::SingleKvStore> kvStore_ = nullptr;
     std::string storeId_;
     std::shared_ptr<ContextParam> param_ = nullptr;
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType =
-            OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("CJSingleKVStore");
-        return &runtimeType;
-    }
     std::mutex listMutex_ {};
     std::list<std::shared_ptr<DataObserver>> dataObserver_[SUBSCRIBE_COUNT];
     std::list<std::shared_ptr<SyncObserver>> syncObservers_;
