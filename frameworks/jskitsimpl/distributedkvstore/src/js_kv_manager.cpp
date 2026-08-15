@@ -368,6 +368,9 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         // required 1 arguments :: <event>
         ZLOGI("unsubscribe to event:%{public}s %{public}s specified", event.c_str(), (argc == 1) ? "without" : "with");
+        if (argc == 1) {
+            ZLOGI("SubEvent op=off_all kit=ArkData event=%{public}s", event.c_str());
+        }
         ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", Status::INVALID_ARGUMENT,
             "Parameter error:parameter event not equal distributedDataServiceDie");
         // have 2 arguments :: have the [callback]

@@ -1349,6 +1349,9 @@ public:
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
         }
+        if (!optCallback.has_value()) {
+            ZLOGI("SubEvent op=off_all kit=ArkData event=dataChange");
+        }
         std::optional<AniObserverUtils::JsDataChangeCallbackType> stdOptCallback;
         if (optCallback.has_value()) {
             stdOptCallback = optCallback.value();
@@ -1436,6 +1439,9 @@ public:
         if (nativeStore_ == nullptr) {
             ThrowAniError(Status::ILLEGAL_STATE, "");
             return;
+        }
+        if (!optCallback.has_value()) {
+            ZLOGI("SubEvent op=off_all kit=ArkData event=syncComplete");
         }
         std::optional<AniObserverUtils::JsSyncCompleteCallbackType> stdOptCallback;
         if (optCallback.has_value()) {
@@ -2014,6 +2020,9 @@ public:
         if (kvDataManager_ == nullptr) {
             ZLOGE("KVManager is null, failed!");
             return;
+        }
+        if (!optCallback.has_value()) {
+            ZLOGI("SubEvent op=off_all kit=ArkData event=distributedDataServiceDie");
         }
         std::lock_guard<std::recursive_mutex> lock(cbDeathListMutex_);
         std::optional<AniObserverUtils::JsServiceDeathType> stdOptCallback;

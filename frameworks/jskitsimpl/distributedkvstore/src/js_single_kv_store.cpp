@@ -316,6 +316,9 @@ napi_value JsSingleKVStore::OffEvent(napi_env env, napi_callback_info info)
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("unsubscribe to event:%{public}s", event.c_str());
+        if (argc == 1) {
+            ZLOGI("SubEvent op=off_all kit=ArkData event=%{public}s", event.c_str());
+        }
         auto handle = offEventHandlers_.find(event);
         ASSERT_BUSINESS_ERR(ctxt, handle != offEventHandlers_.end(), Status::INVALID_ARGUMENT,
             "Parameter error:offevent type must belong dataChange or syncComplete");
