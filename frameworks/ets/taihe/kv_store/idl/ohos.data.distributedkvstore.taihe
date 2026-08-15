@@ -59,7 +59,7 @@ union ValueUnion {
 }
 
 union DataShareValueUnion {
-    @null EMPTY;
+    EMPTY: @null unit;
     INT64: i64;
     F64: f64;
     STRING: String;
@@ -125,7 +125,7 @@ struct BackupConfig {
 }
 
 union OneUndef {
-    @undefined UNDEFINED;
+    UNDEFINED: @undefined unit;
 }
 
 @class
@@ -364,10 +364,10 @@ interface SingleKVStore {
     @gen_promise("setSyncParam")
     SetSyncParamSync(defaultAllowedDelayMs: i32): void;
 
-    @overload("sync")
+    @rename("sync")
     Sync(deviceIds: Array<String>, mode: SyncMode, delayMs: Optional<i32>): void;
 
-    @overload("sync")
+    @rename("sync")
     SyncByQuery(deviceIds: Array<String>, query: Query, mode: SyncMode, delayMs: Optional<i32>): void;
 
     OnDataChange(type: SubscribeType, f: (info: ChangeNotification) => void): void;
