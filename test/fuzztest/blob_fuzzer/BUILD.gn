@@ -47,6 +47,7 @@ ohos_fuzztest("BlobFuzzTest") {
   deps += deps_hilog
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
   ]
   external_deps += external_deps_hilog

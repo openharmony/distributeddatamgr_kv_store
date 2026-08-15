@@ -142,6 +142,7 @@ ohos_shared_library("distributeddata_inner") {
   deps += deps_ipc_single
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
   ]
 
@@ -213,6 +214,7 @@ ohos_shared_library("distributeddata_client_sync") {
   deps += deps_file_api
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
   ]
   external_deps += external_deps_hilog
@@ -254,6 +256,7 @@ ohos_static_library("kvdb_inner_lite") {
   deps += deps_ipc_single
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
   ]
   external_deps += external_deps_hilog

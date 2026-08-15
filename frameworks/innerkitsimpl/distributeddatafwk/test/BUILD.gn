@@ -110,6 +110,7 @@ ohos_source_set("distributeddatafwk_src_file") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
   ]
   external_deps += external_deps_access_token_libaccesstoken_sdk
@@ -169,6 +170,7 @@ ohos_unittest("DistributedKvDataManagerMultiUserTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest_main",
   ]
@@ -193,6 +195,7 @@ ohos_unittest("DistributedKvDataManagerTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest_main",
   ]
@@ -217,6 +220,7 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -241,6 +245,7 @@ ohos_unittest("LocalSubscribeStoreTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -265,6 +270,7 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -289,6 +295,7 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -313,6 +320,7 @@ ohos_unittest("SingleKvStoreClientTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -337,6 +345,7 @@ ohos_unittest("SingleKvStoreAsyncGetTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -361,6 +370,7 @@ ohos_unittest("DeviceKvStoreTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -384,6 +394,7 @@ ohos_unittest("BlobTest") {
   deps += deps_ipc_single
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -406,6 +417,7 @@ ohos_unittest("TypesUtilTest") {
   deps += deps_ipc_single
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -427,6 +439,7 @@ ohos_unittest("KvUtilTest") {
   deps += deps_ipc_single
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -456,6 +469,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
   deps += deps_ipc_single
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -489,6 +503,7 @@ ohos_unittest("DistributedDataMgrTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -516,6 +531,7 @@ ohos_unittest("EndPointTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
@@ -540,6 +556,7 @@ ohos_unittest("SwitchObserverBridgeTest") {
   deps += deps_samgr
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "googletest:gtest",
   ]
