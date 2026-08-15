@@ -308,25 +308,26 @@ HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
  * @tc.desc: Dump returns getfacl-style text for a file with access ACL entries.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, Dump001, TestSize.Level0) {
-  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-  int res = mkdir(PATH_ABC, mode);
-  EXPECT_EQ(res, 0) << "directory creation failed.";
+HWTEST_F(AclTest, Dump001, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    int res = mkdir(PATH_ABC, mode);
+    EXPECT_EQ(res, 0) << "directory creation failed.";
 
-  Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-  acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-  acl.SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+    acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    acl.SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
 
-  std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-  EXPECT_FALSE(text.empty());
-  EXPECT_TRUE(text.find("user::") != std::string::npos);
-  EXPECT_TRUE(text.find("group::") != std::string::npos);
-  EXPECT_TRUE(text.find("other::") != std::string::npos);
-  EXPECT_TRUE(text.find("mask::") != std::string::npos);
-  std::string userEntry = "user:" + std::to_string(UID) + ":";
-  EXPECT_TRUE(text.find(userEntry) != std::string::npos);
-  std::string groupEntry = "group:" + std::to_string(UID) + ":";
-  EXPECT_TRUE(text.find(groupEntry) != std::string::npos);
+    std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+    EXPECT_FALSE(text.empty());
+    EXPECT_TRUE(text.find("user::") != std::string::npos);
+    EXPECT_TRUE(text.find("group::") != std::string::npos);
+    EXPECT_TRUE(text.find("other::") != std::string::npos);
+    EXPECT_TRUE(text.find("mask::") != std::string::npos);
+    std::string userEntry = "user:" + std::to_string(UID) + ":";
+    EXPECT_TRUE(text.find(userEntry) != std::string::npos);
+    std::string groupEntry = "group:" + std::to_string(UID) + ":";
+    EXPECT_TRUE(text.find(groupEntry) != std::string::npos);
 }
 
 /**
@@ -334,17 +335,18 @@ HWTEST_F(AclTest, Dump001, TestSize.Level0) {
  * @tc.desc: Dump falls back to st_mode when no ACL xattr exists.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, Dump002, TestSize.Level0) {
-  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-  int res = mkdir(PATH_ABC, mode);
-  EXPECT_EQ(res, 0) << "directory creation failed.";
-  (void)removexattr(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+HWTEST_F(AclTest, Dump002, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    int res = mkdir(PATH_ABC, mode);
+    EXPECT_EQ(res, 0) << "directory creation failed.";
+    (void)removexattr(PATH_ABC, Acl::ACL_XATTR_ACCESS);
 
-  std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-  EXPECT_FALSE(text.empty());
-  EXPECT_TRUE(text.find("user::") != std::string::npos);
-  EXPECT_TRUE(text.find("group::") != std::string::npos);
-  EXPECT_TRUE(text.find("other::") != std::string::npos);
+    std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+    EXPECT_FALSE(text.empty());
+    EXPECT_TRUE(text.find("user::") != std::string::npos);
+    EXPECT_TRUE(text.find("group::") != std::string::npos);
+    EXPECT_TRUE(text.find("other::") != std::string::npos);
 }
 
 /**
@@ -352,26 +354,25 @@ HWTEST_F(AclTest, Dump002, TestSize.Level0) {
  * @tc.desc: Dump is read-only and does not modify the file's ACL xattr.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, Dump004, TestSize.Level0) {
-  mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-  int res = mkdir(PATH_ABC, mode);
-  EXPECT_EQ(res, 0) << "directory creation failed.";
+HWTEST_F(AclTest, Dump004, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    int res = mkdir(PATH_ABC, mode);
+    EXPECT_EQ(res, 0) << "directory creation failed.";
 
-  Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-  acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
+    Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+    acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
 
-  char bufBefore[400] = {0};
-  ssize_t lenBefore =
-      getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufBefore, sizeof(bufBefore));
-  EXPECT_GT(lenBefore, 0);
+    char bufBefore[400] = {0};
+    ssize_t lenBefore = getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufBefore, sizeof(bufBefore));
+    EXPECT_GT(lenBefore, 0);
 
-  std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-  EXPECT_FALSE(text.empty());
+    std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+    EXPECT_FALSE(text.empty());
 
-  char bufAfter[400] = {0};
-  ssize_t lenAfter =
-      getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufAfter, sizeof(bufAfter));
-  EXPECT_EQ(lenBefore, lenAfter);
-  EXPECT_EQ(memcmp(bufBefore, bufAfter, lenBefore), 0);
+    char bufAfter[400] = {0};
+    ssize_t lenAfter = getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufAfter, sizeof(bufAfter));
+    EXPECT_EQ(lenBefore, lenAfter);
+    EXPECT_EQ(memcmp(bufBefore, bufAfter, lenBefore), 0);
 }
 } // namespace OHOS::Test
