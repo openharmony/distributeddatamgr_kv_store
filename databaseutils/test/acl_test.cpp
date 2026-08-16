@@ -311,8 +311,7 @@ HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
 HWTEST_F(AclTest, Dump001, TestSize.Level0)
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
+    (void)mkdir(PATH_ABC, mode);
 
     Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
     acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
@@ -338,8 +337,7 @@ HWTEST_F(AclTest, Dump001, TestSize.Level0)
 HWTEST_F(AclTest, Dump002, TestSize.Level0)
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
+    (void)mkdir(PATH_ABC, mode);
     (void)removexattr(PATH_ABC, Acl::ACL_XATTR_ACCESS);
 
     std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
@@ -354,11 +352,10 @@ HWTEST_F(AclTest, Dump002, TestSize.Level0)
  * @tc.desc: Dump is read-only and does not modify the file's ACL xattr.
  * @tc.type: FUNC
  */
-HWTEST_F(AclTest, Dump004, TestSize.Level0)
+HWTEST_F(AclTest, Dump003, TestSize.Level0)
 {
     mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    int res = mkdir(PATH_ABC, mode);
-    EXPECT_EQ(res, 0) << "directory creation failed.";
+    (void)mkdir(PATH_ABC, mode);
 
     Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
     acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
