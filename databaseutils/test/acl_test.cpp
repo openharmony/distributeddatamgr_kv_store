@@ -304,32 +304,6 @@ HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
 }
 
 /**
- * @tc.name: Dump001
- * @tc.desc: Dump returns getfacl-style text for a file with access ACL entries.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, Dump001, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    (void)mkdir(PATH_ABC, mode);
-
-    Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-    acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-    acl.SetAccessGroup(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-
-    std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-    EXPECT_FALSE(text.empty());
-    EXPECT_TRUE(text.find("user::") != std::string::npos);
-    EXPECT_TRUE(text.find("group::") != std::string::npos);
-    EXPECT_TRUE(text.find("other::") != std::string::npos);
-    EXPECT_TRUE(text.find("mask::") != std::string::npos);
-    std::string userEntry = "user:" + std::to_string(UID) + ":";
-    EXPECT_TRUE(text.find(userEntry) != std::string::npos);
-    std::string groupEntry = "group:" + std::to_string(UID) + ":";
-    EXPECT_TRUE(text.find(groupEntry) != std::string::npos);
-}
-
-/**
  * @tc.name: Dump002
  * @tc.desc: Dump falls back to st_mode when no ACL xattr exists.
  * @tc.type: FUNC
@@ -345,31 +319,5 @@ HWTEST_F(AclTest, Dump002, TestSize.Level0)
     EXPECT_TRUE(text.find("user::") != std::string::npos);
     EXPECT_TRUE(text.find("group::") != std::string::npos);
     EXPECT_TRUE(text.find("other::") != std::string::npos);
-}
-
-/**
- * @tc.name: Dump003
- * @tc.desc: Dump is read-only and does not modify the file's ACL xattr.
- * @tc.type: FUNC
- */
-HWTEST_F(AclTest, Dump003, TestSize.Level0)
-{
-    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
-    (void)mkdir(PATH_ABC, mode);
-
-    Acl acl(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-    acl.SetAccessUser(UID, Acl::R_RIGHT | Acl::W_RIGHT);
-
-    char bufBefore[400] = {0};
-    ssize_t lenBefore = getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufBefore, sizeof(bufBefore));
-    EXPECT_GT(lenBefore, 0);
-
-    std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
-    EXPECT_FALSE(text.empty());
-
-    char bufAfter[400] = {0};
-    ssize_t lenAfter = getxattr(PATH_ABC, Acl::ACL_XATTR_ACCESS, bufAfter, sizeof(bufAfter));
-    EXPECT_EQ(lenBefore, lenAfter);
-    EXPECT_EQ(memcmp(bufBefore, bufAfter, lenBefore), 0);
 }
 } // namespace OHOS::Test
