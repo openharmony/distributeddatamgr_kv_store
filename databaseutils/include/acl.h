@@ -136,6 +136,14 @@ public:
     API_EXPORT bool HasAccessGroup(uint32_t gid, uint16_t mode);
     API_EXPORT bool HasAccessUser(uint32_t gid, uint16_t mode);
 
+    // Read-only getfacl-style dump of the access/default ACL entries.
+    // Constructs an Acl from the file's xattr (or st_mode fallback), renders the
+    // entries_ as "user::rwx / user:<id>:rwx / group::rwx / mask::rwx / other::rwx"
+    // lines joined by '\n', and suppresses the destructor SetAcl() write-back so
+    // the dump never mutates the file's xattr. Returns "" when no entries exist.
+    API_EXPORT static std::string Dump(const std::string &path,
+        const std::string &aclAttrName = ACL_XATTR_ACCESS);
+
 private:
     static constexpr int32_t E_OK = 0;
     static constexpr int32_t E_ERROR = -1;

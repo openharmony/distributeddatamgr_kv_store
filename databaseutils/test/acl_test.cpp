@@ -302,4 +302,22 @@ HWTEST_F(AclTest, AclAttrTest001, TestSize.Level1)
     ASSERT_FALSE(acl.hasError_);
     ASSERT_EQ(acl.aclAttrName_, aclAttrName);
 }
+
+/**
+ * @tc.name: Dump002
+ * @tc.desc: Dump falls back to st_mode when no ACL xattr exists.
+ * @tc.type: FUNC
+ */
+HWTEST_F(AclTest, Dump002, TestSize.Level0)
+{
+    mode_t mode = S_IRWXU | S_IRWXG | S_IXOTH; // 0771
+    (void)mkdir(PATH_ABC, mode);
+    (void)removexattr(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+
+    std::string text = Acl::Dump(PATH_ABC, Acl::ACL_XATTR_ACCESS);
+    EXPECT_FALSE(text.empty());
+    EXPECT_TRUE(text.find("user::") != std::string::npos);
+    EXPECT_TRUE(text.find("group::") != std::string::npos);
+    EXPECT_TRUE(text.find("other::") != std::string::npos);
+}
 } // namespace OHOS::Test
