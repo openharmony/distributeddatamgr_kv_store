@@ -64,6 +64,7 @@ void DataDonationSqlGeneratorTest::SetUp()
     LOGD("Test db is %s", g_storePath.c_str());
     sqlite3_open(g_storePath.c_str(), &db);
     ASSERT_NE(db, nullptr);
+    InitMatrixFile();
 }
 
 void DataDonationSqlGeneratorTest::TearDown()
@@ -1733,7 +1734,6 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData018, TestSize.Lev
 
     auto db = GetSqliteHandle(storeInfo);
     ASSERT_NE(db, nullptr);
-    ASSERT_EQ(SQLiteUtils::SetBinlogEnabled(db, true), E_OK);
     EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 4000;
@@ -1760,5 +1760,66 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData018, TestSize.Lev
             cursorIn.cursor -= 100;
         }
     } while (status == OK);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData018
+ * @tc.desc: Test sub table data deleted but main table data existed
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData019, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    SetBinlogSchemaAndChangeCallback(db);
+    int64_t dataCount = 200;
+    int64_t updCnt = 100;
+    PrepareJsonFileData(db, dataCount);
+    for (int64_t i = dataCount; i < dataCount + updCnt; ++i) {
+        std::string sqlB = "INSERT INTO TableB VALUES(" + std::to_string(i) + ", " +
+            std::to_string(i - dataCount) + ", " + "'cate_" + std::to_string(i) + "')";
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
+    }
+    for (int64_t i = 0; i < updCnt; ++i) {
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, "DELETE FROM TableB where id = " + std::to_string(i)), E_OK);
+    }
+    DeleteJsonFileData(db, updCnt, updCnt);
+
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    int64_t totalRecords = 0;
+    int idx = 0;
+    DBStatus status = DBStatus::OK;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
+        cursorIn = cursorOut;
+        idx++;
+        for (const auto &vbucket : dataOut) {
+            int64_t opType = 0;
+            EXPECT_EQ(CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::SUB_DATA_OP_TYPE, vbucket, opType), E_OK);
+            int64_t expType = static_cast<int64_t>(SubDataOpType::OP_INSERT);
+            int delInx = 6;
+            if (idx == delInx) {
+                expType = static_cast<int64_t>(SubDataOpType::OP_UPDATE);
+            } else if (idx > delInx) {
+                expType = static_cast<int64_t>(SubDataOpType::OP_DELETE);
+            }
+            EXPECT_EQ(opType, expType);
+        }
+        EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+    } while (status == OK);
+    EXPECT_EQ(totalRecords, dataCount + dataCount + dataCount);
 }
 }

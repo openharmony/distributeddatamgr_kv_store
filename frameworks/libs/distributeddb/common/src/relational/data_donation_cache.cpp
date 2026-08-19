@@ -270,6 +270,15 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     }
     cursorOut.cursor = cursorIn.cursor + readNum;
 
+    // Log the queried data grouped by operation type (insert/update/delete), each listing the
+    // main-table primary key values. Only non-empty types are printed, split across lines when needed.
+    if (!data.empty()) {
+        const DataDonationSchema::DdRelationsPath &path = ddSchema.GetRelationPath();
+        std::string mainTable = DataDonationSqlGenerator::BuildFromTableName(path);
+        std::string pkKey = DataDonationUtils::GetFieldName(mainTable, ddSchema.GetPrimaryKey(mainTable));
+        DataDonationUtils::LogQueryBinlogResult(pkKey, data);
+    }
+
     if (errCode == -E_SUBSCRIBE_QUERY_END) {
         errCode = (readNum == 0 || RemainReadSize() == 0) ? -E_SUBSCRIBE_QUERY_END : E_OK;
     }
