@@ -528,6 +528,77 @@ bool DataDonationUtils::IsDonationDataEmpty(const VBucket &bucket)
     return true;
 }
 
+void DataDonationUtils::FlushQueryBinlogLine(const std::string &typeLabel, const std::vector<std::string> &pks)
+{
+    const std::string prefix = "query subscribe, " + typeLabel + ":[";
+    size_t i = 0;
+    while (i < pks.size()) {
+        std::string line = prefix;
+        size_t added = 0;
+        while (i < pks.size()) {
+            // +1 accounts for the separator (comma or closing bracket) appended after this value.
+            if (added > 0 && line.size() + pks[i].size() + 1 > QUERY_BINLOG_LOG_MAX_LEN) {
+                break;
+            }
+            line += pks[i];
+            line += ",";
+            i++;
+            added++;
+        }
+        if (!line.empty() && line.back() == ',') {
+            line.pop_back();
+        }
+        line += "]";
+        LOGI("%s", line.c_str());
+    }
+}
+
+void DataDonationUtils::AppendPkValue(const VBucket &bucket, const std::string &pkKey, std::vector<std::string> &out)
+{
+    auto it = bucket.find(pkKey);
+    if (it == bucket.end()) {
+        return;
+    }
+    if (it->second.index() == TYPE_INDEX<int64_t>) {
+        out.push_back(std::to_string(std::get<int64_t>(it->second)));
+    } else if (it->second.index() == TYPE_INDEX<std::string>) {
+        out.push_back(std::get<std::string>(it->second));
+    } else if (it->second.index() != TYPE_INDEX<Nil>) {
+        out.push_back("?");
+    }
+}
+
+void DataDonationUtils::LogQueryBinlogResult(const std::string &pkKey, const std::vector<VBucket> &data)
+{
+    std::vector<std::string> insertPks;
+    std::vector<std::string> updatePks;
+    std::vector<std::string> deletePks;
+    for (const auto &bucket : data) {
+        int64_t opType = 0;
+        if (CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::SUB_DATA_OP_TYPE, bucket, opType) != E_OK) {
+            continue;
+        }
+        if (opType == static_cast<int64_t>(SubDataOpType::OP_INSERT)) {
+            AppendPkValue(bucket, pkKey, insertPks);
+        } else if (opType == static_cast<int64_t>(SubDataOpType::OP_UPDATE)) {
+            AppendPkValue(bucket, pkKey, updatePks);
+        } else if (opType == static_cast<int64_t>(SubDataOpType::OP_DELETE)) {
+            AppendPkValue(bucket, pkKey, deletePks);
+        }
+    }
+
+    // Only print non-empty operation types.
+    if (!insertPks.empty()) {
+        FlushQueryBinlogLine("insert", insertPks);
+    }
+    if (!updatePks.empty()) {
+        FlushQueryBinlogLine("update", updatePks);
+    }
+    if (!deletePks.empty()) {
+        FlushQueryBinlogLine("delete", deletePks);
+    }
+}
+
 int DataDonationUtils::GetCursorByPkColumn(const VBucket &bucket, const BinlogChangedData &data,
     DdData &dataRow)
 {
@@ -547,6 +618,11 @@ int DataDonationUtils::GetCursorByPkColumn(const VBucket &bucket, const BinlogCh
             }
             found = true;
             int64_t opType = static_cast<int64_t>(dataField.opType[i]);
+            // The opType of this binlog is delete, but after querying db, it can match the data in the main table.
+            // Here, it is converted to update
+            if (opType == static_cast<int64_t>(SubDataOpType::OP_DELETE)) {
+                opType = static_cast<int64_t>(SubDataOpType::OP_UPDATE);
+            }
             dataRow.data.insert_or_assign(CloudDbConstant::SUB_DATA_OP_TYPE, opType);
             dataRow.opType = static_cast<int16_t>(opType);
             dataRow.fileIdx = dataField.binlogCursor.first;

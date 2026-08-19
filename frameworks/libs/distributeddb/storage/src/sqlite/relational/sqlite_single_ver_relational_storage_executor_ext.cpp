@@ -135,7 +135,8 @@ int SQLiteSingleVerRelationalStorageExecutor::QuerySubscribeOutput(DataDonationS
         std::unordered_set<std::string> matchedPks;
         for (auto& bucket : queryResult) {
             int64_t pkValue = 0;
-            if (CloudStorageUtils::GetValueFromVBucket(it->second.pkColumn, bucket, pkValue) == E_OK) {
+            if (CloudStorageUtils::GetValueFromVBucket(
+                DataDonationUtils::GetFieldName(it->second.tableName, it->second.pkColumn), bucket, pkValue) == E_OK) {
                 matchedPks.insert(std::to_string(pkValue));
             }
 

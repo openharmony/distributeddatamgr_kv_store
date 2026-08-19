@@ -87,6 +87,11 @@ public:
 
     static bool IsDonationDataEmpty(const VBucket &bucket);
 
+    // Print the QueryBinlog data result grouped by operation type (insert/update/delete), listing the
+    // main-table primary key values for each type. Only non-empty types are printed, and long lists are
+    // split across multiple info-level log lines so that no single line exceeds 250 characters.
+    static void LogQueryBinlogResult(const std::string &pkKey, const std::vector<VBucket> &data);
+
     static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath);
 
     static int FreeMonitorConfig(MonitorTablesConfig *monitorConfig);
@@ -165,9 +170,12 @@ private:
         std::vector<std::pair<std::string, int64_t>> &cursorValues,
         std::vector<std::pair<std::string, int64_t>> &maxRowids);
     static int WriteHwmFile(const std::string &filePath, const JsonObject &root);
+    static void AppendPkValue(const VBucket &bucket, const std::string &pkKey, std::vector<std::string> &out);
+    static void FlushQueryBinlogLine(const std::string &typeLabel, const std::vector<std::string> &pks);
 
     static constexpr const char *DATA_DONATION_SCHEMA_FILE = "data_donation_schema.json";
     static constexpr const char *ROWID_HWM_FILE = "subscribe_rowid_hwm.json";
+    static constexpr size_t QUERY_BINLOG_LOG_MAX_LEN = 240;
 };
 
 }
