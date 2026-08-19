@@ -167,13 +167,13 @@ private:
     StorageExecutor *FetchFromDelayedRelease(bool isExternal);
 
     // Start the delayed release timer to release expired read executors. Returns -1 on failure.
-    int StartDelayedReleaseTimer();
+    int32_t StartDelayedReleaseTimer();
 
     // Compute the earliest expire time among all pending delayed executors.
     std::chrono::steady_clock::time_point GetEarliestDelayedExpireTime();
 
     // Timer callback: release the expired read executors.
-    int DelayedReleaseTimerCallback(TimerId timerId);
+    int32_t DelayedReleaseTimerCallback(TimerId timerId);
 
     // Lazily destroy the read executors whose delay time has elapsed.
     void ReleaseExpiredDelayedReadExecutors();

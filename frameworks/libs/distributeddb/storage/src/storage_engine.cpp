@@ -48,12 +48,15 @@ StorageEngine::StorageEngine()
 void StorageEngine::SetReadExecutorDelayRelease(bool isDelayRelease, uint32_t delayTimeMs)
 {
     {
-        std::unique_lock<std::mutex> lock(readMutex_);
+        std::lock_guard<std::mutex> lock(readMutex_);
         isDelayRelease_ = isDelayRelease;
         delayTime_ = delayTimeMs;
     }
     if (!isDelayRelease) {
         StopDelayedReleaseTimer();
+        std::lock_guard<std::mutex> lock(readMutex_);
+        ClearDelayedReleaseList(readDelayedReleaseList_);
+        ClearDelayedReleaseList(externalReadDelayedReleaseList_);
     }
     LOGD("[StorageEngine] delay[%d] delayTime[%" PRIu32 "ms]", isDelayRelease, delayTimeMs);
 }
@@ -64,12 +67,10 @@ void StorageEngine::StopDelayedReleaseTimer()
     if (delayedReleaseTimerId_ == 0) {
         return;
     }
-    RuntimeContext *runtimeCtx = RuntimeContext::GetInstance();
-    if (runtimeCtx != nullptr) {
-        TimerId timerId = delayedReleaseTimerId_;
-        delayedReleaseTimerId_ = 0;
-        runtimeCtx->RemoveTimer(timerId, false);
-    }
+
+    TimerId timerId = delayedReleaseTimerId_;
+    delayedReleaseTimerId_ = 0;
+    RuntimeContext::GetInstance()->RemoveTimer(timerId, false);
 }
 
 std::chrono::steady_clock::time_point StorageEngine::GetEarliestDelayedExpireTime()
@@ -89,7 +90,7 @@ std::chrono::steady_clock::time_point StorageEngine::GetEarliestDelayedExpireTim
     return earliestExpire;
 }
 
-int StorageEngine::StartDelayedReleaseTimer()
+int32_t StorageEngine::StartDelayedReleaseTimer()
 {
     // Compute the earliest expire time among all pending delayed executors.
     std::chrono::steady_clock::time_point earliestExpire = GetEarliestDelayedExpireTime();
@@ -103,12 +104,8 @@ int StorageEngine::StartDelayedReleaseTimer()
         // No pending executor, no need to start a timer.
         return E_OK;
     }
-    RuntimeContext *runtimeCtx = RuntimeContext::GetInstance();
-    if (runtimeCtx == nullptr) {
-        return -E_INVALID_ARGS;
-    }
     auto now = std::chrono::steady_clock::now();
-    int delayMs = 1;
+    int32_t delayMs = 1;
     if (earliestExpire > now) {
         delayMs = std::max(1, static_cast<int>(
             std::chrono::duration_cast<std::chrono::milliseconds>(earliestExpire - now).count()));
@@ -124,8 +121,8 @@ int StorageEngine::StartDelayedReleaseTimer()
         }
     };
     TimerId timerId = 0;
-    int errCode = runtimeCtx->SetTimer(delayMs,
-        [this](TimerId id) -> int { return DelayedReleaseTimerCallback(id); }, finalizer, timerId);
+    int32_t errCode = RuntimeContext::GetInstance()->SetTimer(delayMs,
+        [this](TimerId id) -> int32_t { return DelayedReleaseTimerCallback(id); }, finalizer, timerId);
     if (errCode != E_OK) {
         LOGW("[StorageEngine] Set delayed release timer failed, errCode[%d]", errCode);
         RefObject::DecObjRef(this);
@@ -135,7 +132,7 @@ int StorageEngine::StartDelayedReleaseTimer()
     return E_OK;
 }
 
-int StorageEngine::DelayedReleaseTimerCallback(TimerId timerId)
+int32_t StorageEngine::DelayedReleaseTimerCallback(TimerId timerId)
 {
     ReleaseExpiredDelayedReadExecutors();
     {
