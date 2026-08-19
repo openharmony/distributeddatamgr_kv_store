@@ -179,9 +179,12 @@ HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest003, TestSi
     });
     auto executor3 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, ret);
     EXPECT_NE(executor3, nullptr);
+    auto executor4 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, ret);
+    EXPECT_NE(executor4, nullptr);
     EXPECT_EQ(createCount, 0);
     engine->ForkNewExecutorMethod(nullptr);
     engine->Recycle(executor3);
+    engine->Recycle(executor4);
     engine->Release();
 }
 

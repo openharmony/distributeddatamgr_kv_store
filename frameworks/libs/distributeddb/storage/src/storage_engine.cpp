@@ -63,13 +63,16 @@ void StorageEngine::SetReadExecutorDelayRelease(bool isDelayRelease, uint32_t de
 
 void StorageEngine::StopDelayedReleaseTimer()
 {
-    std::lock_guard<std::mutex> lock(delayedTimerMutex_);
-    if (delayedReleaseTimerId_ == 0) {
-        return;
-    }
+    TimerId timerId = 0;
+    {
+        std::lock_guard<std::mutex> lock(delayedTimerMutex_);
+        if (delayedReleaseTimerId_ == 0) {
+            return;
+        }
 
-    TimerId timerId = delayedReleaseTimerId_;
-    delayedReleaseTimerId_ = 0;
+        timerId = delayedReleaseTimerId_;
+        delayedReleaseTimerId_ = 0;
+    }
     RuntimeContext::GetInstance()->RemoveTimer(timerId, false);
 }
 
@@ -149,6 +152,7 @@ int32_t StorageEngine::DelayedReleaseTimerCallback(TimerId timerId)
         RefObject::DecObjRef(this);
     });
     if (ret != E_OK) {
+        LOGW("[StorageEngine] Async set delayed release timer failed, errCode[%d]", ret);
         RefObject::DecObjRef(this);
     }
     return -E_END_TIMER; // stop the current one-shot timer
@@ -439,6 +443,7 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
         if (needStartTimer && StartDelayedReleaseTimer() != E_OK) {
             // Start the timer outside the readMutex_ lock to avoid recursive locking.
             LOGW("[StorageEngine] Start delayed release timer failed in Recycle");
+            RecycleDelayExecutor(handle, isExternal);
         }
         delete releaseHandle;
     }
@@ -468,6 +473,25 @@ StorageExecutor *StorageEngine::RecycleExcessReadExecutor(StorageExecutor *handl
         return nullptr;
     }
     return handle;
+}
+
+void StorageEngine::RecycleDelayExecutor(StorageExecutor *handle, bool isExternal)
+{
+    bool isFound = false;
+    {
+        std::unique_lock<std::mutex> lock(readMutex_);
+        auto &delayedList = isExternal ? externalReadDelayedReleaseList_ : readDelayedReleaseList_;
+        for (auto iter = delayedList.begin(); iter != delayedList.end(); ++iter) {
+            if (iter->first == handle) {
+                isFound = true;
+                delayedList.erase(iter);
+                break;
+            }
+        }
+    }
+    if (isFound) {
+        delete handle;
+    }
 }
 
 void StorageEngine::AddToDelayedRelease(StorageExecutor *handle, bool isExternal)

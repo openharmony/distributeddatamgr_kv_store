@@ -689,6 +689,10 @@ HWTEST_F(DistributedDBBasicKVTest, GetKvStore007, TestSize.Level0)
     option.connPoolConfig.isDelayRelease = false;
     SetOption(option);
     ASSERT_NE(KVGeneralUt::InitDelegate(storeInfo2), E_OK);
+    option.connPoolConfig.isDelayRelease = true;
+    option.connPoolConfig.delayTime = DBConstant::MIN_TIMEOUT;
+    SetOption(option);
+    ASSERT_NE(KVGeneralUt::InitDelegate(storeInfo2), E_OK);
 }
 #endif
 } // namespace DistributedDB

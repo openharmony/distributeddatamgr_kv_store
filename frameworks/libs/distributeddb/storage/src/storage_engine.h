@@ -185,6 +185,7 @@ private:
 
     // Recycle an excess read executor (delayed release or immediate delete). Returns the handle to be deleted.
     StorageExecutor *RecycleExcessReadExecutor(StorageExecutor *handle, bool isExternal, bool &needStartTimer);
+    void RecycleDelayExecutor(StorageExecutor *handle, bool isExternal);
 
     // Delete all executors kept in a delayed release list.
     static void ClearDelayedReleaseList(
