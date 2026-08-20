@@ -992,6 +992,10 @@ distributeddb_unittest("DistributedDBKvCloudQueryTest") {
       [ "unittest/common/store_test/kv/distributeddb_kv_cloud_query_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBStorageEngineDelayReleaseTest") {
+  sources = [ "unittest/common/store_test/kv/distributeddb_storage_engine_delay_release_test.cpp" ]
+}
+
 config("tokenizer_config_unittest") {
   visibility = [ ":*" ]
   include_dirs = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include" ]
@@ -1200,6 +1204,7 @@ group("unittest") {
     ":DistributedDBSqliteRelationalUtilsTest",
     ":DistributedDBSqliteUtilsTest",
     ":DistributedDBStorageIndexOptimizeTest",
+    ":DistributedDBStorageEngineDelayReleaseTest",
     ":DistributedDBStorageMemorySingleVerNaturalStoreTest",
     ":DistributedDBStorageQuerySyncTest",
     ":DistributedDBStorageRegisterConflictTest",

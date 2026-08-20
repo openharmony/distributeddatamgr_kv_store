@@ -1029,6 +1029,9 @@ int KvDBManager::CheckSchema(const IKvDB *kvDB, const KvDBProperties &properties
         LOGE("schema not matched");
         return -E_SCHEMA_MISMATCH;
     }
+    if (!CheckConnPoolConfig(properties, kvDB->GetMyProperties())) {
+        return -E_INVALID_ARGS;
+    }
     return E_OK;
 }
 
@@ -1131,5 +1134,23 @@ void KvDBManager::Dump(int fd)
         entry.second->Dump(fd);
         RefObject::DecObjRef(entry.second);
     }
+}
+
+bool KvDBManager::CheckConnPoolConfig(const KvDBProperties &input, const KvDBProperties &existed)
+{
+    auto inputDelay = input.GetBoolProp(DBProperties::DELAY_RELEASE, false);
+    auto existedDelay = existed.GetBoolProp(DBProperties::DELAY_RELEASE, false);
+    if (inputDelay != existedDelay) {
+        LOGE("Delay release mismatch: existed[%d] vs input[%d]",
+            static_cast<int>(existedDelay), static_cast<int>(inputDelay));
+        return false;
+    }
+    auto inputDelayTime = input.GetUIntProp(DBProperties::DELAY_TIME, 0u);
+    auto existedDelayTime = existed.GetUIntProp(DBProperties::DELAY_TIME, 0u);
+    if (inputDelayTime != existedDelayTime) {
+        LOGE("Delay time mismatch: existed[%" PRIu32 "] vs input[%" PRIu32 "]", existedDelayTime, inputDelayTime);
+        return false;
+    }
+    return true;
 }
 } // namespace DistributedDB

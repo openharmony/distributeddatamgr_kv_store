@@ -27,6 +27,7 @@
 #include "sqlite_utils.h"
 #include "storage_executor.h"
 #include "kvdb_commit_notify_filterable_data.h"
+#include "runtime_context.h"
 
 namespace DistributedDB {
 struct StorageEngineAttr {
@@ -52,6 +53,12 @@ public:
         int waitTime = MAX_WAIT_TIME);
 
     void Recycle(StorageExecutor *&handle, bool isExternal = false);
+
+    // Enable/disable the delayed release of read executors. delayTimeMs in milliseconds.
+    void SetReadExecutorDelayRelease(bool isDelayRelease, uint32_t delayTimeMs);
+
+    // Stop the delayed release timer if it is running and caller should keep engine ref count > 1.
+    void StopDelayedReleaseTimer();
 
     virtual bool IsEngineCorrupted() const;
 
@@ -153,6 +160,37 @@ private:
 
     StorageExecutor *FetchReadStorageExecutor(int &errCode, bool isExternal, bool isNeedCreate);
 
+    // Put an excess read executor into the delayed release list instead of deleting it immediately.
+    void AddToDelayedRelease(StorageExecutor *handle, bool isExternal);
+
+    // Try to reuse a not-yet-expired read executor from the delayed release list.
+    StorageExecutor *FetchFromDelayedRelease(bool isExternal);
+
+    // Start the delayed release timer to release expired read executors. Returns -1 on failure.
+    int32_t StartDelayedReleaseTimer();
+
+    // Compute the earliest expire time among all pending delayed executors.
+    std::chrono::steady_clock::time_point GetEarliestDelayedExpireTime();
+
+    // Timer callback: release the expired read executors.
+    int32_t DelayedReleaseTimerCallback(TimerId timerId);
+
+    // Lazily destroy the read executors whose delay time has elapsed.
+    void ReleaseExpiredDelayedReadExecutors();
+
+    // Collect the expired read executors from a single delayed release list.
+    static void CollectExpiredDelayedExecutors(
+        std::list<std::pair<StorageExecutor *, std::chrono::steady_clock::time_point>> &delayedList,
+        const std::chrono::steady_clock::time_point &now, std::list<StorageExecutor *> &expiredHandles);
+
+    // Recycle an excess read executor (delayed release or immediate delete). Returns the handle to be deleted.
+    StorageExecutor *RecycleExcessReadExecutor(StorageExecutor *handle, bool isExternal, bool &needStartTimer);
+    void RecycleDelayExecutor(StorageExecutor *handle, bool isExternal);
+
+    // Delete all executors kept in a delayed release list.
+    static void ClearDelayedReleaseList(
+        std::list<std::pair<StorageExecutor *, std::chrono::steady_clock::time_point>> &delayedList);
+
     virtual void ClearCorruptedFlag();
 
     std::string LogAndCheckFileStat(const std::string& filePath, struct stat& fileStat, const std::string& logPrefix);
@@ -183,6 +221,13 @@ private:
     std::list<StorageExecutor *> externalReadIdleList_;
     std::atomic<bool> isExistConnection_;
 
+    // Delayed release of read executors: when enabled, excess read executors are kept alive
+    // for delayTime_ milliseconds so that a subsequent read request can reuse them.
+    std::list<std::pair<StorageExecutor *, std::chrono::steady_clock::time_point>> readDelayedReleaseList_;
+    std::list<std::pair<StorageExecutor *, std::chrono::steady_clock::time_point>> externalReadDelayedReleaseList_;
+    std::mutex delayedTimerMutex_;
+    TimerId delayedReleaseTimerId_ = 0;
+
     std::mutex idleMutex_;
     std::condition_variable idleCondition_;
 
@@ -191,6 +236,9 @@ private:
 
     mutable std::mutex stateMutex_;
     EngineState engineState_;
+
+    bool isDelayRelease_;
+    uint32_t delayTime_;
 };
 } // namespace DistributedDB
 #endif // STORAGE_ENGINE_H

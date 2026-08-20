@@ -119,6 +119,10 @@ void InitPropWithNbOption(KvDBProperties &properties, const std::string &storePa
     properties.SetUIntProp(KvDBProperties::KVDB_PAGE_SIZE, option.rdconfig.pageSize);
     properties.SetUIntProp(KvDBProperties::CACHE_SIZE, option.rdconfig.cacheSize);
     properties.SetIntProp(KvDBProperties::INDEX_TYPE, option.rdconfig.type);
+    properties.SetBoolProp(DBProperties::DELAY_RELEASE, option.connPoolConfig.isDelayRelease);
+    if (option.connPoolConfig.isDelayRelease) {
+        properties.SetUIntProp(DBProperties::DELAY_TIME, option.connPoolConfig.delayTime);
+    }
 }
 
 bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)
@@ -296,9 +300,24 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
             return false;
         }
     }
-
-    if (!CheckObserverConflictParam(option)) {
+    if (!CheckOptionValid(option)) {
         callback(INVALID_ARGS, nullptr);
+        return false;
+    }
+    return true;
+}
+
+bool KvStoreDelegateManager::CheckOptionValid(const KvStoreNbDelegate::Option &option)
+{
+    if (!CheckObserverConflictParam(option)) {
+        return false;
+    }
+    if (!option.connPoolConfig.isDelayRelease) {
+        return true;
+    }
+    if (option.connPoolConfig.delayTime > DBConstant::MAX_SYNC_TIMEOUT ||
+        option.connPoolConfig.delayTime < DBConstant::MIN_TIMEOUT) {
+        LOGE("Invalid delay time[%" PRIu32 "]", option.connPoolConfig.delayTime);
         return false;
     }
     return true;
