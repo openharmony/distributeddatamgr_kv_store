@@ -694,5 +694,37 @@ HWTEST_F(DistributedDBBasicKVTest, GetKvStore007, TestSize.Level0)
     SetOption(option);
     ASSERT_NE(KVGeneralUt::InitDelegate(storeInfo2), E_OK);
 }
+
+/**
+ * @tc.name: GetKvStore008
+ * @tc.desc: Test get kv store with delay release
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicKVTest, GetKvStore008, TestSize.Level4)
+{
+    CloseAllDelegate();
+    KvStoreNbDelegate::Option option;
+    option.connPoolConfig = {true, DBConstant::MIN_TIMEOUT};
+    SetOption(option);
+    auto storeInfo1 = GetStoreInfo1();
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo1, "dev1"), E_OK);
+    auto store1 = GetDelegate(storeInfo1);
+    ASSERT_NE(store1, nullptr);
+    const int count = 5;
+    const int batchCount = 100;
+    std::vector<std::thread> threadList;
+    for (int i = 0; i < count; ++i) {
+        threadList.push_back(std::thread([store1]() {
+            for (int j = 0; j < batchCount; ++j) {
+                Value value;
+                EXPECT_EQ(store1->Get({'k'}, value), NOT_FOUND);
+            }
+        }));
+    }
+    for (auto &item: threadList) {
+        item.join();
+    }
+}
 #endif
 } // namespace DistributedDB

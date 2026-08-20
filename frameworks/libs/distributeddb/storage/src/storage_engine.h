@@ -57,7 +57,7 @@ public:
     // Enable/disable the delayed release of read executors. delayTimeMs in milliseconds.
     void SetReadExecutorDelayRelease(bool isDelayRelease, uint32_t delayTimeMs);
 
-    // Stop the delayed release timer if it is running.
+    // Stop the delayed release timer if it is running and caller should keep engine ref count > 1.
     void StopDelayedReleaseTimer();
 
     virtual bool IsEngineCorrupted() const;

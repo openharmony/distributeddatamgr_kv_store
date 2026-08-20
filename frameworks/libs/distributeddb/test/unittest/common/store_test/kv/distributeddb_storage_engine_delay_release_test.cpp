@@ -157,7 +157,7 @@ HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest002, TestSi
  * @tc.desc: Delayed release keeps the excess executor alive within delay time, reuse avoids recreation.
  * @tc.type: FUNC
  */
-HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest003, TestSize.Level0)
+HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest003, TestSize.Level4)
 {
     auto [errCode, engine] = GetVirtualEngine(2); // maxRead is 2
     ASSERT_EQ(errCode, E_OK);
@@ -193,7 +193,7 @@ HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest003, TestSi
  * @tc.desc: After delay time elapses, the periodic timer releases the delayed executor.
  * @tc.type: FUNC
  */
-HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest004, TestSize.Level0)
+HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest004, TestSize.Level4)
 {
     auto [errCode, engine] = GetVirtualEngine(2); // maxRead is 2
     ASSERT_EQ(errCode, E_OK);
@@ -209,7 +209,7 @@ HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest004, TestSi
     auto executor3 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, ret);
     EXPECT_NE(executor3, nullptr);
     // Wait for the delay time to elapse so the periodic timer releases the delayed executor.
-    std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_TIME_MS + 50)); // 50 ms
+    std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_TIME_MS * 5)); // 5 * 100 ms
     int createCount = 0;
     engine->ForkNewExecutorMethod([&createCount](bool, StorageExecutor *&handle) {
         createCount++;
@@ -246,7 +246,7 @@ HWTEST_F(DistributedDBStorageEngineDelayReleaseTest, DelayReleaseTest005, TestSi
     auto executor3 = engine->FindExecutor(false, OperatePerm::NORMAL_PERM, ret);
     EXPECT_NE(executor3, nullptr);
     // Give the timer enough time to release the zero-delay executor.
-    std::this_thread::sleep_for(std::chrono::milliseconds(50)); // sleep 50ms
+    std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_TIME_MS * 5)); // 5 * 100 ms
     int createCount = 0;
     engine->ForkNewExecutorMethod([&createCount](bool, StorageExecutor *&handle) {
         createCount++;

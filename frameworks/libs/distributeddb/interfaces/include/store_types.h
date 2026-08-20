@@ -450,7 +450,7 @@ struct MatrixFileUpdateConfig {
 };
 
 struct ConnPoolConfig {
-    bool isDelayRelease = false;
+    bool isDelayRelease = false; // mark true will conflict with auto launch
     uint32_t delayTime = 5000u; // valid value between [5000ms(5s), 300000ms(300s)]
 };
 } // namespace DistributedDB

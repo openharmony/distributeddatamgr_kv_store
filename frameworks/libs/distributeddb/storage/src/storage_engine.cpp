@@ -468,6 +468,7 @@ StorageExecutor *StorageEngine::RecycleExcessReadExecutor(StorageExecutor *handl
         return nullptr;
     }
     if (isDelayRelease_) {
+        handle->Reset();
         AddToDelayedRelease(handle, isExternal);
         needStartTimer = true;
         return nullptr;
