@@ -1100,8 +1100,9 @@ HWTEST_F(DistributedDBRDBComplexCloudTest, TrackerUpdate001, TestSize.Level1)
 {
     std::string table = "TEST";
     InitTables(table);
-    InsertLocalData(1, 1, info1_, table);
-    EXPECT_EQ(GetLocalDataCount(info1_, table), 1);
+    int count = 2;
+    InsertLocalData(1, count, info1_, table);
+    EXPECT_EQ(GetLocalDataCount(info1_, table), count);
     auto store = GetDelegate(info1_);
     ASSERT_NE(store, nullptr);
     TrackerSchema schema;
@@ -1110,9 +1111,10 @@ HWTEST_F(DistributedDBRDBComplexCloudTest, TrackerUpdate001, TestSize.Level1)
     schema.trackerColNames = {"intCol"};
     EXPECT_EQ(store->SetTrackerTable(schema), WITH_INVENTORY_DATA);
     EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(table), "cursor=1"), 1);
+    EXPECT_EQ(ExecuteSQL("DELETE FROM TEST WHERE id=2", info1_), E_OK);
     schema.trackerColNames = {"intCol", "stringCol1"};
     EXPECT_EQ(store->SetTrackerTable(schema), OK);
-    EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(table), "cursor=2"), 1); // 2 is cursor update
+    EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(table), "cursor=3"), 1); // 3 is cursor update
 }
 }
 #endif

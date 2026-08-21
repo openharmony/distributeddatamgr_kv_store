@@ -166,7 +166,8 @@ int SQLiteRelationalUtils::UpdateExistCursor(const TableInfo &tableInfo, const G
     const std::string logTable = DBCommon::GetLogTableName(tableName);
     std::string existLogCondition = " WHERE data_key IN (SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         " FROM " + tableName + ")";
-    std::string countSql = "SELECT COUNT(1) FROM (SELECT data_key FROM " + logTable + existLogCondition + ")";
+    std::string countSql = "SELECT COUNT(1) FROM (SELECT data_key FROM " + logTable + existLogCondition +
+        ")";
     int64_t existCount = 0;
     int errCode = SQLiteUtils::GetCountBySql(param.db, countSql, existCount);
     if (errCode != E_OK) {
@@ -176,8 +177,16 @@ int SQLiteRelationalUtils::UpdateExistCursor(const TableInfo &tableInfo, const G
         LOGE("[RDBUtils] Get error exist count[%" PRId64 "]", existCount);
         return -E_INTERNAL_ERROR;
     }
-    std::string updateSQL = "UPDATE " + logTable + " SET cursor=cursor+" + std::to_string(existCount) +
-        existLogCondition;
+    // 1. select all the log which should be updated cursor and order by cursor
+    // 2. calculate the new cursor by mate's cursor + ROW_NUMBER
+    // 3. update the new cursor into log
+    std::string updateSQL = std::string("WITH ranked AS (") +
+        "SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) + " AS id," +
+        CloudStorageUtils::GetSelectIncCursorSql(tableName) + " + ROW_NUMBER() OVER (ORDER BY cursor) AS new_cursor " +
+        "FROM " + logTable + existLogCondition +
+        ")" +
+        "UPDATE " + logTable + " SET cursor=ranked.new_cursor FROM ranked WHERE ranked.id=" +
+        logTable + "." + std::string(DBConstant::SQLITE_INNER_ROWID);
     errCode = SQLiteUtils::ExecuteRawSQL(param.db, updateSQL);
     if (errCode != E_OK) {
         LOGE("[RDBUtils] Update[%s] exist cursor errCode[%d]", DBCommon::StringMiddleMaskingWithLen(tableName).c_str(),
