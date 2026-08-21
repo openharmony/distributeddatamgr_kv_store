@@ -30,7 +30,7 @@ GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t f
     InitApiInfo(configStr);
     GetApiInfoInstance();
     if (GRD_DBApiInfo->DBOpenApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     int32_t ret = GRD_DBApiInfo->DBOpenApi(dbPath, configStr, flags, db);
@@ -45,7 +45,7 @@ GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t f
 GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
 {
     if (GRD_DBApiInfo->DBCloseApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     int32_t ret = GRD_DBApiInfo->DBCloseApi(db, flags);
@@ -59,7 +59,7 @@ GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
 GRD_API int32_t GRD_DBBackup(GRD_DB *db, const char *backupDbFile, uint8_t *encryptedKey, uint32_t encryptedKeyLen)
 {
     if (GRD_DBApiInfo->DBBackupApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     GRD_CipherInfoT cipherInfo = {.hexPassword = nullptr};
@@ -72,7 +72,7 @@ GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint
     // db restore operation will start after dlclose, should reload so to link api func
     GetApiInfoInstance();
     if (GRD_DBApiInfo->DBRestoreApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         UnloadApiInfo(GRD_DBApiInfo);
         return GRD_INNER_ERR;
     }
@@ -88,7 +88,7 @@ GRD_API int32_t GRD_DBRestore(const char *dbFile, const char *backupDbFile, uint
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
 {
     if (GRD_DBApiInfo->FlushApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DBApiInfo->FlushApi(db, flags);
@@ -97,7 +97,7 @@ GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
 GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
 {
     if (GRD_DBApiInfo->IndexPreloadApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DBApiInfo->IndexPreloadApi(db, collectionName);
@@ -107,7 +107,7 @@ GRD_API GRD_DbValueT GRD_GetConfig(GRD_DB *db, GRD_ConfigTypeE type)
 {
     GRD_DbValueT invalidValue = {GRD_DB_DATATYPE_NULL, {0}};
     if (GRD_DBApiInfo->GetConfigApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return invalidValue;
     }
     return GRD_DBApiInfo->GetConfigApi(db, type);

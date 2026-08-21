@@ -28,7 +28,7 @@ static GRD_APIInfo *GRD_DocApiInfo = GetApiInfo();
 GRD_API int32_t GRD_CreateCollection(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags)
 {
     if (GRD_DocApiInfo->CreateCollectionApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->CreateCollectionApi(db, collectionName, optionStr, flags);
@@ -37,7 +37,7 @@ GRD_API int32_t GRD_CreateCollection(GRD_DB *db, const char *collectionName, con
 GRD_API int32_t GRD_DropCollection(GRD_DB *db, const char *collectionName, uint32_t flags)
 {
     if (GRD_DocApiInfo->DropCollectionApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->DropCollectionApi(db, collectionName, flags);
@@ -47,7 +47,7 @@ GRD_API int32_t GRD_UpdateDoc(GRD_DB *db, const char *collectionName, const char
     uint32_t flags)
 {
     if (GRD_DocApiInfo->UpdateDocApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->UpdateDocApi(db, collectionName, filter, update, flags);
@@ -57,7 +57,7 @@ GRD_API int32_t GRD_UpsertDoc(GRD_DB *db, const char *collectionName, const char
     uint32_t flags)
 {
     if (GRD_DocApiInfo->UpsertDocApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->UpsertDocApi(db, collectionName, filter, document, flags);
@@ -66,7 +66,7 @@ GRD_API int32_t GRD_UpsertDoc(GRD_DB *db, const char *collectionName, const char
 GRD_API int32_t GRD_InsertDoc(GRD_DB *db, const char *collectionName, const char *document, uint32_t flags)
 {
     if (GRD_DocApiInfo->InsertDocApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->InsertDocApi(db, collectionName, document, flags);
@@ -75,7 +75,7 @@ GRD_API int32_t GRD_InsertDoc(GRD_DB *db, const char *collectionName, const char
 GRD_API int32_t GRD_DeleteDoc(GRD_DB *db, const char *collectionName, const char *filter, uint32_t flags)
 {
     if (GRD_DocApiInfo->DeleteDocApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->DeleteDocApi(db, collectionName, filter, flags);
@@ -85,7 +85,7 @@ GRD_API int32_t GRD_FindDoc(GRD_DB *db, const char *collectionName, Query query,
     GRD_ResultSet **resultSet)
 {
     if (GRD_DocApiInfo->FindDocApi == nullptr) {
-        GLOGE("Fail to dlysm RD api symbol");
+        GLOGD("Fail to dlysm RD api symbol");
         return GRD_INNER_ERR;
     }
     return GRD_DocApiInfo->FindDocApi(db, collectionName, query, flags, resultSet);
