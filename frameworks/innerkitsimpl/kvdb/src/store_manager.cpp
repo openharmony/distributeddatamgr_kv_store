@@ -33,8 +33,11 @@ StoreManager &StoreManager::GetInstance()
 
 bool StoreManager::CleanUp()
 {
-    DistributedDB::RuntimeConfig::Clean();
-    return KVDBServiceClient::CleanUp();
+    if (KVDBServiceClient::CleanUp()) {
+        DistributedDB::RuntimeConfig::Clean();
+        return true;
+    }
+    return false;
 }
 
 std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, const StoreId &storeId,

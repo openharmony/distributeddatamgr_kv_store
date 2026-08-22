@@ -25,7 +25,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
-constexpr int32_t MAX_RETRY = 100;
+constexpr int32_t MAX_RETRY = 300;
 DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
