@@ -129,7 +129,7 @@ void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
 
 int SQLiteUtils::CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal)
 {
-    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE;
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
     if (properties.createIfNecessary) {
         flag |= SQLITE_OPEN_CREATE;
     }
@@ -531,7 +531,8 @@ int SQLiteUtils::GetVersion(const OpenDbProperties &properties, int &version)
     sqlite3 *dbTemp = nullptr;
     // Please make sure the database file exists and is working properly
     std::string fileUrl = DBConstant::SQLITE_URL_PRE + properties.uri;
-    int errCode = sqlite3_open_v2(fileUrl.c_str(), &dbTemp, SQLITE_OPEN_URI | SQLITE_OPEN_READONLY, nullptr);
+    int errCode = sqlite3_open_v2(fileUrl.c_str(), &dbTemp,
+        SQLITE_OPEN_URI | SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, nullptr);
     if (errCode != SQLITE_OK) { // LCOV_EXCL_BR_LINE
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
         LOGE("Open database failed: %d, sys:%d", errCode, errno);

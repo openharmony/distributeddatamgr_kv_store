@@ -66,7 +66,8 @@ int RDSQLiteUtils::CreateDataBase(const std::string &path, int flag, sqlite3 *&d
         }
     }
 
-    int errCode = sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    int errCode = sqlite3_open_v2(path.c_str(), &db,
+        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nullptr);
     if (errCode != SQLITE_OK) {
         GLOGE("Open database failed. %d", errCode);
         if (db != nullptr) {
