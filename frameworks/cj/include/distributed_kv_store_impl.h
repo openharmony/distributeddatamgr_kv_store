@@ -310,12 +310,8 @@ private:
     std::list<std::shared_ptr<SyncObserver>> syncObservers_;
 };
 class CJDeviceKVStore : public CJSingleKVStore {
+    DECL_TYPE(CJDeviceKVStore, CJSingleKVStore)
 public:
-    OHOS::FFI::RuntimeType* GetRuntimeType() override
-    {
-        return GetClassType();
-    }
-
     explicit CJDeviceKVStore(const std::string& storeId);
 
     ValueType Get(const std::string &deviceId, const std::string &key, int32_t& errCode);
@@ -331,16 +327,6 @@ public:
     int64_t GetResultSetQuery(const std::string &deviceId, OHOS::sptr<CQuery> query, int32_t& errCode);
 
     int32_t GetResultSize(const std::string &deviceId, OHOS::sptr<CQuery> query, int32_t& errCode);
-
-private:
-    friend class OHOS::FFI::RuntimeType;
-    friend class OHOS::FFI::TypeBase;
-    static OHOS::FFI::RuntimeType* GetClassType()
-    {
-        static OHOS::FFI::RuntimeType runtimeType =
-            OHOS::FFI::RuntimeType::Create<OHOS::FFI::FFIData>("CJDeviceKVStore");
-        return &runtimeType;
-    }
 };
 }
 } // namespace OHOS::DistributedKVStore
