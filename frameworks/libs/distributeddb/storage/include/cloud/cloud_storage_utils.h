@@ -105,7 +105,7 @@ public:
     static void AddUpdateColForShare(const TableSchema &tableSchema, std::string &updateLogSql,
         std::vector<std::string> &updateColName);
     static std::string GetSelectIncCursorSql(const std::string &tableName);
-    static std::string GetCursorIncSql(const std::string &tableName);
+    static std::string GetCursorIncSql(const std::string &tableName, int64_t count = 1);
     static std::string GetCursorIncSqlWhenAllow(const std::string &tableName);
     static std::string GetCursorUpgradeSql(const std::string &tableName);
     static std::string GetUpdateUploadFinishedSql(const std::string &tableName, bool isExistAssetsDownload);

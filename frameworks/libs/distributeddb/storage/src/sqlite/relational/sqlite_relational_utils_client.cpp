@@ -14,6 +14,7 @@
  */
 
 #include "sqlite_relational_utils.h"
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "time_helper.h"
 
@@ -149,6 +150,64 @@ std::string SQLiteRelationalUtils::GetLogTriggerStatusSQL(bool status)
 int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity, const TableInfo &tableInfo,
     std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param)
 {
+    auto errCode = UpdateExistCursor(tableInfo, param);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return GeneMismatchLogInfo(identity, tableInfo, logMgrPtr, param);
+}
+
+int SQLiteRelationalUtils::UpdateExistCursor(const TableInfo &tableInfo, const GenLogParam &param)
+{
+    if (!param.isTrackerTable) {
+        return E_OK;
+    }
+    auto tableName = tableInfo.GetTableName();
+    const std::string logTable = DBCommon::GetLogTableName(tableName);
+    std::string existLogCondition = " WHERE data_key IN (SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
+        " FROM " + tableName + ")";
+    std::string countSql = "SELECT COUNT(1) FROM (SELECT data_key FROM " + logTable + existLogCondition +
+        ")";
+    int64_t existCount = 0;
+    int errCode = SQLiteUtils::GetCountBySql(param.db, countSql, existCount);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (existCount < 0) {
+        LOGE("[RDBUtils] Get error exist count[%" PRId64 "]", existCount);
+        return -E_INTERNAL_ERROR;
+    }
+    // 1. select all the log which should be updated cursor and order by cursor
+    // 2. calculate the new cursor by mate's cursor + ROW_NUMBER
+    // 3. update the new cursor into log
+    std::string updateSQL = std::string("WITH ranked AS (") +
+        "SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) + " AS id," +
+        CloudStorageUtils::GetSelectIncCursorSql(tableName) + " + ROW_NUMBER() OVER (ORDER BY cursor) AS new_cursor " +
+        "FROM " + logTable + existLogCondition +
+        ")" +
+        "UPDATE " + logTable + " SET cursor=ranked.new_cursor FROM ranked WHERE ranked.id=" +
+        logTable + "." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    errCode = SQLiteUtils::ExecuteRawSQL(param.db, updateSQL);
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils] Update[%s] exist cursor errCode[%d]", DBCommon::StringMiddleMaskingWithLen(tableName).c_str(),
+            errCode);
+        return errCode;
+    } else {
+        LOGD("[RDBUtils] Update[%s] exist[%" PRId64 "] cursor success",
+            DBCommon::StringMiddleMaskingWithLen(tableName).c_str(), existCount);
+    }
+    updateSQL = CloudStorageUtils::GetCursorIncSql(tableName, existCount);
+    errCode = SQLiteUtils::ExecuteRawSQL(param.db, updateSQL);
+    if (errCode != E_OK) {
+        LOGE("[RDBUtils] Update[%s] meta cursor errCode[%d]", DBCommon::StringMiddleMaskingWithLen(tableName).c_str(),
+            errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::GeneMismatchLogInfo(const std::string &identity, const TableInfo &tableInfo,
+    std::unique_ptr<SqliteLogTableManager> &logMgrPtr, GenLogParam &param)
+{
     std::string tableName = tableInfo.GetTableName();
     std::string timeStr;
     int errCode = GeneTimeStrForLog(tableInfo, param, timeStr);
@@ -174,11 +233,7 @@ int SQLiteRelationalUtils::GeneLogInfoForExistedData(const std::string &identity
                           rowid + ", " + timeStr + " + " + rowid + ", " + flag + ", " + calPrimaryKeyHash + ", '', ";
     sql += GetExtendValue(tableInfo.GetTrackerTable());
     sql += ", 0, '', '', 0 FROM '" + tableName + "' AS a ";
-    if (param.isTrackerTable) {
-        sql += "WHERE 1 = 1";
-    } else {
-        sql += "WHERE NOT EXISTS (SELECT 1 FROM " + logTable + " WHERE data_key = a._rowid_)";
-    }
+    sql += "WHERE NOT EXISTS (SELECT 1 FROM " + logTable + " WHERE data_key = a._rowid_)";
     auto pk = tableInfo.GetCloudSyncDistributedPk();
     for (const auto &item : pk) {
         sql += " AND " + item + " IS NOT NULL";

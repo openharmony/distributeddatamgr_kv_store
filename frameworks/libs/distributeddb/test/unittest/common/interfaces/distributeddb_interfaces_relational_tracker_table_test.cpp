@@ -165,7 +165,7 @@ namespace {
 
     void CheckExtendAndCursor(uint64_t num, int start)
     {
-        CheckExtendAndCursor(num, start, TABLE_NAME2);
+        CheckExtendAndCursor(num, start, TABLE_NAME2, true);
     }
 
     void OpenStore(DistributedTableMode tableMode = DistributedTableMode::COLLABORATION)
