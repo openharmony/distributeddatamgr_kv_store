@@ -53,10 +53,10 @@ int RelationalStoreInstance::ReleaseDataBaseConnection(RelationalStoreConnection
     if (manager == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
-    std::string identifier = connection->GetIdentifier();
-    manager->EnterDBOpenCloseProcess(identifier);
+    std::string dir = connection->GetDataDir();
+    manager->EnterDBOpenCloseProcess(dir);
     int errCode = connection->Close();
-    manager->ExitDBOpenCloseProcess(identifier);
+    manager->ExitDBOpenCloseProcess(dir);
 
     if (errCode != E_OK) {
         LOGE("Release db connection failed. %d", errCode);
@@ -225,7 +225,8 @@ RelationalStoreConnection *RelationalStoreInstance::GetDatabaseConnection(const 
         errCode = -E_OUT_OF_MEMORY;
         return nullptr;
     }
-    manager->EnterDBOpenCloseProcess(properties.GetStringProp(DBProperties::IDENTIFIER_DATA, ""));
+    auto dir = properties.GetStringProp(DBProperties::DATA_DIR, "");
+    manager->EnterDBOpenCloseProcess(dir);
     RelationalStoreConnection *connection = nullptr;
     IRelationalStore *db = GetDataBase(properties, errCode, isNeedIfOpened);
     if (db == nullptr) {
@@ -251,7 +252,7 @@ RelationalStoreConnection *RelationalStoreInstance::GetDatabaseConnection(const 
 
 END:
     RefObject::DecObjRef(db); // restore the reference increased by the cache.
-    manager->ExitDBOpenCloseProcess(properties.GetStringProp(DBProperties::IDENTIFIER_DATA, ""));
+    manager->ExitDBOpenCloseProcess(dir);
     return connection;
 }
 
