@@ -1116,5 +1116,44 @@ HWTEST_F(DistributedDBRDBComplexCloudTest, TrackerUpdate001, TestSize.Level1)
     EXPECT_EQ(store->SetTrackerTable(schema), OK);
     EXPECT_EQ(CountTableData(info1_, DBCommon::GetLogTableName(table), "cursor=3"), 1); // 3 is cursor update
 }
+
+/**
+ * @tc.name: DeleteSync001
+ * @tc.desc: Test delete sync with query.
+ * @tc.expected: Local data delete cloud.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBComplexCloudTest, DeleteSync001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Prepare cloud data
+     * @tc.expected: step1. cloud data prepared successfully.
+     */
+    InsertLocalData(1, DATA_COUNT_PER_OP, info1_, CLOUD_SYNC_TABLE_A);
+    EXPECT_EQ(GetLocalDataCount(info1_, CLOUD_SYNC_TABLE_A), DATA_COUNT_PER_OP);
+    /**
+     * @tc.steps:step2. Execute sync
+     * @tc.expected: step2. sync success.
+     */
+    Query query = Query::Select().From(CLOUD_SYNC_TABLE_A).EqualTo("id", static_cast<int64_t>(1));
+    CloudSyncOption option;
+    option.devices = { "CLOUD" };
+    option.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    option.query = query;
+    option.queryMode = QueryMode::UPLOAD_ONLY;
+    option.waitTime = DBConstant::MAX_TIMEOUT;
+    option.priorityTask = true;
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, option, OK, OK));
+    EXPECT_EQ(GetCloudDataCount(CLOUD_SYNC_TABLE_A), 1);
+    /**
+     * @tc.steps:step3. Delete cloud and update local
+     * @tc.expected: step3. Success, local gid has been removed.
+     */
+    DeleteLocalData(1, 1, info1_, CLOUD_SYNC_TABLE_A);
+    EXPECT_EQ(GetLocalDataCount(info1_, CLOUD_SYNC_TABLE_A), DATA_COUNT_PER_OP - 1);
+    EXPECT_NO_FATAL_FAILURE(CloudBlockSync(info1_, option, OK, OK));
+    EXPECT_EQ(GetCloudDataCount(CLOUD_SYNC_TABLE_A), 0);
+}
 }
 #endif

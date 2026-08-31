@@ -147,18 +147,20 @@ QuerySyncObject CloudSyncer::GetQuerySyncObject(const std::string &tableName)
         querySyncObject.SetTableName(tableName);
         return querySyncObject;
     }
-    bool isCustomPush = cloudTaskInfos_[currentContext_.currentTaskId].mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH;
-    for (const auto &item : cloudTaskInfos_[currentContext_.currentTaskId].queryList) {
+    const auto &info = cloudTaskInfos_[currentContext_.currentTaskId];
+    bool isCustomPush = info.mode == SyncMode::SYNC_MODE_CLOUD_CUSTOM_PUSH;
+    bool isUploadOnly = info.queryMode == QueryMode::UPLOAD_ONLY;
+    for (const auto &item : info.queryList) {
         if (item.GetTableName() == tableName) {
             QuerySyncObject tmp = item;
-            tmp.SetRelaxForDelete(isCustomPush);
+            tmp.SetRelaxForDelete(isCustomPush || isUploadOnly);
             return tmp;
         }
     }
     LOGW("[CloudSyncer] not found query in cache");
     QuerySyncObject querySyncObject;
     querySyncObject.SetTableName(tableName);
-    querySyncObject.SetRelaxForDelete(isCustomPush);
+    querySyncObject.SetRelaxForDelete(isCustomPush || isUploadOnly);
     return querySyncObject;
 }
 
