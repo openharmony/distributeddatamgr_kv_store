@@ -14,12 +14,29 @@
  */
 #define LOG_TAG "DeviceConvertor"
 #include "device_convertor.h"
+#include <charconv>
 #include <endian.h>
 #include <iomanip>
 #include <regex>
 #include "dev_manager.h"
 #include "log_print.h"
 namespace OHOS::DistributedKv {
+namespace {
+bool ParseDeviceLen(const std::string &str, size_t &len)
+{
+    if (str.empty()) {
+        return false;
+    }
+    size_t value = 0;
+    auto result = std::from_chars(str.data(), str.data() + str.size(), value);
+    if (result.ec != std::errc() || result.ptr != str.data() + str.size()) {
+        return false;
+    }
+    len = value;
+    return true;
+}
+} // namespace
+
 std::vector<uint8_t> DeviceConvertor::ToLocalDBKey(const Key &key) const
 {
     return ToLocal(key, true);
@@ -127,7 +144,12 @@ std::vector<uint8_t> DeviceConvertor::ConvertNetwork(const Key &in, bool withLen
         return ToLocal(in, withLen);
     }
 
-    size_t devLen = static_cast<size_t>(atol(deviceLen.c_str()));
+    size_t devLen = 0;
+    if (!ParseDeviceLen(deviceLen, devLen)) {
+        // | original key |
+        // |--------------|
+        return ToLocal(in, withLen);
+    }
     if (devLen > in.Data().size() - sizeof(uint32_t)) {
         // | original key |
         // |--------------|
