@@ -88,6 +88,7 @@ ohos_source_set("src_file") {
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
+    "bounds_checking_function:libsec_shared",
     "sqlite:sqlite",
   ]
   external_deps += external_deps_hilog
@@ -116,6 +117,7 @@ ohos_fuzztest("JsonInnerCollectionFuzzTest") {
   external_deps = [
     "cJSON:cjson",
     "c_utils:utils",
+    "bounds_checking_function:libsec_shared",
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
   ]
