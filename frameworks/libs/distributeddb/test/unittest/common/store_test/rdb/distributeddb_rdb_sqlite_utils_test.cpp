@@ -16,6 +16,7 @@
 #include "rdb_general_ut.h"
 
 #include "sqlite_relational_utils.h"
+#include "sqlite_relational_store_connection.h"
 #ifdef USE_DISTRIBUTEDDB_CLOUD
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -279,6 +280,20 @@ HWTEST_F(DistributedDBRDBSqliteUtilsTest, SharedTable003, TestSize.Level0)
         }
     };
     EXPECT_EQ(SQLiteRelationalUtils::CheckUserCreateSharedTable(db, table, "TEST"), -E_NOT_SUPPORT);
+}
+
+/**
+ * @tc.name: Connection001
+ * @tc.desc: Test connection with null store.
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRDBSqliteUtilsTest, Connection001, TestSize.Level0)
+{
+    auto connection = new(std::nothrow) SQLiteRelationalStoreConnection(nullptr);
+    ASSERT_NE(connection, nullptr);
+    EXPECT_EQ(connection->GetDataDir(), std::string(""));
+    RefObject::KillAndDecObjRef(connection);
 }
 }
 #endif

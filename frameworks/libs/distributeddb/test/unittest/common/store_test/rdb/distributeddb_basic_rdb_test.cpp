@@ -564,6 +564,43 @@ HWTEST_F(DistributedDBBasicRDBTest, UpdateDataLog001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: OpenClose001
+ * @tc.desc: Test open close rdb at same time
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBBasicRDBTest, OpenClose001, TestSize.Level4)
+{
+    std::string storePath = GetTestDir() + "/" + STORE_ID_1 + ".db";
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(storePath);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RDBDataGenerator::InitDatabaseWithSchemaInfo({}, *db), E_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    db = nullptr;
+    const int loopCount = 10;
+    std::thread t1([this]() {
+        StoreInfo info = {SUB_USER_1, APP_ID, STORE_ID_1};
+        for (int i = 0; i < loopCount; ++i) {
+            auto [ret, store] = OpenRDBStore(info);
+            EXPECT_EQ(ret, OK);
+            RelationalStoreManager mgr(info.appId, info.userId);
+            EXPECT_EQ(mgr.CloseStore(store), OK);
+        }
+    });
+    std::thread t2([this]() {
+        StoreInfo info = {SUB_USER_2, APP_ID, STORE_ID_1};
+        for (int i = 0; i < loopCount; ++i) {
+            auto [ret, store] = OpenRDBStore(info);
+            EXPECT_EQ(ret, OK);
+            RelationalStoreManager mgr(info.appId, info.userId);
+            EXPECT_EQ(mgr.CloseStore(store), OK);
+        }
+    });
+    t1.join();
+    t2.join();
+}
+
+/**
  * @tc.name: SetTrackerMatrixInfoTest001
  * @tc.desc: Test set tracker matrix info on success
  * @tc.type: FUNC

@@ -51,6 +51,7 @@ public:
     virtual int Close() = 0;
 
     virtual std::string GetIdentifier() = 0;
+    virtual std::string GetDataDir() = 0;
     virtual int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) = 0;
     virtual int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) = 0;
 

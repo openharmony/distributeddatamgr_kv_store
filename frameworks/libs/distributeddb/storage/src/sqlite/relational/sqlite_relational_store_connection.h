@@ -36,6 +36,7 @@ public:
     int Close() override;
 
     std::string GetIdentifier() override;
+    std::string GetDataDir() override;
     int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool isAsync) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
 

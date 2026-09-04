@@ -69,6 +69,14 @@ std::string SQLiteRelationalStoreConnection::GetIdentifier()
     return store_->GetProperties().GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
 }
 
+std::string SQLiteRelationalStoreConnection::GetDataDir()
+{
+    if (store_ == nullptr) {
+        return {};
+    }
+    return store_->GetProperties().GetStringProp(RelationalDBProperties::DATA_DIR, "");
+}
+
 SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStoreConnection::GetExecutor(bool isWrite, int &errCode) const
 {
     auto *store = GetDB<SQLiteRelationalStore>();
