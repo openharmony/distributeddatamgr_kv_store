@@ -1002,10 +1002,6 @@ Status SingleStoreImpl::DoSync(SyncInfo &syncInfo, std::shared_ptr<SyncCallback>
         return DoClientSync(syncInfo, observer);
     }
 
-    if (isCustomDir_) {
-        ZLOGE("sync is not supported in custom dir mode.");
-        return NOT_SUPPORT;
-    }
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;

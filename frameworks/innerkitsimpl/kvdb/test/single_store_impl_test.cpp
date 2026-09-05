@@ -1897,7 +1897,7 @@ HWTEST_F(SingleStoreImplTest, DoSync001, TestSize.Level1)
     EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
     kvStore->isCustomDir_ = true;
     syncStatus = kvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
-    EXPECT_EQ(syncStatus, Status::NOT_SUPPORT) << "sync device should return not support";
+    EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device with custom dir should return success";
     kvStore->isCustomDir_ = false;
     kvStore->isClientSync_ = true;
     kvStore->syncObserver_ = nullptr;
