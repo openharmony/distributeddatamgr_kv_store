@@ -112,6 +112,8 @@ public:
     static int ExtractJsonObjArray(const JsonObject &inJsonObject,
         const std::string &field, std::vector<JsonObject> &out);
     static int ValidateJsonConfigFile(const std::string &dbPath);
+    static int ValidateSubscribeRowIdHwm(const std::string &dbPath);
+    static int WriteHwmFile(const std::string &filePath, const JsonObject &root);
 private:
     static std::string JoinPrimaryKey(const std::vector<DonateDataField> &changedData);
 
@@ -169,7 +171,6 @@ private:
     static int ParseCursorFromHwm(const JsonObject &tableEntry,
         std::vector<std::pair<std::string, int64_t>> &cursorValues,
         std::vector<std::pair<std::string, int64_t>> &maxRowids);
-    static int WriteHwmFile(const std::string &filePath, const JsonObject &root);
     static void AppendPkValue(const VBucket &bucket, const std::string &pkKey, std::vector<std::string> &out);
     static void FlushQueryBinlogLine(const std::string &typeLabel, const std::vector<std::string> &pks);
 

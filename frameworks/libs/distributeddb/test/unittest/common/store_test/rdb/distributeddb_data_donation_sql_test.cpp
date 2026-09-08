@@ -70,6 +70,7 @@ void DataDonationSqlGeneratorTest::SetUp()
 void DataDonationSqlGeneratorTest::TearDown()
 {
     RDBGeneralUt::TearDown();
+    sqlite3_close_v2(db);
 }
 
 std::string DataDonationSqlGeneratorTest::InitMatrixFile()
