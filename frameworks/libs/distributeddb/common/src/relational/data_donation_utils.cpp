@@ -16,9 +16,11 @@
 #ifdef RELATIONAL_STORE
 #include "data_donation_utils.h"
 
+#include <fcntl.h>
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -158,7 +160,8 @@ int DataDonationUtils::ParseHwmFile(const std::string &filePath, JsonObject &roo
 {
     std::ifstream existFile(filePath);
     if (!existFile.is_open()) {
-        return E_OK;
+        LOGE("[ParseHwmFile] Rowid hwm file not exists");
+        return -E_INVALID_FILE;
     }
     std::stringstream buffer;
     buffer << existFile.rdbuf();
@@ -177,15 +180,27 @@ int DataDonationUtils::ParseHwmFile(const std::string &filePath, JsonObject &roo
 
 int DataDonationUtils::WriteHwmFile(const std::string &filePath, const JsonObject &root)
 {
-    std::string content = root.ToString();
-    std::ofstream file(filePath);
-    if (!file.is_open()) {
-        LOGE("[DataDonationUtils] Open rowid hwm file failed, rdstate: %d, errno: %d",
-            static_cast<int>(file.rdstate()), errno);
+    // The hwm file must already exist; never create it on kv store.
+    // Normalize and validate the path first; realpath() also fails if the file does not exist.
+    std::string realPath;
+    int errCode = OS::GetRealPath(filePath, realPath);
+    if (errCode != E_OK) {
+        LOGE("[WriteHwmFile] Rowid hwm file not exists or path invalid: %d", errCode);
         return -E_INVALID_FILE;
     }
-    file << content << std::endl;
-    file.close();
+    int fd = open(realPath.c_str(), O_WRONLY | O_TRUNC);
+    if (fd == -1) {
+        LOGE("[WriteHwmFile] Rowid hwm file open err: %d", errno);
+        return -E_INVALID_FILE;
+    }
+    std::string content = root.ToString() + "\n";
+    ssize_t written = write(fd, content.c_str(), content.size());
+    if (written == -1 || static_cast<size_t>(written) != content.size()) {
+        LOGE("[WriteHwmFile] Write rowid hwm file failed, errno: %d", errno);
+        close(fd);
+        return -E_INVALID_FILE;
+    }
+    close(fd);
     return E_OK;
 }
 
@@ -250,7 +265,10 @@ int DataDonationUtils::SaveRowidHwm(const std::string &dbPath, const std::string
 {
     std::string filePath = GetRowidHwmFilePath(dbPath);
     JsonObject root;
-    ParseHwmFile(filePath, root);
+    int errCode = ParseHwmFile(filePath, root);
+    if (errCode != E_OK) {
+        return errCode;
+    }
 
     std::vector<JsonObject> tables;
     if (root.IsValid()) {
@@ -1080,6 +1098,21 @@ int DataDonationUtils::ValidateJsonConfigFile(const std::string &dbPath)
     }
     if (st.st_size == 0) {
         LOGE("stat config file is empty");
+        return -E_INVALID_DB;
+    }
+    return E_OK;
+}
+
+int DataDonationUtils::ValidateSubscribeRowIdHwm(const std::string &dbPath)
+{
+    std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath);
+    struct stat st {};
+    if (stat(hwmFile.c_str(), &st) != 0) {
+        LOGW("row id hwm no exist");
+        return -E_INVALID_DB;
+    }
+    if (st.st_size == 0) {
+        LOGW("stat row id hwm is empty");
         return -E_INVALID_DB;
     }
     return E_OK;

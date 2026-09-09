@@ -116,14 +116,22 @@ int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
     if (errCode != E_OK) {
         return errCode;
     }
+    // The hwm file must be prepared in advance; it is no longer created here. Missing file is an error.
     std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath);
     if (!OS::CheckPathExistence(hwmFile)) {
-        std::ofstream file(hwmFile);
-        if (!file.is_open()) {
-            LOGE("[InitGetAllQuery] rowid hwm file open err:%d", errno);
-            return -E_INVALID_DB;
-        }
-        file.close();
+        LOGE("[InitGetAllQuery] rowid hwm file not exists");
+        return -E_INVALID_FILE;
+    }
+    // Reset the hwm file with an empty json to clear stale cursor of previous query
+    JsonObject emptyRoot;
+    if (emptyRoot.Parse("{}") != E_OK) {
+        LOGE("[InitGetAllQuery] Parse empty json failed");
+        return -E_JSON_PARSE_FAIL;
+    }
+    errCode = DataDonationUtils::WriteHwmFile(hwmFile, emptyRoot);
+    if (errCode != E_OK) {
+        LOGE("[InitGetAllQuery] Init rowid hwm file failed: %d", errCode);
+        return errCode;
     }
     return E_OK;
 }
@@ -135,12 +143,12 @@ int DataDonationCache::LoadCursorFromCacheOrFile(const std::string &mainTable,
 {
     // Load from cache first
     if (getAllCache_.isValid && getAllCache_.mainTable == mainTable) {
-        std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath);
-        if (!OS::CheckPathExistence(hwmFile)) {
+        int ret = DataDonationUtils::ValidateSubscribeRowIdHwm(dbPath);
+        if (ret != E_OK) {
             LOGW("[LoadCursorFromCacheOrFile] rowid hwm file no exists, %s",
                 DBCommon::StringMiddleMasking(mainTable).c_str());
             getAllCache_.isValid = false;
-            return -E_INVALID_DB;
+            return ret;
         }
         cursorValues = getAllCache_.cursorValues;
         maxRowids = getAllCache_.maxRowids;
