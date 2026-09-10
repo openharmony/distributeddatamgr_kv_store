@@ -35,7 +35,7 @@ constexpr size_t GET_NEW_BATCH_NUM = 100;
 
 class DataDonationCache : public UniqueQueue<DdData, DdDataHash, std::equal_to<DdData>> {
 public:
-    int SetSchema(const std::string &schema);
+    int SetSchema(const SubscribeSchema &schema);
     int Query(SQLiteSingleVerRelationalStorageExecutor *handle, const DBSubscribeCursor &cursorIn,
         DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
     int UpdateCursor(const DdCursor &cursorIn, DdData &ddData);

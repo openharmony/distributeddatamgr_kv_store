@@ -784,17 +784,23 @@ bool DataDonationUtils::EndsWith(const std::string &str, const std::string &suff
 bool DataDonationUtils::GetSchemaPathByDbPath(const std::string &dbPath, const std::string &binlogDirPath,
     std::string &output)
 {
+    return GetSchemaPathByDbPath(dbPath, DataDonationUtils::DATA_DONATION_SCHEMA_FILE, binlogDirPath, output);
+}
+
+bool DataDonationUtils::GetSchemaPathByDbPath(const std::string &dbPath, const std::string &fileName,
+    const std::string &binlogDirPath, std::string &output)
+{
     char separator = '/';
     size_t lastPos = dbPath.rfind(separator);
     if (lastPos == std::string::npos) {
         return false;
     }
 
-    output = GetBinlogDir(dbPath, binlogDirPath) + DataDonationUtils::DATA_DONATION_SCHEMA_FILE;
+    output = GetBinlogDir(dbPath, binlogDirPath) + fileName;
     return true;
 }
 
-int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const std::string &schema,
+int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const SubscribeSchema &schema,
     const std::string &binlogDirPath)
 {
     std::string fullName;
@@ -802,26 +808,65 @@ int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const std::string &schem
         return -E_INVALID_DB;
     }
 
+    std::string binlogDir = GetBinlogDir(fullName, binlogDirPath);
+    bool isExisted = OS::CheckPathExistence(binlogDir);
+    if (!isExisted) {
+        LOGE("[DataDonationUtils] Binlog directory not exists, errno[%d]", errno);
+        return -E_INVALID_DB;
+    }
+    auto errCode = SaveSearchSchema(fullName, binlogDirPath, schema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return SaveNotifySchema(fullName, binlogDirPath, schema);
+}
+
+int DataDonationUtils::SaveSearchSchema(const std::string &dbPath, const std::string &binlogDirPath,
+    const SubscribeSchema &schema)
+{
+    if (!schema.searchSchema.has_value()) {
+        return E_OK;
+    }
     std::string filePath;
-    if (!DataDonationUtils::GetSchemaPathByDbPath(fullName, binlogDirPath, filePath)) {
+    if (!DataDonationUtils::GetSchemaPathByDbPath(dbPath, binlogDirPath, filePath)) {
+        LOGE("[DataDonationUtils] Invalid db path %s", DBCommon::StringMiddleMaskingWithLen(dbPath).c_str());
         return -E_INVALID_DB;
     }
 
-    std::string binlogDir = GetBinlogDir(fullName, binlogDirPath);
-    int errCode = DBCommon::CreateDirectory(binlogDir);
-    if (errCode != E_OK) {
-        LOGE("[SaveSubscribeSchema] Create binlog directory failed, errCode: %d", errCode);
-        return errCode;
+    return FlushToFile(filePath, schema.searchSchema.value());
+}
+
+int DataDonationUtils::SaveNotifySchema(const std::string &dbPath, const std::string &binlogDirPath,
+    const SubscribeSchema &schema)
+{
+    std::string filePath;
+    if (!DataDonationUtils::GetSchemaPathByDbPath(dbPath, DATA_NOTIFY_SCHEMA_FILE, binlogDirPath, filePath)) {
+        LOGE("[DataDonationUtils] Invalid db path %s", DBCommon::StringMiddleMaskingWithLen(dbPath).c_str());
+        return -E_INVALID_DB;
     }
 
+    std::string content;
+    if (schema.notifySchema.has_value()) {
+        content = schema.notifySchema.value();
+    }
+    return FlushToFile(filePath, content);
+}
+
+int DataDonationUtils::FlushToFile(const std::string &filePath, const std::string &content)
+{
     std::ofstream file(filePath);
     if (!file.is_open()) {
-        LOGE("[SaveSubscribeSchema] Open file failed errno: %d", errno);
+        LOGE("[DataDonationUtils] Open file failed, path[%s] errno[%d]",
+            DBCommon::StringMiddleMasking(filePath).c_str(), errno);
         return -E_INVALID_FILE;
     }
 
-    file << schema << std::endl;
+    file << content;
     file.close();
+    if (file.fail()) {
+        LOGE("[DataDonationUtils] Write file failed, path[%s]", DBCommon::StringMiddleMasking(filePath).c_str());
+        return -E_SYSTEM_API_FAIL;
+    }
     return E_OK;
 }
 
@@ -1089,9 +1134,33 @@ int DataDonationUtils::AddColumnsToMonitor(const JsonObject &jsonValue,
 int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, const std::string &binlogDirPath,
     std::string &jsonStr)
 {
+    jsonStr.clear();
+    auto errCode = ReadJsonFromFile(dbPath, DATA_NOTIFY_SCHEMA_FILE, binlogDirPath, jsonStr);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGD("[DataDonationUtils] Read notify schema failed %d", errCode);
+        return errCode;
+    }
+    if (errCode == E_OK && !jsonStr.empty()) {
+        return E_OK;
+    }
+    errCode = ReadJsonFromFile(dbPath, DATA_DONATION_SCHEMA_FILE, binlogDirPath, jsonStr);
+    if (errCode != E_OK || jsonStr.empty()) {
+        LOGE("[DataDonationUtils] Read search schema failed[%d] empty[%d]", errCode, static_cast<int>(jsonStr.empty()));
+        return -E_INVALID_FILE;
+    }
+    return E_OK;
+}
+
+int DataDonationUtils::ReadJsonFromFile(const std::string &dbPath, const std::string &jsonName,
+    const std::string &binlogDirPath, std::string &jsonStr)
+{
     std::string configPath;
-    if (!GetSchemaPathByDbPath(dbPath, binlogDirPath, configPath)) {
+    if (!GetSchemaPathByDbPath(dbPath, jsonName, binlogDirPath, configPath)) {
         return -E_INVALID_ARGS;
+    }
+    bool isExists = OS::CheckPathExistence(configPath);
+    if (!isExists) {
+        return -E_NOT_FOUND;
     }
     std::ifstream file(configPath);
     if (!file.is_open()) {
@@ -1102,10 +1171,6 @@ int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, const s
     buffer << file.rdbuf();
     jsonStr = buffer.str();
     file.close();
-    if (jsonStr.empty()) {
-        LOGE("Config file is empty");
-        return -E_INVALID_FILE;
-    }
     return E_OK;
 }
 
@@ -1345,6 +1410,30 @@ MonitorTablesConfig *DataDonationUtils::BinlogSchemaGet(const char *dbPath, cons
     return monitorConfig;
 }
 
+BinlogJsonStatus DataDonationUtils::BinlogSchemaStatusGet(const char *dbPath, const char *binlogDirPath)
+{
+    BinlogJsonStatus status;
+    status.mtime = 0;
+    if (dbPath == nullptr) {
+        LOGE("[BinlogSchemaStatusGet] db path is null");
+        return status;
+    }
+    uint64_t mtime = 0;
+    uint64_t size = 0;
+    std::string binlogDir;
+    if (binlogDirPath != nullptr) {
+        binlogDir = std::string(binlogDirPath);
+    }
+    int errCode = StatJsonFromFile(dbPath, DATA_NOTIFY_SCHEMA_FILE, binlogDir, mtime, size);
+    if (errCode == -E_NOT_FOUND || (errCode == E_OK && size == 0)) {
+        LOGD("[BinlogSchemaStatusGet] stat search schema, notify schema errCode[%d]", errCode);
+        errCode = StatJsonFromFile(dbPath, DATA_DONATION_SCHEMA_FILE, binlogDir, mtime, size);
+    }
+    LOGD("[BinlogSchemaStatusGet] stat res[%d] mtime[%" PRIu64 "] size[%" PRIu64 "]", errCode, mtime, size);
+    status.mtime = static_cast<sqlite3_uint64>(mtime);
+    return status;
+}
+
 int DataDonationUtils::FreeMonitorConfig(MonitorTablesConfig *monitorConfig)
 {
     if (monitorConfig == nullptr) {
@@ -1365,6 +1454,35 @@ int DataDonationUtils::FreeMonitorConfig(MonitorTablesConfig *monitorConfig)
     free(monitorConfig->tables);
     free(monitorConfig);
     return SQLITE_OK;
+}
+
+int DataDonationUtils::StatJsonFromFile(const std::string &dbPath, const std::string &fileName,
+    const std::string &binlogDirPath, uint64_t &mtime, uint64_t &size)
+{
+    int errCode = E_OK;
+    std::string configPath;
+    if (!GetSchemaPathByDbPath(dbPath, fileName, binlogDirPath, configPath)) {
+        LOGE("[StatJsonFromFile] db path is invalid");
+        return -E_INVALID_DB;
+    }
+    bool isExists = OS::CheckPathExistence(configPath);
+    if (!isExists) {
+        LOGD("[StatJsonFromFile] json[%s] not found", DBCommon::StringMiddleMasking(configPath).c_str());
+        return -E_NOT_FOUND;
+    }
+    struct stat fileStat;
+    errCode = stat(configPath.c_str(), &fileStat);
+    if (errCode != 0) {
+        LOGE("[StatJsonFromFile] stat json[%s] failed[%d]", DBCommon::StringMiddleMasking(configPath).c_str(), errCode);
+        return errCode;
+    }
+    #ifdef __linux__
+        mtime = static_cast<uint64_t>(fileStat.st_mtim.tv_sec) + static_cast<uint64_t>(fileStat.st_mtim.tv_nsec);
+    #else
+        mtime = static_cast<uint64_t>(fileStat.st_mtime);
+    #endif
+    size = static_cast<uint64_t>(fileStat.st_size);
+    return errCode;
 }
 }   // namespace DistributedDB
 #endif

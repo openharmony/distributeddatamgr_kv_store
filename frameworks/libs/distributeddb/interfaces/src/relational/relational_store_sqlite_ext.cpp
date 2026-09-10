@@ -1037,6 +1037,7 @@ int RegisterBinlogDataChangeObserver(sqlite3 *db)
 int RegisterBinlogSchemaParseObserver(sqlite3 *db)
 {
     sqlite3_set_json_parse_callback_binlog(db, &DataDonationUtils::BinlogSchemaGet);
+    sqlite3_set_json_status_callback_binlog(db, &DataDonationUtils::BinlogSchemaStatusGet);
     sqlite3_free_json_parse_callback_binlog(db, &DataDonationUtils::FreeMonitorConfig);
     return SQLITE_OK;
 }

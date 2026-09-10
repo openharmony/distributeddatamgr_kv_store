@@ -21,6 +21,7 @@
 #include "cloud/cloud_storage_utils.h"
 #include "data_donation_sql_generator.h"
 #include "distributeddb_data_donation_schema_json.h"
+#include "platform_specific.h"
 #include "rdb_general_ut.h"
 #include "relational_store_client_utils.h"
 #include "sqlite_utils.h"
@@ -47,7 +48,10 @@ public:
     void DeleteJsonFileData(sqlite3 *db, int64_t begin, int64_t count);
     void DeleteFromNonKeyoutTable(sqlite3 *db, int64_t begin, int64_t count);
     std::string InitMatrixFile();
-
+    DBStatus SetSubscribeSchema(const StoreInfo &storeInfo, const std::string &searchSchema);
+    DBStatus SetSubscribeSchema(const StoreInfo &storeInfo, const std::string &searchSchema,
+        const std::string &notifySchema);
+    void CheckMonitor();
 protected:
     DataDonationSqlGenerator generator_;
 
@@ -271,6 +275,41 @@ void DataDonationSqlGeneratorTest::DeleteJsonFileData(sqlite3 *db, int64_t begin
         std::string sqlB = "DELETE FROM TableB where id = " + std::to_string(i);
         EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
+}
+
+DBStatus DataDonationSqlGeneratorTest::SetSubscribeSchema(const StoreInfo &storeInfo, const std::string &searchSchema)
+{
+    auto delegate = GetDelegate(storeInfo);
+    if (delegate == nullptr) {
+        return DB_ERROR;
+    }
+    SubscribeSchema subscribeSchema;
+    subscribeSchema.searchSchema = searchSchema;
+    return delegate->SetSubscribeSchema(subscribeSchema);
+}
+
+DBStatus DataDonationSqlGeneratorTest::SetSubscribeSchema(const StoreInfo &storeInfo, const std::string &searchSchema,
+    const std::string &notifySchema)
+{
+    auto delegate = GetDelegate(storeInfo);
+    if (delegate == nullptr) {
+        return DB_ERROR;
+    }
+    SubscribeSchema subscribeSchema;
+    subscribeSchema.searchSchema = searchSchema;
+    subscribeSchema.notifySchema = notifySchema;
+    return delegate->SetSubscribeSchema(subscribeSchema);
+}
+
+void DataDonationSqlGeneratorTest::CheckMonitor()
+{
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str(), nullptr);
+    const int count = 9;
+    EXPECT_NE(monitorConfig, nullptr);
+    EXPECT_EQ(monitorConfig->tableCount, count);
+
+    DataDonationUtils::FreeMonitorConfig(monitorConfig);
 }
 
 /**
@@ -749,7 +788,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData001, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
@@ -787,7 +826,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData002, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
 
     const int64_t dataCount = 501;
@@ -827,7 +866,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData003, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 501;
     PrepareJsonFileData(db, dataCount);
@@ -865,7 +904,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData004, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     int64_t dataCount = 501;
     int64_t updCnt = 100;
@@ -907,7 +946,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     int64_t dataCount = 100;
     int64_t updCnt = 100;
@@ -944,7 +983,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData005, TestSize.Lev
 
 /**
  * @tc.name: ClientSchemaParseTest001
- * @tc.desc: Test binlog parse schema.
+ * @tc.desc: Test binlog parse without notify schema.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: test
@@ -961,7 +1000,8 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest001, TestSize.Level0
 
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
 
     /**
      * @tc.steps:step2. parse schema on client side.
@@ -969,10 +1009,117 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest001, TestSize.Level0
      */
     std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
     MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str(), nullptr);
+    const int count = 9;
     EXPECT_NE(monitorConfig, nullptr);
-    EXPECT_EQ(monitorConfig->tableCount, 9);
+    EXPECT_EQ(monitorConfig->tableCount, count);
 
     DataDonationUtils::FreeMonitorConfig(monitorConfig);
+}
+
+/**
+ * @tc.name: ClientSchemaParseTest002
+ * @tc.desc: Test binlog parse notify schema.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set schema on service side.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON,
+        DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. parse schema on client side.
+     * @tc.expected: step2. OK.
+     */
+    CheckMonitor();
+
+    /**
+     * @tc.steps:step3. stat schema on client side.
+     * @tc.expected: step3. OK.
+     */
+    uint64_t mtime = 0;
+    uint64_t size = 0;
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    EXPECT_EQ(DataDonationUtils::StatJsonFromFile(dbPath, DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", mtime, size),
+        E_OK);
+    EXPECT_NE(size, 0);
+    EXPECT_NE(mtime, 0);
+
+    /**
+     * @tc.steps:step4. set without notify schema on service side.
+     * @tc.expected: step4. OK.
+     */
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    mtime = 0;
+    size = 0;
+    EXPECT_EQ(DataDonationUtils::StatJsonFromFile(dbPath, DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", mtime, size),
+        E_OK);
+    EXPECT_EQ(size, 0);
+    EXPECT_NE(mtime, 0);
+
+    /**
+     * @tc.steps:step5. set empty notify schema on service side.
+     * @tc.expected: step5. OK.
+     */
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON, ""), DBStatus::OK);
+    mtime = 0;
+    size = 0;
+    EXPECT_EQ(DataDonationUtils::StatJsonFromFile(dbPath, DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", mtime, size),
+        E_OK);
+    EXPECT_EQ(size, 0);
+    EXPECT_NE(mtime, 0);
+}
+
+/**
+ * @tc.name: ClientSchemaParseTest003
+ * @tc.desc: Test binlog parse without notify schema file.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set schema on service side.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON,
+        DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    /**
+     * @tc.steps:step2. stat and parse schema without file.
+     * @tc.expected: step2. OK.
+     */
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    std::string jsonPath;
+    ASSERT_TRUE(DataDonationUtils::GetSchemaPathByDbPath(dbPath,
+        DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", jsonPath));
+    ASSERT_EQ(OS::RemoveFile(jsonPath), E_OK);
+    uint64_t mtime = 0;
+    uint64_t size = 0;
+    EXPECT_EQ(DataDonationUtils::StatJsonFromFile(dbPath, DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", mtime, size),
+        -E_NOT_FOUND);
+    EXPECT_EQ(size, 0);
+    EXPECT_EQ(mtime, 0);
+    CheckMonitor();
 }
 
 /**
@@ -1030,7 +1177,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, BinlogDataChangeObserverTest001, TestSize
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
     SetBinlogSchemaAndChangeCallback(db);
-    ASSERT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    ASSERT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     /**
      * @tc.steps:step2. Set matrix file info.
      * @tc.expected: step2. OK.
@@ -1081,8 +1228,9 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData006, TestSize.Lev
     ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
-    
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
     cursorIn.cursor = 0;
@@ -1113,7 +1261,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData007, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
 
     /**
@@ -1158,7 +1306,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData008, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     /**
      * @tc.steps:step2. Insert 10 data to table A and B
@@ -1209,7 +1357,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData009, TestSize.Lev
         std::string sqlB = "DELETE FROM TableA WHERE id=" + std::to_string(i);
         EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
@@ -1256,7 +1404,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData010, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
@@ -1299,7 +1447,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData011, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
 
     /**
@@ -1346,7 +1494,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData012, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
 
     /**
@@ -1397,7 +1545,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryWithSameCursorTest001, TestSize.Leve
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
 
     /**
@@ -1464,7 +1612,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData013, TestSize.Lev
             std::to_string(22000 - i) + ", " + "'cate_" + std::to_string(i) + "')";
         EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sqlB), E_OK);
     }
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
     
     DBSubscribeCursor cursorIn;
@@ -1503,7 +1651,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData014, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
@@ -1524,7 +1672,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData014, TestSize.Lev
             delegate = GetDelegate(storeInfo);
             ASSERT_NE(delegate, nullptr);
             EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-            EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON),
+            EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON),
                 DBStatus::OK);
         }
         idx++;
@@ -1549,7 +1697,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_ALL;
@@ -1570,7 +1718,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData015, TestSize.Lev
             delegate = GetDelegate(storeInfo);
             ASSERT_NE(delegate, nullptr);
             EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-            EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON),
+            EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON),
                 DBStatus::OK);
         } else {
             EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
@@ -1596,7 +1744,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData016, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     const int64_t count = 2;
     for (int64_t i = 0; i < count; ++i) {
@@ -1649,7 +1797,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetSubScribeSchemaEmpty, TestSize.Level0)
     string schemaContentArray = "['a':'b']";
     vector<string> schemaContentVec = {schemaContentArray, "", "  ", "abc123", "1234"};
     for (const auto &schemaContent : schemaContentVec) {
-        EXPECT_EQ(delegate->SetSubscribeSchema(schemaContent), INVALID_ARGS);
+        EXPECT_EQ(SetSubscribeSchema(storeInfo, schemaContent), INVALID_ARGS);
     }
 }
 
@@ -1770,7 +1918,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData018, TestSize.Lev
 
     auto db = GetSqliteHandle(storeInfo);
     ASSERT_NE(db, nullptr);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     const int64_t dataCount = 4000;
     PrepareJsonFileData(db, dataCount);
@@ -1814,7 +1962,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData019, TestSize.Lev
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
 
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
     SetBinlogSchemaAndChangeCallback(db);
     int64_t dataCount = 200;
     int64_t updCnt = 100;
@@ -1876,7 +2024,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData020, TestSize.Lev
     auto delegate = GetDelegate(storeInfo);
     ASSERT_NE(delegate, nullptr);
     EXPECT_EQ(delegate->SetBinlogEnabled(true, binlogDirPath), OK);
-    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
 
     const int64_t dataCount = 1;
     PrepareJsonFileData(db, dataCount);
@@ -1884,7 +2032,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData020, TestSize.Lev
     DBSubscribeCursor cursorIn;
     cursorIn.queryType = SubQueryType::GET_NEW;
     cursorIn.cursor = 0;
-    
+
     DBSubscribeCursor cursorOut;
     std::vector<VBucket> dataOut;
     int64_t totalRecords = 0;

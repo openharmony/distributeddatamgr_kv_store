@@ -632,7 +632,7 @@ int SQLiteRelationalStoreConnection::StopTask(TaskType type)
     return E_OK;
 }
 
-int SQLiteRelationalStoreConnection::SetSubscribeSchema(const std::string &schema)
+int SQLiteRelationalStoreConnection::SetSubscribeSchema(const SubscribeSchema &schema)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {

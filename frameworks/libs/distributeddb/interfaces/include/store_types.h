@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 
@@ -452,6 +453,11 @@ struct MatrixFileUpdateConfig {
 struct ConnPoolConfig {
     bool isDelayRelease = false; // mark true will conflict with auto launch
     uint32_t delayTime = 5000u; // valid value between [5000ms(5s), 300000ms(300s)]
+};
+
+struct SubscribeSchema {
+    std::optional<std::string> searchSchema;
+    std::optional<std::string> notifySchema;
 };
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

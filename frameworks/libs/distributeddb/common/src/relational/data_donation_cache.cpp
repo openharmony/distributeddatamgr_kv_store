@@ -32,10 +32,14 @@ const std::string &DataDonationCache::GetBinlogDirPath() const
     return binlogDirPath_;
 }
 
-int DataDonationCache::SetSchema(const std::string &schema)
+int DataDonationCache::SetSchema(const SubscribeSchema &schema)
 {
-    Init();
-    return ddSchema.Init(schema);
+    if (schema.searchSchema.has_value()) {
+        Init();
+        return ddSchema.Init(schema.searchSchema.value());
+    }
+    LOGD("[SetSchema] search schema is empty");
+    return E_OK;
 }
 
 int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &dbPath,

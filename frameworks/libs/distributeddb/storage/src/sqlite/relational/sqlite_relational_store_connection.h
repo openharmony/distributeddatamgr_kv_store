@@ -112,7 +112,7 @@ public:
 
     int StopTask(TaskType type) override;
 
-    int SetSubscribeSchema(const std::string &schema) override;
+    int SetSubscribeSchema(const SubscribeSchema &schema) override;
 
     int SetTrackerMatrixInfo(const MatrixFileInfo &info) override;
 protected:

@@ -100,7 +100,7 @@ public:
 
     int SetTableMode(DistributedTableMode tableMode);
 
-    int SetSubscribeSchema(const std::string &schema);
+    int SetSubscribeSchema(const SubscribeSchema &schema);
 
     int SetTrackerMatrixInfo(const MatrixFileInfo &info);
 

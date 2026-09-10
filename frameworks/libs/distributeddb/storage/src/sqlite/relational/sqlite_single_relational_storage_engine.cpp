@@ -1842,7 +1842,7 @@ void SQLiteSingleRelationalStorageEngine::SetBinlogDirPath(const std::string &pa
     dataDonationCache_.SetBinlogDirPath(path);
 }
 
-int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &schema)
+int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const SubscribeSchema &schema)
 {
     DataDonationCache schemaCache;
     int errCode = schemaCache.SetSchema(schema);

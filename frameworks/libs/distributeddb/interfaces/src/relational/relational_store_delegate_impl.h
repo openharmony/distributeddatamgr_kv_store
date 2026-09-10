@@ -117,7 +117,7 @@ public:
     DBStatus RemoveExceptDeviceData(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows) override;
 #endif
-    DBStatus SetSubscribeSchema(const std::string &schema) override;
+    DBStatus SetSubscribeSchema(const SubscribeSchema &schema) override;
 
     DBStatus SetTrackerMatrixInfo(const MatrixFileInfo &info) override;
 private:

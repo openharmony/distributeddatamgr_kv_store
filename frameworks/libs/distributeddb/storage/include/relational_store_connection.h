@@ -127,7 +127,7 @@ public:
 
     virtual int StopTask(TaskType type) = 0;
 
-    virtual int SetSubscribeSchema(const std::string &schema) = 0;
+    virtual int SetSubscribeSchema(const SubscribeSchema &schema) = 0;
 
     virtual int SetTrackerMatrixInfo(const MatrixFileInfo &info) = 0;
 protected:

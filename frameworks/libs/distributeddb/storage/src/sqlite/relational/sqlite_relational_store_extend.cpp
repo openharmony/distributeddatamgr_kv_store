@@ -341,8 +341,12 @@ int SQLiteRelationalStore::SetSubscribeCursor(const DBSubscribeCursor &cursorIn)
     return sqliteStorageEngine_->SetSubscribeCursor(cursorIn);
 }
 
-int SQLiteRelationalStore::SetSubscribeSchema(const std::string &schema)
+int SQLiteRelationalStore::SetSubscribeSchema(const SubscribeSchema &schema)
 {
+    if (!schema.searchSchema.has_value()) {
+        LOGE("[RelationalStore][SetSubscribeSchema] searchSchema not set");
+        return -E_INVALID_ARGS;
+    }
     return sqliteStorageEngine_->SetSubscribeSchema(schema);
 }
 

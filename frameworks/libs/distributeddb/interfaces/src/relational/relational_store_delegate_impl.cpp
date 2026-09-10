@@ -811,7 +811,7 @@ DBStatus RelationalStoreDelegateImpl::SetSubscribeCursor(const DBSubscribeCursor
     return OK;
 }
 
-DBStatus RelationalStoreDelegateImpl::SetSubscribeSchema(const std::string &schema)
+DBStatus RelationalStoreDelegateImpl::SetSubscribeSchema(const SubscribeSchema &schema)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate][SetSubscribeSchema] Invalid connection");
