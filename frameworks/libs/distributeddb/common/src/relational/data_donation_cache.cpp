@@ -22,6 +22,16 @@
 
 namespace DistributedDB {
 
+void DataDonationCache::SetBinlogDirPath(const std::string &path)
+{
+    binlogDirPath_ = path;
+}
+
+const std::string &DataDonationCache::GetBinlogDirPath() const
+{
+    return binlogDirPath_;
+}
+
 int DataDonationCache::SetSchema(const std::string &schema)
 {
     Init();
@@ -77,8 +87,7 @@ int DataDonationCache::QueryStorage(SQLiteSingleVerRelationalStorageExecutor *ha
     return errCode;
 }
 
-int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
-    const std::vector<std::string> &tableNames,
+int DataDonationCache::InitGetAllQuery(const std::string &dbPath, const std::vector<std::string> &tableNames,
     SQLiteSingleVerRelationalStorageExecutor *handle,
     std::vector<std::pair<std::string, int64_t>> &maxRowids,
     uint64_t &cursorOut)
@@ -86,7 +95,7 @@ int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
     // Clear old cache
     getAllCache_.isValid = false;
 
-    int errCode = DataDonationUtils::CheckBinlogDirExist(dbPath);
+    int errCode = DataDonationUtils::CheckBinlogDirExist(dbPath, binlogDirPath_);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -117,7 +126,7 @@ int DataDonationCache::InitGetAllQuery(const std::string &dbPath,
         return errCode;
     }
     // The hwm file must be prepared in advance; it is no longer created here. Missing file is an error.
-    std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath);
+    std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath, binlogDirPath_);
     if (!OS::CheckPathExistence(hwmFile)) {
         LOGE("[InitGetAllQuery] rowid hwm file not exists");
         return -E_INVALID_FILE;
@@ -143,7 +152,7 @@ int DataDonationCache::LoadCursorFromCacheOrFile(const std::string &mainTable,
 {
     // Load from cache first
     if (getAllCache_.isValid && getAllCache_.mainTable == mainTable) {
-        int ret = DataDonationUtils::ValidateSubscribeRowIdHwm(dbPath);
+        int ret = DataDonationUtils::ValidateSubscribeRowIdHwm(dbPath, binlogDirPath_);
         if (ret != E_OK) {
             LOGW("[LoadCursorFromCacheOrFile] rowid hwm file no exists, %s",
                 DBCommon::StringMiddleMasking(mainTable).c_str());
@@ -158,7 +167,7 @@ int DataDonationCache::LoadCursorFromCacheOrFile(const std::string &mainTable,
     }
 
     // Load from file
-    int errCode = DataDonationUtils::LoadRowidHwm(dbPath, mainTable, cursorValues, maxRowids);
+    int errCode = DataDonationUtils::LoadRowidHwm(dbPath, mainTable, binlogDirPath_, cursorValues, maxRowids);
     if (errCode != E_OK) {
         LOGE("[LoadCursorFromCacheOrFile] Load from file failed: %d", errCode);
         return errCode;
@@ -181,7 +190,7 @@ int DataDonationCache::FlushGetAllCursorCache()
         return E_OK;
     }
 
-    int errCode = DataDonationUtils::SaveRowidHwm(getAllCache_.dbPath, getAllCache_.mainTable,
+    int errCode = DataDonationUtils::SaveRowidHwm(getAllCache_.dbPath, getAllCache_.mainTable, binlogDirPath_,
         getAllCache_.cursorValues, getAllCache_.maxRowids);
     if (errCode != E_OK) {
         LOGE("[FlushGetAllCursorCache] SaveRowidHwm failed: %d", errCode);
@@ -242,7 +251,7 @@ int DataDonationCache::QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *han
     const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &data)
 {
     cursorOut.queryType = cursorIn.queryType;
-    int errCode = DataDonationUtils::ValidateJsonConfigFile(dbPath);
+    int errCode = DataDonationUtils::ValidateJsonConfigFile(dbPath, binlogDirPath_);
     if (errCode != E_OK) {
         return errCode;
     }

@@ -121,7 +121,7 @@ public:
 
     virtual int SetProperty(const Property &property) = 0;
 
-    virtual int SetBinlogEnabled(bool enabled) = 0;
+    virtual int SetBinlogEnabled(bool enabled, const std::string &binlogDirPath) = 0;
 
     virtual int SetSubscribeCursor(const DBSubscribeCursor &cursorIn) = 0;
 

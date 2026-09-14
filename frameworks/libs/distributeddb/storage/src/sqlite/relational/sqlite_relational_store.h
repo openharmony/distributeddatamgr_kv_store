@@ -154,7 +154,7 @@ public:
 
     int SetProperty(const Property &property);
 
-    int SetBinlogEnabled(bool enabled);
+    int SetBinlogEnabled(bool enabled, const std::string &binlogDirPath = "");
 
     int SetSubscribeCursor(const DBSubscribeCursor &cursorIn);
 
@@ -267,7 +267,7 @@ protected:
     int RemoveExceptDeviceDataInner(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows);
 #endif
-    int SetBinlogEnabled(bool enabled, bool isExternal) const;
+    int SetBinlogEnabled(bool enabled, bool isExternal, const std::string &binlogDirPath) const;
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv
@@ -283,6 +283,7 @@ protected:
     bool isInitialized_ = false;
     mutable std::mutex binlogMutex_;
     bool isBinlogEnabled_ = false;
+    std::string binlogDirPath_;
 
     // lifeCycle
     std::mutex lifeCycleMutex_;

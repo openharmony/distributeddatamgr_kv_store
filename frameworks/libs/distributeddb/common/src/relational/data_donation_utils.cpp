@@ -141,9 +141,28 @@ Type DataDonationUtils::ConvertStrToType(const std::string &str, int colType)
     }
 }
 
-int DataDonationUtils::CheckBinlogDirExist(const std::string &dbPath)
+std::string DataDonationUtils::GetBinlogDir(const std::string &dbPath, const std::string &binlogDirPath)
 {
-    std::string binlogDir = dbPath + DBConstant::BINLOG_DIR_POSTFIX;
+    if (binlogDirPath.empty()) {
+        return dbPath + DBConstant::BINLOG_DIR_POSTFIX;
+    }
+    // Strip an optional trailing '/' so we don't produce a duplicated separator.
+    std::string base = binlogDirPath;
+    if (!base.empty() && base.back() == DBConstant::SEPARATOR) {
+        base.pop_back();
+    }
+    // basename(dbPath): substring after the last '/'. If dbPath has no '/', use dbPath as-is.
+    std::string dbBasename = dbPath;
+    size_t lastPos = dbPath.rfind(DBConstant::SEPARATOR);
+    if (lastPos != std::string::npos) {
+        dbBasename = dbPath.substr(lastPos + 1);
+    }
+    return base + DBConstant::SEPARATOR + dbBasename + DBConstant::BINLOG_DIR_POSTFIX;
+}
+
+int DataDonationUtils::CheckBinlogDirExist(const std::string &dbPath, const std::string &binlogDirPath)
+{
+    std::string binlogDir = GetBinlogDir(dbPath, binlogDirPath);
     if (!OS::CheckPathExistence(binlogDir)) {
         LOGE("[DataDonationUtils] Binlog directory does not exist");
         return -E_INVALID_DB;
@@ -151,9 +170,9 @@ int DataDonationUtils::CheckBinlogDirExist(const std::string &dbPath)
     return E_OK;
 }
 
-std::string DataDonationUtils::GetRowidHwmFilePath(const std::string &dbPath)
+std::string DataDonationUtils::GetRowidHwmFilePath(const std::string &dbPath, const std::string &binlogDirPath)
 {
-    return dbPath + DBConstant::BINLOG_DIR_POSTFIX + ROWID_HWM_FILE;
+    return GetBinlogDir(dbPath, binlogDirPath) + ROWID_HWM_FILE;
 }
 
 int DataDonationUtils::ParseHwmFile(const std::string &filePath, JsonObject &root)
@@ -260,10 +279,11 @@ int DataDonationUtils::ParseCursorFromHwm(const JsonObject &tableEntry,
 }
 
 int DataDonationUtils::SaveRowidHwm(const std::string &dbPath, const std::string &tableName,
+    const std::string &binlogDirPath,
     const std::vector<std::pair<std::string, int64_t>> &cursorValues,
     const std::vector<std::pair<std::string, int64_t>> &maxRowids)
 {
-    std::string filePath = GetRowidHwmFilePath(dbPath);
+    std::string filePath = GetRowidHwmFilePath(dbPath, binlogDirPath);
     JsonObject root;
     int errCode = ParseHwmFile(filePath, root);
     if (errCode != E_OK) {
@@ -311,10 +331,11 @@ int DataDonationUtils::SaveRowidHwm(const std::string &dbPath, const std::string
 }
 
 int DataDonationUtils::LoadRowidHwm(const std::string &dbPath, const std::string &tableName,
+    const std::string &binlogDirPath,
     std::vector<std::pair<std::string, int64_t>> &cursorValues,
     std::vector<std::pair<std::string, int64_t>> &maxRowids)
 {
-    std::string filePath = GetRowidHwmFilePath(dbPath);
+    std::string filePath = GetRowidHwmFilePath(dbPath, binlogDirPath);
     std::ifstream file(filePath);
     if (!file.is_open()) {
         LOGE("[DataDonationUtils] Open rowid hwm file failed, errno: %d", errno);
@@ -760,7 +781,8 @@ bool DataDonationUtils::EndsWith(const std::string &str, const std::string &suff
     return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-bool DataDonationUtils::GetSchemaPathByDbPath(const std::string &dbPath, std::string &output)
+bool DataDonationUtils::GetSchemaPathByDbPath(const std::string &dbPath, const std::string &binlogDirPath,
+    std::string &output)
 {
     char separator = '/';
     size_t lastPos = dbPath.rfind(separator);
@@ -768,11 +790,12 @@ bool DataDonationUtils::GetSchemaPathByDbPath(const std::string &dbPath, std::st
         return false;
     }
 
-    output = dbPath + DBConstant::BINLOG_DIR_POSTFIX + DataDonationUtils::DATA_DONATION_SCHEMA_FILE;
+    output = GetBinlogDir(dbPath, binlogDirPath) + DataDonationUtils::DATA_DONATION_SCHEMA_FILE;
     return true;
 }
 
-int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const std::string &schema)
+int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const std::string &schema,
+    const std::string &binlogDirPath)
 {
     std::string fullName;
     if (!DataDonationUtils::GetDbFileName(db, fullName)) {
@@ -780,11 +803,11 @@ int DataDonationUtils::SaveSubscribeSchema(sqlite3 *db, const std::string &schem
     }
 
     std::string filePath;
-    if (!DataDonationUtils::GetSchemaPathByDbPath(fullName, filePath)) {
+    if (!DataDonationUtils::GetSchemaPathByDbPath(fullName, binlogDirPath, filePath)) {
         return -E_INVALID_DB;
     }
 
-    std::string binlogDir = fullName + DBConstant::BINLOG_DIR_POSTFIX;
+    std::string binlogDir = GetBinlogDir(fullName, binlogDirPath);
     int errCode = DBCommon::CreateDirectory(binlogDir);
     if (errCode != E_OK) {
         LOGE("[SaveSubscribeSchema] Create binlog directory failed, errCode: %d", errCode);
@@ -1063,10 +1086,11 @@ int DataDonationUtils::AddColumnsToMonitor(const JsonObject &jsonValue,
     return E_OK;
 }
 
-int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, std::string &jsonStr)
+int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, const std::string &binlogDirPath,
+    std::string &jsonStr)
 {
     std::string configPath;
-    if (!GetSchemaPathByDbPath(dbPath, configPath)) {
+    if (!GetSchemaPathByDbPath(dbPath, binlogDirPath, configPath)) {
         return -E_INVALID_ARGS;
     }
     std::ifstream file(configPath);
@@ -1085,10 +1109,10 @@ int DataDonationUtils::ReadJsonConfigFromFile(const std::string &dbPath, std::st
     return E_OK;
 }
 
-int DataDonationUtils::ValidateJsonConfigFile(const std::string &dbPath)
+int DataDonationUtils::ValidateJsonConfigFile(const std::string &dbPath, const std::string &binlogDirPath)
 {
     std::string configPath;
-    if (!GetSchemaPathByDbPath(dbPath, configPath)) {
+    if (!GetSchemaPathByDbPath(dbPath, binlogDirPath, configPath)) {
         return -E_INVALID_ARGS;
     }
     struct stat st {};
@@ -1103,9 +1127,9 @@ int DataDonationUtils::ValidateJsonConfigFile(const std::string &dbPath)
     return E_OK;
 }
 
-int DataDonationUtils::ValidateSubscribeRowIdHwm(const std::string &dbPath)
+int DataDonationUtils::ValidateSubscribeRowIdHwm(const std::string &dbPath, const std::string &binlogDirPath)
 {
-    std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath);
+    std::string hwmFile = DataDonationUtils::GetRowidHwmFilePath(dbPath, binlogDirPath);
     struct stat st {};
     if (stat(hwmFile.c_str(), &st) != 0) {
         LOGW("row id hwm no exist");
@@ -1259,13 +1283,14 @@ int DataDonationUtils::ProcessUTDMapping(const JsonObject &utdMapping, MonitorTa
     return E_OK;
 }
 
-int DataDonationUtils::GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath)
+int DataDonationUtils::GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath,
+    const std::string &binlogDirPath)
 {
     if (monitorConfig == nullptr) {
         return -E_INVALID_ARGS;
     }
     std::string jsonStr;
-    int errCode = ReadJsonConfigFromFile(dbPath, jsonStr);
+    int errCode = ReadJsonConfigFromFile(dbPath, binlogDirPath, jsonStr);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1286,7 +1311,7 @@ int DataDonationUtils::GetMonitorConfigFromFile(MonitorTablesConfig *monitorConf
     return E_OK;
 }
 
-MonitorTablesConfig *DataDonationUtils::BinlogSchemaGet(const char *dbPath)
+MonitorTablesConfig *DataDonationUtils::BinlogSchemaGet(const char *dbPath, const char *binlogDirPath)
 {
     if (dbPath == nullptr) {
         LOGE("[BinlogSchemaGet] db path is null");
@@ -1310,7 +1335,8 @@ MonitorTablesConfig *DataDonationUtils::BinlogSchemaGet(const char *dbPath)
     (void)memset_s(monitorConfig->tables, MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol), 0,
         MAX_MONITOR_TABLE_COUNT * sizeof(MonitorTableCol));
 
-    int errCode = GetMonitorConfigFromFile(monitorConfig, dbPath);
+    int errCode = GetMonitorConfigFromFile(monitorConfig, dbPath,
+        (binlogDirPath != nullptr) ? std::string(binlogDirPath) : std::string());
     if (errCode != E_OK) {
         LOGE("GetMonitorConfigFromFile failed. err=%d", errCode);
         FreeMonitorConfig(monitorConfig);

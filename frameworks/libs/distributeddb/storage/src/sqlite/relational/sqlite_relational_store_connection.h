@@ -106,7 +106,7 @@ public:
 
     int SetProperty(const Property &property) override;
 
-    int SetBinlogEnabled(bool enabled) override;
+    int SetBinlogEnabled(bool enabled, const std::string &binlogDirPath = "") override;
 
     int SetSubscribeCursor(const DBSubscribeCursor &cursorIn) override;
 

@@ -40,6 +40,8 @@ public:
         DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
     int UpdateCursor(const DdCursor &cursorIn, DdData &ddData);
 
+    void SetBinlogDirPath(const std::string &path);
+    const std::string &GetBinlogDirPath() const;
     int FlushGetAllCursorCache();
 
     DdData cacheRead[GET_ALL_BATCH_NUM]{};
@@ -48,6 +50,7 @@ private:
     uint64_t cursor = UINT64_MAX; // The water level value set externally，cursor % capacity = front
     DataDonationSchema ddSchema;
     std::vector<DdData> pendingData_; // data that couldn't fit in cache, to be pushed on next QueryBinlog
+    std::string binlogDirPath_;
 
     struct GetAllCursorCache {
         std::string mainTable;
@@ -68,11 +71,9 @@ private:
     int QueryBinlog(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &dbPath,
         const DBSubscribeCursor &cursorIn, DBSubscribeCursor &cursorOut, std::vector<VBucket> &data);
 
-    int InitGetAllQuery(const std::string &dbPath,
-        const std::vector<std::string> &tableNames,
+    int InitGetAllQuery(const std::string &dbPath, const std::vector<std::string> &tableNames,
         SQLiteSingleVerRelationalStorageExecutor *handle,
-        std::vector<std::pair<std::string, int64_t>> &maxRowids,
-        uint64_t &cursorOut);
+        std::vector<std::pair<std::string, int64_t>> &maxRowids, uint64_t &cursorOut);
 
     int LoadCursorFromCacheOrFile(const std::string &mainTable, const std::string &dbPath,
         std::vector<std::pair<std::string, int64_t>> &cursorValues,

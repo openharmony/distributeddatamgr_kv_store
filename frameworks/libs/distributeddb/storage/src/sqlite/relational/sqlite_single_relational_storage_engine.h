@@ -93,6 +93,7 @@ public:
 
     int SetSubscribeSchema(const std::string &schema);
     int SetTrackerMatrixInfo(const MatrixFileInfo &info);
+    void SetBinlogDirPath(const std::string &path);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int UpgradeSharedTable(const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,

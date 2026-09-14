@@ -1333,7 +1333,7 @@ bool SQLiteUtils::IsSlaveInvalid(const std::string &dbPath)
     return access((dbPath + SLAVE_FAILURE).c_str(), F_OK) == 0;
 }
 
-int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
+int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled, const std::string &binlogDirPath)
 {
     int errCode = E_OK;
     if (enabled) {
@@ -1352,6 +1352,7 @@ int SQLiteUtils::SetBinlogEnabled(sqlite3 *db, bool enabled)
             },
             .xLogFullCallback = nullptr,
             .callbackCtx = nullptr,
+            .binlogDirPath = binlogDirPath.empty() ? nullptr : binlogDirPath.c_str(),
         };
         LOGI("[SQLiteUtils][SetBinlogEnabled] Enable binlog");
         errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, &binLogConfig);

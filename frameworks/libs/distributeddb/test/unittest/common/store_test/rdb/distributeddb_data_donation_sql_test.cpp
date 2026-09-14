@@ -647,6 +647,41 @@ HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogConcurrencyTest001, TestSize.Lev
 }
 
 /**
+ * @tc.name: SetBinlogEnabledDirIdempotentTest001
+ * @tc.desc: Test SetBinlogEnabled idempotent with dir param, dir change while enabled is not supported
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, SetBinlogEnabledDirIdempotentTest001, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetTestSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    const int64_t dataCount = 10;
+    PrepareTestData(db, dataCount);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+
+    const std::string dirA = BasicUnitTest::GetTestDir() + "/kvbinlog_dir_a";
+    const std::string dirB = BasicUnitTest::GetTestDir() + "/kvbinlog_dir_b";
+    EXPECT_NE(delegate->SetBinlogEnabled(true, dirA), OK);
+    DBCommon::CreateDirectory(dirA);
+    DBCommon::CreateDirectory(dirB);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true, dirA), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true, dirA), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true, dirB), NOT_SUPPORT);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true, dirB), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    CloseAllDelegate();
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(dirA);
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(dirB);
+}
+
+/**
  * @tc.name: SetSubscribeCursorNotSupportTest001
  * @tc.desc: Test SetSubscribeCursor interface returns OK when queryType is GET_ALL.
  * @tc.type: FUNC
@@ -933,7 +968,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest001, TestSize.Level0
      * @tc.expected: step2. OK.
      */
     std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
-    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str());
+    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str(), nullptr);
     EXPECT_NE(monitorConfig, nullptr);
     EXPECT_EQ(monitorConfig->tableCount, 9);
 
@@ -953,7 +988,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
      * @tc.steps:step1. parse schema when db path is null.
      * @tc.expected: step1. return nullptr.
      */
-    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(nullptr);
+    MonitorTablesConfig *monitorConfig = DataDonationUtils::BinlogSchemaGet(nullptr, nullptr);
     EXPECT_EQ(monitorConfig, nullptr);
 
     /**
@@ -961,7 +996,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
      * @tc.expected: step2. return nullptr.
      */
     std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
-    monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str());
+    monitorConfig = DataDonationUtils::BinlogSchemaGet(dbPath.c_str(), nullptr);
     EXPECT_EQ(monitorConfig, nullptr);
 
     /**
@@ -969,7 +1004,7 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseError001, TestSize.Level
      * @tc.expected: step3. return nullptr.
      */
     std::string invalidDbPath = "not_a_path";
-    monitorConfig = DataDonationUtils::BinlogSchemaGet(invalidDbPath.c_str());
+    monitorConfig = DataDonationUtils::BinlogSchemaGet(invalidDbPath.c_str(), nullptr);
     EXPECT_EQ(monitorConfig, nullptr);
     DataDonationUtils::FreeMonitorConfig(monitorConfig);
 }
@@ -1822,5 +1857,55 @@ HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData019, TestSize.Lev
         EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
     } while (status == OK);
     EXPECT_EQ(totalRecords, dataCount + dataCount + dataCount);
+}
+
+/**
+ * @tc.name: QueryBinlogSubscribeData020
+ * @tc.desc: Set binlog using binlog dir path
+ * @tc.type: FUNC
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, QueryBinlogSubscribeData020, TestSize.Level0)
+{
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+    std::string binlogDirPath = BasicUnitTest::GetTestDir() + "/kvbinlog";
+    DBCommon::CreateDirectory(binlogDirPath);
+    SetBinlogSchemaAndChangeCallback(db, binlogDirPath.c_str());
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true, binlogDirPath), OK);
+    EXPECT_EQ(delegate->SetSubscribeSchema(DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
+    const int64_t dataCount = 1;
+    PrepareJsonFileData(db, dataCount);
+
+    DBSubscribeCursor cursorIn;
+    cursorIn.queryType = SubQueryType::GET_NEW;
+    cursorIn.cursor = 0;
+    
+    DBSubscribeCursor cursorOut;
+    std::vector<VBucket> dataOut;
+    int64_t totalRecords = 0;
+    DBStatus status = DBStatus::OK;
+    do {
+        dataOut = {};
+        status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+        EXPECT_EQ(status, dataOut.size() < CloudDbConstant::SUBSCRIBE_QUERY_LIMIT ? SUBSCRIBE_QUERY_END : OK);
+        totalRecords = totalRecords + static_cast<int64_t>(dataOut.size());
+        cursorIn = cursorOut;
+        EXPECT_EQ(delegate->SetSubscribeCursor(cursorIn), OK);
+    } while (status == OK);
+    EXPECT_EQ(totalRecords, 2 * dataCount);
+
+    UpdateJsonFileData(db, 0, dataCount);
+    EXPECT_EQ(delegate->SetBinlogEnabled(false), OK);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    cursorIn.cursor = 0;
+    status = delegate->QuerySubscribeOutput(cursorIn, cursorOut, dataOut);
+    EXPECT_NE(status, OK);
+    CloseAllDelegate();
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(binlogDirPath);
 }
 }

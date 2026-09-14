@@ -64,7 +64,7 @@ public:
         std::unordered_map<std::string, std::string> &sqls);
     static int GetCursorByPkColumn(const VBucket &bucket, const BinlogChangedData &data, DdData &dataRow);
 
-    static int SaveSubscribeSchema(sqlite3 *db, const std::string &schema);
+    static int SaveSubscribeSchema(sqlite3 *db, const std::string &schema, const std::string &binlogDirPath = "");
 
     static std::string GetFieldName(const std::string &tableName, const std::string &columnName);
 
@@ -79,7 +79,9 @@ public:
     static int MapCloudOpType(int opType, uint32_t &cloudOpType);
 
     static bool EndsWith(const std::string &str, const std::string &suffix);
-    static bool GetSchemaPathByDbPath(const std::string &dbPath, std::string &output);
+    static std::string GetBinlogDir(const std::string &dbPath, const std::string &binlogDirPath);
+    static bool GetSchemaPathByDbPath(const std::string &dbPath, const std::string &binlogDirPath,
+        std::string &output);
 
     static void FilterNonOutputKeys(DdData &dataRow, const std::vector<DataDonationSchema::DdKeyOut> &keyOut);
 
@@ -92,7 +94,7 @@ public:
     // split across multiple info-level log lines so that no single line exceeds 250 characters.
     static void LogQueryBinlogResult(const std::string &pkKey, const std::vector<VBucket> &data);
 
-    static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath);
+    static MonitorTablesConfig *BinlogSchemaGet(const char *dbPath, const char *binlogDirPath);
 
     static int FreeMonitorConfig(MonitorTablesConfig *monitorConfig);
 
@@ -100,19 +102,21 @@ public:
 
     static Type ConvertStrToType(const std::string &str, int colType);
 
-    static int CheckBinlogDirExist(const std::string &dbPath);
-    static std::string GetRowidHwmFilePath(const std::string &dbPath);
+    static int CheckBinlogDirExist(const std::string &dbPath, const std::string &binlogDirPath = "");
+    static std::string GetRowidHwmFilePath(const std::string &dbPath, const std::string &binlogDirPath = "");
     static int SaveRowidHwm(const std::string &dbPath, const std::string &tableName,
+        const std::string &binlogDirPath = "",
         const std::vector<std::pair<std::string, int64_t>> &cursorValues = {},
         const std::vector<std::pair<std::string, int64_t>> &maxRowids = {});
     static int LoadRowidHwm(const std::string &dbPath, const std::string &tableName,
+        const std::string &binlogDirPath,
         std::vector<std::pair<std::string, int64_t>> &cursorValues,
         std::vector<std::pair<std::string, int64_t>> &maxRowids);
     static int ExtractJsonObj(const JsonObject &inJsonObject, const std::string &field, JsonObject &out);
     static int ExtractJsonObjArray(const JsonObject &inJsonObject,
         const std::string &field, std::vector<JsonObject> &out);
-    static int ValidateJsonConfigFile(const std::string &dbPath);
-    static int ValidateSubscribeRowIdHwm(const std::string &dbPath);
+    static int ValidateJsonConfigFile(const std::string &dbPath, const std::string &binlogDirPath = "");
+    static int ValidateSubscribeRowIdHwm(const std::string &dbPath, const std::string &binlogDirPath = "");
     static int WriteHwmFile(const std::string &filePath, const JsonObject &root);
 private:
     static std::string JoinPrimaryKey(const std::vector<DonateDataField> &changedData);
@@ -150,7 +154,8 @@ private:
 
     static int AddColumnsToMonitor(const JsonObject &jsonValue, MonitorTablesConfig *monitorConfig);
 
-    static int ReadJsonConfigFromFile(const std::string &dbPath, std::string &jsonStr);
+    static int ReadJsonConfigFromFile(const std::string &dbPath, const std::string &binlogDirPath,
+        std::string &jsonStr);
 
     static int ParseSearchConfig(const std::string &jsonStr, JsonObject &searchConfig);
 
@@ -162,7 +167,8 @@ private:
 
     static int ExtractFunction(const JsonObject &mapping, MonitorTablesConfig *monitorConfig);
 
-    static int GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath);
+    static int GetMonitorConfigFromFile(MonitorTablesConfig *monitorConfig, const std::string &dbPath,
+        const std::string &binlogDirPath);
 
     static int ParseHwmFile(const std::string &filePath, JsonObject &root);
     static int UpdateOrInsertCursorEntry(JsonObject &tableEntry,

@@ -304,7 +304,7 @@ int RDBGeneralUt::ExecuteSQL(const std::string &sql, const StoreInfo &info)
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
-void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(sqlite3 *db)
+void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(sqlite3 *db, const char *binlogDirPath)
 {
     Sqlite3BinlogConfig binLogConfig = {
         .mode = Sqlite3BinlogMode::ROW_FOR_SEARCH,
@@ -321,6 +321,7 @@ void RDBGeneralUt::SetBinlogSchemaAndChangeCallback(sqlite3 *db)
         },
         .xLogFullCallback = nullptr,
         .callbackCtx = nullptr,
+        .binlogDirPath = binlogDirPath,
     };
     int errCode = sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_BINLOG, &binLogConfig);
     if (errCode != SQLITE_OK) {

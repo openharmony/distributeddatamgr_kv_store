@@ -597,14 +597,14 @@ int SQLiteRelationalStoreConnection::SetProperty(const Property &property)
     return store->SetProperty(property);
 }
 
-int SQLiteRelationalStoreConnection::SetBinlogEnabled(bool enabled)
+int SQLiteRelationalStoreConnection::SetBinlogEnabled(bool enabled, const std::string &binlogDirPath)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
         LOGE("[RelationalConnection] store is null, set binlog enabled failed!");
         return -E_INVALID_CONNECTION;
     }
-    return store->SetBinlogEnabled(enabled);
+    return store->SetBinlogEnabled(enabled, binlogDirPath);
 }
 
 int SQLiteRelationalStoreConnection::SetSubscribeCursor(const DBSubscribeCursor &cursorIn)

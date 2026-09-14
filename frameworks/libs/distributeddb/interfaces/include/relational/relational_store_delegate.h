@@ -239,7 +239,7 @@ public:
         return OK;
     }
 
-    DB_API virtual DBStatus SetBinlogEnabled(bool enabled)
+    DB_API virtual DBStatus SetBinlogEnabled(bool enabled, const std::string &binlogDirPath = "")
     {
         return OK;
     }
