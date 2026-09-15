@@ -362,7 +362,7 @@ HWTEST_F(DistributedDBBasicRDBTest, RdbCloudSyncExample004, TestSize.Level0)
     EXPECT_EQ(RDBGeneralUt::CountTableData(info1, g_defaultTable1), 2);
     virtualCloudDb->SetLocalAssetNotFound(false);
     RDBGeneralUt::CloudBlockSync(info1, query);
-    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 0);
+    EXPECT_EQ(RDBGeneralUt::GetAbnormalCount(g_defaultTable1, DBStatus::LOCAL_ASSET_NOT_FOUND), 2);
 }
 
 /**

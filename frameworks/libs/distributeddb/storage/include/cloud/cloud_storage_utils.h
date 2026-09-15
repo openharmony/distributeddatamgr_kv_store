@@ -223,6 +223,10 @@ public:
     static bool IsNeedMarkUploadFinishedWithErr(const VBucket &record);
 
     static bool IsDownloadDataContainsPrimaryKey(const VBucket &vBucket, const std::map<std::string, Field> &pkMap);
+
+    static bool IsAssetContainsTempStatus(uint32_t status);
+
+    static bool IsAssetCannotUpload(uint32_t status);
 private:
     static int IdentifyCloudTypeInner(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags);
 
@@ -233,10 +237,6 @@ private:
         std::vector<std::map<std::string, std::vector<Type>>> &syncPkVec);
 
     static bool IsAssetLocalNotExist(uint32_t status);
-
-    static bool IsAssetContainsTempStatus(uint32_t status);
-
-    static bool IsAssetCannotUpload(uint32_t status);
 
     static void CheckAbnormalDataInner(const bool isAsyncDownloading, VBucket &data, bool &isSyncAssetAbnormal,
         bool &isAsyncAssetAbnormal);

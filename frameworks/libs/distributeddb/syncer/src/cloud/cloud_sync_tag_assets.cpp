@@ -57,6 +57,9 @@ void TagSingleAssetForUpload(AssetOpType flag, Asset &asset, Assets &res)
     if (lowBitStatus == static_cast<uint32_t>(AssetStatus::DELETE)) {
         return;
     }
+    if (CloudStorageUtils::IsAssetCannotUpload(asset.status)) {
+        return;
+    }
     switch (flag) {
         case AssetOpType::INSERT: {
             asset.assetId.clear();
@@ -312,7 +315,10 @@ Assets TagAsset(const std::string &assetFieldName, TagAssetsInfo &tagAssetsInfo,
 void MarkAssetForUpload(bool isInsert, Asset &asset)
 {
     uint32_t lowBitStatus = AssetOperationUtils::EraseBitMask(asset.status);
-    if (lowBitStatus == AssetStatus::DELETE) {
+    if (CloudStorageUtils::IsAssetContainsTempStatus(asset.status)) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        lowBitStatus = static_cast<uint32_t>(AssetStatus::NORMAL);
+    } else if (lowBitStatus == AssetStatus::DELETE) {
         asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
     } else if (isInsert) {
         asset.flag = static_cast<uint32_t>(AssetOpType::INSERT);
