@@ -1595,7 +1595,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
         ASSERT_EQ(assets.size(), 2u); // 2 is asset num
         for (size_t i = 0; i < assets.size(); ++i) {
             EXPECT_EQ(assets[i].hash, ASSET_COPY.hash);
-            EXPECT_EQ(assets[i].status, AssetStatus::NORMAL);
+            EXPECT_EQ(assets[i].status, AssetStatus::DOWNLOADING);
         }
     }
     int errCode;

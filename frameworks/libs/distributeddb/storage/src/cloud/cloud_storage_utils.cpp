@@ -1214,7 +1214,7 @@ bool CloudStorageUtils::IsAssetContainsTempStatus(uint32_t status)
 
 bool CloudStorageUtils::IsAssetCannotUpload(uint32_t status)
 {
-    return IsAssetLocalNotExist(status) || IsAssetContainsTempStatus(status);
+    return IsAssetLocalNotExist(status);
 }
 
 void CloudStorageUtils::CheckAbnormalDataInner(const bool isAsyncDownloading, VBucket &data,

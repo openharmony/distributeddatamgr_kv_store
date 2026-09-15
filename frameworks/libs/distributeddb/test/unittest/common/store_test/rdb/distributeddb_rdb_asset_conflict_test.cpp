@@ -381,9 +381,9 @@ HWTEST_F(DistributedDBRDBAssetConflictTest, AssetConflictPolicy008, TestSize.Lev
     }));
     auto loader = GetVirtualAssetLoader();
     ASSERT_NE(loader, nullptr);
-    EXPECT_EQ(loader->GetBatchDownloadCount(), 1);
+    EXPECT_EQ(loader->GetBatchDownloadCount(), 0);
     auto cloud = GetVirtualCloudDb();
-    EXPECT_EQ(cloud->GetUpdateCount(), 0);
+    EXPECT_EQ(cloud->GetUpdateCount(), 1);
 }
 
 /**

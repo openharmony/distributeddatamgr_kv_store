@@ -521,6 +521,12 @@ int CloudSyncer::TagDownloadAssetsWithPolicy(const Key &hashKey, size_t idx, Syn
         CloudSyncTagAssets::MergeAssetWithId(param.downloadData.data[idx], localAssetInfo);
         return E_OK;
     }
+    OpType opType = param.downloadData.opType[idx];
+    // only cloud insert or update local should tag with policy
+    if (opType != OpType::INSERT && opType != OpType::UPDATE &&
+        policy == AssetConflictPolicy::CONFLICT_POLICY_TEMP_PATH) {
+        return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
+    }
     AssetRecordInfo info = {IsCurrentSkipDownloadAssets(), idx, hashKey, dataInfo,
         GetCurrentAssetFields()};
     switch (policy) {
