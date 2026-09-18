@@ -79,6 +79,7 @@ public:
     private:
         int32_t FileLock(int32_t lockType);
         int32_t lockFd_ = -1;
+        uint64_t lockTag_ = 0;
         std::string lockFile_;
     };
 
@@ -106,6 +107,8 @@ private:
     void LoadNewKey(const std::vector<char> &content, SecurityContent &securityContent);
     void LoadOldKey(const std::vector<char> &content, SecurityContent &securityContent);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
+    bool WriteKeyContent(const std::string &keyFullPath, const std::vector<uint8_t> &nonceValue,
+        const std::vector<uint8_t> &encryptKey);
     bool IsKeyOutdated(const std::vector<uint8_t> &date);
     bool Retry();
     void* GetHandle();

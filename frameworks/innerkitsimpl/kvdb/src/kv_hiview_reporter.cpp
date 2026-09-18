@@ -51,6 +51,7 @@ static constexpr const char *SHM_NAME = "SHM";
 static constexpr const char *SHM_PATH = "single_ver/main/gen_natural_store.db-shm";
 static constexpr const char *WAL_NAME = "WAL";
 static constexpr const char *WAL_PATH = "single_ver/main/gen_natural_store.db-wal";
+static constexpr uint32_t FDSAN_DOMAIN = 0xD001610;
 std::set<std::string> KVDBFaultHiViewReporter::storeFaults_ = {};
 std::mutex KVDBFaultHiViewReporter::mutex_;
 
@@ -259,7 +260,9 @@ void KVDBFaultHiViewReporter::CreateCorruptedFlag(const std::string &dbPath, con
             StoreUtil::Anonymous(flagFilename).c_str(), errno);
         return;
     }
-    close(fd);
+    uint64_t tag = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, FDSAN_DOMAIN);
+    fdsan_exchange_owner_tag(fd, 0, tag);
+    fdsan_close_with_tag(fd, tag);
 }
 
 void KVDBFaultHiViewReporter::DeleteCorruptedFlag(const std::string &dbPath, const std::string &storeId)

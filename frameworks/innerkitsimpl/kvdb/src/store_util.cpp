@@ -31,6 +31,7 @@ constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
 constexpr int32_t SERVICE_GID = 3012;
 constexpr const char *REPLACE_CHAIN = "***";
 constexpr const char *DEFAULT_ANONYMOUS = "******";
+constexpr uint32_t FDSAN_DOMAIN = 0xD001610;
 std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
 using DBStatus = DistributedDB::DBStatus;
 std::map<DBStatus, Status> StoreUtil::statusMap_ = {
@@ -179,7 +180,9 @@ bool StoreUtil::CreateFile(const std::string &name)
         ZLOGE("Fopen error:%{public}d, path:%{public}s", errno, Anonymous(name).c_str());
         return false;
     }
-    close(fp);
+    uint64_t tag = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, FDSAN_DOMAIN);
+    fdsan_exchange_owner_tag(fp, 0, tag);
+    fdsan_close_with_tag(fp, tag);
     return true;
 }
 

@@ -41,6 +41,7 @@ static constexpr const char *SUFFIX_KEY_V1 = ".key_v1";
 static constexpr const char *SUFFIX_KEY_LOCK = ".key_lock";
 static constexpr const char *KEY_DIR = "/key";
 static constexpr const char *SLASH = "/";
+static constexpr uint32_t FDSAN_DOMAIN = 0xD001610;
 
 using Creator = std::shared_ptr<OHOS::DistributedKv::KVDBCrypto> (*)(const std::vector<uint8_t> &rootKeyAlias,
     const std::vector<uint8_t> vecAad);
@@ -317,17 +318,25 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         return false;
     }
     auto keyFullPath = keyPath + SLASH + name + SUFFIX_KEY_V1;
-    auto fd = open(keyFullPath.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    return WriteKeyContent(keyFullPath, param.nonceValue, encryptKey);
+}
+
+bool SecurityManager::WriteKeyContent(const std::string &keyFullPath, const std::vector<uint8_t> &nonceValue,
+    const std::vector<uint8_t> &encryptKey)
+{
+    int fd = open(keyFullPath.c_str(), O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd < 0) {
         ZLOGE("Create file failed, ret:%{public}d", errno);
         return false;
     }
+    uint64_t tag = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, FDSAN_DOMAIN);
+    fdsan_exchange_owner_tag(fd, 0, tag);
     std::string content(SecurityContent::MAGIC_NUM, static_cast<char>(SecurityContent::MAGIC_CHAR));
-    content.append(reinterpret_cast<const char *>(param.nonceValue.data()), param.nonceValue.size());
+    content.append(reinterpret_cast<const char *>(nonceValue.data()), nonceValue.size());
     content.append(reinterpret_cast<const char *>(encryptKey.data()), encryptKey.size());
     auto ret = SaveStringToFd(fd, content);
     std::fill(content.begin(), content.end(), '\0');
-    close(fd);
+    fdsan_close_with_tag(fd, tag);
     if (!ret) {
         ZLOGE("Save key to file fail, ret:%{public}d", ret);
         return false;
@@ -353,7 +362,10 @@ SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &
     lockFd_ = open(lockFile_.c_str(), O_RDONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (lockFd_ < 0) {
         ZLOGE("Open failed, errno:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(lockFile_).c_str());
+        return;
     }
+    lockTag_ = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, FDSAN_DOMAIN);
+    fdsan_exchange_owner_tag(lockFd_, 0, lockTag_);
 }
 
 SecurityManager::KeyFiles::~KeyFiles()
@@ -361,7 +373,7 @@ SecurityManager::KeyFiles::~KeyFiles()
     if (lockFd_ < 0) {
         return;
     }
-    close(lockFd_);
+    fdsan_close_with_tag(lockFd_, lockTag_);
     lockFd_ = -1;
 }
 
@@ -378,7 +390,7 @@ int32_t SecurityManager::KeyFiles::UnLock()
 int32_t SecurityManager::KeyFiles::DestroyLock()
 {
     if (lockFd_ > 0) {
-        close(lockFd_);
+        fdsan_close_with_tag(lockFd_, lockTag_);
         lockFd_ = -1;
     }
     StoreUtil::Remove(lockFile_);

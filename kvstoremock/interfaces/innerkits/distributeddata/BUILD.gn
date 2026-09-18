@@ -62,6 +62,7 @@ config("distributeddatafwk_public_config") {
 
 ohos_shared_library("distributeddata_inner_mock") {
   include_dirs = [
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/native/kv/fdsan",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/win/include",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/mac/include",
@@ -93,7 +94,10 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
   ]
 
-  cflags = [ "-Wno-c99-designator" ]
+  cflags = [
+    "-includefdsan_mock.h",
+    "-Wno-c99-designator",
+  ]
 
   configs = [ ":distributeddatafwk_config" ]
 
@@ -111,6 +115,7 @@ ohos_shared_library("distributeddata_inner_mock") {
     "../../../frameworks/innerkitsimpl/kvdb/src/store_factory.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/store_manager.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/common/log_print.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
