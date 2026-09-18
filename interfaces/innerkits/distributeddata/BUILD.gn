@@ -131,7 +131,7 @@ ohos_shared_library("distributeddata_inner") {
   ]
   if (is_linux) {
     cflags_cc += [ "-includefdsan_mock.h" ]
-    include_dirs += [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan" ]
+    include_dirs = [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan" ]
     sources += [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp" ]
   }
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
@@ -211,7 +211,7 @@ ohos_shared_library("distributeddata_client_sync") {
   ]
   if (is_linux) {
     cflags_cc += [ "-includefdsan_mock.h" ]
-    include_dirs += [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan" ]
+    include_dirs = [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan" ]
     sources += [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp" ]
   }
   configs = [ ":distributeddatafwk_config" ]
