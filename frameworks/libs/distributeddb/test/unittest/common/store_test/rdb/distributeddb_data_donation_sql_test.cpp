@@ -1123,6 +1123,134 @@ HWTEST_F(DataDonationSqlGeneratorTest, ClientSchemaParseTest003, TestSize.Level0
 }
 
 /**
+ * @tc.name: BinlogSchemaStatusGetTest001
+ * @tc.desc: Test BinlogSchemaStatusGet when notify schema exists.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogSchemaStatusGetTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set schema with notify schema on service side.
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON,
+        DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. get schema status when notify schema exists.
+     * @tc.expected: step2. mtime is not zero.
+     */
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    BinlogJsonStatus status = DataDonationUtils::BinlogSchemaStatusGet(dbPath.c_str(), nullptr);
+    EXPECT_NE(status.mtime, 0);
+}
+
+/**
+ * @tc.name: BinlogSchemaStatusGetTest002
+ * @tc.desc: Test BinlogSchemaStatusGet when db path is null.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogSchemaStatusGetTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. get schema status when db path is null.
+     * @tc.expected: step1. mtime is zero.
+     */
+    BinlogJsonStatus status = DataDonationUtils::BinlogSchemaStatusGet(nullptr, nullptr);
+    EXPECT_EQ(status.mtime, 0);
+}
+
+/**
+ * @tc.name: BinlogSchemaStatusGetTest003
+ * @tc.desc: Test BinlogSchemaStatusGet fallback to search schema when notify schema is empty.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogSchemaStatusGetTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set schema with only search schema (notify file will be empty).
+     * @tc.expected: step1. OK.
+     */
+    StoreInfo storeInfo = {USER_ID, APP_ID, STORE_ID_1};
+    SetSchemaInfo(storeInfo, GetJsonFileSchema());
+    ASSERT_EQ(BasicUnitTest::InitDelegate(storeInfo, "device1"), E_OK);
+
+    auto delegate = GetDelegate(storeInfo);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetBinlogEnabled(true), OK);
+    EXPECT_EQ(SetSubscribeSchema(storeInfo, DataDonationSchemaJsonTest::DATA_DONATION_SCHEMA_JSON), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. get schema status, should fallback to search schema.
+     * @tc.expected: step2. mtime is not zero.
+     */
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    BinlogJsonStatus status = DataDonationUtils::BinlogSchemaStatusGet(dbPath.c_str(), nullptr);
+    EXPECT_NE(status.mtime, 0);
+}
+
+/**
+ * @tc.name: BinlogSchemaStatusGetTest004
+ * @tc.desc: Test BinlogSchemaStatusGet when both notify and search schema files are missing.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, BinlogSchemaStatusGetTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. get schema status when no schema files exist.
+     * @tc.expected: step1. mtime is zero.
+     */
+    std::string dbPath = BasicUnitTest::GetTestDir() + "/" + STORE_ID_1 + ".db";
+    BinlogJsonStatus status = DataDonationUtils::BinlogSchemaStatusGet(dbPath.c_str(), nullptr);
+    EXPECT_EQ(status.mtime, 0);
+}
+
+/**
+ * @tc.name: StatJsonFromFileError001
+ * @tc.desc: Test StatJsonFromFile and GetSchemaPathByDbPath with invalid db path.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: test
+ */
+HWTEST_F(DataDonationSqlGeneratorTest, StatJsonFromFileError001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. stat json from file with invalid db path.
+     * @tc.expected: step1. return -E_INVALID_DB.
+     */
+    std::string invalidDbPath = "not_a_path";
+    uint64_t mtime = 0;
+    uint64_t size = 0;
+    EXPECT_EQ(DataDonationUtils::StatJsonFromFile(invalidDbPath,
+        DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", mtime, size), -E_INVALID_DB);
+    EXPECT_EQ(mtime, 0);
+    EXPECT_EQ(size, 0);
+
+    /**
+     * @tc.steps:step2. get schema path by db path with invalid db path.
+     * @tc.expected: step2. return false.
+     */
+    std::string outputPath;
+    EXPECT_FALSE(DataDonationUtils::GetSchemaPathByDbPath(invalidDbPath,
+        DataDonationUtils::DATA_NOTIFY_SCHEMA_FILE, "", outputPath));
+}
+
+/**
  * @tc.name: ClientSchemaParseError001
  * @tc.desc: Test binlog parse schema on error.
  * @tc.type: FUNC

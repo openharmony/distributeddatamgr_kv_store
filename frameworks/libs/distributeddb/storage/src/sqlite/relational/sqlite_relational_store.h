@@ -268,6 +268,10 @@ protected:
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows);
 #endif
     int SetBinlogEnabled(bool enabled, bool isExternal, const std::string &binlogDirPath) const;
+
+    int ApplyBinlogToAllDatabases(bool enabled, const std::string &binlogDirPath) const;
+
+    void UpdateBinlogState(bool enabled, const std::string &binlogDirPath);
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv
