@@ -313,12 +313,7 @@ int RelationalSyncAbleStorage::GetLockStatusByGid(const std::string &tableName, 
 
 bool RelationalSyncAbleStorage::IsExistTableContainAssets()
 {
-    std::shared_ptr<DataBaseSchema> cloudSchema = nullptr;
-    int errCode = GetCloudDbSchema(cloudSchema);
-    if (errCode != E_OK) {
-        LOGE("Cannot get cloud schema: %d when check contain assets table", errCode);
-        return false;
-    }
+    std::shared_ptr<DataBaseSchema> cloudSchema = GetCloudDbSchema();
     if (cloudSchema == nullptr) {
         LOGE("Not set cloud schema when check contain assets table");
         return false;
@@ -434,20 +429,20 @@ int RelationalSyncAbleStorage::StartTransactionForAsyncDownload(TransactType typ
 int RelationalSyncAbleStorage::GetCloudTableWithoutShared(std::vector<TableSchema> &tables)
 {
     const auto tableInfos = GetSchemaInfo().GetTables();
-    for (const auto &[tableName, info] : tableInfos) {
-        if (info.GetSharedTableMark()) {
+    std::shared_ptr<DataBaseSchema> cloud = GetCloudDbSchema();
+    if (cloud == nullptr) {
+        LOGE("[RDBStorage] Not set cloud schema");
+        return -E_CLOUD_ERROR;
+    }
+    for (const auto &table : cloud->tables) {
+        auto iter = tableInfos.find(table.name);
+        if (iter == tableInfos.end()) {
             continue;
         }
-        TableSchema schema;
-        int errCode = GetCloudTableSchema(tableName, schema);
-        if (errCode == -E_NOT_FOUND) {
+        if (iter->second.GetSharedTableMark()) {
             continue;
         }
-        if (errCode != E_OK) {
-            LOGW("[RDBStorage] Get cloud table failed %d", errCode);
-            return errCode;
-        }
-        tables.push_back(schema);
+        tables.push_back(table);
     }
     return E_OK;
 }

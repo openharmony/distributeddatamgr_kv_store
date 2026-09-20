@@ -50,7 +50,7 @@ static void CommonExpectCall(MockICloudSyncStorageInterface *iCloud)
     EXPECT_CALL(*iCloud, ReleaseCloudDataToken(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudDbSchema()).WillRepeatedly(Return(nullptr));
 }
 static void BatchExpectCall(MockICloudSyncStorageInterface *iCloud)
 {
@@ -634,7 +634,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
     EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudDbSchema()).WillRepeatedly(Return(nullptr));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     PrepareCloudDBMockCheck(*idb);
 
@@ -683,7 +683,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
     EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudDbSchema()).WillRepeatedly(Return(nullptr));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     PrepareCloudDBMockCheck(*idb);
 
@@ -740,7 +740,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
     EXPECT_CALL(*iCloud, Rollback(false)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudDbSchema()).WillRepeatedly(Return(nullptr));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     PrepareCloudDBMockCheck(*idb);
 

@@ -164,7 +164,7 @@ public:
 
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
 
-    int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema) override;
+    std::shared_ptr<DataBaseSchema> GetCloudDbSchema() override;
 
     int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
 
@@ -324,6 +324,7 @@ protected:
 
     bool IsSetDistributedSchema(const std::string &tableName, RelationalSchemaObject &schemaObj);
 
+    int GetCloudTableWithoutShared(std::vector<TableSchema> &tables);
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -356,8 +357,6 @@ private:
 
     int UpsertDataInTransaction(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
         const std::vector<VBucket> &records);
-
-    int GetCloudTableWithoutShared(std::vector<TableSchema> &tables);
 
     int GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
         const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery, bool isQueryDownloadRecords);

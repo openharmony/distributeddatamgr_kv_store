@@ -63,11 +63,10 @@ int SqliteCloudKvStore::SetCloudDbSchema(const std::map<std::string, DataBaseSch
     return E_OK;
 }
 
-int SqliteCloudKvStore::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
+std::shared_ptr<DataBaseSchema> SqliteCloudKvStore::GetCloudDbSchema()
 {
     std::lock_guard<std::mutex> autoLock(schemaMutex_);
-    cloudSchema = std::make_shared<DataBaseSchema>(schema_[user_]);
-    return E_OK;
+    return std::make_shared<DataBaseSchema>(schema_[user_]);
 }
 
 int SqliteCloudKvStore::GetCloudTableSchema(const TableName &tableName,
@@ -628,8 +627,7 @@ bool SqliteCloudKvStore::IsTagCloudUpdateLocal(const LogInfo &localInfo, const L
 int SqliteCloudKvStore::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery,
     std::vector<std::string> &users, bool isQueryDownloadRecords)
 {
-    std::shared_ptr<DataBaseSchema> cloudSchema;
-    (void)GetCloudDbSchema(cloudSchema);
+    std::shared_ptr<DataBaseSchema> cloudSchema = GetCloudDbSchema();
     if (cloudSchema == nullptr) {
         return -E_INVALID_SCHEMA;
     }

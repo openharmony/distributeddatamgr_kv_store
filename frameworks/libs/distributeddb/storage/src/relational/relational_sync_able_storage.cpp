@@ -1328,11 +1328,10 @@ int RelationalSyncAbleStorage::PutCloudSyncDataInner(SQLiteSingleVerRelationalSt
     return errCode;
 }
 
-int RelationalSyncAbleStorage::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
+std::shared_ptr<DataBaseSchema> RelationalSyncAbleStorage::GetCloudDbSchema()
 {
     std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
-    cloudSchema = schemaMgr_.GetCloudDbSchema();
-    return E_OK;
+    return schemaMgr_.GetCloudDbSchema();
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -1700,8 +1699,7 @@ int RelationalSyncAbleStorage::GetTableReference(const std::string &tableName,
 std::pair<std::string, int> RelationalSyncAbleStorage::GetSourceTableName(const std::string &tableName)
 {
     std::pair<std::string, int> res = { "", E_OK };
-    std::shared_ptr<DataBaseSchema> cloudSchema;
-    (void) GetCloudDbSchema(cloudSchema);
+    std::shared_ptr<DataBaseSchema> cloudSchema = GetCloudDbSchema();
     if (cloudSchema == nullptr) {
         LOGE("[RelationalSyncAbleStorage] cloud schema is null when get source table");
         return { "", -E_INTERNAL_ERROR };
@@ -1726,8 +1724,7 @@ std::pair<std::string, int> RelationalSyncAbleStorage::GetSourceTableName(const 
 std::pair<std::string, int> RelationalSyncAbleStorage::GetSharedTargetTableName(const std::string &tableName)
 {
     std::pair<std::string, int> res = { "", E_OK };
-    std::shared_ptr<DataBaseSchema> cloudSchema;
-    (void) GetCloudDbSchema(cloudSchema);
+    std::shared_ptr<DataBaseSchema> cloudSchema = GetCloudDbSchema();
     if (cloudSchema == nullptr) {
         LOGE("[RelationalSyncAbleStorage] cloud schema is null when get shared target table");
         return { "", -E_INTERNAL_ERROR };

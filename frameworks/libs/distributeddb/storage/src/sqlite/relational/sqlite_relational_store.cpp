@@ -1812,8 +1812,7 @@ int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
         LOGE("[RelationalStore][CheckCloudSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    std::shared_ptr<DataBaseSchema> cloudSchema;
-    (void) storageEngine_->GetCloudDbSchema(cloudSchema);
+    std::shared_ptr<DataBaseSchema> cloudSchema = storageEngine_->GetCloudDbSchema();
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     for (const auto &tableSchema : schema.tables) {
         TableInfo tableInfo = localSchema.GetTable(tableSchema.name);

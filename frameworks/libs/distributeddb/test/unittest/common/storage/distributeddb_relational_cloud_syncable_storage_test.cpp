@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include "cloud/cloud_db_constant.h"
+#include "cloud/mock_relational_sync_able_storage.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "log_table_manager_factory.h"
@@ -28,7 +29,6 @@
 #include "time_helper.h"
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
-
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -1810,6 +1810,44 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, ExpireCursor003, TestS
     std::vector<Asset> assets;
     std::vector<std::string> notify;
     EXPECT_EQ(executor.DoCleanInner(ClearMode::BUTT, {"table"}, {}, assets, notify), -1);
+}
+
+/**
+ * @tc.name: MockRDBStorageTest001
+ * @tc.desc: Test rdb executor in expire cursor
+ * @tc.type: FUNC
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MockRDBStorageTest001, TestSize.Level0)
+{
+    auto storage = new(std::nothrow) MockRelationalSyncAbleStorage();
+    ASSERT_NE(storage, nullptr);
+    RelationalSchemaObject schemaObject;
+    TableInfo info;
+    info.SetTableName("B");
+    schemaObject.AddRelationalTable(info);
+    info.SetTableName("C");
+    schemaObject.AddRelationalTable(info);
+    EXPECT_CALL(*storage, GetSchemaInfo).WillRepeatedly([&schemaObject]() {
+        return schemaObject;
+    });
+    DataBaseSchema dataBaseSchema;
+    TableSchema table;
+    table.name = "C";
+    dataBaseSchema.tables.push_back(table);
+    table.name = "B";
+    dataBaseSchema.tables.push_back(table);
+    std::vector<TableSchema> expectTables = dataBaseSchema.tables;
+    table.name = "A";
+    dataBaseSchema.tables.push_back(table);
+    EXPECT_EQ(storage->SetCloudDbSchema(dataBaseSchema), E_OK);
+    std::vector<TableSchema> actualTables;
+    EXPECT_EQ(storage->CallGetCloudTableWithoutShared(actualTables), E_OK);
+    EXPECT_EQ(actualTables.size(), expectTables.size());
+    for (size_t i = 0; i < actualTables.size() && i < expectTables.size(); ++i) {
+        EXPECT_EQ(actualTables[i].name, expectTables[i].name);
+    }
+    RefObject::KillAndDecObjRef(storage);
 }
 #endif
 }
