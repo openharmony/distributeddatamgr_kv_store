@@ -1477,9 +1477,10 @@ int DataDonationUtils::StatJsonFromFile(const std::string &dbPath, const std::st
         return errCode;
     }
     #ifdef __linux__
-        mtime = static_cast<uint64_t>(fileStat.st_mtim.tv_sec) + static_cast<uint64_t>(fileStat.st_mtim.tv_nsec);
+    mtime = static_cast<uint64_t>(fileStat.st_mtim.tv_sec) * DBConstant::TIME_SECOND_TO_NS +
+        static_cast<uint64_t>(fileStat.st_mtim.tv_nsec);
     #else
-        mtime = static_cast<uint64_t>(fileStat.st_mtime);
+    mtime = static_cast<uint64_t>(fileStat.st_mtime);
     #endif
     size = static_cast<uint64_t>(fileStat.st_size);
     return errCode;
