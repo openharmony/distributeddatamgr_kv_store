@@ -106,13 +106,13 @@ public:
 
     int SetProperty(const Property &property) override;
 
-    int SetBinlogEnabled(bool enabled) override;
+    int SetBinlogEnabled(bool enabled, const std::string &binlogDirPath = "") override;
 
     int SetSubscribeCursor(const DBSubscribeCursor &cursorIn) override;
 
     int StopTask(TaskType type) override;
 
-    int SetSubscribeSchema(const std::string &schema) override;
+    int SetSubscribeSchema(const SubscribeSchema &schema) override;
 
     int SetTrackerMatrixInfo(const MatrixFileInfo &info) override;
 protected:

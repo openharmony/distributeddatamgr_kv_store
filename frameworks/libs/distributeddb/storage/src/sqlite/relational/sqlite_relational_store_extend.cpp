@@ -256,42 +256,57 @@ int SQLiteRelationalStore::GetTargetDevices(const std::string &localDeviceId,
     return errCode;
 }
 
-int SQLiteRelationalStore::SetBinlogEnabled(bool enabled)
+int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, const std::string &binlogDirPath)
 {
     std::lock_guard<std::mutex> lock(initalMutex_);
     if (isBinlogEnabled_ == enabled) {
-        return E_OK;
-    }
-    int errCode = E_OK;
-    std::vector<bool> isExternal = { false, true };
-    for (bool external : std::as_const(isExternal)) {
-        errCode = SetBinlogEnabled(enabled, external);
-        if (errCode != E_OK) {
-            break;
+        if (!enabled || binlogDirPath_ == binlogDirPath) {
+            return E_OK;
         }
+        LOGW("[RelationalStore][SetBinlogEnabled] binlog dir change while enabled is not supported,"
+            " disable binlog first. curDir:%s, newDir:%s",
+            DBCommon::StringMiddleMasking(binlogDirPath_).c_str(),
+            DBCommon::StringMiddleMasking(binlogDirPath).c_str());
+        return -E_NOT_SUPPORT;
     }
+    int errCode = ApplyBinlogToAllDatabases(enabled, binlogDirPath);
     if (errCode == E_OK) {
-        isBinlogEnabled_ = enabled;
+        UpdateBinlogState(enabled, binlogDirPath);
         return E_OK;
     }
     if (!enabled) {
         return errCode;
     }
     // rollback
-    int errCodeRollback = E_OK;
-    for (bool external : std::as_const(isExternal)) {
-        errCodeRollback = SetBinlogEnabled(false, external);
-        if (errCodeRollback != E_OK) {
-            break;
-        }
+    if (ApplyBinlogToAllDatabases(false, std::string()) == E_OK) {
+        UpdateBinlogState(false, std::string());
     }
-    if (errCodeRollback == E_OK) {
-        isBinlogEnabled_ = false;
-    }
-    return (errCode == E_OK) ? errCodeRollback : errCode;
+    return errCode;
 }
 
-int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal) const
+int SQLiteRelationalStore::ApplyBinlogToAllDatabases(bool enabled, const std::string &binlogDirPath) const
+{
+    const std::vector<bool> isExternal = { false, true };
+    for (bool external : isExternal) {
+        int errCode = SetBinlogEnabled(enabled, external, binlogDirPath);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+void SQLiteRelationalStore::UpdateBinlogState(bool enabled, const std::string &binlogDirPath)
+{
+    isBinlogEnabled_ = enabled;
+    binlogDirPath_ = enabled ? binlogDirPath : std::string();
+    if (sqliteStorageEngine_ != nullptr) {
+        sqliteStorageEngine_->SetBinlogDirPath(binlogDirPath_);
+    }
+}
+
+int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal,
+    const std::string &binlogDirPath) const
 {
     int errCode = E_OK;
     SQLiteSingleVerRelationalStorageExecutor *handle = GetHandle(true, errCode, isExternal);
@@ -306,7 +321,7 @@ int SQLiteRelationalStore::SetBinlogEnabled(bool enabled, bool isExternal) const
         ReleaseHandle(handle, isExternal);
         return errCode;
     }
-    errCode = SQLiteUtils::SetBinlogEnabled(db, enabled);
+    errCode = SQLiteUtils::SetBinlogEnabled(db, enabled, binlogDirPath);
     if (errCode != E_OK) {
         LOGE("[RelationalStore][SetBinlogEnabled] Set binlog enabled failed:%d, external:%d, enabled:%d",
             errCode, isExternal, enabled);
@@ -326,8 +341,12 @@ int SQLiteRelationalStore::SetSubscribeCursor(const DBSubscribeCursor &cursorIn)
     return sqliteStorageEngine_->SetSubscribeCursor(cursorIn);
 }
 
-int SQLiteRelationalStore::SetSubscribeSchema(const std::string &schema)
+int SQLiteRelationalStore::SetSubscribeSchema(const SubscribeSchema &schema)
 {
+    if (!schema.searchSchema.has_value()) {
+        LOGE("[RelationalStore][SetSubscribeSchema] searchSchema not set");
+        return -E_INVALID_ARGS;
+    }
     return sqliteStorageEngine_->SetSubscribeSchema(schema);
 }
 

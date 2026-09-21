@@ -121,13 +121,13 @@ public:
 
     virtual int SetProperty(const Property &property) = 0;
 
-    virtual int SetBinlogEnabled(bool enabled) = 0;
+    virtual int SetBinlogEnabled(bool enabled, const std::string &binlogDirPath) = 0;
 
     virtual int SetSubscribeCursor(const DBSubscribeCursor &cursorIn) = 0;
 
     virtual int StopTask(TaskType type) = 0;
 
-    virtual int SetSubscribeSchema(const std::string &schema) = 0;
+    virtual int SetSubscribeSchema(const SubscribeSchema &schema) = 0;
 
     virtual int SetTrackerMatrixInfo(const MatrixFileInfo &info) = 0;
 protected:

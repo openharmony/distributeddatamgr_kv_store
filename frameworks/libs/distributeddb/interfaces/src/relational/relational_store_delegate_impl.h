@@ -58,7 +58,7 @@ public:
 
     DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
 
-    DBStatus SetBinlogEnabled(bool enabled) override;
+    DBStatus SetBinlogEnabled(bool enabled, const std::string &binlogDirPath = "") override;
 
     DBStatus SetSubscribeCursor(const DBSubscribeCursor &cursorIn) override;
 #ifdef USE_DISTRIBUTEDDB_CLOUD
@@ -117,7 +117,7 @@ public:
     DBStatus RemoveExceptDeviceData(
         const std::map<std::string, std::vector<std::string>> &tableMap, int64_t &changedRows) override;
 #endif
-    DBStatus SetSubscribeSchema(const std::string &schema) override;
+    DBStatus SetSubscribeSchema(const SubscribeSchema &schema) override;
 
     DBStatus SetTrackerMatrixInfo(const MatrixFileInfo &info) override;
 private:

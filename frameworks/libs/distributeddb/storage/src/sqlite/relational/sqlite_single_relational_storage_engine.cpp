@@ -1836,7 +1836,13 @@ int SQLiteSingleRelationalStorageEngine::CheckTableExists(const std::string &tab
     return handle->CheckTableExists(tableName, isCreated);
 }
 
-int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &schema)
+void SQLiteSingleRelationalStorageEngine::SetBinlogDirPath(const std::string &path)
+{
+    std::lock_guard<std::mutex> autoLock(donationCacheMutex_);
+    dataDonationCache_.SetBinlogDirPath(path);
+}
+
+int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const SubscribeSchema &schema)
 {
     DataDonationCache schemaCache;
     int errCode = schemaCache.SetSchema(schema);
@@ -1869,7 +1875,14 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &s
         return errCode;
     }
 
-    errCode = DataDonationUtils::SaveSubscribeSchema(db, schema);
+    // Read binlogDirPath from the old cache (before replacement) for both schema saving
+    // and state migration to the new cache, so the path survives cache replacement.
+    std::string binlogDirPath;
+    {
+        std::lock_guard<std::mutex> autoLock(donationCacheMutex_);
+        binlogDirPath = dataDonationCache_.GetBinlogDirPath();
+    }
+    errCode = DataDonationUtils::SaveSubscribeSchema(db, schema, binlogDirPath);
     if (errCode != E_OK) {
         LOGE("[SetSubscribeSchema] Save data donation schema failed:%d", errCode);
         return errCode;
@@ -1878,6 +1891,7 @@ int SQLiteSingleRelationalStorageEngine::SetSubscribeSchema(const std::string &s
 
     {
         std::lock_guard<std::mutex> autoLock(donationCacheMutex_);
+        schemaCache.SetBinlogDirPath(binlogDirPath);
         dataDonationCache_ = std::move(schemaCache);
     }
 

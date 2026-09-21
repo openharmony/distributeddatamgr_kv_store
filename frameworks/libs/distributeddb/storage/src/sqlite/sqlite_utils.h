@@ -232,7 +232,7 @@ public:
 
     static int BindType(sqlite3_stmt *statement, const Type &type, int cid);
 
-    static int SetBinlogEnabled(sqlite3 *db, bool enabled);
+    static int SetBinlogEnabled(sqlite3 *db, bool enabled, const std::string &binlogDirPath = "");
 
     static int TransactionProcess(sqlite3 *db, TransactType type, const std::function<int()> &func);
 

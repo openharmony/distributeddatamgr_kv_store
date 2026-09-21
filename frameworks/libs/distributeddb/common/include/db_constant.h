@@ -218,6 +218,8 @@ public:
     static constexpr const uint64_t INVALID_TASK_ID = static_cast<uint64_t>(0L);
 
     static constexpr const char SEPARATOR = '/';
+
+    static constexpr const uint64_t TIME_SECOND_TO_NS = 1000000000;
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

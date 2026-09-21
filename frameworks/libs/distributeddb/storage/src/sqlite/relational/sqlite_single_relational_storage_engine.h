@@ -91,8 +91,9 @@ public:
         SQLiteSingleVerRelationalStorageExecutor *handle, std::set<std::string> &clearWaterMarkTables,
         RelationalSchemaObject &schema);
 
-    int SetSubscribeSchema(const std::string &schema);
+    int SetSubscribeSchema(const SubscribeSchema &schema);
     int SetTrackerMatrixInfo(const MatrixFileInfo &info);
+    void SetBinlogDirPath(const std::string &path);
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD
     int UpgradeSharedTable(const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,

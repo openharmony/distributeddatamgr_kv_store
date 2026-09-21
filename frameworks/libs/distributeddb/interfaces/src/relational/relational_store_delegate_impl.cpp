@@ -777,18 +777,19 @@ DBStatus RelationalStoreDelegateImpl::StopTask(TaskType type)
 }
 #endif
 
-DBStatus RelationalStoreDelegateImpl::SetBinlogEnabled(bool enabled)
+DBStatus RelationalStoreDelegateImpl::SetBinlogEnabled(bool enabled, const std::string &binlogDirPath)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for SetBinlogEnabled!");
         return DB_ERROR;
     }
-    int errCode = conn_->SetBinlogEnabled(enabled);
+    int errCode = conn_->SetBinlogEnabled(enabled, binlogDirPath);
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] SetBinlogEnabled failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
-    LOGI("[RelationalStore Delegate] SetBinlogEnabled:%d", enabled);
+    LOGI("[RelationalStore Delegate] SetBinlogEnabled:%d, dir:%s", enabled,
+        DBCommon::StringMiddleMasking(binlogDirPath).c_str());
     return OK;
 }
 
@@ -810,7 +811,7 @@ DBStatus RelationalStoreDelegateImpl::SetSubscribeCursor(const DBSubscribeCursor
     return OK;
 }
 
-DBStatus RelationalStoreDelegateImpl::SetSubscribeSchema(const std::string &schema)
+DBStatus RelationalStoreDelegateImpl::SetSubscribeSchema(const SubscribeSchema &schema)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate][SetSubscribeSchema] Invalid connection");

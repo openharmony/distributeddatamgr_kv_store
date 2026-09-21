@@ -190,7 +190,7 @@ public:
         return OK;
     }
 
-    DB_API virtual DBStatus SetSubscribeSchema([[gnu::unused]] const std::string &schema)
+    DB_API virtual DBStatus SetSubscribeSchema([[gnu::unused]] const SubscribeSchema &schema)
     {
         return OK;
     };
@@ -239,7 +239,7 @@ public:
         return OK;
     }
 
-    DB_API virtual DBStatus SetBinlogEnabled(bool enabled)
+    DB_API virtual DBStatus SetBinlogEnabled(bool enabled, const std::string &binlogDirPath = "")
     {
         return OK;
     }
