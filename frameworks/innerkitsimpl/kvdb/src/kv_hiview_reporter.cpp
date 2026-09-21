@@ -51,7 +51,6 @@ static constexpr const char *SHM_NAME = "SHM";
 static constexpr const char *SHM_PATH = "single_ver/main/gen_natural_store.db-shm";
 static constexpr const char *WAL_NAME = "WAL";
 static constexpr const char *WAL_PATH = "single_ver/main/gen_natural_store.db-wal";
-static constexpr uint32_t FDSAN_DOMAIN = 0xD001610;
 std::set<std::string> KVDBFaultHiViewReporter::storeFaults_ = {};
 std::mutex KVDBFaultHiViewReporter::mutex_;
 

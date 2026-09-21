@@ -107,8 +107,6 @@ private:
     void LoadNewKey(const std::vector<char> &content, SecurityContent &securityContent);
     void LoadOldKey(const std::vector<char> &content, SecurityContent &securityContent);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
-    bool WriteKeyContent(const std::string &keyFullPath, const std::vector<uint8_t> &nonceValue,
-        const std::vector<uint8_t> &encryptKey);
     bool IsKeyOutdated(const std::vector<uint8_t> &date);
     bool Retry();
     void* GetHandle();

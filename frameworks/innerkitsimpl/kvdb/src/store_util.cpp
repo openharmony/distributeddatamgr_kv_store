@@ -31,7 +31,6 @@ constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
 constexpr int32_t SERVICE_GID = 3012;
 constexpr const char *REPLACE_CHAIN = "***";
 constexpr const char *DEFAULT_ANONYMOUS = "******";
-constexpr uint32_t FDSAN_DOMAIN = 0xD001610;
 std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
 using DBStatus = DistributedDB::DBStatus;
 std::map<DBStatus, Status> StoreUtil::statusMap_ = {
