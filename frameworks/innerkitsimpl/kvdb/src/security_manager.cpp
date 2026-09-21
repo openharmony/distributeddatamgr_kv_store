@@ -322,7 +322,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         ZLOGE("Create file failed, ret:%{public}d", errno);
         return false;
     }
-    uint64_t tag = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, FDSAN_DOMAIN);
+    uint64_t tag = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, 0xD001610);
     fdsan_exchange_owner_tag(fd, 0, tag);
     std::string content(SecurityContent::MAGIC_NUM, static_cast<char>(SecurityContent::MAGIC_CHAR));
     content.append(reinterpret_cast<const char *>(param.nonceValue.data()), param.nonceValue.size());
@@ -357,7 +357,7 @@ SecurityManager::KeyFiles::KeyFiles(const std::string &name, const std::string &
         ZLOGE("Open failed, errno:%{public}d, path:%{public}s", errno, StoreUtil::Anonymous(lockFile_).c_str());
         return;
     }
-    lockTag_ = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, FDSAN_DOMAIN);
+    lockTag_ = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, 0xD001610);
     fdsan_exchange_owner_tag(lockFd_, 0, lockTag_);
 }
 

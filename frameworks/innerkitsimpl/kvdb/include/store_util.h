@@ -58,7 +58,5 @@ private:
     static std::atomic<uint64_t> sequenceId_;
     static std::map<DBStatus, Status> statusMap_;
 };
-
-constexpr uint32_t FDSAN_DOMAIN = 0xD001610;
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H
