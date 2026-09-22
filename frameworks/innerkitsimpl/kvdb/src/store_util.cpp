@@ -179,7 +179,9 @@ bool StoreUtil::CreateFile(const std::string &name)
         ZLOGE("Fopen error:%{public}d, path:%{public}s", errno, Anonymous(name).c_str());
         return false;
     }
-    close(fp);
+    uint64_t tag = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, 0xD001610);
+    fdsan_exchange_owner_tag(fp, 0, tag);
+    fdsan_close_with_tag(fp, tag);
     return true;
 }
 

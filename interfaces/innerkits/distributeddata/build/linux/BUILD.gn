@@ -84,6 +84,7 @@ ohos_source_set("distributeddata_inner") {
   sources = old_source_config + kvdb_source_config
 
   sources += [
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer_mock.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/dev_manager_mock.cpp",
     "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/device_convertor_mock.cpp",
@@ -92,12 +93,14 @@ ohos_source_set("distributeddata_inner") {
   configs = [ ":distributeddatafwk_config" ]
   public_configs = [ ":distributeddatafwk_public_config" ]
   cflags = [
+    "-includefdsan_mock.h",
     "-Wno-c99-designator",
     "-Werror=vla",
   ]
 
   include_dirs = [
     "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan",
     "${kv_store_base_path}/kvstoremock/interfaces/mock/arkui-x/common",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",

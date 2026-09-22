@@ -79,6 +79,7 @@ public:
     private:
         int32_t FileLock(int32_t lockType);
         int32_t lockFd_ = -1;
+        uint64_t lockTag_ = 0;
         std::string lockFile_;
     };
 

@@ -129,6 +129,11 @@ ohos_shared_library("distributeddata_inner") {
     "-Werror=vla",
     "-Wno-c99-designator",
   ]
+  if (is_linux) {
+    cflags_cc += [ "-includefdsan_mock.h" ]
+    include_dirs = [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan" ]
+    sources += [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp" ]
+  }
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps = deps_config
   deps += deps_hilog
@@ -204,6 +209,11 @@ ohos_shared_library("distributeddata_client_sync") {
     "-Werror=vla",
     "-Wno-c99-designator",
   ]
+  if (is_linux) {
+    cflags_cc += [ "-includefdsan_mock.h" ]
+    include_dirs = [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan" ]
+    sources += [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp" ]
+  }
   configs = [ ":distributeddatafwk_config" ]
 
   deps = [
