@@ -25,7 +25,7 @@ public:
     MOCK_METHOD2(PutMetaData, int(const Key &, const Value &));
     MOCK_METHOD1(ChkSchema, int(const TableName &));
     MOCK_METHOD1(SetCloudDbSchema, int(const DataBaseSchema &));
-    MOCK_METHOD1(GetCloudDbSchema, int(std::shared_ptr<DataBaseSchema> &));
+    MOCK_METHOD0(GetCloudDbSchema, std::shared_ptr<DataBaseSchema>());
     MOCK_METHOD2(GetCloudTableSchema, int(const TableName &, TableSchema &));
     MOCK_METHOD2(StartTransaction, int(TransactType, bool));
     MOCK_METHOD1(Commit, int(bool));

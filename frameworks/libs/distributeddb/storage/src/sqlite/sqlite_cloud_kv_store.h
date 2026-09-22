@@ -34,7 +34,7 @@ public:
 
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
 
-    int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema) override;
+    std::shared_ptr<DataBaseSchema> GetCloudDbSchema() override;
 
     int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
 

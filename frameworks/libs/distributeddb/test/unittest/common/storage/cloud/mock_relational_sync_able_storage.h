@@ -30,7 +30,13 @@ public:
         return RelationalSyncAbleStorage::FillReferenceData(syncData);
     }
 
+    int CallGetCloudTableWithoutShared(std::vector<TableSchema> &tables)
+    {
+        return RelationalSyncAbleStorage::GetCloudTableWithoutShared(tables);
+    }
+
     MOCK_METHOD3(GetReferenceGid, int(const std::string &, const CloudSyncBatch &, std::map<int64_t, Entries> &));
+    MOCK_CONST_METHOD0(GetSchemaInfo, RelationalSchemaObject());
 };
 }
 #endif // MOCK_RELATIONAL_SYNC_ABLE_STORAGE_H

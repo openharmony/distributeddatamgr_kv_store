@@ -113,7 +113,7 @@ public:
 
     virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
 
-    virtual int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema) = 0;
+    virtual std::shared_ptr<DataBaseSchema> GetCloudDbSchema() = 0;
 
     virtual int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) = 0;
 

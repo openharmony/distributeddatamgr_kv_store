@@ -715,7 +715,8 @@ int StorageProxy::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->GetCloudDbSchema(cloudSchema);
+    cloudSchema = store_->GetCloudDbSchema();
+    return E_OK;
 }
 
 std::pair<int, CloudSyncData> StorageProxy::GetLocalCloudVersion()
