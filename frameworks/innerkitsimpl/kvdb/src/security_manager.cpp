@@ -300,9 +300,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     keyContent.push_back(securityContent.version);
     keyContent.insert(keyContent.end(), securityContent.time.begin(), securityContent.time.end());
     keyContent.insert(keyContent.end(), key.begin(), key.end());
-    KVDBCryptoParam param;
-    param.keyValue = keyContent;
-    param.nonceValue = GenerateRandomNum(SecurityContent::NONCE_SIZE);
+    KVDBCryptoParam param{ keyContent, GenerateRandomNum(SecurityContent::NONCE_SIZE) };
     if (param.nonceValue.empty()) {
         return false;
     }
