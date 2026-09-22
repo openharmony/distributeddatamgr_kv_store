@@ -1828,9 +1828,14 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MockRDBStorageTest001,
     schemaObject.AddRelationalTable(info);
     info.SetTableName("C");
     schemaObject.AddRelationalTable(info);
+    info.SetTableName("D");
+    info.SetSharedTableMark(true);
+    schemaObject.AddRelationalTable(info);
     EXPECT_CALL(*storage, GetSchemaInfo).WillRepeatedly([&schemaObject]() {
         return schemaObject;
     });
+    std::vector<TableSchema> actualTables;
+    EXPECT_EQ(storage->CallGetCloudTableWithoutShared(actualTables), -E_CLOUD_ERROR);
     DataBaseSchema dataBaseSchema;
     TableSchema table;
     table.name = "C";
@@ -1840,8 +1845,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MockRDBStorageTest001,
     std::vector<TableSchema> expectTables = dataBaseSchema.tables;
     table.name = "A";
     dataBaseSchema.tables.push_back(table);
+    table.name = "D";
+    dataBaseSchema.tables.push_back(table);
     EXPECT_EQ(storage->SetCloudDbSchema(dataBaseSchema), E_OK);
-    std::vector<TableSchema> actualTables;
     EXPECT_EQ(storage->CallGetCloudTableWithoutShared(actualTables), E_OK);
     EXPECT_EQ(actualTables.size(), expectTables.size());
     for (size_t i = 0; i < actualTables.size() && i < expectTables.size(); ++i) {
