@@ -16,6 +16,7 @@
 #ifdef RELATIONAL_STORE
 #include "data_donation_utils.h"
 
+#include <cstdio>
 #include <fcntl.h>
 #include <fstream>
 #include <sstream>
@@ -212,14 +213,15 @@ int DataDonationUtils::WriteHwmFile(const std::string &filePath, const JsonObjec
         LOGE("[WriteHwmFile] Rowid hwm file open err: %d", errno);
         return -E_INVALID_FILE;
     }
+    fdsan_exchange_owner_tag(fd, 0, FDSAN_TAG_DISTRIBUTEDDB);
     std::string content = root.ToString() + "\n";
     ssize_t written = write(fd, content.c_str(), content.size());
     if (written == -1 || static_cast<size_t>(written) != content.size()) {
         LOGE("[WriteHwmFile] Write rowid hwm file failed, errno: %d", errno);
-        close(fd);
+        (void)fdsan_close_with_tag(fd, FDSAN_TAG_DISTRIBUTEDDB);
         return -E_INVALID_FILE;
     }
-    close(fd);
+    fdsan_close_with_tag(fd, FDSAN_TAG_DISTRIBUTEDDB);
     return E_OK;
 }
 

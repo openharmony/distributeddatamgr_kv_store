@@ -21,6 +21,7 @@
 #include <string>
 
 namespace DistributedDB {
+inline const uint64_t FDSAN_TAG_DISTRIBUTEDDB = fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, 0xD001630);
 #if (defined(OS_TYPE_WINDOWS)) || (defined(OS_TYPE_MAC))
 constexpr int EKEYREVOKED = 128;  // FOR_WIN32
 #endif

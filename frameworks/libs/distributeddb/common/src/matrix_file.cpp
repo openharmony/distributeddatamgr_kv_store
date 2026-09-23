@@ -37,7 +37,7 @@ MatrixFile::MatrixFile()
 MatrixFile::~MatrixFile()
 {
     if (fd_ >= 0) {
-        close(fd_); // close file to trigger event
+        (void)fdsan_close_with_tag(fd_, FDSAN_TAG_DISTRIBUTEDDB);
         fd_ = -1;
     }
 
@@ -65,6 +65,7 @@ int MatrixFile::AcquireWithRetry(const std::string &path)
             DBCommon::StringMiddleMaskingWithLen(path).c_str());
         return -E_INVALID_FILE;
     }
+    fdsan_exchange_owner_tag(fd, 0, FDSAN_TAG_DISTRIBUTEDDB);
     fd_ = fd;
     return E_OK;
 }

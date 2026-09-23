@@ -97,6 +97,7 @@ config("distrdb_config") {
     "//third_party/zlib",
     "//third_party/sqlite/include",
     "//third_party/bounds_checking_function/include",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/native/kv/fdsan",
   ]
 
   defines = distrdb_defines
@@ -105,6 +106,10 @@ config("distrdb_config") {
     "USING_PRINTF_LOGGER",
     "OPENSSL_SUPPRESS_DEPRECATED",
     "OMIT_cJSON",
+  ]
+  cflags = [
+    "-includefdsan_mock.h",
+    "-Wno-c99-designator",
   ]
   if (use_platform_win) {
     defines += [ "OS_TYPE_WINDOWS" ]
@@ -137,6 +142,10 @@ ohos_shared_library("distributeddb_mock") {
         [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }
   cflags = [ "-Wno-c99-designator" ]
+  sources += [
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp",
+  ]
+  
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }

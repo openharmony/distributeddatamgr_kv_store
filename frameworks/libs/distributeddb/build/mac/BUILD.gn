@@ -46,6 +46,7 @@ config("distrdb_config") {
     "${distributeddb_path}/syncer/src/device",
     "${distributeddb_path}/syncer/src/device/multiver",
     "${distributeddb_path}/syncer/src/device/singlever",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan",
   ]
 
   defines = [
@@ -89,6 +90,7 @@ ohos_source_set("distributeddb") {
   sources = distributeddb_src
   sources += [
     "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/src/mac_glibc.cpp",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp",
   ]
 
   configs = [ ":distrdb_config" ]
@@ -103,6 +105,7 @@ ohos_source_set("distributeddb") {
 
   cflags = [
     "-includemac_glibc.h",
+    "-includefdsan_mock.h",
     "-fno-lto",
   ]
 
