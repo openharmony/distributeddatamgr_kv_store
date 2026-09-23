@@ -72,10 +72,14 @@ config("distributeddb_client_lite_config") {
     "//third_party/jsoncpp/include",
     "//third_party/openssl/include",
     "//third_party/sqlite/include",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan",
   ]
   defines = [
     "RDB_CLIENT",
     "OS_TYPE_MAC",
+  ]
+  cflags = [
+    "-includefdsan_mock.h",
   ]
 }
 
@@ -91,6 +95,9 @@ config("distributeddb_client_public_config") {
 ohos_source_set("distributeddb_client_lite_impl") {
   sources = distributeddb_client_src
   sources += distributeddb_base_src
+  sources += [
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp",
+  ]
 
   configs = [
     ":distributeddb_client_config",

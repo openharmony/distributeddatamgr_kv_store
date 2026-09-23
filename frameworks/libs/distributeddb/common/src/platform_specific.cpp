@@ -448,7 +448,9 @@ int CreateFileByFileName(const std::string &fileName)
         LOGE("[CreateFile] Create file fail:%d.", errno);
         return -E_SYSTEM_API_FAIL;
     }
-    close(fp);
+    fdsan_exchange_owner_tag(fp, 0, FDSAN_TAG_DISTRIBUTEDDB);
+
+    fdsan_close_with_tag(fp, FDSAN_TAG_DISTRIBUTEDDB);
     return E_OK;
 }
 
@@ -614,6 +616,7 @@ int OpenFile(const std::string &fileName, FileHandle *&fileHandle)
         fileHandle = nullptr;
         return -E_SYSTEM_API_FAIL;
     }
+    fdsan_exchange_owner_tag(fileHandle->handle, 0, FDSAN_TAG_DISTRIBUTEDDB);
     return E_OK;
 }
 
@@ -623,7 +626,8 @@ int CloseFile(FileHandle *fileHandle)
         LOGI("[CloseFile] file handle is invalid!");
         return -E_INVALID_ARGS;
     }
-    if (close(fileHandle->handle) != 0) {
+
+    if (fdsan_close_with_tag(fileHandle->handle, FDSAN_TAG_DISTRIBUTEDDB) != 0) {
         LOGE("close file failed, errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
     }
