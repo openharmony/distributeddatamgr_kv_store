@@ -361,7 +361,7 @@ private:
 
     std::atomic<uint64_t> maxLogSize_;
 
-    mutable std::shared_mutex abortHandleMutex_;
+    mutable PiMutex<std::mutex> abortHandleMutex_;
     OperatePerm abortPerm_;
 
 #ifdef USE_DISTRIBUTEDDB_CLOUD

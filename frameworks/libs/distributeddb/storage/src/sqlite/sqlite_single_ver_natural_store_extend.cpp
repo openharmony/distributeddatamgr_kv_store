@@ -603,19 +603,19 @@ std::function<int(void)> SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(cons
 
 void SQLiteSingleVerNaturalStore::AbortHandle()
 {
-    std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(abortHandleMutex_);
     abortPerm_ = OperatePerm::RESTART_SYNC_PERM;
 }
 
 void SQLiteSingleVerNaturalStore::EnableHandle()
 {
-    std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(abortHandleMutex_);
     abortPerm_ = OperatePerm::NORMAL_PERM;
 }
 
 int SQLiteSingleVerNaturalStore::TryHandle() const
 {
-    std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(abortHandleMutex_);
     if (abortPerm_ == OperatePerm::RESTART_SYNC_PERM) {
         LOGW("[SingleVerNStore] Restarting sync, handle id[%s] is busy",
             DBCommon::TransferStringToHex(storageEngine_->GetIdentifier()).c_str());

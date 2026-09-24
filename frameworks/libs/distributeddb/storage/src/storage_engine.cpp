@@ -48,13 +48,13 @@ StorageEngine::StorageEngine()
 void StorageEngine::SetReadExecutorDelayRelease(bool isDelayRelease, uint32_t delayTimeMs)
 {
     {
-        std::lock_guard<std::mutex> lock(readMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(readMutex_);
         isDelayRelease_ = isDelayRelease;
         delayTime_ = delayTimeMs;
     }
     if (!isDelayRelease) {
         StopDelayedReleaseTimer();
-        std::lock_guard<std::mutex> lock(readMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(readMutex_);
         ClearDelayedReleaseList(readDelayedReleaseList_);
         ClearDelayedReleaseList(externalReadDelayedReleaseList_);
     }
@@ -79,7 +79,7 @@ void StorageEngine::StopDelayedReleaseTimer()
 std::chrono::steady_clock::time_point StorageEngine::GetEarliestDelayedExpireTime()
 {
     std::chrono::steady_clock::time_point earliestExpire = std::chrono::steady_clock::time_point::max();
-    std::lock_guard<std::mutex> lock(readMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(readMutex_);
     for (const auto &item : readDelayedReleaseList_) {
         if (item.second < earliestExpire) {
             earliestExpire = item.second;
@@ -235,7 +235,7 @@ int StorageEngine::Init(bool isEnhance)
         return E_OK;
     } else if (errCode == -E_EKEYREVOKED) {
         // Assumed file system has classification function, can only get one write handle
-        std::unique_lock<std::mutex> lock(writeMutex_);
+        std::unique_lock<PiMutex<std::mutex>> lock(writeMutex_);
         if (!writeIdleList_.empty() || !writeUsingList_.empty()) {
             isInitialized_.store(true);
             initCondition_.notify_all();
@@ -262,7 +262,7 @@ StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, in
     }
 
     {
-        std::unique_lock<std::mutex> lock(initMutex_);
+        std::unique_lock<PiMutex<std::mutex>> lock(initMutex_);
         bool result = initCondition_.wait_for(lock, std::chrono::seconds(waitTime), [this]() {
             return isInitialized_.load();
         });
@@ -283,7 +283,7 @@ StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, in
 StorageExecutor *StorageEngine::FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime, bool isExternal)
 {
     LOGD("[FindWriteExecutor]Finding WriteExecutor");
-    std::unique_lock<std::mutex> lock(writeMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(writeMutex_);
     errCode = -E_BUSY;
     if (perm_ == OperatePerm::DISABLE_PERM || perm_ != perm) {
         LOGI("Not permitted to get the executor[%u]", static_cast<unsigned>(perm_));
@@ -323,7 +323,7 @@ StorageExecutor *StorageEngine::FindReadExecutor(OperatePerm perm, int &errCode,
     auto &pendingCount = isExternal ? externalReadPendingCount_ : readPendingCount_;
     bool isNeedCreate = false;
     {
-        std::unique_lock<std::mutex> lock(readMutex_);
+        std::unique_lock<PiMutex<std::mutex>> lock(readMutex_);
         errCode = -E_BUSY;
         if (perm_ == OperatePerm::DISABLE_PERM || perm_ != perm) {
             LOGI("Not permitted to get the executor[%u]", static_cast<unsigned>(perm_));
@@ -382,7 +382,7 @@ StorageExecutor *StorageEngine::FetchReadStorageExecutor(int &errCode, bool isEx
             errCode = E_OK;
         }
     }
-    std::unique_lock<std::mutex> lock(readMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(readMutex_);
     auto &pendingCount = isExternal ? externalReadPendingCount_ : readPendingCount_;
     pendingCount--;
     if (isNeedCreate) {
@@ -421,7 +421,7 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
         LOGD("Recycle executor[%d] for id[%.6s]", handle->GetWritable(), hashIdentifier_.c_str());
     }
     if (handle->GetWritable()) {
-        std::unique_lock<std::mutex> lock(writeMutex_);
+        std::unique_lock<PiMutex<std::mutex>> lock(writeMutex_);
         std::list<StorageExecutor *> &writeUsingList = isExternal ? externalWriteUsingList_ : writeUsingList_;
         std::list<StorageExecutor *> &writeIdleList = isExternal ?  externalWriteIdleList_ : writeIdleList_;
         auto iter = std::find(writeUsingList.begin(), writeUsingList.end(), handle);
@@ -453,7 +453,7 @@ void StorageEngine::Recycle(StorageExecutor *&handle, bool isExternal)
 StorageExecutor *StorageEngine::RecycleExcessReadExecutor(StorageExecutor *handle, bool isExternal,
     bool &needStartTimer)
 {
-    std::unique_lock<std::mutex> lock(readMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(readMutex_);
     std::list<StorageExecutor *> &readUsingList = isExternal ? externalReadUsingList_ : readUsingList_;
     std::list<StorageExecutor *> &readIdleList = isExternal ? externalReadIdleList_ : readIdleList_;
     const auto iter = std::find(readUsingList.begin(), readUsingList.end(), handle);
@@ -480,7 +480,7 @@ void StorageEngine::RecycleDelayExecutor(StorageExecutor *handle, bool isExterna
 {
     bool isFound = false;
     {
-        std::unique_lock<std::mutex> lock(readMutex_);
+        std::unique_lock<PiMutex<std::mutex>> lock(readMutex_);
         auto &delayedList = isExternal ? externalReadDelayedReleaseList_ : readDelayedReleaseList_;
         for (auto iter = delayedList.begin(); iter != delayedList.end(); ++iter) {
             if (iter->first == handle) {
@@ -505,7 +505,7 @@ void StorageEngine::AddToDelayedRelease(StorageExecutor *handle, bool isExternal
 
 StorageExecutor *StorageEngine::FetchFromDelayedRelease(bool isExternal)
 {
-    std::unique_lock<std::mutex> lock(readMutex_);
+    std::unique_lock<PiMutex<std::mutex>> lock(readMutex_);
     if (!isDelayRelease_) {
         return nullptr;
     }
@@ -526,7 +526,7 @@ void StorageEngine::ReleaseExpiredDelayedReadExecutors()
 {
     std::list<StorageExecutor *> expiredHandles;
     {
-        std::unique_lock<std::mutex> lock(readMutex_);
+        std::unique_lock<PiMutex<std::mutex>> lock(readMutex_);
         auto now = std::chrono::steady_clock::now();
         CollectExpiredDelayedExecutors(readDelayedReleaseList_, now, expiredHandles);
         CollectExpiredDelayedExecutors(externalReadDelayedReleaseList_, now, expiredHandles);
@@ -578,8 +578,8 @@ int StorageEngine::TryToDisable(bool isNeedCheckAll, OperatePerm disableType)
     }
 
     std::lock(writeMutex_, readMutex_);
-    std::lock_guard<std::mutex> writeLock(writeMutex_, std::adopt_lock);
-    std::lock_guard<std::mutex> readLock(readMutex_, std::adopt_lock);
+    std::lock_guard<PiMutex<std::mutex>> writeLock(writeMutex_, std::adopt_lock);
+    std::lock_guard<PiMutex<std::mutex>> readLock(readMutex_, std::adopt_lock);
 
     if (!isNeedCheckAll) {
         goto END;
@@ -603,8 +603,8 @@ END:
 void StorageEngine::Enable(OperatePerm enableType)
 {
     std::lock(writeMutex_, readMutex_);
-    std::lock_guard<std::mutex> writeLock(writeMutex_, std::adopt_lock);
-    std::lock_guard<std::mutex> readLock(readMutex_, std::adopt_lock);
+    std::lock_guard<PiMutex<std::mutex>> writeLock(writeMutex_, std::adopt_lock);
+    std::lock_guard<PiMutex<std::mutex>> readLock(readMutex_, std::adopt_lock);
     if (perm_ == enableType) {
         LOGI("Re-enable the database");
         perm_ = OperatePerm::NORMAL_PERM;
@@ -616,8 +616,8 @@ void StorageEngine::Enable(OperatePerm enableType)
 void StorageEngine::Abort(OperatePerm enableType)
 {
     std::lock(writeMutex_, readMutex_);
-    std::lock_guard<std::mutex> writeLock(writeMutex_, std::adopt_lock);
-    std::lock_guard<std::mutex> readLock(readMutex_, std::adopt_lock);
+    std::lock_guard<PiMutex<std::mutex>> writeLock(writeMutex_, std::adopt_lock);
+    std::lock_guard<PiMutex<std::mutex>> readLock(readMutex_, std::adopt_lock);
     if (perm_ == enableType) {
         LOGI("Abort the handle occupy, release all!");
         perm_ = OperatePerm::NORMAL_PERM;
@@ -735,13 +735,13 @@ void StorageEngine::CloseExecutor()
 {
     StopDelayedReleaseTimer();
     {
-        std::lock_guard<std::mutex> lock(writeMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(writeMutex_);
         ClearHandleList(writeIdleList_);
         ClearHandleList(externalWriteIdleList_);
     }
 
     {
-        std::lock_guard<std::mutex> lock(readMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(readMutex_);
         ClearHandleList(readIdleList_);
         ClearHandleList(externalReadIdleList_);
         ClearDelayedReleaseList(readDelayedReleaseList_);

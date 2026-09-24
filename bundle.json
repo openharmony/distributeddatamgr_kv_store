@@ -83,6 +83,7 @@
         "napi",
         "node",
         "openssl",
+        "qos_manager",
         "runtime_core",
         "safwk",
         "samgr",

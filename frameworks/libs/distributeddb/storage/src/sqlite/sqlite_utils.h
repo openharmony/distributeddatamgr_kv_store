@@ -29,6 +29,14 @@
 #ifdef RELATIONAL_STORE
 #include "relational_schema_object.h"
 #endif
+#if !defined(OS_TYPE_WINDOWS) && !defined(OS_TYPE_MAC)
+#include "pi_mutex.h"
+template<typename Mutex = std::mutex>
+using PiMutex = OHOS::PiMutex::PiMutex<Mutex>;
+#else
+template<typename Mutex>
+using PiMutex = Mutex;
+#endif
 
 namespace DistributedDB {
 enum class TransactType {
