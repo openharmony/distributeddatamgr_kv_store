@@ -201,16 +201,16 @@ private:
     static const int MAX_WRITE_SIZE;
     static const int MAX_READ_SIZE;
 
-    std::mutex initMutex_;
-    std::condition_variable initCondition_;
+    PiMutex<std::mutex> initMutex_;
+    std::condition_variable_any initCondition_;
     std::atomic<bool> isInitialized_;
     OperatePerm perm_;
     bool operateAbort_;
 
-    std::mutex readMutex_;
-    std::mutex writeMutex_;
-    std::condition_variable writeCondition_;
-    std::condition_variable readCondition_;
+    PiMutex<std::mutex> readMutex_;
+    PiMutex<std::mutex> writeMutex_;
+    std::condition_variable_any writeCondition_;
+    std::condition_variable_any readCondition_;
     std::list<StorageExecutor *> writeUsingList_;
     std::list<StorageExecutor *> writeIdleList_;
     std::list<StorageExecutor *> readUsingList_;

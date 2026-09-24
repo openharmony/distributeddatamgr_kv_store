@@ -47,6 +47,7 @@ config("distrdb_config") {
     "${distributeddb_path}/syncer/src/device/multiver",
     "${distributeddb_path}/syncer/src/device/singlever",
     "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/pi_mutex",
   ]
 
   defines = [

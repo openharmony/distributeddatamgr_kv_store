@@ -103,7 +103,7 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     // need to check if the transaction started
     if (!isHighPerformaceReadMode || transactionExeFlag_.load()) {
         {
-            std::lock_guard<std::mutex> lock(transactionMutex_);
+            std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
             if (writeHandle_ != nullptr) {
                 LOGD("Transaction started already.");
                 Timestamp recordTimestamp;
@@ -167,7 +167,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
     }
     DBDfxAdapter::StartTracing();
     {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("Transaction started already.");
             errCode = writeHandle_->GetEntries(queryObj, entries);
@@ -216,7 +216,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
     }
     DBDfxAdapter::StartTracing();
     {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("Transaction started already.");
             errCode = writeHandle_->GetCount(queryObj, count);
@@ -274,7 +274,7 @@ void SQLiteSingleVerNaturalStoreConnection::ReleaseSnapshot(IKvDBSnapshot *&snap
 
 int SQLiteSingleVerNaturalStoreConnection::StartTransaction()
 {
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
     if (writeHandle_ != nullptr) {
         LOGD("Transaction started already.");
         return -E_TRANSACT_STATE;
@@ -290,7 +290,7 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransaction()
 int SQLiteSingleVerNaturalStoreConnection::Commit(SingleVerNaturalStoreCommitNotifyData *&committedData,
     SingleVerNaturalStoreCommitNotifyData *&localCommittedData)
 {
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
     if (writeHandle_ == nullptr) {
         LOGE("single version database is null or the transaction has not been started");
         return -E_INVALID_DB;
@@ -323,7 +323,7 @@ void SQLiteSingleVerNaturalStoreConnection::NotifyDataAfterCommit(SingleVerNatur
 
 int SQLiteSingleVerNaturalStoreConnection::RollBack()
 {
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
     if (writeHandle_ == nullptr) {
         LOGE("Invalid handle for rollback or the transaction has not been started.");
         return -E_INVALID_DB;
@@ -705,7 +705,7 @@ int SQLiteSingleVerNaturalStoreConnection::PreClose(bool isCloseImmediately)
 
     // check if transaction closed
     {
-        std::lock_guard<std::mutex> transactionLock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> transactionLock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGW("Transaction started, need to rollback before close.");
             int errCode = RollbackInner();
@@ -783,7 +783,7 @@ int SQLiteSingleVerNaturalStoreConnection::PragmaRemoveLocalDataByKeyPattern(voi
         return -E_INVALID_DB;
     }
 
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
     int errCode = E_OK;
     bool isAuto = false;
     if (writeHandle_ == nullptr) {
@@ -924,7 +924,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
     }
     // check whether sync started to get SystemTime
     naturalStore->WakeUpSyncer();
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
     if (writeHandle_ == nullptr) {
@@ -981,7 +981,7 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
     }
     // check whether sync started to get SystemTime
     naturalStore->WakeUpSyncer();
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
 
@@ -1552,7 +1552,7 @@ int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const PragmaPublishInfo 
         if (IsTransactionStarted()) {
             return -E_NOT_SUPPORT;
         }
-        std::lock_guard<std::mutex> lock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
         errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
             return errCode;
@@ -1684,7 +1684,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
         naturalStore->WakeUpSyncer();
     }
 
-    std::lock_guard<std::mutex> lock(transactionMutex_);
+    std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
 
     errCode = StartTransactionInner(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
@@ -1983,7 +1983,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
 
     DBDfxAdapter::StartTracing();
     {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
@@ -2013,7 +2013,7 @@ int SQLiteSingleVerNaturalStoreConnection::UpdateKey(const DistributedDB::Update
     }
     int errCode = E_OK;
     {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("[Connection] Transaction started already.");
             errCode = writeHandle_->UpdateKey(callback);
@@ -2186,7 +2186,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const std::string &device,
         getDevice = device;
     }
     {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
+        std::lock_guard<PiMutex<std::mutex>> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
             return writeHandle_->GetEntries(getDevice, entries);

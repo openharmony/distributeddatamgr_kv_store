@@ -73,6 +73,7 @@ config("distributeddb_client_lite_config") {
     "//third_party/openssl/include",
     "//third_party/sqlite/include",
     "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/pi_mutex",
   ]
   defines = [ "RDB_CLIENT" ]
   cflags = [

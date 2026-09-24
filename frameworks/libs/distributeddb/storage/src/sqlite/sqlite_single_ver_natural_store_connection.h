@@ -279,7 +279,7 @@ private:
     std::mutex rekeyMutex_;
     std::mutex importMutex_;
     mutable std::mutex kvDbResultSetsMutex_;
-    mutable std::mutex transactionMutex_; // used for transaction
+    mutable PiMutex<std::mutex> transactionMutex_; // used for transaction
 };
 }
 

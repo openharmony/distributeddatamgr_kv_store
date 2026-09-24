@@ -91,6 +91,13 @@ ohos_source_set("src_file") {
     "bounds_checking_function:libsec_shared",
     "sqlite:sqlite",
   ]
+  if (is_ohos && is_standard_system && !is_arkui_x &&
+      defined(global_parts_info) &&
+      defined(global_parts_info.resourceschedule_qos_manager)) {
+    external_deps += [ "qos_manager:pi_mutex" ]
+  } else {
+    include_dirs = [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/pi_mutex" ]
+  }
   external_deps += external_deps_hilog
   external_deps += external_deps_hisysevent
   external_deps += external_deps_hitrace_meter
@@ -121,6 +128,13 @@ ohos_fuzztest("JsonResultsetFuzzTest") {
     "openssl:libcrypto_shared",
     "sqlite:sqlite",
   ]
+  if (is_ohos && is_standard_system && !is_arkui_x &&
+      defined(global_parts_info) &&
+      defined(global_parts_info.resourceschedule_qos_manager)) {
+    external_deps += [ "qos_manager:pi_mutex" ]
+  } else {
+    include_dirs = [ "${kv_store_base_path}/kvstoremock/frameworks/native/kv/pi_mutex" ]
+  }
   external_deps += external_deps_hilog
   external_deps += external_deps_hisysevent
   external_deps += external_deps_hitrace_meter
