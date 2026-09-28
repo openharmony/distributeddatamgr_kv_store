@@ -95,9 +95,13 @@ ohos_source_set("distributeddb") {
     "-flto",
   ]
 
+  cflags = [ "-includefdsan_mock.h" ]
+
   include_dirs = [
     "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan",
+    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/pi_mutex",
     "//third_party/bounds_checking_function/include",
     "//third_party/openssl/include",
     "//third_party/jsoncpp/include",
