@@ -91,7 +91,6 @@ ohos_source_set("distributeddb") {
   sources = distributeddb_src
   sources += [
     "${kv_store_base_path}/kvstoremock/interfaces/mock/mac/src/mac_glibc.cpp",
-    "${kv_store_base_path}/kvstoremock/frameworks/native/kv/fdsan/fdsan_mock.cpp",
   ]
 
   configs = [ ":distrdb_config" ]
