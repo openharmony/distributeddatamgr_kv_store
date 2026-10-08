@@ -129,24 +129,25 @@ ErrCode AbilityManagerClient::ContinueAbility(const std::string &deviceId, int32
     return 0;
 }
 ErrCode AbilityManagerClient::NotifyContinuationResult(int32_t missionId, int32_t result) { return 0; }
-ErrCode AbilityManagerClient::LockMissionForCleanup(int32_t missionId) { return 0; }
-ErrCode AbilityManagerClient::UnlockMissionForCleanup(int32_t missionId) { return 0; }
-ErrCode AbilityManagerClient::RegisterMissionListener(sptr<IMissionListener> listener) { return 0; }
-ErrCode AbilityManagerClient::UnRegisterMissionListener(sptr<IMissionListener> listener) { return 0; }
+ErrCode AbilityManagerClient::LockMissionForCleanup(int32_t missionId, int32_t userId) { return 0; }
+ErrCode AbilityManagerClient::UnlockMissionForCleanup(int32_t missionId, int32_t userId) { return 0; }
+ErrCode AbilityManagerClient::RegisterMissionListener(sptr<IMissionListener> listener, int32_t userId) { return 0; }
+ErrCode AbilityManagerClient::UnRegisterMissionListener(sptr<IMissionListener> listener, int32_t userId) { return 0; }
 ErrCode AbilityManagerClient::RegisterMissionListener(const std::string &deviceId,
                                                       sptr<IRemoteMissionListener> listener) { return 0; }
 ErrCode AbilityManagerClient::UnRegisterMissionListener(const std::string &deviceId,
                                                         sptr<IRemoteMissionListener> listener) { return 0; }
 ErrCode AbilityManagerClient::GetMissionInfos(const std::string &deviceId, int32_t numMax,
-                                              std::vector<MissionInfo> &missionInfos) { return 0; }
-ErrCode AbilityManagerClient::GetMissionInfo(const std::string &deviceId, int32_t missionId, MissionInfo &missionInfo)
+                                              std::vector<MissionInfo> &missionInfos, int32_t userId) { return 0; }
+ErrCode AbilityManagerClient::GetMissionInfo(const std::string &deviceId, int32_t missionId, MissionInfo &missionInfo,
+    int32_t userId)
 {
     return 0;
 }
 ErrCode AbilityManagerClient::GetMissionSnapshot(const std::string &deviceId, int32_t missionId,
-                                                 MissionSnapshot &snapshot, bool isLowResolution) { return 0; }
-ErrCode AbilityManagerClient::CleanMission(int32_t missionId) { return 0; }
-ErrCode AbilityManagerClient::CleanAllMissions() { return 0; }
+    MissionSnapshot &snapshot, bool isLowResolution, int32_t userId) { return 0; }
+ErrCode AbilityManagerClient::CleanMission(int32_t missionId, int32_t userId) { return 0; }
+ErrCode AbilityManagerClient::CleanAllMissions(int32_t userId) { return 0; }
 ErrCode AbilityManagerClient::MoveMissionToFront(int32_t missionId) { return 0; }
 ErrCode AbilityManagerClient::MoveMissionToFront(int32_t missionId, const StartOptions &startOptions) { return 0; }
 ErrCode AbilityManagerClient::GetMissionIdByToken(sptr<IRemoteObject> token, int32_t &missionId) { return 0; }
@@ -171,7 +172,7 @@ ErrCode AbilityManagerClient::FinishUserTest(const std::string &msg, const int64
                                              const std::string &bundleName) { return 0; }
 ErrCode AbilityManagerClient::GetTopAbility(sptr<IRemoteObject> &token) { return 0; }
 ErrCode AbilityManagerClient::DelegatorDoAbilityForeground(sptr<IRemoteObject> token) { return 0; }
-ErrCode AbilityManagerClient::DelegatorDoAbilityBackground(sptr<IRemoteObject> token) { return 0; }
+ErrCode AbilityManagerClient::DelegatorDoAbilityBackground(sptr<IRemoteObject> token, int32_t userId) { return 0; }
 ErrCode AbilityManagerClient::DoAbilityForeground(sptr<IRemoteObject> token, uint32_t flag) { return 0; }
 ErrCode AbilityManagerClient::DoAbilityBackground(sptr<IRemoteObject> token, uint32_t flag) { return 0; }
 int AbilityManagerClient::SetAbilityController(sptr<AppExecFwk::IAbilityController> abilityController,

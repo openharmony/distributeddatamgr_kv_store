@@ -910,7 +910,7 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode LockMissionForCleanup(int32_t missionId);
+    ErrCode LockMissionForCleanup(int32_t missionId, int32_t userId = -1);
 
     /**
      * @brief Unlock specified mission.
@@ -918,7 +918,7 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode UnlockMissionForCleanup(int32_t missionId);
+    ErrCode UnlockMissionForCleanup(int32_t missionId, int32_t userId = -1);
 
     /**
      * @brief change specified AbilityRecord lockState.
@@ -935,7 +935,7 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode RegisterMissionListener(sptr<IMissionListener> listener);
+    ErrCode RegisterMissionListener(sptr<IMissionListener> listener, int32_t userId = -1);
 
     /**
      * @brief UnRegister mission listener from ability mgr.
@@ -943,7 +943,7 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode UnRegisterMissionListener(sptr<IMissionListener> listener);
+    ErrCode UnRegisterMissionListener(sptr<IMissionListener> listener, int32_t userId = -1);
 
     /**
      * @brief Register mission listener to ability manager service.
@@ -989,7 +989,8 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode GetMissionInfos(const std::string &deviceId, int32_t numMax, std::vector<MissionInfo> &missionInfos);
+    ErrCode GetMissionInfos(const std::string &deviceId, int32_t numMax, std::vector<MissionInfo> &missionInfos,
+        int32_t userId = -1);
 
     /**
      * @brief Get mission info by id.
@@ -999,7 +1000,8 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode GetMissionInfo(const std::string &deviceId, int32_t missionId, MissionInfo &missionInfo);
+    ErrCode GetMissionInfo(const std::string &deviceId, int32_t missionId, MissionInfo &missionInfo,
+        int32_t userId = -1);
 
     /**
      * @brief Get mission info by id.
@@ -1022,7 +1024,7 @@ public:
      * @return Returns ERR_OK on success, others on failure.
      */
     ErrCode GetMissionSnapshot(const std::string& deviceId, int32_t missionId,
-        MissionSnapshot& snapshot, bool isLowResolution = false);
+        MissionSnapshot& snapshot, bool isLowResolution = false, int32_t userId = -1);
 
     /**
      * @brief Clean mission by id.
@@ -1030,14 +1032,14 @@ public:
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode CleanMission(int32_t missionId);
+    ErrCode CleanMission(int32_t missionId, int32_t userId = -1);
 
     /**
      * @brief Clean all missions in system.
      *
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode CleanAllMissions();
+    ErrCode CleanAllMissions(int32_t userId = -1);
 
     /**
      * @brief Move a mission to front.
@@ -1442,7 +1444,7 @@ public:
      * @param token, ability's token.
      * @return Returns ERR_OK on success, others on failure.
      */
-    ErrCode DelegatorDoAbilityBackground(sptr<IRemoteObject> token);
+    ErrCode DelegatorDoAbilityBackground(sptr<IRemoteObject> token, int32_t userId = -1);
 
    /**
      * Calls this interface to move the ability to the foreground.
